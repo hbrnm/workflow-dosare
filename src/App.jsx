@@ -440,14 +440,14 @@ function ClaimModal({ claim, onClose, onSave, onDelete, programariList = [], onA
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-4xl rounded-lg shadow-2xl my-6 border border-[#DAD4C6] flex flex-col" style={{ maxHeight: "calc(100vh - 4rem)" }}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-6xl rounded-lg shadow-2xl my-6 border border-[#DAD4C6] flex flex-col" style={{ maxHeight: "calc(100vh - 4rem)" }}>
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <button onClick={onClose} className="text-white/70 hover:text-white"><X size={18} /></button>
         </div>
         <div className="p-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 12rem)" }}>
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6">
-            <div className="lg:flex-1 space-y-4">
+            <div className="lg:w-2/3 space-y-4 pr-4">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
