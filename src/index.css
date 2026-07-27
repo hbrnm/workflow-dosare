@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.in {
+  width: 100%;
+  border: 1px solid #dad4c6;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  background: white;
+  color: #23282e;
+}
+.in:focus {
+  outline: 2px solid #c98a2b;
+  outline-offset: 1px;
+}
