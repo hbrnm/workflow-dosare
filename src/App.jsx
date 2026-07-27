@@ -23,8 +23,9 @@ const STATUSES = [
   { key: "piese_comandate",  num: 5, label: "Piese comandate",           phase: "lucru" },
   { key: "piese_sosite",     num: 6, label: "Piese sosite",              phase: "lucru" },
   { key: "programat",        num: 7, label: "Programat",                 phase: "lucru" },
-  { key: "in_lucru",         num: 8, label: "În lucru",                  phase: "lucru" },
-  { key: "facturat",         num: 9, label: "Facturat",                  phase: "final" },
+  { key: "blocat",           num: 8, label: "Dosare blocate",            phase: "lucru" },
+  { key: "in_lucru",         num: 9, label: "În lucru",                  phase: "lucru" },
+  { key: "facturat",         num: 10, label: "Facturat",                 phase: "final" },
 ];
 
 const PHASE_COLORS = {
@@ -608,6 +609,7 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState("toate");
   const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [modalClaim, setModalClaim] = useState(null);
+  const [showOverduePanel, setShowOverduePanel] = useState(false);
 
   const [programari, setProgramari] = useState([]);
   const [schedModalOpen, setSchedModalOpen] = useState(false);
@@ -730,7 +732,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             {alertCount > 0 && (
-              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-[#B23A2E] text-white" : "bg-[#B23A2E]/20 text-[#F3C0BA]"}`}>
+              <button onClick={() => setShowOverduePanel((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${showOverduePanel ? "bg-[#B23A2E] text-white" : "bg-[#B23A2E]/20 text-[#F3C0BA]"}`}>
                 <AlertTriangle size={13} /> {alertCount} depășite
               </button>
             )}
@@ -746,9 +748,13 @@ export default function App() {
       </div>
 
       <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 sticky top-[57px] z-20">
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative flex-none max-w-[320px] min-w-[160px]">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-          <input className="w-full pl-7 pr-2 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută: nr. dosar, client, nr. înmatriculare, asigurător, VIN..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="w-full pl-7 pr-10 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută: nr. dosar, client, nr. înmatriculare, asigurător, VIN..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {/* overdue panel toggle */}
+          <button title="Afișează lista dosarelor depășite" onClick={() => setShowOverduePanel((v) => !v)} className={`absolute right-1 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-[12px] font-semibold flex items-center gap-1 ${showOverduePanel ? 'bg-[#B23A2E] text-white' : 'bg-[#B23A2E]/10 text-[#B23A2E]'}`}>
+            <AlertTriangle size={12} /> <span className="text-[11px]">{alertCount}</span>
+          </button>
         </div>
         <select className="in max-w-[110px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
           <option value="toate">Toate tipurile</option><option value="RCA">RCA</option><option value="CASCO">CASCO</option>
@@ -757,6 +763,35 @@ export default function App() {
           <option value="toate">Toate statusurile</option>
           {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
         </select>
+
+        {/* Overdue dropdown panel */}
+        {showOverduePanel && (
+          <div className="w-full lg:w-96 mt-2 bg-white border border-[#DAD4C6] rounded shadow-md p-2 z-30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold text-[13px] flex items-center gap-2"><AlertTriangle size={14} /> Dosare depășite ({alertCount})</div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setOnlyAlerts((v) => !v)} className={`text-[12px] px-2 py-1 rounded ${onlyAlerts ? 'bg-[#B23A2E] text-white' : 'bg-[#EFEAE1] text-[#4A443A]'}`}>{onlyAlerts ? 'Filtrul: ON' : 'Filtrul: OFF'}</button>
+                <button onClick={() => setShowOverduePanel(false)} className="text-[12px] px-2 py-1 rounded bg-[#EFEAE1]">Închide</button>
+              </div>
+            </div>
+            <div className="max-h-60 overflow-y-auto divide-y divide-[#EFEAE1]">
+              {claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5)).slice(0, 50).map((c) => {
+                const s = STATUSES.find((x) => x.key === c.status);
+                const zile = Math.max(0, daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 5));
+                return (
+                  <div key={c.id} className="px-2 py-2 flex items-center justify-between cursor-pointer hover:bg-[#FCFAF5]" onClick={() => { setModalClaim(c); setShowOverduePanel(false); }}>
+                    <div>
+                      <div className="font-mono font-semibold text-[13px]">{c.numarDosar || '—'}</div>
+                      <div className="text-[12px] text-[#6B6558]">{c.client} · {String(s.num).padStart(2, '0')}. {s.label}</div>
+                    </div>
+                    <div className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white">+{zile}z</div>
+                  </div>
+                );
+              })}
+              {claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5)).length === 0 && <div className="p-3 text-[12px] text-[#8A8375]">Niciun dosar depășit.</div>}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-4">
