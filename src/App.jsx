@@ -21,9 +21,9 @@ const STATUSES = [
   { key: "reconstatare",     num: 3, label: "Reconstatare",              phase: "eval"  },
   { key: "accept_plata",     num: 4, label: "Accept de plată",           phase: "eval"  },
   { key: "piese_comandate",  num: 5, label: "Piese comandate",           phase: "lucru" },
-  { key: "chemat_lucru",     num: 6, label: "Chemat în lucru",           phase: "lucru" },
-  { key: "in_lucru",         num: 7, label: "În lucru",                  phase: "lucru" },
-  { key: "finalizat",        num: 8, label: "Dosar finalizat",           phase: "final" },
+  { key: "piese_sosite",     num: 6, label: "Piese sosite",              phase: "lucru" },
+  { key: "programat",        num: 7, label: "Programat",                 phase: "lucru" },
+  { key: "in_lucru",         num: 8, label: "În lucru",                  phase: "lucru" },
   { key: "facturat",         num: 9, label: "Facturat",                  phase: "final" },
 ];
 
@@ -58,7 +58,7 @@ function fmtDate(iso) {
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
-    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "",
+    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
     termenAlertaZile: 5, note: [], documente: [],
@@ -79,6 +79,7 @@ function toDb(c) {
     tip_asigurare: c.tipAsigurare,
     asigurator: c.asigurator,
     client: c.client,
+    telefon_client: c.telefonClient,
     numar_inmatriculare: c.numarInmatriculare,
     vin: c.vin,
     marca_model: c.marcaModel,
@@ -103,6 +104,7 @@ function fromDb(r) {
     tipAsigurare: r.tip_asigurare || "RCA",
     asigurator: r.asigurator || "",
     client: r.client || "",
+    telefonClient: r.telefon_client || "",
     numarInmatriculare: r.numar_inmatriculare || "",
     vin: r.vin || "",
     marcaModel: r.marca_model || "",
@@ -413,11 +415,13 @@ function Field({ label, children, full }) {
   );
 }
 
-function ClaimModal({ claim, onClose, onSave, onDelete }) {
+function ClaimModal({ claim, onClose, onSave, onDelete, programariList = [], onAddProgramare, onDeleteProgramare }) {
   const [form, setForm] = useState(claim);
   const [noteText, setNoteText] = useState("");
   const [docName, setDocName] = useState("");
   const [docLink, setDocLink] = useState("");
+  const [programareDate, setProgramareDate] = useState("");
+  const [programareNote, setProgramareNote] = useState("");
   useEffect(() => setForm(claim), [claim]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -435,7 +439,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
   const isNew = !claim.numarDosar && claim.note.length === 0 && claim.documente.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-start md:items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-2xl rounded-lg shadow-2xl my-6 border border-[#DAD4C6]">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
@@ -460,7 +464,8 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Nume/Denumire asigurat" full><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
+              <Field label="Nume/Denumire asigurat"><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
+              <Field label="Telefon client"><input className="in" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
               <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} /></Field>
               <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
               <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
@@ -514,6 +519,26 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
               {form.documente.length === 0 && <div className="text-[12px] text-[#8A8375]">Niciun document adăugat.</div>}
             </div>
           </div>
+
+          {form.status === "piese_sosite" && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Clock size={12} /> Programări</div>
+              <div className="flex gap-2 mb-2">
+                <input type="datetime-local" className="in flex-1" value={programareDate} onChange={(e) => setProgramareDate(e.target.value)} />
+                <input className="in flex-1" placeholder="Notă programare" value={programareNote} onChange={(e) => setProgramareNote(e.target.value)} />
+                <button onClick={() => { if (!programareDate) return; onAddProgramare(form.id, programareDate, programareNote); setProgramareDate(""); setProgramareNote(""); }} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+              </div>
+              <div className="space-y-1">
+                {programariList.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
+                    <div className="text-[12px]">{new Date(p.data_programare).toLocaleString("ro-RO")}{p.nota ? ` — ${p.nota}` : ""}</div>
+                    <button onClick={() => onDeleteProgramare(p.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                {programariList.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio programare.</div>}
+              </div>
+            </div>
+          )}
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><MessageSquare size={12} /> Istoric note</div>
             <div className="flex gap-2 mb-2">
@@ -561,6 +586,10 @@ export default function App() {
   const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [modalClaim, setModalClaim] = useState(null);
 
+  const [programari, setProgramari] = useState([]);
+  const [schedModalOpen, setSchedModalOpen] = useState(false);
+  const [schedForClaim, setSchedForClaim] = useState(null);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
@@ -569,7 +598,13 @@ export default function App() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  const loadProgramari = useCallback(async () => {
+    const { data, error } = await supabase.from("programari").select("*").order("data_programare", { ascending: true });
+    if (error) { console.error(error); return; }
+    setProgramari(data || []);
+  }, []);
+
+  useEffect(() => { loadAll(); loadProgramari(); }, [loadAll, loadProgramari]);
 
   const handleSave = async (claim) => {
     setSaving(true);
@@ -587,6 +622,23 @@ export default function App() {
     if (error) { setErrorMsg(error.message); return; }
     setModalClaim(null);
     loadAll();
+  };
+
+  const addProgramare = async (dosarId, dataProgramare, nota = "") => {
+    const payload = { dosar_id: dosarId, data_programare: dataProgramare, nota };
+    setSaving(true);
+    const { error } = await supabase.from("programari").insert(payload);
+    setSaving(false);
+    if (error) { setErrorMsg(error.message); return; }
+    loadProgramari();
+  };
+
+  const deleteProgramare = async (id) => {
+    setSaving(true);
+    const { error } = await supabase.from("programari").delete().eq("id", id);
+    setSaving(false);
+    if (error) { setErrorMsg(error.message); return; }
+    loadProgramari();
   };
 
   const handleMove = async (claim, dir) => {
@@ -689,7 +741,15 @@ export default function App() {
         )}
       </div>
 
-      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} />}
+      {modalClaim && <ClaimModal
+        claim={modalClaim}
+        onClose={() => setModalClaim(null)}
+        onSave={handleSave}
+        onDelete={handleDelete}
+        programariList={programari.filter((p) => p.dosar_id === modalClaim.id)}
+        onAddProgramare={(d, dt, note) => addProgramare(d, dt, note)}
+        onDeleteProgramare={(id) => deleteProgramare(id)}
+      />}
     </div>
   );
 }

@@ -23,6 +23,7 @@ create table if not exists dosare (
   manopera jsonb default '{"tinichigerie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null},"vopsitorie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null}}',
   masina_schimb text default '',
   data_darii_la_schimb date,
+  telefon_client text default '',
   created_at timestamptz default now()
 );
 
@@ -43,3 +44,13 @@ create policy "allow all for anon (temporar)" on dosare
 create index if not exists idx_dosare_status on dosare (status);
 create index if not exists idx_dosare_numar_inmatriculare on dosare (numar_inmatriculare);
 create index if not exists idx_dosare_numar_dosar on dosare (numar_dosar);
+
+create table if not exists programari (
+  id uuid primary key default gen_random_uuid(),
+  dosar_id uuid references dosare(id) on delete cascade,
+  data_programare timestamptz not null,
+  nota text default '',
+  created_at timestamptz default now()
+);
+create index if not exists idx_programari_dosar on programari (dosar_id);
+create index if not exists idx_programari_data on programari (data_programare);
