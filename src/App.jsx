@@ -35,7 +35,7 @@ const PHASE_COLORS = {
 };
 
 const INSURERS = [
-  "Allianz-Țiriac", "Groupama Asigurări", "Omniasig VIG", "Asirom VIG",
+  "Asirom VIG", "Omniasig VIG", "Allianz-Țiriac", "Groupama Asigurări",
   "Euroins România", "Grawe România", "Generali România", "Uniqa Asigurări",
   "Axeria IARD", "Hellas Direct",
 ];
@@ -58,7 +58,7 @@ function fmtDate(iso) {
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
-    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "", telefonClient: "",
+    numarDosar: "", tipAsigurare: "CASCO", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
     termenAlertaZile: 5, note: [], documente: [],
@@ -67,7 +67,8 @@ function emptyClaim(status = "primit") {
       tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
       vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
     },
-    masinaSchimb: "", dataDariiLaSchimb: "",
+    pieseAudatex: 0, valoareAchizitieService: 0,
+    masinaSchimb: "", dataPredareClient: "", zileChirieAudatex: 0,
   };
 }
 
@@ -93,7 +94,11 @@ function toDb(c) {
     adusa_fizic: c.adusaFizic,
     ce_este_de_reparat: c.ceEsteDeReparat,
     manopera: c.manopera,
+    piese_audatex: c.pieseAudatex || 0,
+    valoare_achizitie_service: c.valoareAchizitieService || 0,
     masina_schimb: c.masinaSchimb,
+    data_predare_client: c.dataPredareClient || null,
+    zile_chirie_audatex: c.zileChirieAudatex || 0,
     data_darii_la_schimb: c.dataDariiLaSchimb || null,
   };
 }
@@ -101,7 +106,7 @@ function fromDb(r) {
   return {
     id: r.id,
     numarDosar: r.numar_dosar || "",
-    tipAsigurare: r.tip_asigurare || "RCA",
+    tipAsigurare: r.tip_asigurare || "CASCO",
     asigurator: r.asigurator || "",
     client: r.client || "",
     telefonClient: r.telefon_client || "",
@@ -121,7 +126,11 @@ function fromDb(r) {
       tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(r.manopera?.tinichigerie || {}) },
       vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(r.manopera?.vopsitorie || {}) },
     },
+    pieseAudatex: r.piese_audatex || 0,
+    valoareAchizitieService: r.valoare_achizitie_service || 0,
     masinaSchimb: r.masina_schimb || "",
+    dataPredareClient: r.data_predare_client || "",
+    zileChirieAudatex: r.zile_chirie_audatex || 0,
     dataDariiLaSchimb: r.data_darii_la_schimb || "",
   };
 }
@@ -501,11 +510,13 @@ function ClaimModal({ claim, onClose, onSave, onDelete, programariList = [], onA
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                   <StageBar label="Tinichigerie" icon={<Wrench size={12} className="text-[#3B5166]" />} data={form.manopera.tinichigerie} onChange={(v) => setStage("tinichigerie", v)} />
                   <StageBar label="Vopsitorie" icon={<Paintbrush size={12} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-                  <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
-                  <Field label="Data dării la schimb"><input type="date" className="in" value={form.dataDariiLaSchimb} onChange={(e) => set("dataDariiLaSchimb", e.target.value)} /></Field>
-                </div>
+                    <Field label="Valoare piese Audatex"><input type="number" min={0} className="in" value={form.pieseAudatex} onChange={(e) => set("pieseAudatex", Number(e.target.value) || 0)} /></Field>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                    <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
+                    <Field label="Data predare client"><input type="date" className="in" value={form.dataPredareClient || form.dataDariiLaSchimb} onChange={(e) => set("dataPredareClient", e.target.value)} /></Field>
+                    <Field label="Zile chirie conform Audatex"><input type="number" min={0} className="in" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} /></Field>
+                  </div>
               </div>
             </div>
 

@@ -23,6 +23,10 @@ create table if not exists dosare (
   manopera jsonb default '{"tinichigerie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null},"vopsitorie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null}}',
   masina_schimb text default '',
   data_darii_la_schimb date,
+  data_predare_client date,
+  zile_chirie_audatex int default 0,
+  piese_audatex numeric default 0,
+  valoare_achizitie_service numeric default 0,
   telefon_client text default '',
   created_at timestamptz default now()
 );
