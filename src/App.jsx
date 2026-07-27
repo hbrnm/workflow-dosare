@@ -507,10 +507,11 @@ function ClaimModal({ claim, onClose, onSave, onDelete, programariList = [], onA
                   <textarea className="in min-h-[64px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
                 </Field>
                 <div className="text-[10.5px] text-[#8A8375] mt-2 mb-1.5">Manoperă facturată pe etape — se completează din „Accept de plată" încolo.</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
                   <StageBar label="Tinichigerie" icon={<Wrench size={12} className="text-[#3B5166]" />} data={form.manopera.tinichigerie} onChange={(v) => setStage("tinichigerie", v)} />
                   <StageBar label="Vopsitorie" icon={<Paintbrush size={12} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
                     <Field label="Valoare piese Audatex"><input type="number" min={0} className="in" value={form.pieseAudatex} onChange={(e) => set("pieseAudatex", Number(e.target.value) || 0)} /></Field>
+                    <Field label="Valoare achiziție service"><input type="number" min={0} className="in" value={form.valoareAchizitieService} onChange={(e) => set("valoareAchizitieService", Number(e.target.value) || 0)} /></Field>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
                     <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
