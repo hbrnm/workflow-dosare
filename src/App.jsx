@@ -445,117 +445,128 @@ function ClaimModal({ claim, onClose, onSave, onDelete, programariList = [], onA
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <button onClick={onClose} className="text-white/70 hover:text-white"><X size={18} /></button>
         </div>
-        <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 12rem)" }}>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              <Field label="Nr. dosar daună"><input className="in" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" /></Field>
-              <Field label="Tip asigurare">
-                <select className="in" value={form.tipAsigurare} onChange={(e) => set("tipAsigurare", e.target.value)}>
-                  <option value="RCA">RCA</option><option value="CASCO">CASCO</option>
-                </select>
-              </Field>
-              <Field label="Societate de asigurări" full>
-                <input className="in" list="insurers" value={form.asigurator} onChange={(e) => set("asigurator", e.target.value)} placeholder="ex: Allianz-Țiriac" />
-                <datalist id="insurers">{INSURERS.map((i) => <option key={i} value={i} />)}</datalist>
-              </Field>
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              <Field label="Nume/Denumire asigurat"><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
-              <Field label="Telefon client"><input className="in" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
-              <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} /></Field>
-              <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
-              <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Clock size={12} /> Tracking</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              <Field label="Status">
-                <select className="in" value={form.status} onChange={(e) => set("status", e.target.value)}>
-                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Alertă după (zile în etapă)"><input type="number" min={1} className="in" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} /></Field>
-              <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
-              <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Wrench size={12} /> Flux fizic în service</div>
-            <label className="flex items-center gap-2 text-[12.5px] text-[#23282E] mb-2 cursor-pointer">
-              <input type="checkbox" checked={form.adusaFizic} onChange={(e) => set("adusaFizic", e.target.checked)} /> Mașina este adusă fizic în service
-            </label>
-            <Field label="Ce este de reparat" full>
-              <textarea className="in min-h-[64px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
-            </Field>
-            <div className="text-[10.5px] text-[#8A8375] mt-2 mb-1.5">Manoperă facturată pe etape — se completează din „Accept de plată" încolo.</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              <StageBar label="Tinichigerie" icon={<Wrench size={12} className="text-[#3B5166]" />} data={form.manopera.tinichigerie} onChange={(v) => setStage("tinichigerie", v)} />
-              <StageBar label="Vopsitorie" icon={<Paintbrush size={12} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
-              <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
-              <Field label="Data dării la schimb"><input type="date" className="in" value={form.dataDariiLaSchimb} onChange={(e) => set("dataDariiLaSchimb", e.target.value)} /></Field>
-            </div>
-          </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
-            <div className="flex gap-2 mb-2">
-              <input className="in flex-1" placeholder="Denumire (ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} />
-              <input className="in flex-1" placeholder="Link fișier" value={docLink} onChange={(e) => setDocLink(e.target.value)} />
-              <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
-            </div>
-            <div className="space-y-1">
-              {form.documente.map((d) => (
-                <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
-                  <a href={d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
-                  <button onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 12rem)" }}>
+          <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6">
+            <div className="lg:flex-1 space-y-4">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <Field label="Nr. dosar daună"><input className="in" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" /></Field>
+                  <Field label="Tip asigurare">
+                    <select className="in" value={form.tipAsigurare} onChange={(e) => set("tipAsigurare", e.target.value)}>
+                      <option value="RCA">RCA</option><option value="CASCO">CASCO</option>
+                    </select>
+                  </Field>
+                  <Field label="Societate de asigurări" full>
+                    <input className="in" list="insurers" value={form.asigurator} onChange={(e) => set("asigurator", e.target.value)} placeholder="ex: Allianz-Țiriac" />
+                    <datalist id="insurers">{INSURERS.map((i) => <option key={i} value={i} />)}</datalist>
+                  </Field>
                 </div>
-              ))}
-              {form.documente.length === 0 && <div className="text-[12px] text-[#8A8375]">Niciun document adăugat.</div>}
-            </div>
-          </div>
+              </div>
 
-          {form.status === "piese_sosite" && (
-            <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Clock size={12} /> Programări</div>
-              <div className="flex gap-2 mb-2">
-                <input type="datetime-local" className="in flex-1" value={programareDate} onChange={(e) => setProgramareDate(e.target.value)} />
-                <input className="in flex-1" placeholder="Notă programare" value={programareNote} onChange={(e) => setProgramareNote(e.target.value)} />
-                <button onClick={() => { if (!programareDate) return; onAddProgramare(form.id, programareDate, programareNote); setProgramareDate(""); setProgramareNote(""); }} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
-              </div>
-              <div className="space-y-1">
-                {programariList.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
-                    <div className="text-[12px]">{new Date(p.data_programare).toLocaleString("ro-RO")}{p.nota ? ` — ${p.nota}` : ""}</div>
-                    <button onClick={() => onDeleteProgramare(p.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
-                  </div>
-                ))}
-                {programariList.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio programare.</div>}
-              </div>
-            </div>
-          )}
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><MessageSquare size={12} /> Istoric note</div>
-            <div className="flex gap-2 mb-2">
-              <input className="in flex-1" placeholder="Adaugă o notă..." value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
-              <button onClick={addNote} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
-            </div>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {form.note.map((n) => (
-                <div key={n.id} className="bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#8A8375] font-mono">{new Date(n.data).toLocaleString("ro-RO")}</span>
-                    <button onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-70"><Trash2 size={12} /></button>
-                  </div>
-                  <div className="mt-0.5">{n.text}</div>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <Field label="Nume/Denumire asigurat"><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
+                  <Field label="Telefon client"><input className="in" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
+                  <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} /></Field>
+                  <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
+                  <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
                 </div>
-              ))}
-              {form.note.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio notă încă.</div>}
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Clock size={12} /> Tracking</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <Field label="Status">
+                    <select className="in" value={form.status} onChange={(e) => set("status", e.target.value)}>
+                      {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Alertă după (zile în etapă)"><input type="number" min={1} className="in" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} /></Field>
+                  <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
+                  <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Wrench size={12} /> Flux fizic în service</div>
+                <label className="flex items-center gap-2 text-[12.5px] text-[#23282E] mb-2 cursor-pointer">
+                  <input type="checkbox" checked={form.adusaFizic} onChange={(e) => set("adusaFizic", e.target.checked)} /> Mașina este adusă fizic în service
+                </label>
+                <Field label="Ce este de reparat" full>
+                  <textarea className="in min-h-[64px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
+                </Field>
+                <div className="text-[10.5px] text-[#8A8375] mt-2 mb-1.5">Manoperă facturată pe etape — se completează din „Accept de plată" încolo.</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  <StageBar label="Tinichigerie" icon={<Wrench size={12} className="text-[#3B5166]" />} data={form.manopera.tinichigerie} onChange={(v) => setStage("tinichigerie", v)} />
+                  <StageBar label="Vopsitorie" icon={<Paintbrush size={12} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                  <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
+                  <Field label="Data dării la schimb"><input type="date" className="in" value={form.dataDariiLaSchimb} onChange={(e) => set("dataDariiLaSchimb", e.target.value)} /></Field>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:w-1/3 space-y-4 mt-4 lg:mt-0">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
+                <div className="flex gap-2 mb-2">
+                  <input className="in flex-1" placeholder="Denumire (ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} />
+                  <input className="in flex-1" placeholder="Link fișier" value={docLink} onChange={(e) => setDocLink(e.target.value)} />
+                  <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+                </div>
+                <div className="space-y-1">
+                  {form.documente.map((d) => (
+                    <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
+                      <a href={d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
+                      <button onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  {form.documente.length === 0 && <div className="text-[12px] text-[#8A8375]">Niciun document adăugat.</div>}
+                </div>
+              </div>
+
+              {form.status === "piese_sosite" && (
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Clock size={12} /> Programări</div>
+                  <div className="flex gap-2 mb-2">
+                    <input type="datetime-local" className="in flex-1" value={programareDate} onChange={(e) => setProgramareDate(e.target.value)} />
+                    <input className="in flex-1" placeholder="Notă programare" value={programareNote} onChange={(e) => setProgramareNote(e.target.value)} />
+                    <button onClick={() => { if (!programareDate) return; onAddProgramare(form.id, programareDate, programareNote); setProgramareDate(""); setProgramareNote(""); }} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+                  </div>
+                  <div className="space-y-1">
+                    {programariList.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
+                        <div className="text-[12px]">{new Date(p.data_programare).toLocaleString("ro-RO")}{p.nota ? ` — ${p.nota}` : ""}</div>
+                        <button onClick={() => onDeleteProgramare(p.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
+                      </div>
+                    ))}
+                    {programariList.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio programare.</div>}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><MessageSquare size={12} /> Istoric note</div>
+                <div className="flex gap-2 mb-2">
+                  <input className="in flex-1" placeholder="Adaugă o notă..." value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
+                  <button onClick={addNote} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+                </div>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {form.note.map((n) => (
+                    <div key={n.id} className="bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-[#8A8375] font-mono">{new Date(n.data).toLocaleString("ro-RO")}</span>
+                        <button onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-70"><Trash2 size={12} /></button>
+                      </div>
+                      <div className="mt-0.5">{n.text}</div>
+                    </div>
+                  ))}
+                  {form.note.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio notă încă.</div>}
+                </div>
+              </div>
             </div>
           </div>
         </div>
