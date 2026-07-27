@@ -590,6 +590,8 @@ export default function App() {
   const [schedModalOpen, setSchedModalOpen] = useState(false);
   const [schedForClaim, setSchedForClaim] = useState(null);
 
+  const missingSupabase = !(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
@@ -604,7 +606,7 @@ export default function App() {
     setProgramari(data || []);
   }, []);
 
-  useEffect(() => { loadAll(); loadProgramari(); }, [loadAll, loadProgramari]);
+  useEffect(() => { if (missingSupabase) { setLoading(false); return; } loadAll(); loadProgramari(); }, [loadAll, loadProgramari, missingSupabase]);
 
   const handleSave = async (claim) => {
     setSaving(true);
@@ -683,6 +685,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#EFEAE1]">
+      {missingSupabase && (
+        <div className="bg-[#B23A2E] text-white text-[12.5px] px-4 py-2 flex items-center justify-between">
+          <span>Lipsesc variabilele de mediu VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY. Vezi .env.example și README.md.</span>
+        </div>
+      )}
       {errorMsg && (
         <div className="bg-[#B23A2E] text-white text-[12.5px] px-4 py-2 flex items-center justify-between">
           <span>Eroare Supabase: {errorMsg}</span>
