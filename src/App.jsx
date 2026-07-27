@@ -631,6 +631,18 @@ export default function App() {
     setProgramari(data || []);
   }, []);
 
+  // Înregistrează acțiuni în tabelul dosare_historic (timp, tip eveniment, detalii JSON)
+  async function recordAction(dosarId, eventType, details = {}) {
+    if (missingSupabase || !dosarId) return;
+    try {
+      const payload = { dosar_id: dosarId, event_type: eventType, details: typeof details === 'string' ? { text: details } : details };
+      const { error } = await supabase.from('dosare_historic').insert(payload);
+      if (error) console.warn('Historic insert failed:', error.message);
+    } catch (err) {
+      console.error('recordAction error', err);
+    }
+  }
+
   useEffect(() => { if (missingSupabase) { setLoading(false); return; } loadAll(); loadProgramari(); }, [loadAll, loadProgramari, missingSupabase]);
 
   const handleSave = async (claim) => {
@@ -638,6 +650,8 @@ export default function App() {
     const { error } = await supabase.from("dosare").upsert(toDb(claim));
     setSaving(false);
     if (error) { setErrorMsg(error.message); return; }
+    // record action
+    recordAction(claim.id, 'salvat', { status: claim.status });
     setModalClaim(null);
     loadAll();
   };
@@ -647,6 +661,8 @@ export default function App() {
     const { error } = await supabase.from("dosare").delete().eq("id", id);
     setSaving(false);
     if (error) { setErrorMsg(error.message); return; }
+    // record action
+    recordAction(id, 'sters', {});
     setModalClaim(null);
     loadAll();
   };
@@ -654,17 +670,21 @@ export default function App() {
   const addProgramare = async (dosarId, dataProgramare, nota = "") => {
     const payload = { dosar_id: dosarId, data_programare: dataProgramare, nota };
     setSaving(true);
-    const { error } = await supabase.from("programari").insert(payload);
+    const { data, error } = await supabase.from("programari").insert(payload).select('*');
     setSaving(false);
     if (error) { setErrorMsg(error.message); return; }
+    // record action
+    if (data && data[0]) recordAction(dosarId, 'programare_adaugata', { id: data[0].id, data_programare: data[0].data_programare, nota: data[0].nota });
     loadProgramari();
   };
 
   const deleteProgramare = async (id) => {
     setSaving(true);
-    const { error } = await supabase.from("programari").delete().eq("id", id);
+    const { data, error } = await supabase.from("programari").delete().select('*').eq("id", id);
     setSaving(false);
     if (error) { setErrorMsg(error.message); return; }
+    const dosarId = data && data[0] ? data[0].dosar_id : null;
+    if (dosarId) recordAction(dosarId, 'programare_stearsa', { id });
     loadProgramari();
   };
 
@@ -672,14 +692,19 @@ export default function App() {
     const idx = STATUSES.findIndex((s) => s.key === claim.status);
     const nextIdx = idx + dir;
     if (nextIdx < 0 || nextIdx >= STATUSES.length) return;
-    const updated = { ...claim, status: STATUSES[nextIdx].key, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO() };
+    const fromStatus = claim.status;
+    const toStatus = STATUSES[nextIdx].key;
+    const updated = { ...claim, status: toStatus, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO() };
     setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c))); // optimist
     const { error } = await supabase.from("dosare").upsert(toDb(updated));
     if (error) { setErrorMsg(error.message); loadAll(); }
+    else {
+      recordAction(claim.id, 'mutat', { from: fromStatus, to: toStatus });
+    }
   };
 
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
-  const openExisting = (claim) => setModalClaim(claim);
+  const openExisting = (claim) => { setModalClaim(claim); recordAction(claim.id, 'deschis', { source: 'ui' }); };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -58,3 +58,20 @@ create table if not exists programari (
 );
 create index if not exists idx_programari_dosar on programari (dosar_id);
 create index if not exists idx_programari_data on programari (data_programare);
+
+-- Istoric acțiuni / audit trail pentru dosare
+create table if not exists dosare_historic (
+  id uuid primary key default gen_random_uuid(),
+  dosar_id uuid references dosare(id) on delete cascade,
+  event_type text not null,
+  details jsonb default '{}',
+  created_at timestamptz default now()
+);
+create index if not exists idx_dosare_historic_dosar on dosare_historic (dosar_id);
+create index if not exists idx_dosare_historic_created on dosare_historic (created_at);
+
+-- Politică simplă pentru istoric (temporar similar cu dosare)
+create policy "allow all for anon (historic)" on dosare_historic
+  for all
+  using (true)
+  with check (true);
