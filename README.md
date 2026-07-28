@@ -4,6 +4,18 @@ Aceeași aplicație pe care ai testat-o în Claude, dar ca site propriu, accesib
 de pe orice telefon/laptop, cu date salvate într-o bază de date reală
 (Supabase = Postgres găzduit, gratuit la volumul tău).
 
+## Ai deja aplicația instalată? Rulează migrarea
+
+Dacă ai urmat deja pașii de mai jos înainte și acum ai primit fișiere noi
+(telefon client, programator, dosare blocate, valori Audatex etc.), nu iei
+totul de la capăt — doar:
+
+1. Supabase → **SQL Editor** → New query → copiezi conținutul din
+   `supabase-migration-2.sql` → **Run**. (Adaugă coloanele noi și mută
+   automat dosarele aflate pe statusurile vechi/eliminate.)
+2. Înlocuiești `src/App.jsx` cu noua versiune din arhivă.
+3. Faci commit + push pe GitHub — Vercel/Netlify redeploy automat.
+
 ## Pas 1 — Creezi baza de date (Supabase, ~5 minute)
 
 1. Mergi pe https://supabase.com → Sign up (gratuit) → „New project".

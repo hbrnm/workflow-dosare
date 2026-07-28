@@ -3,7 +3,8 @@ import {
   Plus, Search, LayoutGrid, List, AlertTriangle, X, Trash2,
   FileText, Link as LinkIcon, ChevronRight, ChevronLeft, Clock,
   Car, ShieldCheck, MessageSquare, Save, Loader2,
-  BarChart3, Download, TrendingUp, Boxes, Wrench, Paintbrush, Play
+  BarChart3, Download, TrendingUp, Boxes, Wrench, Paintbrush, Play,
+  Phone, CalendarClock, ArrowRight
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import {
@@ -21,11 +22,16 @@ const STATUSES = [
   { key: "reconstatare",     num: 3, label: "Reconstatare",              phase: "eval"  },
   { key: "accept_plata",     num: 4, label: "Accept de plată",           phase: "eval"  },
   { key: "piese_comandate",  num: 5, label: "Piese comandate",           phase: "lucru" },
-  { key: "chemat_lucru",     num: 6, label: "Chemat în lucru",           phase: "lucru" },
-  { key: "in_lucru",         num: 7, label: "În lucru",                  phase: "lucru" },
-  { key: "finalizat",        num: 8, label: "Dosar finalizat",           phase: "final" },
+  { key: "piese_sosite",     num: 6, label: "Piese sosite",              phase: "lucru" },
+  { key: "programat",        num: 7, label: "Programat",                 phase: "lucru" },
+  { key: "in_lucru",         num: 8, label: "În lucru",                  phase: "lucru" },
   { key: "facturat",         num: 9, label: "Facturat",                  phase: "final" },
 ];
+
+// chei vechi -> chei noi, pentru dosarele salvate înainte de această actualizare
+const STATUS_MIGRATION = { chemat_lucru: "programat", finalizat: "in_lucru" };
+// stadii din care un dosar poate fi programat în service
+const STADII_PROGRAMABILE = ["piese_sosite", "programat", "in_lucru"];
 
 const PHASE_COLORS = {
   start: { bar: "#3B5166", tint: "#EEF1F3" },
@@ -58,16 +64,18 @@ function fmtDate(iso) {
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
-    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "",
+    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
-    termenAlertaZile: 5, note: [], documente: [],
+    termenAlertaZile: 5, dataProgramare: "", note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",
     manopera: {
       tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
       vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
     },
-    masinaSchimb: "", dataDariiLaSchimb: "",
+    masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
+    valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
+    blocat: false, motivBlocare: "",
   };
 }
 
@@ -79,6 +87,7 @@ function toDb(c) {
     tip_asigurare: c.tipAsigurare,
     asigurator: c.asigurator,
     client: c.client,
+    telefon_client: c.telefonClient,
     numar_inmatriculare: c.numarInmatriculare,
     vin: c.vin,
     marca_model: c.marcaModel,
@@ -87,6 +96,7 @@ function toDb(c) {
     data_schimbare_status: c.dataSchimbareStatus,
     data_ultimei_actualizari: c.dataUltimeiActualizari,
     termen_alerta_zile: c.termenAlertaZile,
+    data_programare: c.dataProgramare || null,
     note: c.note,
     documente: c.documente,
     adusa_fizic: c.adusaFizic,
@@ -94,23 +104,31 @@ function toDb(c) {
     manopera: c.manopera,
     masina_schimb: c.masinaSchimb,
     data_darii_la_schimb: c.dataDariiLaSchimb || null,
+    zile_chirie_audatex: c.zileChirieAudatex,
+    valoare_piese_audatex: c.valoarePieseAudatex,
+    valoare_achizitie_piese: c.valoareAchizitiePiese,
+    blocat: c.blocat,
+    motiv_blocare: c.motivBlocare,
   };
 }
 function fromDb(r) {
+  const migratedStatus = STATUS_MIGRATION[r.status] || r.status || "primit";
   return {
     id: r.id,
     numarDosar: r.numar_dosar || "",
     tipAsigurare: r.tip_asigurare || "RCA",
     asigurator: r.asigurator || "",
     client: r.client || "",
+    telefonClient: r.telefon_client || "",
     numarInmatriculare: r.numar_inmatriculare || "",
     vin: r.vin || "",
     marcaModel: r.marca_model || "",
-    status: r.status || "primit",
+    status: migratedStatus,
     dataDeschiderii: r.data_deschiderii || todayISO(),
     dataSchimbareStatus: r.data_schimbare_status || nowISO(),
     dataUltimeiActualizari: r.data_ultimei_actualizari || nowISO(),
     termenAlertaZile: r.termen_alerta_zile ?? 5,
+    dataProgramare: r.data_programare ? String(r.data_programare).slice(0, 16) : "",
     note: r.note || [],
     documente: r.documente || [],
     adusaFizic: !!r.adusa_fizic,
@@ -121,6 +139,11 @@ function fromDb(r) {
     },
     masinaSchimb: r.masina_schimb || "",
     dataDariiLaSchimb: r.data_darii_la_schimb || "",
+    zileChirieAudatex: r.zile_chirie_audatex ?? 0,
+    valoarePieseAudatex: r.valoare_piese_audatex ?? 0,
+    valoareAchizitiePiese: r.valoare_achizitie_piese ?? 0,
+    blocat: !!r.blocat,
+    motivBlocare: r.motiv_blocare || "",
   };
 }
 
@@ -188,7 +211,7 @@ function ClaimCard({ claim, onOpen, onMove }) {
 
   return (
     <div onClick={() => onOpen(claim)}
-      className={`group relative bg-white rounded-md border cursor-pointer transition-shadow hover:shadow-md ${overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"}`}
+      className={`group relative bg-white rounded-md border cursor-pointer transition-shadow hover:shadow-md ${claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"}`}
       style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}>
       <div className="p-2.5 pb-2">
         <div className="flex items-start justify-between gap-1">
@@ -196,12 +219,16 @@ function ClaimCard({ claim, onOpen, onMove }) {
           <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
         </div>
         <div className="mt-1 text-[13px] font-medium text-[#23282E] truncate">{claim.client || "Client neintrodus"}</div>
+        {claim.telefonClient && <div className="flex items-center gap-1 text-[11px] text-[#6B6558]"><Phone size={11} />{claim.telefonClient}</div>}
         <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#6B6558]">
           <Car size={12} /><span className="font-mono">{claim.numarInmatriculare || "—"}</span><span className="truncate">{claim.marcaModel}</span>
         </div>
         <div className="mt-1.5 flex items-center justify-between">
           <span className="text-[11px] text-[#8A8375] truncate">{claim.asigurator || "asigurător —"}</span>
-          <AlertBadge days={days} threshold={claim.termenAlertaZile || 5} />
+          <div className="flex items-center gap-1">
+            {claim.blocat && <Pill tone="danger"><AlertTriangle size={10} />blocat</Pill>}
+            <AlertBadge days={days} threshold={claim.termenAlertaZile || 5} />
+          </div>
         </div>
         {(claim.adusaFizic || claim.manopera?.tinichigerie?.dataIntrareEtapa || claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
           <div className="mt-1.5 flex items-center gap-1 flex-wrap">
@@ -329,6 +356,7 @@ function Dashboard({ claims, onOpen }) {
   const rca = claims.filter((c) => c.tipAsigurare === "RCA").length;
   const casco = claims.filter((c) => c.tipAsigurare === "CASCO").length;
   const active = claims.filter((c) => c.status !== "facturat").length;
+  const blockedCount = claims.filter((c) => c.blocat).length;
   const overdueList = claims.map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 5) }))
     .filter((c) => c.zileIntarziere >= 0).sort((a, b) => b.zileIntarziere - a.zileIntarziere);
   const perStatus = STATUSES.map((s) => ({ name: String(s.num).padStart(2, "0"), label: s.label, total: claims.filter((c) => c.status === s.key).length, color: PHASE_COLORS[s.phase].bar }));
@@ -338,7 +366,7 @@ function Dashboard({ claims, onOpen }) {
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
   }, [claims]);
   const avgDaysOpen = useMemo(() => {
-    const finished = claims.filter((c) => c.status === "facturat" || c.status === "finalizat");
+    const finished = claims.filter((c) => c.status === "facturat");
     if (finished.length === 0) return null;
     return Math.round(finished.reduce((acc, c) => acc + daysBetween(c.dataDeschiderii), 0) / finished.length);
   }, [claims]);
@@ -349,8 +377,9 @@ function Dashboard({ claims, onOpen }) {
         <StatCard label="Total dosare" value={total} tone="steel" />
         <StatCard label="RCA / CASCO" value={`${rca} / ${casco}`} tone="steel" />
         <StatCard label="Active (nefacturate)" value={active} tone="amber" />
+        <StatCard label="Dosare blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
         <StatCard label="Alerte depășite" value={overdueList.length} tone={overdueList.length ? "danger" : "green"} />
-        <StatCard label="Zile medii pe dosar" value={avgDaysOpen ?? "—"} sub="dosare finalizate/facturate" tone="green" />
+        <StatCard label="Zile medii pe dosar" value={avgDaysOpen ?? "—"} sub="dosare facturate" tone="green" />
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white rounded-lg border border-[#DAD4C6] p-3">
@@ -429,19 +458,20 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
     onSave({ ...form, dataUltimeiActualizari: nowISO(), dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus });
   };
   const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
-  const addDoc = () => { if (!docName.trim() || !docLink.trim()) return; setForm((f) => ({ ...f, documente: [{ id: uid(), nume: docName.trim(), link: docLink.trim() }, ...f.documente] })); setDocName(""); setDocLink(""); };
+  const addDoc = () => { if (!docLink.trim()) return; const nume = docName.trim() || `Document ${form.documente.length + 1}`; setForm((f) => ({ ...f, documente: [{ id: uid(), nume, link: docLink.trim() }, ...f.documente] })); setDocName(""); setDocLink(""); };
   const removeNote = (id) => setForm((f) => ({ ...f, note: f.note.filter((n) => n.id !== id) }));
   const removeDoc = (id) => setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
   const isNew = !claim.numarDosar && claim.note.length === 0 && claim.documente.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-start md:items-center justify-center p-3 overflow-y-auto" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-2xl rounded-lg shadow-2xl my-6 border border-[#DAD4C6]">
-        <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg">
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh]">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <button onClick={onClose} className="text-white/70 hover:text-white"><X size={18} /></button>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="p-4 overflow-y-auto grid md:grid-cols-2 gap-x-5 gap-y-4">
+          <div className="space-y-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
             <div className="grid grid-cols-2 gap-2">
@@ -461,6 +491,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Nume/Denumire asigurat" full><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
+              <Field label="Telefon client"><input className="in" type="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
               <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} /></Field>
               <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
               <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
@@ -477,15 +508,25 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
               <Field label="Alertă după (zile în etapă)"><input type="number" min={1} className="in" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} /></Field>
               <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
               <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
+              <Field label="Programare service" full><input type="datetime-local" className="in" value={form.dataProgramare} onChange={(e) => set("dataProgramare", e.target.value)} /></Field>
             </div>
+            <label className={`flex items-center gap-2 text-[12.5px] mt-2.5 cursor-pointer px-2.5 py-2 rounded-md border ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E]" : "border-[#DAD4C6] text-[#23282E]"}`}>
+              <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
+            </label>
+            {form.blocat && (
+              <input className="in mt-1.5" placeholder="Motivul blocării (ex: litigiu cu asigurătorul, lipsă piese pe stoc...)" value={form.motivBlocare} onChange={(e) => set("motivBlocare", e.target.value)} />
+            )}
           </div>
+          </div>
+
+          <div className="space-y-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Wrench size={12} /> Flux fizic în service</div>
             <label className="flex items-center gap-2 text-[12.5px] text-[#23282E] mb-2 cursor-pointer">
               <input type="checkbox" checked={form.adusaFizic} onChange={(e) => set("adusaFizic", e.target.checked)} /> Mașina este adusă fizic în service
             </label>
             <Field label="Ce este de reparat" full>
-              <textarea className="in min-h-[64px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
+              <textarea className="in min-h-[52px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
             </Field>
             <div className="text-[10.5px] text-[#8A8375] mt-2 mb-1.5">Manoperă facturată pe etape — se completează din „Accept de plată" încolo.</div>
             <div className="grid grid-cols-2 gap-2">
@@ -493,15 +534,32 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
               <StageBar label="Vopsitorie" icon={<Paintbrush size={12} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
             </div>
             <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
+                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare piese Audatex</div>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" min={0} className="in" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
+                  <span className="text-[11px] text-[#8A8375]">lei</span>
+                </div>
+              </div>
+              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
+                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare achiziție piese service</div>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" min={0} className="in" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
+                  <span className="text-[11px] text-[#8A8375]">lei</span>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
               <Field label="Mașină la schimb (nr.)"><input className="in" placeholder="lasă gol dacă nu se oferă" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} /></Field>
               <Field label="Data dării la schimb"><input type="date" className="in" value={form.dataDariiLaSchimb} onChange={(e) => set("dataDariiLaSchimb", e.target.value)} /></Field>
+              <Field label="Zile chirie Audatex"><input type="number" min={0} className="in" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} /></Field>
             </div>
           </div>
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
             <div className="flex gap-2 mb-2">
-              <input className="in flex-1" placeholder="Denumire (ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} />
-              <input className="in flex-1" placeholder="Link fișier" value={docLink} onChange={(e) => setDocLink(e.target.value)} />
+              <input className="in flex-1" placeholder="Denumire (opțional, ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
+              <input className="in flex-1" placeholder="Link fișier (Drive, OneDrive etc.)" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
               <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
             </div>
             <div className="space-y-1">
@@ -520,7 +578,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
               <input className="in flex-1" placeholder="Adaugă o notă..." value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
               <button onClick={addNote} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
             </div>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
               {form.note.map((n) => (
                 <div key={n.id} className="bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
                   <div className="flex items-center justify-between">
@@ -533,8 +591,9 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
               {form.note.length === 0 && <div className="text-[12px] text-[#8A8375]">Nicio notă încă.</div>}
             </div>
           </div>
+          </div>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6] shrink-0">
           <button onClick={() => { if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id); }} className="flex items-center gap-1 text-[#B23A2E] text-[13px] font-medium hover:opacity-70"><Trash2 size={14} /> Șterge dosar</button>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-3 py-1.5 rounded border border-[#C7C0B0] text-[13px] text-[#4A443A] hover:bg-[#EFEAE1]">Anulează</button>
@@ -542,6 +601,58 @@ function ClaimModal({ claim, onClose, onSave, onDelete }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Programator: agendă de programări în service, pornind din „Piese sosite"
+// ---------------------------------------------------------------------------
+function Programator({ claims, onOpen, onPatch }) {
+  const eligibile = useMemo(() => {
+    return claims.filter((c) => STADII_PROGRAMABILE.includes(c.status)).sort((a, b) => {
+      if (!a.dataProgramare && !b.dataProgramare) return 0;
+      if (!a.dataProgramare) return 1;
+      if (!b.dataProgramare) return -1;
+      return new Date(a.dataProgramare) - new Date(b.dataProgramare);
+    });
+  }, [claims]);
+
+  return (
+    <div className="bg-white rounded-lg border border-[#DAD4C6] overflow-hidden">
+      <div className="px-3 py-2.5 bg-[#23282E] text-white text-[12.5px] font-bold flex items-center gap-1.5">
+        <CalendarClock size={14} /> Programator service — dosare din „Piese sosite" încolo ({eligibile.length})
+      </div>
+      {eligibile.length === 0 ? (
+        <div className="p-6 text-center text-[13px] text-[#8A8375]">Niciun dosar în stadiul „Piese sosite" sau ulterior încă. Programările apar aici automat.</div>
+      ) : (
+        <div className="divide-y divide-[#EFEAE1]">
+          {eligibile.map((c) => {
+            const s = STATUSES.find((x) => x.key === c.status);
+            return (
+              <div key={c.id} className="p-3 flex flex-wrap items-center gap-2.5">
+                <div className="min-w-[140px] flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-[12.5px] cursor-pointer hover:underline" onClick={() => onOpen(c)}>{c.numarDosar || "—"}</span>
+                    <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill>
+                  </div>
+                  <div className="text-[12.5px] text-[#23282E]">{c.client || "—"} <span className="text-[#8A8375] font-mono">{c.numarInmatriculare}</span></div>
+                  {c.telefonClient && <div className="text-[11px] text-[#6B6558] flex items-center gap-1"><Phone size={10} />{c.telefonClient}</div>}
+                </div>
+                <span className="text-[10.5px] font-semibold px-2 py-1 rounded" style={{ background: PHASE_COLORS[s.phase].tint, color: "#4A443A" }}>
+                  {String(s.num).padStart(2, "0")}. {s.label}
+                </span>
+                <input type="datetime-local" className="border border-[#DAD4C6] rounded px-2 py-1.5 text-[12.5px]" value={c.dataProgramare || ""} onChange={(e) => onPatch(c.id, { dataProgramare: e.target.value })} />
+                {c.status === "piese_sosite" && (
+                  <button onClick={() => onPatch(c.id, { status: "programat", dataSchimbareStatus: nowISO() })} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#3B5166] text-white text-[11.5px] font-semibold hover:bg-[#2C3E4C]">
+                    Programat <ArrowRight size={12} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -559,6 +670,7 @@ export default function App() {
   const [filterTip, setFilterTip] = useState("toate");
   const [filterStatus, setFilterStatus] = useState("toate");
   const [onlyAlerts, setOnlyAlerts] = useState(false);
+  const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [modalClaim, setModalClaim] = useState(null);
 
   const loadAll = useCallback(async () => {
@@ -602,19 +714,30 @@ export default function App() {
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
   const openExisting = (claim) => setModalClaim(claim);
 
+  const patchClaim = async (id, patch) => {
+    const current = claims.find((c) => c.id === id);
+    if (!current) return;
+    const updated = { ...current, ...patch, dataUltimeiActualizari: nowISO() };
+    setClaims((prev) => prev.map((c) => (c.id === id ? updated : c))); // optimist
+    const { error } = await supabase.from("dosare").upsert(toDb(updated));
+    if (error) { setErrorMsg(error.message); loadAll(); }
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return claims.filter((c) => {
       if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
       if (onlyAlerts && daysBetween(c.dataSchimbareStatus) < (c.termenAlertaZile || 5)) return false;
+      if (onlyBlocked && !c.blocat) return false;
       if (!q) return true;
       return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
         (c.numarDosar || "").toLowerCase().includes(q) || (c.asigurator || "").toLowerCase().includes(q) || (c.vin || "").toLowerCase().includes(q);
     });
-  }, [claims, search, filterTip, filterStatus, onlyAlerts]);
+  }, [claims, search, filterTip, filterStatus, onlyAlerts, onlyBlocked]);
 
   const alertCount = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5)).length, [claims]);
+  const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
 
   const exportExcel = () => {
     const rows = claims.map((c) => ({
@@ -652,10 +775,16 @@ export default function App() {
                 <AlertTriangle size={13} /> {alertCount} depășite
               </button>
             )}
+            {blockedCount > 0 && (
+              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
+                <AlertTriangle size={13} /> {blockedCount} blocate
+              </button>
+            )}
             <div className="flex rounded overflow-hidden border border-white/20">
-              <button onClick={() => setView("kanban")} className={`p-1.5 ${view === "kanban" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`}><LayoutGrid size={15} /></button>
-              <button onClick={() => setView("list")} className={`p-1.5 ${view === "list" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`}><List size={15} /></button>
-              <button onClick={() => setView("dashboard")} className={`p-1.5 ${view === "dashboard" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`}><BarChart3 size={15} /></button>
+              <button onClick={() => setView("kanban")} className={`p-1.5 ${view === "kanban" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Kanban"><LayoutGrid size={15} /></button>
+              <button onClick={() => setView("list")} className={`p-1.5 ${view === "list" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Listă"><List size={15} /></button>
+              <button onClick={() => setView("dashboard")} className={`p-1.5 ${view === "dashboard" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Dashboard"><BarChart3 size={15} /></button>
+              <button onClick={() => setView("programator")} className={`p-1.5 ${view === "programator" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Programator"><CalendarClock size={15} /></button>
             </div>
             <button onClick={exportExcel} className="flex items-center gap-1 px-3 py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /> Excel</button>
             <button onClick={() => openNew()} className="flex items-center gap-1 px-3 py-1.5 rounded bg-[#C98A2B] text-white text-[12.5px] font-semibold hover:bg-[#B37A22]"><Plus size={14} /> Dosar nou</button>
@@ -664,9 +793,9 @@ export default function App() {
       </div>
 
       <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 sticky top-[57px] z-20">
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative w-full sm:w-[210px]">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-          <input className="w-full pl-7 pr-2 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută: nr. dosar, client, nr. înmatriculare, asigurător, VIN..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="w-full pl-7 pr-2 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută dosar..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className="in max-w-[110px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
           <option value="toate">Toate tipurile</option><option value="RCA">RCA</option><option value="CASCO">CASCO</option>
@@ -684,8 +813,10 @@ export default function App() {
           <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} />
-        ) : (
+        ) : view === "dashboard" ? (
           <Dashboard claims={filtered} onOpen={openExisting} />
+        ) : (
+          <Programator claims={filtered} onOpen={openExisting} onPatch={patchClaim} />
         )}
       </div>
 

@@ -8,6 +8,7 @@ create table if not exists dosare (
   tip_asigurare text default 'RCA',
   asigurator text default '',
   client text default '',
+  telefon_client text default '',
   numar_inmatriculare text default '',
   vin text default '',
   marca_model text default '',
@@ -16,6 +17,7 @@ create table if not exists dosare (
   data_schimbare_status timestamptz default now(),
   data_ultimei_actualizari timestamptz default now(),
   termen_alerta_zile int default 5,
+  data_programare timestamp,
   note jsonb default '[]',
   documente jsonb default '[]',
   adusa_fizic boolean default false,
@@ -23,6 +25,11 @@ create table if not exists dosare (
   manopera jsonb default '{"tinichigerie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null},"vopsitorie":{"facturat":0,"alocat":0,"dataIntrareEtapa":null}}',
   masina_schimb text default '',
   data_darii_la_schimb date,
+  zile_chirie_audatex int default 0,
+  valoare_piese_audatex numeric default 0,
+  valoare_achizitie_piese numeric default 0,
+  blocat boolean default false,
+  motiv_blocare text default '',
   created_at timestamptz default now()
 );
 
