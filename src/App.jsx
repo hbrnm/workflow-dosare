@@ -43,7 +43,7 @@ const PHASE_COLORS = {
 };
 
 const INSURERS = [
-  "Allianz-Țiriac", "Groupama Asigurări", "Omniasig VIG", "Asirom VIG",
+  "Omniasig VIG", "Asirom VIG", "Allianz-Țiriac", "Groupama Asigurări",
   "Euroins România", "Grawe România", "Generali România", "Uniqa Asigurări",
   "Axeria IARD", "Hellas Direct",
 ];
@@ -69,7 +69,7 @@ function emptyClaim(status = "primit") {
     numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
-    termenAlertaZile: 5, dataProgramare: "", note: [], documente: [],
+    termenAlertaZile: 3, dataProgramare: "", note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",
     manopera: {
       tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
@@ -134,7 +134,7 @@ function fromDb(r) {
     dataDeschiderii: r.data_deschiderii || todayISO(),
     dataSchimbareStatus: r.data_schimbare_status || nowISO(),
     dataUltimeiActualizari: r.data_ultimei_actualizari || nowISO(),
-    termenAlertaZile: r.termen_alerta_zile ?? 5,
+    termenAlertaZile: r.termen_alerta_zile ?? 3,
     dataProgramare: r.data_programare ? String(r.data_programare).slice(0, 16) : "",
     note: r.note || [],
     documente: r.documente || [],
@@ -279,7 +279,7 @@ function StageBar({ label, icon, data, onChange }) {
 function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
-  const overdue = days >= (claim.termenAlertaZile || 5);
+  const overdue = days >= (claim.termenAlertaZile || 3);
   const phase = STATUSES[idx].phase;
 
   return (
@@ -301,7 +301,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
           <div className="flex items-center gap-1">
             {!canEdit && <Pill tone="ghost">doar vizualizare</Pill>}
             {claim.blocat && <Pill tone="danger"><AlertTriangle size={10} />blocat</Pill>}
-            <AlertBadge days={days} threshold={claim.termenAlertaZile || 5} />
+            <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
           </div>
         </div>
         {(claim.adusaFizic || claim.manopera?.tinichigerie?.dataIntrareEtapa || claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
@@ -389,7 +389,7 @@ function ClaimTable({ claims, onOpen, canEditFn }) {
           {sorted.map((c, i) => {
             const s = STATUSES.find((x) => x.key === c.status);
             const days = daysBetween(c.dataSchimbareStatus);
-            const overdue = days >= (c.termenAlertaZile || 5);
+            const overdue = days >= (c.termenAlertaZile || 3);
             return (
               <tr key={c.id} onClick={() => onOpen(c)} className={`cursor-pointer border-t border-[#EFEAE1] hover:bg-[#F7F4EC] ${i % 2 ? "bg-[#FCFAF5]" : "bg-white"}`}>
                 <td className="px-3 py-2 font-mono font-semibold whitespace-nowrap">{c.numarDosar || "—"}</td>
@@ -400,7 +400,7 @@ function ClaimTable({ claims, onOpen, canEditFn }) {
                 <td className="px-3 py-2 whitespace-nowrap">{c.marcaModel || "—"}</td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <span className="text-[11px] font-semibold">{String(s.num).padStart(2, "0")}. {s.label}</span>
-                  {overdue && <AlertBadge days={days} threshold={c.termenAlertaZile || 5} />}
+                  {overdue && <AlertBadge days={days} threshold={c.termenAlertaZile || 3} />}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">{fmtDate(c.dataDeschiderii)}</td>
                 <td className="px-3 py-2">{!canEditFn(c) && <Pill tone="ghost">doar vizualizare</Pill>}</td>
@@ -431,7 +431,7 @@ function Dashboard({ claims, onOpen }) {
   const casco = claims.filter((c) => c.tipAsigurare === "CASCO").length;
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
-  const overdueList = claims.map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 5) }))
+  const overdueList = claims.map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 3) }))
     .filter((c) => c.zileIntarziere >= 0).sort((a, b) => b.zileIntarziere - a.zileIntarziere);
   const perStatus = STATUSES.map((s) => ({ name: String(s.num).padStart(2, "0"), label: s.label, total: claims.filter((c) => c.status === s.key).length, color: PHASE_COLORS[s.phase].bar }));
   const perAsigurator = useMemo(() => {
@@ -524,6 +524,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
+  const [uploadingDocumente, setUploadingDocumente] = useState(false);
   const isNew = !claim.numarDosar && claim.note.length === 0 && claim.documente.length === 0;
 
   useEffect(() => setForm(claim), [claim]);
@@ -580,7 +581,13 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
   const addDoc = () => { if (!docLink.trim()) return; const nume = docName.trim() || `Document ${form.documente.length + 1}`; setForm((f) => ({ ...f, documente: [{ id: uid(), nume, link: docLink.trim() }, ...f.documente] })); setDocName(""); setDocLink(""); };
   const removeNote = (id) => setForm((f) => ({ ...f, note: f.note.filter((n) => n.id !== id) }));
-  const removeDoc = (id) => setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
+  const removeDoc = async (id) => {
+    const doc = form.documente.find((d) => d.id === id);
+    if (doc?.path) {
+      await supabase.storage.from("poze-dosare").remove([doc.path]);
+    }
+    setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
+  };
 
   const handleUploadPoze = async (fileList) => {
     const files = Array.from(fileList || []);
@@ -590,12 +597,28 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     for (const file of files) {
       const path = `${claim.id}/${uid()}-${file.name}`;
       const { error } = await supabase.storage.from("poze-dosare").upload(path, file);
-      if (error) { alert(`Eroare la încărcarea „${file.name}": ${error.message}`); continue; }
+      if (error) { alert(`Eroare la încărcarea „${file.name}”: ${error.message}`); continue; }
       const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
     setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
     setUploadingPoze(false);
+  };
+
+  const handleUploadDocumente = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    setUploadingDocumente(true);
+    const noi = [];
+    for (const file of files) {
+      const path = `${claim.id}/documente/${uid()}-${file.name}`;
+      const { error } = await supabase.storage.from("poze-dosare").upload(path, file);
+      if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
+      const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
+      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
+    }
+    setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
+    setUploadingDocumente(false);
   };
 
   const removePoza = async (poza) => {
@@ -605,7 +628,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3">
       <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh]">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
@@ -637,12 +660,14 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <Field label="Nr. dosar daună"><input className="in" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" /></Field>
               <Field label="Tip asigurare">
                 <select className="in" value={form.tipAsigurare} onChange={(e) => set("tipAsigurare", e.target.value)}>
-                  <option value="RCA">RCA</option><option value="CASCO">CASCO</option>
+                  <option value="CASCO">CASCO</option><option value="RCA">RCA</option>
                 </select>
               </Field>
               <Field label="Societate de asigurări" full>
-                <input className="in" list="insurers" value={form.asigurator} onChange={(e) => set("asigurator", e.target.value)} placeholder="ex: Allianz-Țiriac" />
-                <datalist id="insurers">{INSURERS.map((i) => <option key={i} value={i} />)}</datalist>
+                <select className="in" value={form.asigurator} onChange={(e) => set("asigurator", e.target.value)}>
+                  <option value="" disabled>-- Alege societatea --</option>
+                  {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
+                </select>
               </Field>
             </div>
           </div>
@@ -755,15 +780,24 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
-            <div className="flex gap-2 mb-2">
-              <input className="in flex-1" placeholder="Denumire (opțional, ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-              <input className="in flex-1" placeholder="Link fișier (Drive, OneDrive etc.)" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-              <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+            <div className="flex flex-col gap-2 mb-2">
+              <div className="flex gap-2 flex-wrap">
+                <input className="in flex-1 min-w-[200px]" placeholder="Denumire (opțional, ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
+                <input className="in flex-1 min-w-[200px]" placeholder="Link fișier (Drive, OneDrive etc.)" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
+                <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
+              </div>
+              {!isNew && (
+                <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 text-[12px] cursor-pointer ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
+                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă documente...</> : <><Upload size={13} /> Adaugă documente (poți selecta mai multe)</>}
+                  <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
+                </label>
+              )}
+              {isNew && <div className="text-[11px] text-[#8A8375]">Salvează dosarul întâi, apoi poți adăuga documente sau linkuri.</div>}
             </div>
             <div className="space-y-1">
               {form.documente.map((d) => (
                 <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
-                  <a href={d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
+                  <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
                   <button onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
                 </div>
               ))}
@@ -1237,7 +1271,7 @@ export default function App() {
     return claims.filter((c) => {
       if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
-      if (onlyAlerts && daysBetween(c.dataSchimbareStatus) < (c.termenAlertaZile || 5)) return false;
+      if (onlyAlerts && daysBetween(c.dataSchimbareStatus) < (c.termenAlertaZile || 3)) return false;
       if (onlyBlocked && !c.blocat) return false;
       if (!q) return true;
       return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
@@ -1245,7 +1279,7 @@ export default function App() {
     });
   }, [claims, search, filterTip, filterStatus, onlyAlerts, onlyBlocked]);
 
-  const alertCount = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5)).length, [claims]);
+  const alertCount = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)).length, [claims]);
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
 
   const exportExcel = () => {
