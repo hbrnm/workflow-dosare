@@ -786,7 +786,6 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                 </label>
               )}
             </div>
-            {isNew && <div className="text-[11px] text-[#8A8375] mb-2">Salvează dosarul întâi, apoi poți încărca documente intern sau adăuga linkuri.</div>}
             <div className="space-y-1">
               {form.documente.map((d) => (
                 <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
