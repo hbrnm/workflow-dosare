@@ -819,11 +819,11 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             )}
             {isNew && <div className="text-[11px] text-[#8A8375] mb-2">Salvează dosarul întâi, apoi poți adăuga poze.</div>}
             {form.poze.length > 0 && (
-              <div className="grid grid-cols-4 gap-1.5 max-h-[22rem] overflow-y-auto w-full min-w-0">
+              <div className="grid grid-cols-6 gap-1 max-h-[18rem] overflow-y-auto w-full min-w-0">
                 {form.poze.map((p) => (
                   <div key={p.id} className="relative group min-w-0">
                     <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
-                      <img src={p.url} alt={p.nume} className="w-full aspect-square object-cover rounded border border-[#DAD4C6] max-w-full" />
+                      <img src={p.url} alt={p.nume} className="w-full h-16 object-cover rounded border border-[#DAD4C6] max-w-full" />
                     </a>
                     <button onClick={() => removePoza(p)} className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button>
                   </div>
