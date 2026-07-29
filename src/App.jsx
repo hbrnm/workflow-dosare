@@ -64,6 +64,19 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toStr
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowISO = () => new Date().toISOString();
 
+function normalizedText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function isValidVin(value) {
+  return /^[A-HJ-NPR-Z0-9]{17}$/.test(String(value || "").trim().toUpperCase());
+}
+
+function isValidPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 function storagePath(claimId, file, directory = "") {
   const dotIndex = file.name.lastIndexOf(".");
   const extension = dotIndex > -1 ? file.name.slice(dotIndex) : "";
@@ -758,12 +771,33 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   }, [allClaims, form.telefonClient, form.vin, claim.id]);
 
   const handleSave = () => {
-    if (!form.numarDosar.trim()) { alert("Introduceți numărul dosarului."); return; }
-    if (!form.numarInmatriculare.trim()) { alert("Introduceți numărul de înmatriculare."); return; }
+    const numarDosar = form.numarDosar.trim();
+    const numarInmatriculare = form.numarInmatriculare.trim().toUpperCase();
+    const vin = form.vin.trim().toUpperCase();
+    const telefonClient = form.telefonClient.trim();
+
+    if (!numarDosar) { alert("Introduceți numărul dosarului."); return; }
+    if (!numarInmatriculare) { alert("Introduceți numărul de înmatriculare."); return; }
+    if (vin && !isValidVin(vin)) {
+      alert("VIN-ul trebuie să aibă exact 17 caractere și nu poate conține literele I, O sau Q.");
+      return;
+    }
+    if (telefonClient && !isValidPhone(telefonClient)) {
+      alert("Telefonul trebuie să conțină între 7 și 15 cifre.");
+      return;
+    }
+
+    const duplicateDosar = allClaims?.find((c) =>
+      c.id !== claim.id && normalizedText(c.numarDosar) === normalizedText(numarDosar)
+    );
+    if (duplicateDosar) {
+      alert(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`);
+      return;
+    }
 
     if (isNew && allClaims) {
       const duplicat = allClaims.find((c) =>
-        c.numarInmatriculare.trim().toUpperCase() === form.numarInmatriculare.trim().toUpperCase() &&
+        c.numarInmatriculare.trim().toUpperCase() === numarInmatriculare &&
         c.status !== "facturat"
       );
       if (duplicat) {
@@ -782,7 +816,15 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
       }
     }
 
-    onSave({ ...form, dataUltimeiActualizari: nowISO(), dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus });
+    onSave({
+      ...form,
+      numarDosar,
+      numarInmatriculare,
+      vin,
+      telefonClient,
+      dataUltimeiActualizari: nowISO(),
+      dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
+    });
   };
   const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
   const removeNote = (id) => setForm((f) => ({ ...f, note: f.note.filter((n) => n.id !== id) }));
@@ -913,7 +955,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
             <div className="grid grid-cols-2 gap-2">
-              <Field label="Nr. dosar daună"><input className="in" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" /></Field>
+              <Field label="Nr. dosar daună"><input className="in" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" required /></Field>
               <Field label="Tip asigurare">
                 <select className="in" value={form.tipAsigurare} onChange={(e) => set("tipAsigurare", e.target.value)}>
                   <option value="CASCO">CASCO</option><option value="RCA">RCA</option>
@@ -931,9 +973,9 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Nume/Denumire asigurat" full><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
-              <Field label="Telefon client"><input className="in" type="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
-              <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} /></Field>
-              <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
+              <Field label="Telefon client"><input className="in" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
+              <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} required /></Field>
+              <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" title="VIN-ul are 17 caractere și nu include I, O sau Q" /></Field>
               <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
             </div>
             {istoricClientVehicul.length > 0 && (
