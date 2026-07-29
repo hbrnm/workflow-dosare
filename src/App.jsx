@@ -196,15 +196,30 @@ function generateazaPDF(claim) {
   const doc = new jsPDF();
   const s = STATUSES.find((x) => x.key === claim.status);
   let y = 20;
-  doc.setFontSize(16); doc.text("Proces verbal / Fișă dosar", 14, y); y += 10;
+
+  function stripDiacritics(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/[ăâî]/g, (c) => ({'ă':'a','â':'a','î':'i'}[c] || c))
+      .replace(/[ĂÂÎ]/g, (c) => ({'Ă':'A','Â':'A','Î':'I'}[c] || c))
+      .replace(/[șş]/g, 's').replace(/[ȘŞ]/g, 'S')
+      .replace(/[țţ]/g, 't').replace(/[ȚŢ]/g, 'T');
+  }
+
+  const sd = (t) => stripDiacritics(t || "—");
+
+  doc.setFontSize(16);
+  doc.text(sd("Proces verbal / Fișă dosar"), 14, y); y += 10;
   doc.setFontSize(10); doc.setTextColor(120);
   doc.text(`Generat la ${new Date().toLocaleString("ro-RO")}`, 14, y); y += 10;
   doc.setTextColor(0); doc.setFontSize(11);
-  const linie = (label, val) => { doc.setFont(undefined, "bold"); doc.text(`${label}:`, 14, y); doc.setFont(undefined, "normal"); doc.text(String(val || "—"), 70, y); y += 7; };
+
+  const linie = (label, val) => { doc.setFont(undefined, "bold"); doc.text(`${sd(label)}:`, 14, y); doc.setFont(undefined, "normal"); doc.text(sd(val), 70, y); y += 7; };
+
   linie("Nr. dosar", claim.numarDosar);
   linie("Tip asigurare", claim.tipAsigurare);
   linie("Asigurător", claim.asigurator);
-  linie("Status", s ? `${s.num}. ${s.label}` : claim.status);
+  linie("Status", s ? `${s.num}. ${sd(s.label)}` : sd(claim.status));
   y += 3;
   linie("Client", claim.client);
   linie("Telefon", claim.telefonClient);
@@ -212,21 +227,22 @@ function generateazaPDF(claim) {
   linie("VIN", claim.vin);
   linie("Marcă/Model", claim.marcaModel);
   y += 3;
-  doc.setFont(undefined, "bold"); doc.text("Ce este de reparat:", 14, y); y += 6;
+  doc.setFont(undefined, "bold"); doc.text(sd("Ce este de reparat:"), 14, y); y += 6;
   doc.setFont(undefined, "normal");
-  const desc = doc.splitTextToSize(claim.ceEsteDeReparat || "—", 180);
+  const descText = sd(claim.ceEsteDeReparat || "—");
+  const desc = doc.splitTextToSize(descText, 180);
   doc.text(desc, 14, y); y += desc.length * 6 + 4;
-  linie("Mașină la schimb", claim.masinaSchimb);
+  linie("Masină la schimb", claim.masinaSchimb);
   linie("Zile chirie Audatex", claim.zileChirieAudatex);
   y += 3;
   linie("Valoare piese Audatex", `${claim.valoarePieseAudatex || 0} lei`);
   linie("Valoare achiziție piese", `${claim.valoareAchizitiePiese || 0} lei`);
-  linie("Manoperă tinichigerie", `${claim.manopera.tinichigerie.facturat || 0} lei`);
-  linie("Manoperă vopsitorie", `${claim.manopera.vopsitorie.facturat || 0} lei`);
+  linie("Manoperă tinichigerie", `${(claim.manopera && claim.manopera.tinichigerie && claim.manopera.tinichigerie.facturat) || 0} lei`);
+  linie("Manoperă vopsitorie", `${(claim.manopera && claim.manopera.vopsitorie && claim.manopera.vopsitorie.facturat) || 0} lei`);
   y += 6;
   doc.setDrawColor(180); doc.line(14, y, 90, y + 25); doc.line(120, y, 196, y + 25);
-  doc.setFontSize(9); doc.text("Semnătură client", 14, y + 30); doc.text("Semnătură service", 120, y + 30);
-  doc.save(`dosar-${claim.numarDosar || "nou"}.pdf`);
+  doc.setFontSize(9); doc.text(sd("Semnătură client"), 14, y + 30); doc.text(sd("Semnătură service"), 120, y + 30);
+  doc.save(`dosar-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
 }
 
 // ---------------------------------------------------------------------------
