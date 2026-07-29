@@ -497,14 +497,14 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
 function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, canEditFn }) {
   const [dragOverKey, setDragOverKey] = useState(null);
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
+    <div className="flex gap-3 overflow-x-auto overflow-y-hidden flex-1 min-h-0 -mx-1 px-1">
       {STATUSES.map((s) => {
         const colClaims = claims.filter((c) => c.status === s.key);
         const colors = PHASE_COLORS[s.phase];
         return (
           <div
             key={s.key}
-            className="flex-shrink-0 w-[260px] flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-sm"
+            className="flex-shrink-0 w-[260px] h-full flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-sm"
             style={{ background: colors.tint }}
           >
             <div
@@ -522,7 +522,7 @@ function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, ca
               </span>
             </div>
             <div
-              className={`p-3 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px] transition-colors ${
+              className={`p-3 flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 transition-colors ${
                 dragOverKey === s.key ? "bg-white/60 ring-2 ring-[#3B5166] ring-inset" : ""
               }`}
               onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
@@ -1656,9 +1656,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFEAE1]">
+    <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1]">
       <Notification notice={notice} onClose={() => setNotice(null)} />
-      <div className="bg-[#23282E] px-4 py-3 sticky top-0 z-30">
+      <div className="bg-[#23282E] px-4 py-3 shrink-0 z-30">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded bg-[#C98A2B] flex items-center justify-center"><ShieldCheck size={18} className="text-white" /></div>
@@ -1695,7 +1695,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 sticky top-[57px] z-20">
+      <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 shrink-0 z-20">
         <div className="relative w-full sm:w-[210px]">
           <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#8A8375]" />
           <input className="w-full pl-7 pr-2 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută dosar..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -1709,9 +1709,9 @@ export default function App() {
         </select>
       </div>
 
-      <div className="p-4">
+      <div className={`flex-1 min-h-0 p-4 ${view === "kanban" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
-          <div className="flex items-center justify-center py-20 text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+          <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "kanban" ? (
           <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} canEditFn={canEdit} />
         ) : view === "list" ? (
