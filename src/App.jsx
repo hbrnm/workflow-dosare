@@ -637,7 +637,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto">
-      <div onClick={(e) => e.stopPropagation()} className="mx-auto my-4 bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-visible">
+      <div onClick={(e) => e.stopPropagation()} className="mx-auto my-4 bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <div className="flex items-center gap-3">
@@ -688,7 +688,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             </details>
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-visible">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <fieldset disabled={readOnly} className="p-4 grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
           <div className="space-y-4">
           <div>
@@ -803,11 +803,11 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             )}
             {isNew && <div className="text-[11px] text-[#8A8375] mb-2">Salvează dosarul întâi, apoi poți adăuga poze.</div>}
             {form.poze.length > 0 && (
-              <div className="grid grid-cols-4 gap-1.5 max-h-[22rem] overflow-y-auto">
+              <div className="grid grid-cols-4 gap-1.5 max-h-[22rem] overflow-y-auto w-full min-w-0">
                 {form.poze.map((p) => (
-                  <div key={p.id} className="relative group">
-                    <a href={p.url} target="_blank" rel="noreferrer">
-                      <img src={p.url} alt={p.nume} className="w-full aspect-square object-cover rounded border border-[#DAD4C6]" />
+                  <div key={p.id} className="relative group min-w-0">
+                    <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
+                      <img src={p.url} alt={p.nume} className="w-full aspect-square object-cover rounded border border-[#DAD4C6] max-w-full" />
                     </a>
                     <button onClick={() => removePoza(p)} className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded p-0.5 opacity-0 group-hover:opacity-100"><X size={10} /></button>
                   </div>
