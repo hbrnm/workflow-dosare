@@ -68,10 +68,6 @@ function normalizedText(value) {
   return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-function isValidVin(value) {
-  return /^[A-HJ-NPR-Z0-9]{17}$/.test(String(value || "").trim().toUpperCase());
-}
-
 function isValidPhone(value) {
   const digits = String(value || "").replace(/\D/g, "");
   return digits.length >= 7 && digits.length <= 15;
@@ -814,10 +810,6 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
     if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return; }
     if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return; }
-    if (vin && !isValidVin(vin)) {
-      onNotify("VIN-ul trebuie să aibă exact 17 caractere și nu poate conține literele I, O sau Q.", "error");
-      return;
-    }
     if (telefonClient && !isValidPhone(telefonClient)) {
       onNotify("Telefonul trebuie să conțină între 7 și 15 cifre.", "error");
       return;
@@ -1013,7 +1005,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <Field label="Nume/Denumire asigurat" full><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
               <Field label="Telefon client"><input className="in" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
               <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} required /></Field>
-              <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" title="VIN-ul are 17 caractere și nu include I, O sau Q" /></Field>
+              <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
               <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
             </div>
             {istoricClientVehicul.length > 0 && (
