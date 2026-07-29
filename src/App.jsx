@@ -192,7 +192,7 @@ function formatIstoricValoare(camp, val) {
 }
 
 
-function generateazaPDF(claim) {
+function generateazaPDF(claim, istoric = []) {
   const doc = new jsPDF();
   const s = STATUSES.find((x) => x.key === claim.status);
   let y = 20;
@@ -242,6 +242,43 @@ function generateazaPDF(claim) {
   y += 6;
   doc.setDrawColor(180); doc.line(14, y, 90, y + 25); doc.line(120, y, 196, y + 25);
   doc.setFontSize(9); doc.text(sd("Semnătură client"), 14, y + 30); doc.text(sd("Semnătură service"), 120, y + 30);
+
+  // Istoric modificari (daca exista)
+  y += 44;
+  if ((istoric || []).length > 0) {
+    const ensureSpace = (needed = 20) => {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      if (y + needed > pageHeight - 20) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    ensureSpace(12);
+    doc.setFontSize(12); doc.setFont(undefined, "bold"); doc.text(sd("Istoric modificări"), 14, y); y += 8;
+    doc.setFont(undefined, "normal"); doc.setFontSize(10);
+    for (const h of istoric) {
+      ensureSpace(18);
+      const when = new Date(h.created_at).toLocaleString("ro-RO");
+      doc.setFontSize(9); doc.setTextColor(110);
+      doc.text(`${when} · ${sd(h.user_email || "necunoscut")}`, 14, y); y += 6;
+      doc.setTextColor(0); doc.setFontSize(10);
+      const mods = h.modificari || {};
+      for (const [camp, diff] of Object.entries(mods)) {
+        ensureSpace(10);
+        const label = sd(CAMP_LABELS[camp] || camp);
+        let oldVal = camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old);
+        let newVal = camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new);
+        const line = `${label}: ${sd(String(oldVal))} → ${sd(String(newVal))}`;
+        const parts = doc.splitTextToSize(line, 180);
+        doc.text(parts, 14, y);
+        y += parts.length * 6;
+      }
+      y += 4;
+    }
+    doc.setTextColor(0);
+  }
+
   doc.save(`dosar-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
 }
 
@@ -301,7 +338,7 @@ function StageBar({ label, icon, data, onChange }) {
 // ---------------------------------------------------------------------------
 // Card Kanban
 // ---------------------------------------------------------------------------
-function ClaimCard({ claim, onOpen, onMove, canEdit }) {
+function ClaimCard({ claim, onOpen, onMove, onArrive, canEdit, onDragStart }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = days >= (claim.termenAlertaZile || 3);
@@ -309,6 +346,8 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
 
   return (
     <div onClick={() => onOpen(claim)}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData('text/plain', claim.id); if (onDragStart) onDragStart(claim); }}
       className={`group relative bg-white rounded-md border cursor-pointer transition-shadow hover:shadow-md ${claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"}`}
       style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}>
       <div className="p-2.5 pb-2">
@@ -342,18 +381,33 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         <span className="text-[10px] text-[#8A8375] flex items-center gap-1"><Clock size={10} />{days}z în etapă</span>
         <button disabled={!canEdit || idx === STATUSES.length - 1} onClick={() => onMove(claim, 1)} className="p-1 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"><ChevronRight size={14} /></button>
       </div>
+      {claim.status === 'programat' && (
+        <div className="px-2 py-2 border-t border-[#EFEAE1] bg-[#FBF3E6] text-[12px] flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!claim.adusaFizic} onChange={(e) => onArrive && onArrive(claim, e.target.checked)} />
+            <span className="text-[12px]">Mașina sosită</span>
+          </label>
+        </div>
+      )}
     </div>
   );
 }
 
-function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
+function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn, onMoveToStatus, onArrive }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
       {STATUSES.map((s) => {
         const colClaims = claims.filter((c) => c.status === s.key);
         const colors = PHASE_COLORS[s.phase];
         return (
-          <div key={s.key} className="flex-shrink-0 w-[240px] flex flex-col rounded-lg overflow-hidden border border-[#DAD4C6]" style={{ background: colors.tint }}>
+          <div key={s.key}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData('text/plain');
+              if (id && onMoveToStatus) onMoveToStatus(id, s.key);
+            }}
+            className="flex-shrink-0 w-[240px] flex flex-col rounded-lg overflow-hidden border border-[#DAD4C6]" style={{ background: colors.tint }}>
             <div className="px-2.5 py-2 flex items-center justify-between" style={{ background: colors.bar }}>
               <div className="flex items-center gap-1.5 text-white">
                 <span className="font-mono text-[11px] opacity-70">{String(s.num).padStart(2, "0")}</span>
@@ -362,7 +416,7 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
               <span className="text-[11px] font-bold text-white/80">{colClaims.length}</span>
             </div>
             <div className="p-2 flex flex-col gap-2 min-h-[80px]">
-              {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} canEdit={canEditFn(c)} />)}
+              {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} onArrive={onArrive} canEdit={canEditFn(c)} />)}
               <button onClick={() => onAddInStatus(s.key)} className="flex items-center justify-center gap-1 py-1.5 text-[11px] text-[#6B6558] rounded border border-dashed border-[#C7C0B0] hover:bg-white/60 hover:text-[#23282E] transition-colors">
                 <Plus size={12} /> dosar nou
               </button>
@@ -658,7 +712,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <div className="flex items-center gap-3">
             {!isNew && (
-              <button onClick={() => generateazaPDF(form)} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded px-2 py-1">
+              <button onClick={() => generateazaPDF(form, istoric)} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded px-2 py-1">
                 <FileDown size={12} /> PDF
               </button>
             )}
@@ -1275,6 +1329,29 @@ export default function App() {
     if (error) { setErrorMsg(error.message); loadAll(); }
   };
 
+  const handleMoveToStatus = async (claimId, statusKey) => {
+    const claim = claims.find((c) => c.id === claimId);
+    if (!claim) return;
+    if (!canEdit(claim)) { setErrorMsg("Poți muta doar dosarele create de tine."); return; }
+    const updated = { ...claim, status: statusKey, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
+    setClaims((prev) => prev.map((c) => (c.id === claimId ? updated : c)));
+    const { error } = await supabase.from("dosare").upsert(toDb(updated));
+    if (error) { setErrorMsg(error.message); loadAll(); }
+  };
+
+  const handleArrive = async (claim, arrived) => {
+    if (!canEdit(claim)) { setErrorMsg("Poți marca sosirea doar pentru dosarele create de tine."); return; }
+    const updated = { ...claim, adusaFizic: !!arrived, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
+    // dacă s-a marcat sosirea și era programat, mutăm automat în 'in_lucru'
+    if (arrived && claim.status === 'programat') {
+      updated.status = 'in_lucru';
+      updated.dataSchimbareStatus = nowISO();
+    }
+    setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
+    const { error } = await supabase.from("dosare").upsert(toDb(updated));
+    if (error) { setErrorMsg(error.message); loadAll(); }
+  };
+
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
   const openExisting = (claim) => setModalClaim(claim);
 
@@ -1387,7 +1464,7 @@ export default function App() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "kanban" ? (
-          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} canEditFn={canEdit} />
+          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} canEditFn={canEdit} onMoveToStatus={handleMoveToStatus} onArrive={handleArrive} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
