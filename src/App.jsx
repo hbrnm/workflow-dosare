@@ -345,39 +345,95 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   const phase = STATUSES[idx].phase;
 
   return (
-    <div onClick={() => onOpen(claim)}
-      className={`group relative bg-white rounded-md border cursor-pointer transition-shadow hover:shadow-md ${claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"}`}
-      style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}>
-      <div className="p-2.5 pb-2">
-        <div className="flex items-start justify-between gap-1">
-          <span className="font-mono text-[12px] font-bold text-[#23282E] truncate">{claim.numarDosar || "(fără nr.)"}</span>
+    <div
+      onClick={() => onOpen(claim)}
+      className={`group relative bg-white rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
+        claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
+      }`}
+      style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}
+    >
+      <div className="p-3 pb-2.5">
+        <div className="flex items-start justify-between gap-1.5">
+          <span className="font-mono text-[12.5px] font-bold text-[#23282E] truncate">
+            {claim.numarDosar || "(fără nr.)"}
+          </span>
           <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
         </div>
-        <div className="mt-1 text-[13px] font-medium text-[#23282E] truncate">{claim.client || "Client neintrodus"}</div>
-        {claim.telefonClient && <div className="flex items-center gap-1 text-[11px] text-[#6B6558]"><Phone size={11} />{claim.telefonClient}</div>}
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#6B6558]">
-          <Car size={12} /><span className="font-mono">{claim.numarInmatriculare || "—"}</span><span className="truncate">{claim.marcaModel}</span>
+        <div className="mt-1.5 text-[13.5px] font-medium text-[#23282E] truncate">
+          {claim.client || "Client neintrodus"}
         </div>
-        <div className="mt-1.5 flex items-center justify-between">
+        {claim.telefonClient && (
+          <div className="flex items-center gap-1 mt-0.5 text-[11.5px] text-[#6B6558]">
+            <Phone size={11} />
+            {claim.telefonClient}
+          </div>
+        )}
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-[#6B6558]">
+          <Car size={12} />
+          <span className="font-mono">{claim.numarInmatriculare || "—"}</span>
+          <span className="truncate">{claim.marcaModel}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between gap-1">
           <span className="text-[11px] text-[#8A8375] truncate">{claim.asigurator || "asigurător —"}</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {!canEdit && <Pill tone="ghost">doar vizualizare</Pill>}
-            {claim.blocat && <Pill tone="danger"><AlertTriangle size={10} />blocat</Pill>}
+            {claim.blocat && (
+              <Pill tone="danger">
+                <AlertTriangle size={10} />
+                blocat
+              </Pill>
+            )}
             <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
           </div>
         </div>
-        {(claim.adusaFizic || claim.manopera?.tinichigerie?.dataIntrareEtapa || claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
-          <div className="mt-1.5 flex items-center gap-1 flex-wrap">
-            {claim.adusaFizic && <Pill tone="ghost"><Car size={10} />adusă fizic</Pill>}
-            {claim.manopera?.tinichigerie?.dataIntrareEtapa && !claim.manopera?.vopsitorie?.dataIntrareEtapa && <Pill tone="ghost"><Wrench size={10} />tinichigerie</Pill>}
-            {claim.manopera?.vopsitorie?.dataIntrareEtapa && <Pill tone="ghost"><Paintbrush size={10} />vopsitorie</Pill>}
+        {(claim.adusaFizic ||
+          claim.manopera?.tinichigerie?.dataIntrareEtapa ||
+          claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
+          <div className="mt-2 flex items-center gap-1 flex-wrap">
+            {claim.adusaFizic && (
+              <Pill tone="ghost">
+                <Car size={10} />
+                adusă fizic
+              </Pill>
+            )}
+            {claim.manopera?.tinichigerie?.dataIntrareEtapa &&
+              !claim.manopera?.vopsitorie?.dataIntrareEtapa && (
+                <Pill tone="ghost">
+                  <Wrench size={10} />
+                  tinichigerie
+                </Pill>
+              )}
+            {claim.manopera?.vopsitorie?.dataIntrareEtapa && (
+              <Pill tone="ghost">
+                <Paintbrush size={10} />
+                vopsitorie
+              </Pill>
+            )}
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between border-t border-[#EFEAE1] px-1.5 py-1" onClick={(e) => e.stopPropagation()}>
-        <button disabled={!canEdit || idx === 0} onClick={() => onMove(claim, -1)} className="p-1 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"><ChevronLeft size={14} /></button>
-        <span className="text-[10px] text-[#8A8375] flex items-center gap-1"><Clock size={10} />{days}z în etapă</span>
-        <button disabled={!canEdit || idx === STATUSES.length - 1} onClick={() => onMove(claim, 1)} className="p-1 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"><ChevronRight size={14} /></button>
+      <div
+        className="flex items-center justify-between border-t border-[#EFEAE1] px-2 py-1.5 bg-[#FCFAF5]/80"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          disabled={!canEdit || idx === 0}
+          onClick={() => onMove(claim, -1)}
+          className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
+        >
+          <ChevronLeft size={15} />
+        </button>
+        <span className="text-[10.5px] text-[#8A8375] flex items-center gap-1">
+          <Clock size={11} />
+          {days}z în etapă
+        </span>
+        <button
+          disabled={!canEdit || idx === STATUSES.length - 1}
+          onClick={() => onMove(claim, 1)}
+          className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
+        >
+          <ChevronRight size={15} />
+        </button>
       </div>
     </div>
   );
