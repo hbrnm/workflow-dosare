@@ -66,7 +66,7 @@ function fmtDate(iso) {
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
-    numarDosar: "", tipAsigurare: "RCA", asigurator: "", client: "", telefonClient: "",
+    numarDosar: "", tipAsigurare: "CASCO", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
     termenAlertaZile: 3, dataProgramare: "", note: [], documente: [],
@@ -123,7 +123,7 @@ function fromDb(r) {
   return {
     id: r.id,
     numarDosar: r.numar_dosar || "",
-    tipAsigurare: r.tip_asigurare || "RCA",
+    tipAsigurare: r.tip_asigurare || "CASCO",
     asigurator: r.asigurator || "",
     client: r.client || "",
     telefonClient: r.telefon_client || "",
