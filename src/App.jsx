@@ -85,7 +85,6 @@ function emptyClaim(status = "primit") {
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
-    valoareFacturataFaraTVA: 0, valoareFacturataCuTVA: 0,
     blocat: false, motivBlocare: "",
     createdByEmail: "", updatedByEmail: "",
     poze: [],
@@ -120,8 +119,6 @@ function toDb(c) {
     zile_chirie_audatex: c.zileChirieAudatex,
     valoare_piese_audatex: c.valoarePieseAudatex,
     valoare_achizitie_piese: c.valoareAchizitiePiese,
-    valoare_facturata_fara_tva: c.valoareFacturataFaraTVA,
-    valoare_facturata_cu_tva: c.valoareFacturataCuTVA,
     blocat: c.blocat,
     motiv_blocare: c.motivBlocare,
     created_by_email: c.createdByEmail || null,
@@ -160,8 +157,6 @@ function fromDb(r) {
     zileChirieAudatex: r.zile_chirie_audatex ?? 0,
     valoarePieseAudatex: r.valoare_piese_audatex ?? 0,
     valoareAchizitiePiese: r.valoare_achizitie_piese ?? 0,
-    valoareFacturataFaraTVA: r.valoare_facturata_fara_tva ?? 0,
-    valoareFacturataCuTVA: r.valoare_facturata_cu_tva ?? 0,
     blocat: !!r.blocat,
     motivBlocare: r.motiv_blocare || "",
     createdByEmail: r.created_by_email || "",
@@ -242,8 +237,8 @@ function generateazaPDF(claim, istoric = []) {
   y += 3;
   linie("Valoare piese Audatex", `${claim.valoarePieseAudatex || 0} lei`);
   linie("Valoare achiziție piese", `${claim.valoareAchizitiePiese || 0} lei`);
-  linie("Valoare facturată (fără TVA)", `${claim.valoareFacturataFaraTVA || 0} lei`);
-  linie("Valoare facturată (cu TVA)", `${claim.valoareFacturataCuTVA || 0} lei`);
+  linie("Manoperă tinichigerie", `${(claim.manopera && claim.manopera.tinichigerie && claim.manopera.tinichigerie.facturat) || 0} lei`);
+  linie("Manoperă vopsitorie", `${(claim.manopera && claim.manopera.vopsitorie && claim.manopera.vopsitorie.facturat) || 0} lei`);
   y += 6;
   doc.setDrawColor(180); doc.line(14, y, 90, y + 25); doc.line(120, y, 196, y + 25);
   doc.setFontSize(9); doc.text(sd("Semnătură client"), 14, y + 30); doc.text(sd("Semnătură service"), 120, y + 30);
@@ -261,22 +256,27 @@ function generateazaPDF(claim, istoric = []) {
 
     ensureSpace(12);
     doc.setFontSize(12); doc.setFont(undefined, "bold"); doc.text(sd("Istoric modificări"), 14, y); y += 8;
-    doc.setFont(undefined, "normal"); doc.setFontSize(9);
+    doc.setFont(undefined, "normal"); doc.setFontSize(10);
     for (const h of istoric) {
-      ensureSpace(12);
-      const when = new Date(h.created_at).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      ensureSpace(18);
+      const when = new Date(h.created_at).toLocaleString("ro-RO");
+      doc.setFontSize(9); doc.setTextColor(110);
+      doc.text(`${when} · ${sd(h.user_email || "necunoscut")}`, 14, y); y += 6;
+      doc.setTextColor(0); doc.setFontSize(10);
       const mods = h.modificari || {};
-      const parts = Object.entries(mods).map(([camp, diff]) => {
+      for (const [camp, diff] of Object.entries(mods)) {
+        ensureSpace(10);
         const label = sd(CAMP_LABELS[camp] || camp);
-        const oldVal = camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old);
-        const newVal = camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new);
-        return `${label}: ${sd(String(oldVal))} → ${sd(String(newVal))}`;
-      });
-      const line = `${when} — ${parts.join('; ')}`;
-      const wrapped = doc.splitTextToSize(line, 180);
-      doc.text(wrapped, 14, y);
-      y += wrapped.length * 6 + 4;
+        let oldVal = camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old);
+        let newVal = camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new);
+        const line = `${label}: ${sd(String(oldVal))} → ${sd(String(newVal))}`;
+        const parts = doc.splitTextToSize(line, 180);
+        doc.text(parts, 14, y);
+        y += parts.length * 6;
+      }
+      y += 4;
     }
+    doc.setTextColor(0);
   }
 
   doc.save(`dosar-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
@@ -338,7 +338,7 @@ function StageBar({ label, icon, data, onChange }) {
 // ---------------------------------------------------------------------------
 // Card Kanban
 // ---------------------------------------------------------------------------
-function ClaimCard({ claim, onOpen, onMove, onArrive, canEdit, onDragStart }) {
+function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = days >= (claim.termenAlertaZile || 3);
@@ -346,8 +346,6 @@ function ClaimCard({ claim, onOpen, onMove, onArrive, canEdit, onDragStart }) {
 
   return (
     <div onClick={() => onOpen(claim)}
-      draggable
-      onDragStart={(e) => { e.dataTransfer.setData('text/plain', claim.id); if (onDragStart) onDragStart(claim); }}
       className={`group relative bg-white rounded-md border cursor-pointer transition-shadow hover:shadow-md ${claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"}`}
       style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}>
       <div className="p-2.5 pb-2">
@@ -381,33 +379,18 @@ function ClaimCard({ claim, onOpen, onMove, onArrive, canEdit, onDragStart }) {
         <span className="text-[10px] text-[#8A8375] flex items-center gap-1"><Clock size={10} />{days}z în etapă</span>
         <button disabled={!canEdit || idx === STATUSES.length - 1} onClick={() => onMove(claim, 1)} className="p-1 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"><ChevronRight size={14} /></button>
       </div>
-      {claim.status === 'programat' && (
-        <div className="px-2 py-2 border-t border-[#EFEAE1] bg-[#FBF3E6] text-[12px] flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!claim.adusaFizic} onChange={(e) => onArrive && onArrive(claim, e.target.checked)} />
-            <span className="text-[12px]">Mașina sosită</span>
-          </label>
-        </div>
-      )}
     </div>
   );
 }
 
-function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn, onMoveToStatus, onArrive }) {
+function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
       {STATUSES.map((s) => {
         const colClaims = claims.filter((c) => c.status === s.key);
         const colors = PHASE_COLORS[s.phase];
         return (
-          <div key={s.key}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const id = e.dataTransfer.getData('text/plain');
-              if (id && onMoveToStatus) onMoveToStatus(id, s.key);
-            }}
-            className="flex-shrink-0 w-[240px] flex flex-col rounded-lg overflow-hidden border border-[#DAD4C6]" style={{ background: colors.tint }}>
+          <div key={s.key} className="flex-shrink-0 w-[240px] flex flex-col rounded-lg overflow-hidden border border-[#DAD4C6]" style={{ background: colors.tint }}>
             <div className="px-2.5 py-2 flex items-center justify-between" style={{ background: colors.bar }}>
               <div className="flex items-center gap-1.5 text-white">
                 <span className="font-mono text-[11px] opacity-70">{String(s.num).padStart(2, "0")}</span>
@@ -415,24 +398,8 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn, onMoveT
               </div>
               <span className="text-[11px] font-bold text-white/80">{colClaims.length}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
-                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare facturată (fără TVA)</div>
-                <div className="flex items-center gap-1.5">
-                  <input type="number" min={0} className="in" value={form.valoareFacturataFaraTVA} onChange={(e) => set("valoareFacturataFaraTVA", Number(e.target.value) || 0)} />
-                  <span className="text-[11px] text-[#8A8375]">lei</span>
-                </div>
-              </div>
-              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
-                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare facturată (cu TVA)</div>
-                <div className="flex items-center gap-1.5">
-                  <input type="number" min={0} className="in" value={form.valoareFacturataCuTVA} onChange={(e) => set("valoareFacturataCuTVA", Number(e.target.value) || 0)} />
-                  <span className="text-[11px] text-[#8A8375]">lei</span>
-                </div>
-              </div>
-            </div>
             <div className="p-2 flex flex-col gap-2 min-h-[80px]">
-              {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} onArrive={onArrive} canEdit={canEditFn(c)} />)}
+              {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} canEdit={canEditFn(c)} />)}
               <button onClick={() => onAddInStatus(s.key)} className="flex items-center justify-center gap-1 py-1.5 text-[11px] text-[#6B6558] rounded border border-dashed border-[#C7C0B0] hover:bg-white/60 hover:text-[#23282E] transition-colors">
                 <Plus size={12} /> dosar nou
               </button>
@@ -1112,7 +1079,7 @@ function Rapoarte({ claims }) {
   const facturate = claims.filter((c) => c.status === "facturat");
   const withMargin = useMemo(() => facturate.map((c) => {
     const venitPiese = (c.valoarePieseAudatex || 0) - (c.valoareAchizitiePiese || 0);
-    const venitManopera = c.valoareFacturataFaraTVA || 0;
+    const venitManopera = (c.manopera.tinichigerie.facturat || 0) + (c.manopera.vopsitorie.facturat || 0);
     return { ...c, venitPiese, venitManopera, venitTotal: venitPiese + venitManopera };
   }), [facturate]);
 
@@ -1345,29 +1312,6 @@ export default function App() {
     if (error) { setErrorMsg(error.message); loadAll(); }
   };
 
-  const handleMoveToStatus = async (claimId, statusKey) => {
-    const claim = claims.find((c) => c.id === claimId);
-    if (!claim) return;
-    if (!canEdit(claim)) { setErrorMsg("Poți muta doar dosarele create de tine."); return; }
-    const updated = { ...claim, status: statusKey, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-    setClaims((prev) => prev.map((c) => (c.id === claimId ? updated : c)));
-    const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { setErrorMsg(error.message); loadAll(); }
-  };
-
-  const handleArrive = async (claim, arrived) => {
-    if (!canEdit(claim)) { setErrorMsg("Poți marca sosirea doar pentru dosarele create de tine."); return; }
-    const updated = { ...claim, adusaFizic: !!arrived, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-    // dacă s-a marcat sosirea și era programat, mutăm automat în 'in_lucru'
-    if (arrived && claim.status === 'programat') {
-      updated.status = 'in_lucru';
-      updated.dataSchimbareStatus = nowISO();
-    }
-    setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
-    const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { setErrorMsg(error.message); loadAll(); }
-  };
-
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
   const openExisting = (claim) => setModalClaim(claim);
 
@@ -1402,8 +1346,7 @@ export default function App() {
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
       "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
       "Status": STATUSES.find((s) => s.key === c.status)?.label, "Data deschiderii": c.dataDeschiderii,
-      "Valoare facturată (fără TVA)": c.valoareFacturataFaraTVA || 0,
-      "Valoare facturată (cu TVA)": c.valoareFacturataCuTVA || 0,
+      "Facturat Tinichigerie": c.manopera.tinichigerie.facturat, "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -1481,7 +1424,7 @@ export default function App() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "kanban" ? (
-          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} canEditFn={canEdit} onMoveToStatus={handleMoveToStatus} onArrive={handleArrive} />
+          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} canEditFn={canEdit} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
