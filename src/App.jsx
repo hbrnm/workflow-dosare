@@ -822,6 +822,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
           </div>
         </fieldset>
+        </div>
         {!isNew && (
           <div className="px-4 pb-3 shrink-0">
             <details className="border border-[#DAD4C6] rounded-md bg-white">
