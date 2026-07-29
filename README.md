@@ -76,6 +76,14 @@ Apoi înlocuiești `src/App.jsx` cu versiunea nouă din arhivă și faci push.
 
 ## Fiecare vede tot, dar editează doar ce a creat el
 
+### Actualizare de securitate obligatorie
+
+Rulează și `supabase-migration-9.sql` în **Supabase → SQL Editor**. Aceasta
+înlocuiește politicile mai vechi cu reguli stricte: orice coleg autentificat
+poate vedea dosarele, însă numai creatorul le poate modifica, șterge sau
+gestiona fișierele din Storage. Dosarele istorice fără proprietar rămân doar
+pentru citire până sunt atribuite explicit unui cont.
+
 Peste autentificarea de mai sus, am adăugat o regulă suplimentară: toți
 colegii logați văd toate dosarele, dar pot edita sau șterge doar pe cele pe
 care le-au creat ei. Dosarele altora se deschid tot, dar în mod „doar
