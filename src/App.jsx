@@ -628,8 +628,8 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3">
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto">
+      <div onClick={(e) => e.stopPropagation()} className="mx-auto my-4 bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <div className="flex items-center gap-3">
@@ -652,7 +652,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <ShieldCheck size={13} /> Doar vizualizare — acest dosar a fost creat de {claim.createdByEmail || "alt coleg"}, doar el îl poate edita sau șterge.
           </div>
         )}
-        <div className="overflow-hidden flex-1 min-h-0">
+        <div className="flex-1 min-h-0">
           <fieldset disabled={readOnly} className="p-4 grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
           <div className="space-y-4">
           <div>
