@@ -619,12 +619,12 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     const noi = [];
     for (const file of files) {
       const path = `${claim.id}/${file.name}`;
-      const { error } = await supabase.storage.from("poze-dosare").upload(path, file);
+      const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: true });
       if (error) { alert(`Eroare la încărcarea „${file.name}”: ${error.message}`); continue; }
       const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
+    setForm((f) => ({ ...f, poze: [...noi, ...f.poze.filter((p) => !noi.some((n) => n.nume === p.nume))] }));
     setUploadingPoze(false);
   };
 
@@ -636,12 +636,12 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     const noi = [];
     for (const file of files) {
       const path = `${claim.id}/documente/${file.name}`;
-      const { error } = await supabase.storage.from("documente-dosare").upload(path, file);
+      const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: true });
       if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
       const { data: signed } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
+    setForm((f) => ({ ...f, documente: [...noi, ...f.documente.filter((d) => !noi.some((n) => n.nume === d.nume))] }));
     setUploadingDocumente(false);
   };
 
