@@ -584,11 +584,12 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   const removeDoc = async (id) => {
     const doc = form.documente.find((d) => d.id === id);
     if (doc?.path) {
-      await supabase.storage.from("poze-dosare").remove([doc.path]);
+      await supabase.storage.from("documente-dosare").remove([doc.path]);
     }
     setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
   };
 
+  // Upload images to the dedicated photos bucket and store signed URLs in the claim record.
   const handleUploadPoze = async (fileList) => {
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
@@ -605,6 +606,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     setUploadingPoze(false);
   };
 
+  // Upload documents to a separate storage bucket and keep them distinct from photo uploads.
   const handleUploadDocumente = async (fileList) => {
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
@@ -612,9 +614,9 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     const noi = [];
     for (const file of files) {
       const path = `${claim.id}/documente/${uid()}-${file.name}`;
-      const { error } = await supabase.storage.from("poze-dosare").upload(path, file);
+      const { error } = await supabase.storage.from("documente-dosare").upload(path, file);
       if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
-      const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { data: signed } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
     setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
@@ -756,7 +758,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <Field label="Zile chirie Audatex"><input type="number" min={0} className="in" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} /></Field>
             </div>
           </div>
-          <div>
+          <div className="border border-[#DAD4C6] rounded-2xl bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ImageIcon size={12} /> Poze dosar</div>
             {!isNew && (
               <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 text-[12px] mb-2 cursor-pointer ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
@@ -778,8 +780,9 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               </div>
             )}
           </div>
-          <div>
+          <div className="border border-[#DAD4C6] rounded-2xl bg-white p-4 shadow-sm">
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
+            <div className="text-[11px] text-[#8A8375] mb-2">Documentele se pot încărca direct în Supabase sau se pot adăuga ca link extern.</div>
             <div className="flex flex-col gap-2 mb-2">
               <div className="flex gap-2 flex-wrap">
                 <input className="in flex-1 min-w-[200px]" placeholder="Denumire (opțional, ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
@@ -788,16 +791,19 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               </div>
               {!isNew && (
                 <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 text-[12px] cursor-pointer ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
-                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă documente...</> : <><Upload size={13} /> Adaugă documente (poți selecta mai multe)</>}
+                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă documente...</> : <><Upload size={13} /> Încarcă documente (poți selecta mai multe)</>}
                   <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
                 </label>
               )}
-              {isNew && <div className="text-[11px] text-[#8A8375]">Salvează dosarul întâi, apoi poți adăuga documente sau linkuri.</div>}
+              {isNew && <div className="text-[11px] text-[#8A8375]">Salvează dosarul întâi, apoi poți încărca documente intern sau adăuga linkuri.</div>}
             </div>
             <div className="space-y-1">
               {form.documente.map((d) => (
                 <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
-                  <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] underline truncate flex-1">{d.nume}</a>
+                    <span className="text-[10px] text-[#8A8375] whitespace-nowrap">{d.path ? "stocat intern" : "link extern"}</span>
+                  </div>
                   <button onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2"><Trash2 size={14} /></button>
                 </div>
               ))}
