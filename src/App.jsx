@@ -114,6 +114,19 @@ function fmtDateTime(iso) {
   });
 }
 
+// Format dată programare: zi/luna/an, ore simple 24h (ex: 30/07/2026, 14:30)
+function fmtProgramare(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy}, ${hh}:${min}`;
+}
+
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
@@ -230,6 +243,7 @@ const COMPLEX_FIELDS = new Set(["note", "documente", "manopera", "poze"]);
 function formatIstoricValoare(camp, val) {
   if (val === null || val === undefined || val === "") return "—";
   if (camp === "status") { const s = STATUSES.find((x) => x.key === val); return s ? s.label : val; }
+  if (camp === "data_programare" || camp === "data_darii_la_schimb") return fmtProgramare(val);
   if (typeof val === "boolean") return val ? "da" : "nu";
   if (COMPLEX_FIELDS.has(camp)) return "actualizat(ă)";
   return String(val);
@@ -834,8 +848,13 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
       }
     }
 
-    const statusChanged = form.status !== claim.status;
-    if (statusChanged && form.status === "facturat") {
+    // Auto-mutare în „Programat" când se setează o dată de programare
+    let effectiveStatus = form.status;
+    if (form.dataProgramare && form.status === "piese_sosite") {
+      effectiveStatus = "programat";
+    }
+    const statusChanged = effectiveStatus !== claim.status;
+    if (statusChanged && effectiveStatus === "facturat") {
       const faraValori = !form.manopera.tinichigerie.facturat && !form.manopera.vopsitorie.facturat &&
         !form.valoarePieseAudatex && !form.valoareAchizitiePiese;
       if (faraValori) {
@@ -846,6 +865,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
     onSave({
       ...form,
+      status: effectiveStatus,
       numarDosar,
       numarInmatriculare,
       vin,
@@ -1037,7 +1057,15 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <Field label="Alertă după (zile în etapă)"><input type="number" min={1} className="in" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} /></Field>
               <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
               <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
-              <Field label="Programare service" full><input type="datetime-local" className="in" value={form.dataProgramare} onChange={(e) => set("dataProgramare", e.target.value)} /></Field>
+              <Field label="Programare service" full>
+                <input type="datetime-local" lang="ro" className="in" value={form.dataProgramare} onChange={(e) => set("dataProgramare", e.target.value)} />
+                {form.dataProgramare && (
+                  <div className="text-[11px] text-[#3B5166] mt-1 font-semibold">
+                    {fmtProgramare(form.dataProgramare)}
+                    {form.status === "piese_sosite" && <span className="text-[#C98A2B]"> — va fi mutat automat în „Programat"</span>}
+                  </div>
+                )}
+              </Field>
             </div>
             <label className={`flex items-center gap-2 text-[12.5px] mt-2.5 cursor-pointer px-2.5 py-2 rounded-md border ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E]" : "border-[#DAD4C6] text-[#23282E]"}`}>
               <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
@@ -1315,9 +1343,12 @@ function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapa
                     {String(s.num).padStart(2, "0")}. {s.label}
                   </span>
                   <div>
-                    <input type="datetime-local" disabled={!editable} className="border border-[#DAD4C6] rounded px-2 py-1.5 text-[12.5px] disabled:opacity-50 disabled:bg-[#EFEAE1]" value={c.dataProgramare || ""} onChange={(e) => onPatch(c.id, { dataProgramare: e.target.value })} />
+                    <input type="datetime-local" lang="ro" disabled={!editable} className="border border-[#DAD4C6] rounded px-2 py-1.5 text-[12.5px] disabled:opacity-50 disabled:bg-[#EFEAE1]" value={c.dataProgramare || ""} onChange={(e) => onPatch(c.id, { dataProgramare: e.target.value })} />
                     {c.dataProgramare && (
-                      <div className={`text-[10px] mt-0.5 ${overbooked ? "text-[#B23A2E] font-bold" : "text-[#8A8375]"}`}>{dayCount}/{capacitate} în acea zi{overbooked ? " — suprarezervat" : ""}</div>
+                      <>
+                        <div className="text-[10px] mt-0.5 text-[#3B5166] font-semibold">{fmtProgramare(c.dataProgramare)}</div>
+                        <div className={`text-[10px] ${overbooked ? "text-[#B23A2E] font-bold" : "text-[#8A8375]"}`}>{dayCount}/{capacitate} în acea zi{overbooked ? " — suprarezervat" : ""}</div>
+                      </>
                     )}
                   </div>
                   {c.status === "piese_sosite" && (
@@ -1605,7 +1636,13 @@ export default function App() {
     const current = claims.find((c) => c.id === id);
     if (!current) return;
     if (!canEdit(current)) { showNotice("Poți edita programarea doar la dosarele create de tine.", "error"); return; }
-    const updated = { ...current, ...patch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
+    // Auto-mutare în „Programat" când se setează o dată de programare
+    let effectivePatch = { ...patch };
+    if (patch.dataProgramare && current.status === "piese_sosite") {
+      effectivePatch = { ...effectivePatch, status: "programat", dataSchimbareStatus: nowISO() };
+      showNotice('Dosar mutat automat în „Programat".', "success");
+    }
+    const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
     setClaims((prev) => prev.map((c) => (c.id === id ? updated : c))); // optimist
     const { error } = await supabase.from("dosare").upsert(toDb(updated));
     if (error) { showNotice(error.message, "error"); loadAll(); }
