@@ -767,7 +767,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             )}
             {isNew && <div className="text-[11px] text-[#8A8375] mb-2">Salvează dosarul întâi, apoi poți adăuga poze.</div>}
             {form.poze.length > 0 && (
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-1.5 max-h-[22rem] overflow-y-auto">
                 {form.poze.map((p) => (
                   <div key={p.id} className="relative group">
                     <a href={p.url} target="_blank" rel="noreferrer">
@@ -788,7 +788,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                 </label>
               )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 max-h-[18rem] overflow-y-auto">
               {form.documente.map((d) => (
                 <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
