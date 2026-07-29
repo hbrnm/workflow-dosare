@@ -386,7 +386,11 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
       className={`group relative bg-white rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
+<<<<<<< HEAD
       style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase]?.bar || "#DAD4C6" }}
+=======
+      style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}
+>>>>>>> fc990be8cde0361c12582ddafc8ddc23a3972fe0
     >
       <div className="p-3 pb-2.5">
         <div className="flex items-start justify-between gap-1.5">
@@ -453,7 +457,11 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         onClick={(e) => e.stopPropagation()}
       >
         <button
+<<<<<<< HEAD
           disabled={!canEdit || !hasKnownStatus || idx === 0}
+=======
+          disabled={!canEdit || idx === 0}
+>>>>>>> fc990be8cde0361c12582ddafc8ddc23a3972fe0
           onClick={() => onMove(claim, -1)}
           className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
         >
@@ -464,7 +472,11 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
           {days}z în etapă
         </span>
         <button
+<<<<<<< HEAD
           disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
+=======
+          disabled={!canEdit || idx === STATUSES.length - 1}
+>>>>>>> fc990be8cde0361c12582ddafc8ddc23a3972fe0
           onClick={() => onMove(claim, 1)}
           className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
         >
@@ -971,6 +983,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
             </label>
             {form.blocat && (
+<<<<<<< HEAD
               <div className="px-4 py-2.5 bg-[#B23A2E] text-white text-[12.5px] flex items-center gap-2 shrink-0">
                 <AlertOctagon size={15} />
                 <span className="font-semibold">Dosar blocat</span>
@@ -978,6 +991,14 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                   <span className="opacity-90">— {form.motivBlocare}</span>
                 )}
               </div>
+=======
+  <div className="px-4 py-2.5 bg-[#B23A2E] text-white text-[12.5px] flex items-center gap-2 shrink-0">
+    <AlertOctagon size={15} />
+    <span className="font-semibold">Dosar blocat</span>
+    {form.motivBlocare && (
+      <span className="opacity-90">— {form.motivBlocare}</span>
+    
+>>>>>>> fc990be8cde0361c12582ddafc8ddc23a3972fe0
             )}
           </div>
           </div>
