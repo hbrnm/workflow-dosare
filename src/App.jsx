@@ -85,6 +85,8 @@ function emptyClaim(status = "primit") {
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
+    valoareFacturataFaraTVA: 0,
+    valoareFacturataCuTVA: 0,
     blocat: false, motivBlocare: "",
     createdByEmail: "", updatedByEmail: "",
     poze: [],
@@ -157,6 +159,8 @@ function fromDb(r) {
     zileChirieAudatex: r.zile_chirie_audatex ?? 0,
     valoarePieseAudatex: r.valoare_piese_audatex ?? 0,
     valoareAchizitiePiese: r.valoare_achizitie_piese ?? 0,
+    valoareFacturataFaraTVA: r.valoare_facturata_fara_tva ?? 0,
+    valoareFacturataCuTVA: r.valoare_facturata_cu_tva ?? 0,
     blocat: !!r.blocat,
     motivBlocare: r.motiv_blocare || "",
     createdByEmail: r.created_by_email || "",
@@ -237,8 +241,8 @@ function generateazaPDF(claim, istoric = []) {
   y += 3;
   linie("Valoare piese Audatex", `${claim.valoarePieseAudatex || 0} lei`);
   linie("Valoare achiziție piese", `${claim.valoareAchizitiePiese || 0} lei`);
-  linie("Manoperă tinichigerie", `${(claim.manopera && claim.manopera.tinichigerie && claim.manopera.tinichigerie.facturat) || 0} lei`);
-  linie("Manoperă vopsitorie", `${(claim.manopera && claim.manopera.vopsitorie && claim.manopera.vopsitorie.facturat) || 0} lei`);
+  linie("Valoare facturată (fără TVA)", `${claim.valoareFacturataFaraTVA || 0} lei`);
+  linie("Valoare facturată (cu TVA)", `${claim.valoareFacturataCuTVA || 0} lei`);
   y += 6;
   doc.setDrawColor(180); doc.line(14, y, 90, y + 25); doc.line(120, y, 196, y + 25);
   doc.setFontSize(9); doc.text(sd("Semnătură client"), 14, y + 30); doc.text(sd("Semnătură service"), 120, y + 30);
@@ -256,27 +260,22 @@ function generateazaPDF(claim, istoric = []) {
 
     ensureSpace(12);
     doc.setFontSize(12); doc.setFont(undefined, "bold"); doc.text(sd("Istoric modificări"), 14, y); y += 8;
-    doc.setFont(undefined, "normal"); doc.setFontSize(10);
+    doc.setFont(undefined, "normal"); doc.setFontSize(9);
     for (const h of istoric) {
-      ensureSpace(18);
-      const when = new Date(h.created_at).toLocaleString("ro-RO");
-      doc.setFontSize(9); doc.setTextColor(110);
-      doc.text(`${when} · ${sd(h.user_email || "necunoscut")}`, 14, y); y += 6;
-      doc.setTextColor(0); doc.setFontSize(10);
+      ensureSpace(12);
+      const when = new Date(h.created_at).toLocaleString("ro-RO", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       const mods = h.modificari || {};
-      for (const [camp, diff] of Object.entries(mods)) {
-        ensureSpace(10);
+      const parts = Object.entries(mods).map(([camp, diff]) => {
         const label = sd(CAMP_LABELS[camp] || camp);
-        let oldVal = camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old);
-        let newVal = camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new);
-        const line = `${label}: ${sd(String(oldVal))} → ${sd(String(newVal))}`;
-        const parts = doc.splitTextToSize(line, 180);
-        doc.text(parts, 14, y);
-        y += parts.length * 6;
-      }
-      y += 4;
+        const oldVal = camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old);
+        const newVal = camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new);
+        return `${label}: ${sd(String(oldVal))} → ${sd(String(newVal))}`;
+      });
+      const line = `${when} — ${parts.join('; ')}`;
+      const wrapped = doc.splitTextToSize(line, 180);
+      doc.text(wrapped, 14, y);
+      y += wrapped.length * 6 + 4;
     }
-    doc.setTextColor(0);
   }
 
   doc.save(`dosar-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
@@ -414,6 +413,22 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn, onMoveT
                 <span className="text-[12px] font-semibold">{s.label}</span>
               </div>
               <span className="text-[11px] font-bold text-white/80">{colClaims.length}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
+                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare facturată (fără TVA)</div>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" min={0} className="in" value={form.valoareFacturataFaraTVA} onChange={(e) => set("valoareFacturataFaraTVA", Number(e.target.value) || 0)} />
+                  <span className="text-[11px] text-[#8A8375]">lei</span>
+                </div>
+              </div>
+              <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
+                <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare facturată (cu TVA)</div>
+                <div className="flex items-center gap-1.5">
+                  <input type="number" min={0} className="in" value={form.valoareFacturataCuTVA} onChange={(e) => set("valoareFacturataCuTVA", Number(e.target.value) || 0)} />
+                  <span className="text-[11px] text-[#8A8375]">lei</span>
+                </div>
+              </div>
             </div>
             <div className="p-2 flex flex-col gap-2 min-h-[80px]">
               {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} onArrive={onArrive} canEdit={canEditFn(c)} />)}
@@ -1386,7 +1401,8 @@ export default function App() {
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
       "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
       "Status": STATUSES.find((s) => s.key === c.status)?.label, "Data deschiderii": c.dataDeschiderii,
-      "Facturat Tinichigerie": c.manopera.tinichigerie.facturat, "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
+      "Valoare facturată (fără TVA)": c.valoareFacturataFaraTVA || 0,
+      "Valoare facturată (cu TVA)": c.valoareFacturataCuTVA || 0,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
