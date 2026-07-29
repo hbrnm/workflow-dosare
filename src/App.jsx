@@ -652,6 +652,34 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <ShieldCheck size={13} /> Doar vizualizare — acest dosar a fost creat de {claim.createdByEmail || "alt coleg"}, doar el îl poate edita sau șterge.
           </div>
         )}
+        {!isNew && (
+          <div className="px-4 py-3 border-b border-[#DAD4C6] bg-white">
+            <details className="border border-[#DAD4C6] rounded-md bg-[#FCFAF5]">
+              <summary className="px-3 py-2 text-[11.5px] font-bold text-[#6B6558] cursor-pointer flex items-center gap-1.5 select-none">
+                <History size={12} /> Istoric modificări {loadingIstoric ? "" : `(${istoric.length})`}
+              </summary>
+              <div className="px-3 pb-2 max-h-40 overflow-y-auto space-y-1.5 border-t border-[#EFEAE1] pt-2">
+                {loadingIstoric ? (
+                  <div className="text-[11.5px] text-[#8A8375] flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> Se încarcă...</div>
+                ) : istoric.length === 0 ? (
+                  <div className="text-[11.5px] text-[#8A8375]">Fără modificări înregistrate.</div>
+                ) : istoric.map((h) => (
+                  <div key={h.id} className="text-[11.5px]">
+                    <div className="text-[10px] text-[#8A8375] font-mono">{new Date(h.created_at).toLocaleString("ro-RO")} · {h.user_email || "necunoscut"}</div>
+                    {Object.entries(h.modificari || {}).map(([camp, diff]) => (
+                      <div key={camp} className="text-[#23282E]">
+                        <span className="font-semibold">{CAMP_LABELS[camp] || camp}</span>
+                        {camp !== "_creat" && (
+                          <>: {formatIstoricValoare(camp, diff.old)} → {formatIstoricValoare(camp, diff.new)}</>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
         <div className="flex-1 min-h-0">
           <fieldset disabled={readOnly} className="p-4 grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
           <div className="space-y-4">
@@ -823,34 +851,6 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
         </fieldset>
         </div>
-        {!isNew && (
-          <div className="px-4 pb-3 shrink-0">
-            <details className="border border-[#DAD4C6] rounded-md bg-white">
-              <summary className="px-3 py-2 text-[11.5px] font-bold text-[#6B6558] cursor-pointer flex items-center gap-1.5 select-none">
-                <History size={12} /> Istoric modificări {loadingIstoric ? "" : `(${istoric.length})`}
-              </summary>
-              <div className="px-3 pb-2 max-h-40 overflow-y-auto space-y-1.5 border-t border-[#EFEAE1] pt-2">
-                {loadingIstoric ? (
-                  <div className="text-[11.5px] text-[#8A8375] flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> Se încarcă...</div>
-                ) : istoric.length === 0 ? (
-                  <div className="text-[11.5px] text-[#8A8375]">Fără modificări înregistrate.</div>
-                ) : istoric.map((h) => (
-                  <div key={h.id} className="text-[11.5px]">
-                    <div className="text-[10px] text-[#8A8375] font-mono">{new Date(h.created_at).toLocaleString("ro-RO")} · {h.user_email || "necunoscut"}</div>
-                    {Object.entries(h.modificari || {}).map(([camp, diff]) => (
-                      <div key={camp} className="text-[#23282E]">
-                        <span className="font-semibold">{CAMP_LABELS[camp] || camp}</span>
-                        {camp !== "_creat" && (
-                          <>: {formatIstoricValoare(camp, diff.old)} → {formatIstoricValoare(camp, diff.new)}</>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        )}
         <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6] shrink-0">
           {readOnly ? <span /> : (
             <button onClick={() => { if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id); }} className="flex items-center gap-1 text-[#B23A2E] text-[13px] font-medium hover:opacity-70"><Trash2 size={14} /> Șterge dosar</button>
