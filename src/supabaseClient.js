@@ -9,4 +9,8 @@ if (!url || !key) {
   );
 }
 
-export const supabase = createClient(url, key);
+// Folosim valori fictive dacă lipsesc variabilele, pentru a preveni erorile de tip crash
+export const supabase = createClient(
+  url || "https://placeholder.supabase.co",
+  key || "placeholder-key"
+);
