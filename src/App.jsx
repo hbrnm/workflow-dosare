@@ -85,6 +85,7 @@ function emptyClaim(status = "primit") {
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
+    valoareFacturataFaraTVA: 0, valoareFacturataCuTVA: 0,
     blocat: false, motivBlocare: "",
     createdByEmail: "", updatedByEmail: "",
     poze: [],
@@ -119,6 +120,8 @@ function toDb(c) {
     zile_chirie_audatex: c.zileChirieAudatex,
     valoare_piese_audatex: c.valoarePieseAudatex,
     valoare_achizitie_piese: c.valoareAchizitiePiese,
+    valoare_facturata_fara_tva: c.valoareFacturataFaraTVA,
+    valoare_facturata_cu_tva: c.valoareFacturataCuTVA,
     blocat: c.blocat,
     motiv_blocare: c.motivBlocare,
     created_by_email: c.createdByEmail || null,
@@ -1109,7 +1112,7 @@ function Rapoarte({ claims }) {
   const facturate = claims.filter((c) => c.status === "facturat");
   const withMargin = useMemo(() => facturate.map((c) => {
     const venitPiese = (c.valoarePieseAudatex || 0) - (c.valoareAchizitiePiese || 0);
-    const venitManopera = (c.manopera.tinichigerie.facturat || 0) + (c.manopera.vopsitorie.facturat || 0);
+    const venitManopera = c.valoareFacturataFaraTVA || 0;
     return { ...c, venitPiese, venitManopera, venitTotal: venitPiese + venitManopera };
   }), [facturate]);
 

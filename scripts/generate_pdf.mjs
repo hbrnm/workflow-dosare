@@ -46,8 +46,8 @@ function generatePdfFile(claim, filename = 'dosar-test.pdf') {
   y += 3;
   linie('Valoare piese Audatex', `${claim.valoarePieseAudatex || 0} lei`);
   linie('Valoare achizitie piese', `${claim.valoareAchizitiePiese || 0} lei`);
-  linie('Valoare facturata (fara TVA)', `${claim.valoareFacturataFaraTVA || 0} lei`);
-  linie('Valoare facturata (cu TVA)', `${claim.valoareFacturataCuTVA || 0} lei`);
+  linie('Manopera tinichigerie', `${(claim.manopera && claim.manopera.tinichigerie && claim.manopera.tinichigerie.facturat) || 0} lei`);
+  linie('Manopera vopsitorie', `${(claim.manopera && claim.manopera.vopsitorie && claim.manopera.vopsitorie.facturat) || 0} lei`);
   y += 6;
   doc.setDrawColor(180); doc.line(14, y, 90, y + 25); doc.line(120, y, 196, y + 25);
   doc.setFontSize(9); doc.text(sd('Semnatura client'), 14, y + 30); doc.text(sd('Semnatura service'), 120, y + 30);
@@ -80,8 +80,6 @@ const demoClaim = {
   valoarePieseAudatex: 0,
   valoareAchizitiePiese: 0,
   manopera: { tinichigerie: { facturat: 0 }, vopsitorie: { facturat: 0 } },
-  valoareFacturataFaraTVA: 0,
-  valoareFacturataCuTVA: 0,
 };
 
 generatePdfFile(demoClaim, 'dosar-test.pdf');
