@@ -593,7 +593,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     setUploadingPoze(true);
     const noi = [];
     for (const file of files) {
-      const path = `${claim.id}/${uid()}-${file.name}`;
+      const path = `${claim.id}/${file.name}`;
       const { error } = await supabase.storage.from("poze-dosare").upload(path, file);
       if (error) { alert(`Eroare la încărcarea „${file.name}”: ${error.message}`); continue; }
       const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
@@ -610,7 +610,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     setUploadingDocumente(true);
     const noi = [];
     for (const file of files) {
-      const path = `${claim.id}/documente/${uid()}-${file.name}`;
+      const path = `${claim.id}/documente/${file.name}`;
       const { error } = await supabase.storage.from("documente-dosare").upload(path, file);
       if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
       const { data: signed } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
