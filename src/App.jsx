@@ -519,8 +519,6 @@ function Field({ label, children, full }) {
 function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo }) {
   const [form, setForm] = useState(claim);
   const [noteText, setNoteText] = useState("");
-  const [docName, setDocName] = useState("");
-  const [docLink, setDocLink] = useState("");
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
@@ -579,7 +577,6 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     onSave({ ...form, dataUltimeiActualizari: nowISO(), dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus });
   };
   const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
-  const addDoc = () => { if (!docLink.trim()) return; const nume = docName.trim() || `Document ${form.documente.length + 1}`; setForm((f) => ({ ...f, documente: [{ id: uid(), nume, link: docLink.trim() }, ...f.documente] })); setDocName(""); setDocLink(""); };
   const removeNote = (id) => setForm((f) => ({ ...f, note: f.note.filter((n) => n.id !== id) }));
   const removeDoc = async (id) => {
     const doc = form.documente.find((d) => d.id === id);
@@ -782,9 +779,6 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
           <div className="border border-[#DAD4C6] rounded-2xl bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <input className="in flex-1 min-w-[200px]" placeholder="Denumire document" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-              <input className="in flex-1 min-w-[200px]" placeholder="Link document" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-              <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
               {!isNew && (
                 <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 px-3 text-[12px] cursor-pointer ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
                   {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
