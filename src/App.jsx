@@ -629,7 +629,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3">
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <div className="flex items-center gap-3">
@@ -653,7 +653,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
         )}
         <div className="overflow-hidden flex-1 min-h-0">
-          <fieldset disabled={readOnly} className="p-4 overflow-y-auto grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
+          <fieldset disabled={readOnly} className="p-4 grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
           <div className="space-y-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
