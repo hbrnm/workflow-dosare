@@ -50,9 +50,43 @@ const INSURERS = [
 
 const PIE_COLORS = ["#3B5166", "#4A6FA5", "#C98A2B", "#3E6B45", "#B23A2E", "#8A8375", "#7A5316", "#2C4160", "#294A2E"];
 
+const FALLBACK_STATUS = STATUSES[0];
+
+function getStatusDefinition(statusKey) {
+  return STATUSES.find((status) => status.key === statusKey) || FALLBACK_STATUS;
+}
+
+function getPhaseColors(statusKey) {
+  return PHASE_COLORS[getStatusDefinition(statusKey).phase] || PHASE_COLORS.start;
+}
+
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const nowISO = () => new Date().toISOString();
+
+function storagePath(claimId, file, directory = "") {
+  const dotIndex = file.name.lastIndexOf(".");
+  const extension = dotIndex > -1 ? file.name.slice(dotIndex) : "";
+  const prefix = directory ? `${claimId}/${directory}` : claimId;
+  return `${prefix}/${uid()}${extension}`;
+}
+
+async function refreshStorageUrls(items, bucket) {
+  return Promise.all((items || []).map(async (item) => {
+    if (!item?.path) return item;
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(item.path, 60 * 60);
+
+    if (error) {
+      console.error(`Nu s-a putut genera URL-ul temporar pentru ${item.path}:`, error);
+      return { ...item, url: "" };
+    }
+
+    return { ...item, url: data?.signedUrl || "" };
+  }));
+}
 
 function daysBetween(iso) {
   if (!iso) return 0;
@@ -86,7 +120,7 @@ function emptyClaim(status = "primit") {
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
     blocat: false, motivBlocare: "",
-    createdByEmail: "", updatedByEmail: "",
+    createdBy: null, createdByEmail: "", updatedByEmail: "",
     poze: [],
   };
 }
@@ -110,7 +144,7 @@ function toDb(c) {
     termen_alerta_zile: c.termenAlertaZile,
     data_programare: c.dataProgramare || null,
     note: c.note,
-    documente: c.documente,
+    documente: (c.documente || []).map(({ url, ...document }) => document),
     adusa_fizic: c.adusaFizic,
     ce_este_de_reparat: c.ceEsteDeReparat,
     manopera: c.manopera,
@@ -121,9 +155,10 @@ function toDb(c) {
     valoare_achizitie_piese: c.valoareAchizitiePiese,
     blocat: c.blocat,
     motiv_blocare: c.motivBlocare,
+    created_by: c.createdBy || null,
     created_by_email: c.createdByEmail || null,
     updated_by_email: c.updatedByEmail || null,
-    poze: c.poze,
+    poze: (c.poze || []).map(({ url, ...photo }) => photo),
   };
 }
 function fromDb(r) {
@@ -194,7 +229,7 @@ function formatIstoricValoare(camp, val) {
 
 function generateazaPDF(claim, istoric = []) {
   const doc = new jsPDF();
-  const s = STATUSES.find((x) => x.key === claim.status);
+  const s = getStatusDefinition(claim.status);
   let y = 20;
 
   function stripDiacritics(str) {
@@ -219,7 +254,7 @@ function generateazaPDF(claim, istoric = []) {
   linie("Nr. dosar", claim.numarDosar);
   linie("Tip asigurare", claim.tipAsigurare);
   linie("Asigurător", claim.asigurator);
-  linie("Status", s ? `${s.num}. ${sd(s.label)}` : sd(claim.status));
+  linie("Status", `${s.num}. ${sd(s.label)}`);
   y += 3;
   linie("Client", claim.client);
   linie("Telefon", claim.telefonClient);
@@ -340,9 +375,10 @@ function StageBar({ label, icon, data, onChange }) {
 // ---------------------------------------------------------------------------
 function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
+  const hasKnownStatus = idx >= 0;
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = days >= (claim.termenAlertaZile || 3);
-  const phase = STATUSES[idx].phase;
+  const phase = getStatusDefinition(claim.status).phase;
 
   return (
     <div
@@ -350,7 +386,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
       className={`group relative bg-white rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
-      style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase].bar }}
+      style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase]?.bar || "#DAD4C6" }}
     >
       <div className="p-3 pb-2.5">
         <div className="flex items-start justify-between gap-1.5">
@@ -417,7 +453,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          disabled={!canEdit || idx === 0}
+          disabled={!canEdit || !hasKnownStatus || idx === 0}
           onClick={() => onMove(claim, -1)}
           className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
         >
@@ -428,7 +464,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
           {days}z în etapă
         </span>
         <button
-          disabled={!canEdit || idx === STATUSES.length - 1}
+          disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
           onClick={() => onMove(claim, 1)}
           className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
         >
@@ -439,6 +475,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   );
 }
 
+
 function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
   return (
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
@@ -446,18 +483,45 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
         const colClaims = claims.filter((c) => c.status === s.key);
         const colors = PHASE_COLORS[s.phase];
         return (
-          <div key={s.key} className="flex-shrink-0 w-[240px] flex flex-col rounded-lg overflow-hidden border border-[#DAD4C6]" style={{ background: colors.tint }}>
-            <div className="px-2.5 py-2 flex items-center justify-between" style={{ background: colors.bar }}>
+          <div
+            key={s.key}
+            className="flex-shrink-0 w-[260px] flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-sm"
+            style={{ background: colors.tint }}
+          >
+            <div
+              className="px-3 py-2.5 flex items-center justify-between shrink-0"
+              style={{ background: colors.bar }}
+            >
               <div className="flex items-center gap-1.5 text-white">
-                <span className="font-mono text-[11px] opacity-70">{String(s.num).padStart(2, "0")}</span>
-                <span className="text-[12px] font-semibold">{s.label}</span>
+                <span className="font-mono text-[11px] opacity-70">
+                  {String(s.num).padStart(2, "0")}
+                </span>
+                <span className="text-[12.5px] font-semibold leading-tight">{s.label}</span>
               </div>
-              <span className="text-[11px] font-bold text-white/80">{colClaims.length}</span>
+              <span className="min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
+                {colClaims.length}
+              </span>
             </div>
-            <div className="p-2 flex flex-col gap-2 min-h-[80px]">
-              {colClaims.map((c) => <ClaimCard key={c.id} claim={c} onOpen={onOpen} onMove={onMove} canEdit={canEditFn(c)} />)}
-              <button onClick={() => onAddInStatus(s.key)} className="flex items-center justify-center gap-1 py-1.5 text-[11px] text-[#6B6558] rounded border border-dashed border-[#C7C0B0] hover:bg-white/60 hover:text-[#23282E] transition-colors">
-                <Plus size={12} /> dosar nou
+            <div className="p-2.5 flex flex-col gap-2.5 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px]">
+              {colClaims.length === 0 && (
+                <div className="text-center py-6 text-[11.5px] text-[#8A8375]/80">
+                  Niciun dosar în această etapă
+                </div>
+              )}
+              {colClaims.map((c) => (
+                <ClaimCard
+                  key={c.id}
+                  claim={c}
+                  onOpen={onOpen}
+                  onMove={onMove}
+                  canEdit={canEditFn(c)}
+                />
+              ))}
+              <button
+                onClick={() => onAddInStatus(s.key)}
+                className="flex items-center justify-center gap-1.5 py-2 text-[11.5px] text-[#6B6558] rounded-lg border border-dashed border-[#C7C0B0] hover:bg-white/70 hover:text-[#23282E] hover:border-[#A89F8A] transition-colors shrink-0"
+              >
+                <Plus size={13} /> dosar nou
               </button>
             </div>
           </div>
@@ -467,6 +531,7 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
   );
 }
 
+
 function ClaimTable({ claims, onOpen, canEditFn }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
@@ -474,7 +539,12 @@ function ClaimTable({ claims, onOpen, canEditFn }) {
     const arr = [...claims];
     arr.sort((a, b) => {
       let av = a[sortKey], bv = b[sortKey];
-      if (sortKey === "status") { av = STATUSES.findIndex((s) => s.key === a.status); bv = STATUSES.findIndex((s) => s.key === b.status); }
+      if (sortKey === "status") {
+        av = STATUSES.findIndex((s) => s.key === a.status);
+        bv = STATUSES.findIndex((s) => s.key === b.status);
+        av = av < 0 ? Number.MAX_SAFE_INTEGER : av;
+        bv = bv < 0 ? Number.MAX_SAFE_INTEGER : bv;
+      }
       av = av || ""; bv = bv || "";
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
@@ -505,7 +575,7 @@ function ClaimTable({ claims, onOpen, canEditFn }) {
         </thead>
         <tbody>
           {sorted.map((c, i) => {
-            const s = STATUSES.find((x) => x.key === c.status);
+            const s = getStatusDefinition(c.status);
             const days = daysBetween(c.dataSchimbareStatus);
             const overdue = days >= (c.termenAlertaZile || 3);
             return (
@@ -606,7 +676,7 @@ function Dashboard({ claims, onOpen }) {
         {overdueList.length === 0 ? <div className="p-4 text-[12.5px] text-[#8A8375]">Niciun dosar depășit — totul e sub control.</div> : (
           <div className="divide-y divide-[#EFEAE1] max-h-64 overflow-y-auto">
             {overdueList.map((c) => {
-              const s = STATUSES.find((x) => x.key === c.status);
+              const s = getStatusDefinition(c.status);
               return (
                 <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#FCFAF5]">
                   <div>
@@ -646,6 +716,26 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   useEffect(() => setForm(claim), [claim]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadStorageUrls = async () => {
+      if (!claim?.id) return;
+
+      const [poze, documente] = await Promise.all([
+        refreshStorageUrls(claim.poze, "poze-dosare"),
+        refreshStorageUrls(claim.documente, "documente-dosare"),
+      ]);
+
+      if (!cancelled) {
+        setForm((current) => ({ ...current, poze, documente }));
+      }
+    };
+
+    loadStorageUrls();
+    return () => { cancelled = true; };
+  }, [claim]);
+
+  useEffect(() => {
     if (isNew) { setIstoric([]); return; }
     setLoadingIstoric(true);
     supabase.from("istoric_dosar").select("*").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(100)
@@ -677,7 +767,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
         c.status !== "facturat"
       );
       if (duplicat) {
-        const ok = confirm(`Există deja un dosar activ pentru ${form.numarInmatriculare} (dosarul ${duplicat.numarDosar || "—"}, status „${STATUSES.find((s) => s.key === duplicat.status)?.label}"). Continui oricum?`);
+        const ok = confirm(`Există deja un dosar activ pentru ${form.numarInmatriculare} (dosarul ${duplicat.numarDosar || "—"}, status „${getStatusDefinition(duplicat.status).label}"). Continui oricum?`);
         if (!ok) return;
       }
     }
@@ -699,47 +789,67 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
   const removeDoc = async (id) => {
     const doc = form.documente.find((d) => d.id === id);
     if (doc?.path) {
-      await supabase.storage.from("documente-dosare").remove([doc.path]);
+      const { error } = await supabase.storage.from("documente-dosare").remove([doc.path]);
+      if (error) {
+        alert(`Nu am putut șterge documentul „${doc.nume || ""}”: ${error.message}`);
+        return;
+      }
     }
     setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
   };
 
-  // Upload images to the dedicated photos bucket and store signed URLs in the claim record.
+  // Upload images to the dedicated photos bucket. Only paths are persisted; URLs are temporary.
   const handleUploadPoze = async (fileList) => {
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
     setUploadingPoze(true);
     const noi = [];
     for (const file of files) {
-      const path = `${claim.id}/${file.name}`;
-      const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: true });
+      const path = storagePath(claim.id, file);
+      const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: false });
       if (error) { alert(`Eroare la încărcarea „${file.name}”: ${error.message}`); continue; }
-      const { data: signed } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60);
+      if (signedError) {
+        await supabase.storage.from("poze-dosare").remove([path]);
+        alert(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`);
+        continue;
+      }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, poze: [...noi, ...f.poze.filter((p) => !noi.some((n) => n.nume === p.nume))] }));
+    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
     setUploadingPoze(false);
   };
 
-  // Upload documents to a separate storage bucket and keep them distinct from photo uploads.
+  // Upload documents to a separate storage bucket. Only paths are persisted; URLs are temporary.
   const handleUploadDocumente = async (fileList) => {
     const files = Array.from(fileList || []);
     if (files.length === 0) return;
     setUploadingDocumente(true);
     const noi = [];
     for (const file of files) {
-      const path = `${claim.id}/documente/${file.name}`;
-      const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: true });
+      const path = storagePath(claim.id, file, "documente");
+      const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
       if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
-      const { data: signed } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60);
+      if (signedError) {
+        await supabase.storage.from("documente-dosare").remove([path]);
+        alert(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`);
+        continue;
+      }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, documente: [...noi, ...f.documente.filter((d) => !noi.some((n) => n.nume === d.nume))] }));
+    setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
     setUploadingDocumente(false);
   };
 
   const removePoza = async (poza) => {
-    await supabase.storage.from("poze-dosare").remove([poza.path]);
+    if (poza?.path) {
+      const { error } = await supabase.storage.from("poze-dosare").remove([poza.path]);
+      if (error) {
+        alert(`Nu am putut șterge fotografia „${poza.nume || ""}”: ${error.message}`);
+        return;
+      }
+    }
     setForm((f) => ({ ...f, poze: f.poze.filter((p) => p.id !== poza.id) }));
   };
 
@@ -833,7 +943,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                 </div>
                 <div className="space-y-0.5">
                   {istoricClientVehicul.slice(0, 5).map((c) => {
-                    const s = STATUSES.find((x) => x.key === c.status);
+                    const s = getStatusDefinition(c.status);
                     return (
                       <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)} className="block w-full text-left text-[11.5px] text-[#2C4160] hover:underline">
                         {c.numarDosar || "—"} · {c.marcaModel} · {String(s.num).padStart(2, "0")}. {s.label} · {fmtDate(c.dataDeschiderii)}
@@ -861,7 +971,13 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
             </label>
             {form.blocat && (
-              <input className="in mt-1.5" placeholder="Motivul blocării (ex: litigiu cu asigurătorul, lipsă piese pe stoc...)" value={form.motivBlocare} onChange={(e) => set("motivBlocare", e.target.value)} />
+              <div className="px-4 py-2.5 bg-[#B23A2E] text-white text-[12.5px] flex items-center gap-2 shrink-0">
+                <AlertOctagon size={15} />
+                <span className="font-semibold">Dosar blocat</span>
+                {form.motivBlocare && (
+                  <span className="opacity-90">— {form.motivBlocare}</span>
+                )}
+              </div>
             )}
           </div>
           </div>
@@ -968,17 +1084,36 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
         </fieldset>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6] shrink-0">
-          {readOnly ? <span /> : (
-            <button onClick={() => { if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id); }} className="flex items-center gap-1 text-[#B23A2E] text-[13px] font-medium hover:opacity-70"><Trash2 size={14} /> Șterge dosar</button>
-          )}
-          <div className="flex gap-2">
-            <button onClick={onClose} className="px-3 py-1.5 rounded border border-[#C7C0B0] text-[13px] text-[#4A443A] hover:bg-[#EFEAE1]">{readOnly ? "Închide" : "Anulează"}</button>
-            {!readOnly && (
-              <button onClick={handleSave} className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-[#C98A2B] text-white text-[13px] font-semibold hover:bg-[#B37A22]"><Save size={14} /> Salvează</button>
-            )}
-          </div>
-        </div>
+        <div className="flex items-center justify-between px-4 py-3.5 border-t border-[#DAD4C6] bg-white shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+  {readOnly ? (
+    <span />
+  ) : (
+    <button
+      onClick={() => {
+        if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id);
+      }}
+      className="flex items-center gap-1.5 text-[#B23A2E] text-[13px] font-medium hover:opacity-70 px-2 py-1 rounded-md hover:bg-[#B23A2E]/5 transition-colors"
+    >
+      <Trash2 size={14} /> Șterge dosar
+    </button>
+  )}
+  <div className="flex gap-2">
+    <button
+      onClick={onClose}
+      className="px-4 py-2 rounded-lg border border-[#C7C0B0] text-[13px] text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
+    >
+      {readOnly ? "Închide" : "Anulează"}
+    </button>
+    {!readOnly && (
+      <button
+        onClick={handleSave}
+        className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#C98A2B] text-white text-[13px] font-semibold hover:bg-[#B37A22] shadow-sm transition-colors"
+      >
+        <Save size={14} /> Salvează
+      </button>
+    )}
+  </div>
+</div>
       </div>
     </div>
   );
@@ -1089,7 +1224,7 @@ function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapa
         ) : (
           <div className="divide-y divide-[#EFEAE1]">
             {eligibile.map((c) => {
-              const s = STATUSES.find((x) => x.key === c.status);
+              const s = getStatusDefinition(c.status);
               const editable = canEditFn(c);
               const dayCount = c.dataProgramare ? countForDate(c.dataProgramare.slice(0, 10)) : 0;
               const overbooked = c.dataProgramare && dayCount > capacitate;
@@ -1104,7 +1239,7 @@ function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapa
                     <div className="text-[12.5px] text-[#23282E]">{c.client || "—"} <span className="text-[#8A8375] font-mono">{c.numarInmatriculare}</span></div>
                     {c.telefonClient && <div className="text-[11px] text-[#6B6558] flex items-center gap-1"><Phone size={10} />{c.telefonClient}</div>}
                   </div>
-                  <span className="text-[10.5px] font-semibold px-2 py-1 rounded" style={{ background: PHASE_COLORS[s.phase].tint, color: "#4A443A" }}>
+                  <span className="text-[10.5px] font-semibold px-2 py-1 rounded" style={{ background: getPhaseColors(c.status).tint, color: "#4A443A" }}>
                     {String(s.num).padStart(2, "0")}. {s.label}
                   </span>
                   <div>
@@ -1305,7 +1440,7 @@ export default function App() {
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
-  const canEdit = (c) => !c.createdBy || c.createdBy === myId;
+  const canEdit = (c) => Boolean(myId) && c.createdBy === myId;
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -1336,6 +1471,7 @@ export default function App() {
     const isNewClaim = !claims.some((c) => c.id === claim.id);
     const payload = toDb({
       ...claim,
+      createdBy: isNewClaim ? myId : (claim.createdBy || myId),
       createdByEmail: isNewClaim ? myEmail : (claim.createdByEmail || myEmail),
       updatedByEmail: myEmail,
     });
@@ -1360,6 +1496,10 @@ export default function App() {
   const handleMove = async (claim, dir) => {
     if (!canEdit(claim)) { setErrorMsg("Poți muta doar dosarele create de tine."); return; }
     const idx = STATUSES.findIndex((s) => s.key === claim.status);
+    if (idx < 0) {
+      setErrorMsg("Dosarul are un status necunoscut și nu poate fi mutat automat.");
+      return;
+    }
     const nextIdx = idx + dir;
     if (nextIdx < 0 || nextIdx >= STATUSES.length) return;
     const updated = { ...claim, status: STATUSES[nextIdx].key, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
@@ -1401,7 +1541,7 @@ export default function App() {
     const rows = claims.map((c) => ({
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
       "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
-      "Status": STATUSES.find((s) => s.key === c.status)?.label, "Data deschiderii": c.dataDeschiderii,
+      "Status": getStatusDefinition(c.status).label, "Data deschiderii": c.dataDeschiderii,
       "Facturat Tinichigerie": c.manopera.tinichigerie.facturat, "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -1492,7 +1632,7 @@ export default function App() {
         )}
       </div>
 
-      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} readOnly={!canEdit(modalClaim)} allClaims={claims} onJumpTo={(c) => setModalClaim(c)} />}
+      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)} allClaims={claims} onJumpTo={(c) => setModalClaim(c)} />}
     </div>
   );
 }
