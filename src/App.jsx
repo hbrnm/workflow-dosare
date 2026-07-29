@@ -396,6 +396,11 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
   return (
     <div
       onClick={() => onOpen(claim)}
+      draggable={canEdit}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", claim.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
       className={`group relative bg-white rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
@@ -489,7 +494,8 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
 }
 
 
-function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
+function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, canEditFn }) {
+  const [dragOverKey, setDragOverKey] = useState(null);
   return (
     <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
       {STATUSES.map((s) => {
@@ -515,7 +521,21 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
                 {colClaims.length}
               </span>
             </div>
-            <div className="p-3 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px]">
+            <div
+              className={`p-3 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px] transition-colors ${
+                dragOverKey === s.key ? "bg-white/60 ring-2 ring-[#3B5166] ring-inset" : ""
+              }`}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+              onDragEnter={() => setDragOverKey(s.key)}
+              onDragLeave={(e) => { if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) setDragOverKey(null); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const claimId = e.dataTransfer.getData("text/plain");
+                const draggedClaim = claims.find((c) => c.id === claimId);
+                if (draggedClaim && draggedClaim.status !== s.key) onMoveToStatus(draggedClaim, s.key);
+                setDragOverKey(null);
+              }}
+            >
               {colClaims.length === 0 && (
                 <div className="text-center py-6 text-[11.5px] text-[#8A8375]/80">
                   Niciun dosar în această etapă
@@ -1562,6 +1582,15 @@ export default function App() {
     loadAll();
   };
 
+  const handleMoveToStatus = async (claim, newStatusKey) => {
+    if (!canEdit(claim)) { showNotice("Poți muta doar dosarele create de tine.", "error"); return; }
+    if (claim.status === newStatusKey) return;
+    const updated = { ...claim, status: newStatusKey, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
+    setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c))); // optimist
+    const { error } = await supabase.from("dosare").upsert(toDb(updated));
+    if (error) { showNotice(error.message, "error"); loadAll(); }
+  };
+
   const handleMove = async (claim, dir) => {
     if (!canEdit(claim)) { showNotice("Poți muta doar dosarele create de tine.", "error"); return; }
     const idx = STATUSES.findIndex((s) => s.key === claim.status);
@@ -1684,7 +1713,7 @@ export default function App() {
         {loading ? (
           <div className="flex items-center justify-center py-20 text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "kanban" ? (
-          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onAddInStatus={openNew} canEditFn={canEdit} />
+          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} canEditFn={canEdit} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
