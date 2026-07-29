@@ -85,8 +85,6 @@ function emptyClaim(status = "primit") {
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
-    valoareFacturataFaraTVA: 0,
-    valoareFacturataCuTVA: 0,
     blocat: false, motivBlocare: "",
     createdByEmail: "", updatedByEmail: "",
     poze: [],
