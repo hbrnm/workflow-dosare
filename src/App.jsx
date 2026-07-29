@@ -401,28 +401,28 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase]?.bar || "#DAD4C6" }}
     >
-      <div className="p-3 pb-2.5">
+      <div className="p-3.5 pb-3">
         <div className="flex items-start justify-between gap-1.5">
           <span className="font-mono text-[12.5px] font-bold text-[#23282E] truncate">
             {claim.numarDosar || "(fără nr.)"}
           </span>
           <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
         </div>
-        <div className="mt-1.5 text-[13.5px] font-medium text-[#23282E] truncate">
+        <div className="mt-2 text-[13.5px] font-medium text-[#23282E] truncate">
           {claim.client || "Client neintrodus"}
         </div>
         {claim.telefonClient && (
-          <div className="flex items-center gap-1 mt-0.5 text-[11.5px] text-[#6B6558]">
+          <div className="flex items-center gap-1 mt-1 text-[11.5px] text-[#6B6558]">
             <Phone size={11} />
             {claim.telefonClient}
           </div>
         )}
-        <div className="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-[#6B6558]">
+        <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-[#6B6558]">
           <Car size={12} />
           <span className="font-mono">{claim.numarInmatriculare || "—"}</span>
           <span className="truncate">{claim.marcaModel}</span>
         </div>
-        <div className="mt-2 flex items-center justify-between gap-1">
+        <div className="mt-2.5 flex items-center justify-between gap-1">
           <span className="text-[11px] text-[#8A8375] truncate">{claim.asigurator || "asigurător —"}</span>
           <div className="flex items-center gap-1 shrink-0">
             {!canEdit && <Pill tone="ghost">doar vizualizare</Pill>}
@@ -438,7 +438,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         {(claim.adusaFizic ||
           claim.manopera?.tinichigerie?.dataIntrareEtapa ||
           claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
-          <div className="mt-2 flex items-center gap-1 flex-wrap">
+          <div className="mt-2.5 flex items-center gap-1 flex-wrap">
             {claim.adusaFizic && (
               <Pill tone="ghost">
                 <Car size={10} />
@@ -462,7 +462,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         )}
       </div>
       <div
-        className="flex items-center justify-between border-t border-[#EFEAE1] px-2 py-1.5 bg-[#FCFAF5]/80"
+        className="flex items-center justify-between border-t border-[#EFEAE1] px-2.5 py-2 bg-[#FCFAF5]/80"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -515,7 +515,7 @@ function KanbanBoard({ claims, onOpen, onMove, onAddInStatus, canEditFn }) {
                 {colClaims.length}
               </span>
             </div>
-            <div className="p-2.5 flex flex-col gap-2.5 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px]">
+            <div className="p-3 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-220px)] min-h-[100px]">
               {colClaims.length === 0 && (
                 <div className="text-center py-6 text-[11.5px] text-[#8A8375]/80">
                   Niciun dosar în această etapă
