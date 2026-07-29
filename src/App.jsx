@@ -717,7 +717,23 @@ function Field({ label, children, full }) {
   );
 }
 
-function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo }) {
+function Notification({ notice, onClose }) {
+  if (!notice) return null;
+  const isError = notice.type === "error";
+  return (
+    <div className={`fixed top-4 right-4 z-[70] max-w-md rounded-lg border shadow-lg px-3 py-2.5 flex items-start gap-2 text-[12.5px] ${
+      isError
+        ? "bg-[#FFF2F0] border-[#B23A2E]/40 text-[#7E251D]"
+        : "bg-[#EEF5EE] border-[#3E6B45]/40 text-[#285032]"
+    }`} role="status">
+      {isError ? <AlertTriangle size={16} className="mt-0.5 shrink-0" /> : <ShieldCheck size={16} className="mt-0.5 shrink-0" />}
+      <span className="leading-5">{notice.message}</span>
+      <button onClick={onClose} className="ml-1 shrink-0 opacity-70 hover:opacity-100" aria-label="Închide notificarea"><X size={15} /></button>
+    </div>
+  );
+}
+
+function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
   const [form, setForm] = useState(claim);
   const [noteText, setNoteText] = useState("");
   const [istoric, setIstoric] = useState([]);
@@ -776,14 +792,14 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     const vin = form.vin.trim().toUpperCase();
     const telefonClient = form.telefonClient.trim();
 
-    if (!numarDosar) { alert("Introduceți numărul dosarului."); return; }
-    if (!numarInmatriculare) { alert("Introduceți numărul de înmatriculare."); return; }
+    if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return; }
+    if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return; }
     if (vin && !isValidVin(vin)) {
-      alert("VIN-ul trebuie să aibă exact 17 caractere și nu poate conține literele I, O sau Q.");
+      onNotify("VIN-ul trebuie să aibă exact 17 caractere și nu poate conține literele I, O sau Q.", "error");
       return;
     }
     if (telefonClient && !isValidPhone(telefonClient)) {
-      alert("Telefonul trebuie să conțină între 7 și 15 cifre.");
+      onNotify("Telefonul trebuie să conțină între 7 și 15 cifre.", "error");
       return;
     }
 
@@ -791,7 +807,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
       c.id !== claim.id && normalizedText(c.numarDosar) === normalizedText(numarDosar)
     );
     if (duplicateDosar) {
-      alert(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`);
+      onNotify(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`, "error");
       return;
     }
 
@@ -833,7 +849,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     if (doc?.path) {
       const { error } = await supabase.storage.from("documente-dosare").remove([doc.path]);
       if (error) {
-        alert(`Nu am putut șterge documentul „${doc.nume || ""}”: ${error.message}`);
+        onNotify(`Nu am putut șterge documentul „${doc.nume || ""}”: ${error.message}`, "error");
         return;
       }
     }
@@ -849,17 +865,18 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     for (const file of files) {
       const path = storagePath(claim.id, file);
       const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: false });
-      if (error) { alert(`Eroare la încărcarea „${file.name}”: ${error.message}`); continue; }
+      if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60);
       if (signedError) {
         await supabase.storage.from("poze-dosare").remove([path]);
-        alert(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`);
+        onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
     setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
     setUploadingPoze(false);
+    if (noi.length) onNotify(`${noi.length} fotografie(i) încărcată(e).`, "success");
   };
 
   // Upload documents to a separate storage bucket. Only paths are persisted; URLs are temporary.
@@ -871,24 +888,25 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
     for (const file of files) {
       const path = storagePath(claim.id, file, "documente");
       const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
-      if (error) { alert(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`); continue; }
+      if (error) { onNotify(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60);
       if (signedError) {
         await supabase.storage.from("documente-dosare").remove([path]);
-        alert(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`);
+        onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
     setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
     setUploadingDocumente(false);
+    if (noi.length) onNotify(`${noi.length} document(e) încărcat(e).`, "success");
   };
 
   const removePoza = async (poza) => {
     if (poza?.path) {
       const { error } = await supabase.storage.from("poze-dosare").remove([poza.path]);
       if (error) {
-        alert(`Nu am putut șterge fotografia „${poza.nume || ""}”: ${error.message}`);
+        onNotify(`Nu am putut șterge fotografia „${poza.nume || ""}”: ${error.message}`, "error");
         return;
       }
     }
@@ -1464,7 +1482,7 @@ export default function App() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [notice, setNotice] = useState(null);
   const [view, setView] = useState("kanban");
   const [search, setSearch] = useState("");
   const [filterTip, setFilterTip] = useState("toate");
@@ -1483,14 +1501,21 @@ export default function App() {
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
   const canEdit = (c) => Boolean(myId) && c.createdBy === myId;
+  const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
+
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = window.setTimeout(() => setNotice(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
-    if (error) setErrorMsg(error.message);
+    if (error) showNotice(error.message, "error");
     else setClaims((data || []).map(fromDb));
     setLoading(false);
-  }, []);
+  }, [showNotice]);
 
   useEffect(() => { if (session) loadAll(); }, [loadAll, session]);
 
@@ -1505,7 +1530,7 @@ export default function App() {
   const saveCapacitate = async (n) => {
     setCapacitateZilnica(n);
     const { error } = await supabase.from("setari").upsert({ id: 1, capacitate_zilnica: n });
-    if (error) setErrorMsg(error.message);
+    if (error) showNotice(error.message, "error");
   };
 
   const handleSave = async (claim) => {
@@ -1519,27 +1544,29 @@ export default function App() {
     });
     const { error } = await supabase.from("dosare").upsert(payload);
     setSaving(false);
-    if (error) { setErrorMsg(error.message); return; }
+    if (error) { showNotice(error.message, "error"); return; }
     setModalClaim(null);
+    showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.");
     loadAll();
   };
 
   const handleDelete = async (id) => {
     const target = claims.find((c) => c.id === id);
-    if (target && !canEdit(target)) { setErrorMsg("Poți șterge doar dosarele create de tine."); return; }
+    if (target && !canEdit(target)) { showNotice("Poți șterge doar dosarele create de tine.", "error"); return; }
     setSaving(true);
     const { error } = await supabase.from("dosare").delete().eq("id", id);
     setSaving(false);
-    if (error) { setErrorMsg(error.message); return; }
+    if (error) { showNotice(error.message, "error"); return; }
     setModalClaim(null);
+    showNotice("Dosarul a fost șters.");
     loadAll();
   };
 
   const handleMove = async (claim, dir) => {
-    if (!canEdit(claim)) { setErrorMsg("Poți muta doar dosarele create de tine."); return; }
+    if (!canEdit(claim)) { showNotice("Poți muta doar dosarele create de tine.", "error"); return; }
     const idx = STATUSES.findIndex((s) => s.key === claim.status);
     if (idx < 0) {
-      setErrorMsg("Dosarul are un status necunoscut și nu poate fi mutat automat.");
+      showNotice("Dosarul are un status necunoscut și nu poate fi mutat automat.", "error");
       return;
     }
     const nextIdx = idx + dir;
@@ -1547,7 +1574,7 @@ export default function App() {
     const updated = { ...claim, status: STATUSES[nextIdx].key, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
     setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c))); // optimist
     const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { setErrorMsg(error.message); loadAll(); }
+    if (error) { showNotice(error.message, "error"); loadAll(); }
   };
 
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
@@ -1556,11 +1583,11 @@ export default function App() {
   const patchClaim = async (id, patch) => {
     const current = claims.find((c) => c.id === id);
     if (!current) return;
-    if (!canEdit(current)) { setErrorMsg("Poți edita programarea doar la dosarele create de tine."); return; }
+    if (!canEdit(current)) { showNotice("Poți edita programarea doar la dosarele create de tine.", "error"); return; }
     const updated = { ...current, ...patch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
     setClaims((prev) => prev.map((c) => (c.id === id ? updated : c))); // optimist
     const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { setErrorMsg(error.message); loadAll(); }
+    if (error) { showNotice(error.message, "error"); loadAll(); }
   };
 
   const filtered = useMemo(() => {
@@ -1601,12 +1628,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#EFEAE1]">
-      {errorMsg && (
-        <div className="bg-[#B23A2E] text-white text-[12.5px] px-4 py-2 flex items-center justify-between">
-          <span>Eroare Supabase: {errorMsg}</span>
-          <button onClick={() => setErrorMsg("")}><X size={14} /></button>
-        </div>
-      )}
+      <Notification notice={notice} onClose={() => setNotice(null)} />
       <div className="bg-[#23282E] px-4 py-3 sticky top-0 z-30">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -1650,7 +1672,7 @@ export default function App() {
           <input className="w-full pl-7 pr-2 py-1.5 rounded border border-[#DAD4C6] text-[13px]" placeholder="Caută dosar..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <select className="in max-w-[110px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
-          <option value="toate">Toate tipurile</option><option value="RCA">RCA</option><option value="CASCO">CASCO</option>
+          <option value="toate">Toate tipurile</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
         </select>
         <select className="in max-w-[200px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
           <option value="toate">Toate statusurile</option>
@@ -1674,7 +1696,7 @@ export default function App() {
         )}
       </div>
 
-      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)} allClaims={claims} onJumpTo={(c) => setModalClaim(c)} />}
+      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)} allClaims={claims} onJumpTo={(c) => setModalClaim(c)} onNotify={showNotice} />}
     </div>
   );
 }
