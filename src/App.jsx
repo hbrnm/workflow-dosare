@@ -158,6 +158,31 @@ function fromDb(r) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Istoric modificări — traducere nume coloane pentru afișare umană
+// ---------------------------------------------------------------------------
+const CAMP_LABELS = {
+  numar_dosar: "Nr. dosar", tip_asigurare: "Tip asigurare", asigurator: "Asigurător",
+  client: "Client", telefon_client: "Telefon client", numar_inmatriculare: "Nr. înmatriculare",
+  vin: "VIN", marca_model: "Marcă/Model", status: "Status", data_deschiderii: "Data deschiderii",
+  data_schimbare_status: "Data schimbării statusului", termen_alerta_zile: "Termen alertă (zile)",
+  data_programare: "Programare service", note: "Note", documente: "Documente",
+  adusa_fizic: "Adusă fizic", ce_este_de_reparat: "Ce e de reparat", manopera: "Manoperă",
+  masina_schimb: "Mașină la schimb", data_darii_la_schimb: "Data dării la schimb",
+  zile_chirie_audatex: "Zile chirie Audatex", valoare_piese_audatex: "Valoare piese Audatex",
+  valoare_achizitie_piese: "Valoare achiziție piese", blocat: "Dosar blocat", motiv_blocare: "Motiv blocare",
+  poze: "Poze", _creat: "Dosar creat",
+};
+const COMPLEX_FIELDS = new Set(["note", "documente", "manopera", "poze"]);
+
+function formatIstoricValoare(camp, val) {
+  if (val === null || val === undefined || val === "") return "—";
+  if (camp === "status") { const s = STATUSES.find((x) => x.key === val); return s ? s.label : val; }
+  if (typeof val === "boolean") return val ? "da" : "nu";
+  if (COMPLEX_FIELDS.has(camp)) return "actualizat(ă)";
+  return String(val);
+}
+
 
 function generateazaPDF(claim) {
   const doc = new jsPDF();
@@ -495,11 +520,21 @@ function Field({ label, children, full }) {
 function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo }) {
   const [form, setForm] = useState(claim);
   const [noteText, setNoteText] = useState("");
+  const [istoric, setIstoric] = useState([]);
+  const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
   const isNew = !claim.numarDosar && claim.note.length === 0 && claim.documente.length === 0;
 
   useEffect(() => setForm(claim), [claim]);
+
+  useEffect(() => {
+    if (isNew) { setIstoric([]); return; }
+    setLoadingIstoric(true);
+    supabase.from("istoric_dosar").select("*").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(100)
+      .then(({ data }) => setIstoric(data || []))
+      .finally(() => setLoadingIstoric(false));
+  }, [claim.id, isNew]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...f.manopera, [dept]: val } }));
@@ -594,7 +629,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-3">
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh]">
+      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
           <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
           <div className="flex items-center gap-3">
@@ -617,7 +652,8 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <ShieldCheck size={13} /> Doar vizualizare — acest dosar a fost creat de {claim.createdByEmail || "alt coleg"}, doar el îl poate edita sau șterge.
           </div>
         )}
-        <fieldset disabled={readOnly} className="p-4 overflow-y-auto grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
+        <div className="overflow-hidden flex-1 min-h-0">
+          <fieldset disabled={readOnly} className="p-4 overflow-y-auto grid md:grid-cols-2 gap-x-5 gap-y-4 border-0 m-0 min-w-0">
           <div className="space-y-4">
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><ShieldCheck size={12} /> Identificare</div>
@@ -786,6 +822,34 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
           </div>
           </div>
         </fieldset>
+        {!isNew && (
+          <div className="px-4 pb-3 shrink-0">
+            <details className="border border-[#DAD4C6] rounded-md bg-white">
+              <summary className="px-3 py-2 text-[11.5px] font-bold text-[#6B6558] cursor-pointer flex items-center gap-1.5 select-none">
+                <History size={12} /> Istoric modificări {loadingIstoric ? "" : `(${istoric.length})`}
+              </summary>
+              <div className="px-3 pb-2 max-h-40 overflow-y-auto space-y-1.5 border-t border-[#EFEAE1] pt-2">
+                {loadingIstoric ? (
+                  <div className="text-[11.5px] text-[#8A8375] flex items-center gap-1"><Loader2 size={11} className="animate-spin" /> Se încarcă...</div>
+                ) : istoric.length === 0 ? (
+                  <div className="text-[11.5px] text-[#8A8375]">Fără modificări înregistrate.</div>
+                ) : istoric.map((h) => (
+                  <div key={h.id} className="text-[11.5px]">
+                    <div className="text-[10px] text-[#8A8375] font-mono">{new Date(h.created_at).toLocaleString("ro-RO")} · {h.user_email || "necunoscut"}</div>
+                    {Object.entries(h.modificari || {}).map(([camp, diff]) => (
+                      <div key={camp} className="text-[#23282E]">
+                        <span className="font-semibold">{CAMP_LABELS[camp] || camp}</span>
+                        {camp !== "_creat" && (
+                          <>: {formatIstoricValoare(camp, diff.old)} → {formatIstoricValoare(camp, diff.new)}</>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
         <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6] shrink-0">
           {readOnly ? <span /> : (
             <button onClick={() => { if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id); }} className="flex items-center gap-1 text-[#B23A2E] text-[13px] font-medium hover:opacity-70"><Trash2 size={14} /> Șterge dosar</button>
