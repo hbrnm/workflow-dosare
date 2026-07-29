@@ -781,22 +781,18 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             )}
           </div>
           <div className="border border-[#DAD4C6] rounded-2xl bg-white p-4 shadow-sm">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><LinkIcon size={12} /> Documente (PV, deviz, factură, accept plată)</div>
-            <div className="text-[11px] text-[#8A8375] mb-2">Documentele se pot încărca direct în Supabase sau se pot adăuga ca link extern.</div>
-            <div className="flex flex-col gap-2 mb-2">
-              <div className="flex gap-2 flex-wrap">
-                <input className="in flex-1 min-w-[200px]" placeholder="Denumire (opțional, ex: Deviz reparație)" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-                <input className="in flex-1 min-w-[200px]" placeholder="Link fișier (Drive, OneDrive etc.)" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
-                <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
-              </div>
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <input className="in flex-1 min-w-[200px]" placeholder="Denumire document" value={docName} onChange={(e) => setDocName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
+              <input className="in flex-1 min-w-[200px]" placeholder="Link document" value={docLink} onChange={(e) => setDocLink(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addDoc()} />
+              <button onClick={addDoc} className="px-2.5 rounded bg-[#3B5166] text-white hover:bg-[#2C3E4C]"><Plus size={16} /></button>
               {!isNew && (
-                <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 text-[12px] cursor-pointer ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
-                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă documente...</> : <><Upload size={13} /> Încarcă documente (poți selecta mai multe)</>}
+                <label className={`flex items-center justify-center gap-1.5 border border-dashed rounded-md py-2 px-3 text-[12px] cursor-pointer ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#F5F2EA]"} border-[#C7C0B0] text-[#6B6558]`}>
+                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
                   <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
                 </label>
               )}
-              {isNew && <div className="text-[11px] text-[#8A8375]">Salvează dosarul întâi, apoi poți încărca documente intern sau adăuga linkuri.</div>}
             </div>
+            {isNew && <div className="text-[11px] text-[#8A8375] mb-2">Salvează dosarul întâi, apoi poți încărca documente intern sau adăuga linkuri.</div>}
             <div className="space-y-1">
               {form.documente.map((d) => (
                 <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
