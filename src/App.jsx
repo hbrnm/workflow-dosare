@@ -1644,7 +1644,7 @@ export default function App() {
               Delogare
             </button>
             {alertCount > 0 && (
-              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-[#B23A2E] text-white" : "bg-[#B23A2E]/20 text-[#F3C0BA]"}`}>
+              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
                 <AlertTriangle size={13} /> {alertCount} depășite
               </button>
             )}
