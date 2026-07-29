@@ -63,6 +63,14 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function fmtDateTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("ro-RO", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
@@ -670,7 +678,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                       <div key={camp} className="text-[#23282E]">
                         <span className="font-semibold">{CAMP_LABELS[camp] || camp}</span>
                         {camp !== "_creat" && (
-                          <>: {formatIstoricValoare(camp, diff.old)} → {formatIstoricValoare(camp, diff.new)}</>
+                          <>: {camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old)} → {camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new)}</>
                         )}
                       </div>
                     ))}
