@@ -5,7 +5,7 @@ import {
   Car, ShieldCheck, MessageSquare, Save, Loader2,
   BarChart3, Download, TrendingUp, Boxes, Wrench, Paintbrush, Play,
   Phone, CalendarClock, ArrowRight, Wallet, Image as ImageIcon, Upload,
-  FileDown, History, AlertOctagon
+  FileDown, History, AlertOctagon, Sunrise, PackageCheck, Copy, MessageCircle
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import * as XLSX from "xlsx";
@@ -127,6 +127,20 @@ function fmtProgramare(iso) {
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`;
 }
 
+// Linkuri rapide de contact — tel: pentru apel, wa.me pentru WhatsApp
+// (normalizează un nr. RO gen "07xx xxx xxx" la formatul internațional 40...)
+function telLink(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits ? `tel:${digits}` : null;
+}
+function waLink(phone) {
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("0")) digits = `4${digits}`;
+  else if (!digits.startsWith("40")) digits = `40${digits}`;
+  return `https://wa.me/${digits}`;
+}
+
 function emptyClaim(status = "primit") {
   return {
     id: uid(),
@@ -144,6 +158,7 @@ function emptyClaim(status = "primit") {
     blocat: false, motivBlocare: "",
     createdBy: null, createdByEmail: "", updatedByEmail: "",
     poze: [],
+    gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null,
   };
 }
 
@@ -181,6 +196,10 @@ function toDb(c) {
     created_by_email: c.createdByEmail || null,
     updated_by_email: c.updatedByEmail || null,
     poze: (c.poze || []).map(({ url, ...photo }) => photo),
+    gata_de_ridicare: c.gataDeRidicare,
+    data_gata_ridicare: c.dataGataRidicare || null,
+    ridicata: c.ridicata,
+    data_ridicare: c.dataRidicare || null,
   };
 }
 function fromDb(r) {
@@ -220,6 +239,10 @@ function fromDb(r) {
     updatedByEmail: r.updated_by_email || "",
     createdBy: r.created_by || null,
     poze: r.poze || [],
+    gataDeRidicare: !!r.gata_de_ridicare,
+    dataGataRidicare: r.data_gata_ridicare || null,
+    ridicata: !!r.ridicata,
+    dataRidicare: r.data_ridicare || null,
   };
 }
 
@@ -396,12 +419,14 @@ function StageBar({ label, icon, data, onChange }) {
 // ---------------------------------------------------------------------------
 // Card Kanban
 // ---------------------------------------------------------------------------
-function ClaimCard({ claim, onOpen, onMove, canEdit }) {
+function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = days >= (claim.termenAlertaZile || 3);
   const phase = getStatusDefinition(claim.status).phase;
+  const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
+  const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
 
   return (
     <div
@@ -427,9 +452,16 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
           {claim.client || "Client neintrodus"}
         </div>
         {claim.telefonClient && (
-          <div className="flex items-center gap-1 mt-1 text-[11.5px] text-[#6B6558]">
-            <Phone size={11} />
-            {claim.telefonClient}
+          <div className="flex items-center justify-between gap-1 mt-1 text-[11.5px] text-[#6B6558]">
+            <span className="flex items-center gap-1"><Phone size={11} />{claim.telefonClient}</span>
+            <span className="flex items-center gap-1">
+              <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
+                <Phone size={12} />
+              </a>
+              <a href={waLink(claim.telefonClient)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="WhatsApp" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3E6B45]">
+                <MessageCircle size={12} />
+              </a>
+            </span>
           </div>
         )}
         <div className="mt-2 flex items-center gap-1.5 text-[11.5px] text-[#6B6558]">
@@ -450,6 +482,13 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
             <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
           </div>
         </div>
+        {claim.gataDeRidicare && !claim.ridicata && (
+          <div className="mt-2.5">
+            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+              <PackageCheck size={11} /> gata, neridicată de {zileNeridicata}z
+            </span>
+          </div>
+        )}
         {(claim.adusaFizic ||
           claim.manopera?.tinichigerie?.dataIntrareEtapa ||
           claim.manopera?.vopsitorie?.dataIntrareEtapa) && (
@@ -480,13 +519,22 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
         className="flex items-center justify-between border-t border-[#EFEAE1] px-2.5 py-2 bg-[#FCFAF5]/80"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          disabled={!canEdit || !hasKnownStatus || idx === 0}
-          onClick={() => onMove(claim, -1)}
-          className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
-        >
-          <ChevronLeft size={15} />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button
+            disabled={!canEdit || !hasKnownStatus || idx === 0}
+            onClick={() => onMove(claim, -1)}
+            className="p-1.5 rounded-md hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166] transition-colors"
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <button
+            onClick={() => onDuplicate(claim)}
+            title="Duplică dosarul"
+            className="p-1.5 rounded-md hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] transition-colors"
+          >
+            <Copy size={13} />
+          </button>
+        </div>
         <span className="text-[10.5px] text-[#8A8375] flex items-center gap-1">
           <Clock size={11} />
           {days}z în etapă
@@ -504,7 +552,7 @@ function ClaimCard({ claim, onOpen, onMove, canEdit }) {
 }
 
 
-function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, canEditFn }) {
+function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [dragOverKey, setDragOverKey] = useState(null);
   return (
     <div className="flex gap-3 overflow-x-auto overflow-y-hidden flex-1 min-h-0 -mx-1 px-1">
@@ -557,7 +605,9 @@ function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, ca
                   claim={c}
                   onOpen={onOpen}
                   onMove={onMove}
+                  onDuplicate={onDuplicate}
                   canEdit={canEditFn(c)}
+                  pragRidicare={pragRidicare}
                 />
               ))}
               <button
@@ -656,12 +706,13 @@ function StatCard({ label, value, sub, tone = "steel" }) {
   );
 }
 
-function Dashboard({ claims, onOpen }) {
+function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
   const total = claims.length;
   const rca = claims.filter((c) => c.tipAsigurare === "RCA").length;
   const casco = claims.filter((c) => c.tipAsigurare === "CASCO").length;
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
+  const gataNeridicateCount = claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare).length;
   const overdueList = claims.map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 3) }))
     .filter((c) => c.zileIntarziere >= 0).sort((a, b) => b.zileIntarziere - a.zileIntarziere);
   const perStatus = STATUSES.map((s) => ({ name: String(s.num).padStart(2, "0"), label: s.label, total: claims.filter((c) => c.status === s.key).length, color: PHASE_COLORS[s.phase].bar }));
@@ -683,6 +734,7 @@ function Dashboard({ claims, onOpen }) {
         <StatCard label="RCA / CASCO" value={`${rca} / ${casco}`} tone="steel" />
         <StatCard label="Active (nefacturate)" value={active} tone="amber" />
         <StatCard label="Dosare blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
+        <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
         <StatCard label="Alerte depășite" value={overdueList.length} tone={overdueList.length ? "danger" : "green"} />
         <StatCard label="Zile medii pe dosar" value={avgDaysOpen ?? "—"} sub="dosare facturate" tone="green" />
       </div>
@@ -804,6 +856,23 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...f.manopera, [dept]: val } }));
+  const toggleGata = (checked) => setForm((f) => ({ ...f, gataDeRidicare: checked, dataGataRidicare: checked && !f.dataGataRidicare ? nowISO() : f.dataGataRidicare }));
+  const toggleRidicata = (checked) => setForm((f) => ({ ...f, ridicata: checked, dataRidicare: checked && !f.dataRidicare ? nowISO() : f.dataRidicare }));
+
+  const handleDuplicate = () => {
+    const dup = {
+      ...emptyClaim("primit"),
+      numarInmatriculare: claim.numarInmatriculare,
+      vin: claim.vin,
+      marcaModel: claim.marcaModel,
+      client: claim.client,
+      telefonClient: claim.telefonClient,
+      tipAsigurare: claim.tipAsigurare,
+      asigurator: claim.asigurator,
+    };
+    onNotify("Date duplicate — completează numărul de dosar nou și verifică restul.", "success");
+    onJumpTo(dup);
+  };
 
   // client/vehicul recunoscut — alte dosare cu același telefon sau VIN
   const istoricClientVehicul = useMemo(() => {
@@ -957,6 +1026,11 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                 <FileDown size={12} /> PDF
               </button>
             )}
+            {!isNew && (
+              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded px-2 py-1">
+                <Copy size={12} /> Duplică
+              </button>
+            )}
             {!isNew && (claim.createdByEmail || claim.updatedByEmail) && (
               <span className="hidden sm:block text-[10.5px] text-white/45 text-right leading-tight">
                 {claim.createdByEmail && <div>creat de {claim.createdByEmail}</div>}
@@ -1023,7 +1097,17 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <div className="text-[11px] font-bold uppercase tracking-wide text-[#8A8375] mb-1.5 flex items-center gap-1"><Car size={12} /> Client &amp; auto</div>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Nume/Denumire asigurat" full><input className="in" value={form.client} onChange={(e) => set("client", e.target.value)} /></Field>
-              <Field label="Telefon client"><input className="in" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} /></Field>
+              <Field label="Telefon client">
+                <div className="flex items-center gap-1.5">
+                  <input className="in" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} />
+                  {form.telefonClient && (
+                    <>
+                      <a href={telLink(form.telefonClient)} title="Sună" className="shrink-0 p-1.5 rounded-md border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166]"><Phone size={14} /></a>
+                      <a href={waLink(form.telefonClient)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-md border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3E6B45]"><MessageCircle size={14} /></a>
+                    </>
+                  )}
+                </div>
+              </Field>
               <Field label="Nr. înmatriculare"><input className="in font-mono" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} required /></Field>
               <Field label="Serie șasiu (VIN)"><input className="in font-mono" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} /></Field>
               <Field label="Marcă / Model" full><input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} /></Field>
@@ -1088,6 +1172,16 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
             <label className="flex items-center gap-2 text-[12.5px] text-[#23282E] mb-2 cursor-pointer">
               <input type="checkbox" checked={form.adusaFizic} onChange={(e) => set("adusaFizic", e.target.checked)} /> Mașina este adusă fizic în service
             </label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              <label className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-md border cursor-pointer ${form.gataDeRidicare ? "bg-[#FBF3E6] border-[#C98A2B] text-[#7A5316]" : "border-[#DAD4C6] text-[#23282E]"}`}>
+                <input type="checkbox" checked={form.gataDeRidicare} onChange={(e) => toggleGata(e.target.checked)} />
+                Gata de ridicare{form.gataDeRidicare && form.dataGataRidicare && ` (de ${daysBetween(form.dataGataRidicare)}z)`}
+              </label>
+              <label className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-md border cursor-pointer ${form.ridicata ? "bg-[#EEF5EE] border-[#3E6B45] text-[#294A2E]" : "border-[#DAD4C6] text-[#23282E]"}`}>
+                <input type="checkbox" checked={form.ridicata} onChange={(e) => toggleRidicata(e.target.checked)} disabled={!form.gataDeRidicare} />
+                Ridicată de client{form.ridicata && form.dataRidicare && ` — ${fmtDate(form.dataRidicare)}`}
+              </label>
+            </div>
             <Field label="Ce este de reparat" full>
               <textarea className="in min-h-[52px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
             </Field>
@@ -1475,6 +1569,112 @@ function Rapoarte({ claims }) {
 }
 
 // ---------------------------------------------------------------------------
+// Brief zilnic — rezumatul dimineții: ce intră azi, ce iese azi, cine de sunat
+// ---------------------------------------------------------------------------
+function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag }) {
+  const [pragInput, setPragInput] = useState(pragRidicare);
+  useEffect(() => setPragInput(pragRidicare), [pragRidicare]);
+  const todayStr = todayISO();
+
+  const programariAzi = useMemo(() =>
+    claims.filter((c) => c.dataProgramare && c.dataProgramare.slice(0, 10) === todayStr)
+      .sort((a, b) => a.dataProgramare.localeCompare(b.dataProgramare)),
+    [claims, todayStr]);
+
+  const gataAzi = useMemo(() =>
+    claims.filter((c) => c.gataDeRidicare && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr && !c.ridicata),
+    [claims, todayStr]);
+
+  const neridicateVechi = useMemo(() =>
+    claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare)
+      .sort((a, b) => daysBetween(b.dataGataRidicare) - daysBetween(a.dataGataRidicare)),
+    [claims, pragRidicare]);
+
+  const restante = useMemo(() =>
+    claims.filter((c) => c.status !== "facturat" && daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3))
+      .sort((a, b) => daysBetween(b.dataSchimbareStatus) - daysBetween(a.dataSchimbareStatus)),
+    [claims]);
+
+  const blocate = useMemo(() => claims.filter((c) => c.blocat), [claims]);
+
+  const azi = new Date().toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long" });
+
+  const Sectiune = ({ icon, titlu, tone, items, gol, renderItem }) => (
+    <div className="bg-white rounded-lg border border-[#DAD4C6] overflow-hidden">
+      <div className={`px-3 py-2 text-white text-[12.5px] font-bold flex items-center gap-1.5 ${tone}`}>{icon} {titlu} ({items.length})</div>
+      {items.length === 0 ? (
+        <div className="px-3 py-3 text-[12.5px] text-[#8A8375]">{gol}</div>
+      ) : (
+        <div className="divide-y divide-[#EFEAE1] max-h-56 overflow-y-auto">
+          {items.map(renderItem)}
+        </div>
+      )}
+    </div>
+  );
+
+  const rand = (c, extra) => (
+    <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#FCFAF5]">
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="font-mono font-bold text-[12.5px]">{c.numarDosar || "—"}</span>
+          <span className="text-[12px] text-[#6B6558] truncate">{c.client}</span>
+        </div>
+        {c.telefonClient && <div className="text-[11px] text-[#8A8375] flex items-center gap-1"><Phone size={10} />{c.telefonClient}</div>}
+      </div>
+      {extra}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#23282E] rounded-lg p-4 text-white flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <div className="text-[15px] font-bold capitalize" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Rezumat zilnic</div>
+          <div className="text-[12px] text-white/60 capitalize">{azi}</div>
+        </div>
+        <div className="flex items-center gap-2 text-[11.5px] text-white/70">
+          <span>Alertă neridicate după</span>
+          <input type="number" min={1} className="w-14 border border-white/30 bg-white/10 rounded px-2 py-1 text-white text-center" value={pragInput} onChange={(e) => setPragInput(Number(e.target.value) || 1)} />
+          <span>zile</span>
+          <button onClick={() => onSetPrag(pragInput)} className="px-2 py-1 rounded bg-[#C98A2B] text-white font-semibold">Salvează</button>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-3">
+        <Sectiune
+          icon={<CalendarClock size={14} />} titlu="Programate azi" tone="bg-[#3B5166]"
+          items={programariAzi} gol="Nicio programare azi."
+          renderItem={(c) => rand(c, <span className="text-[11px] font-mono text-[#6B6558]">{c.dataProgramare.slice(11, 16)}</span>)}
+        />
+        <Sectiune
+          icon={<PackageCheck size={14} />} titlu="Finalizate azi (gata de ridicare)" tone="bg-[#3E6B45]"
+          items={gataAzi} gol="Nicio mașină finalizată azi încă."
+          renderItem={(c) => rand(c, <Pill tone="amber">gata azi</Pill>)}
+        />
+        <Sectiune
+          icon={<PackageCheck size={14} />} titlu="Gata, neridicate — de sunat" tone="bg-[#C98A2B]"
+          items={neridicateVechi} gol="Nicio mașină uitată în curte."
+          renderItem={(c) => rand(c, <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white">{daysBetween(c.dataGataRidicare)}z</span>)}
+        />
+        <Sectiune
+          icon={<AlertTriangle size={14} />} titlu="Dosare restante — de urmărit" tone="bg-[#B23A2E]"
+          items={restante} gol="Niciun dosar restant."
+          renderItem={(c) => rand(c, <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white">{daysBetween(c.dataSchimbareStatus)}z</span>)}
+        />
+      </div>
+
+      {blocate.length > 0 && (
+        <Sectiune
+          icon={<AlertOctagon size={14} />} titlu="Dosare blocate" tone="bg-[#23282E]"
+          items={blocate} gol=""
+          renderItem={(c) => rand(c, <span className="text-[11px] text-[#8A8375] max-w-[160px] truncate">{c.motivBlocare || "fără motiv notat"}</span>)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Login — conturi individuale pentru colegi (Supabase Auth)
 // ---------------------------------------------------------------------------
 function Login() {
@@ -1532,8 +1732,10 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState("toate");
   const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [onlyBlocked, setOnlyBlocked] = useState(false);
+  const [onlyGataNeridicate, setOnlyGataNeridicate] = useState(false);
   const [modalClaim, setModalClaim] = useState(null);
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
+  const [pragRidicare, setPragRidicare] = useState(3);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); });
@@ -1565,14 +1767,21 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     (async () => {
-      const { data } = await supabase.from("setari").select("capacitate_zilnica").eq("id", 1).maybeSingle();
+      const { data } = await supabase.from("setari").select("capacitate_zilnica, prag_ridicare_zile").eq("id", 1).maybeSingle();
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
+      if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
     })();
   }, [session]);
 
   const saveCapacitate = async (n) => {
     setCapacitateZilnica(n);
     const { error } = await supabase.from("setari").upsert({ id: 1, capacitate_zilnica: n });
+    if (error) showNotice(error.message, "error");
+  };
+
+  const savePragRidicare = async (n) => {
+    setPragRidicare(n);
+    const { error } = await supabase.from("setari").upsert({ id: 1, prag_ridicare_zile: n });
     if (error) showNotice(error.message, "error");
   };
 
@@ -1632,6 +1841,21 @@ export default function App() {
   const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
   const openExisting = (claim) => setModalClaim(claim);
 
+  const duplicateClaim = (source) => {
+    const dup = {
+      ...emptyClaim("primit"),
+      numarInmatriculare: source.numarInmatriculare,
+      vin: source.vin,
+      marcaModel: source.marcaModel,
+      client: source.client,
+      telefonClient: source.telefonClient,
+      tipAsigurare: source.tipAsigurare,
+      asigurator: source.asigurator,
+    };
+    showNotice("Date duplicate — completează numărul de dosar nou și verifică restul.");
+    setModalClaim(dup);
+  };
+
   const patchClaim = async (id, patch) => {
     const current = claims.find((c) => c.id === id);
     if (!current) return;
@@ -1655,14 +1879,16 @@ export default function App() {
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
       if (onlyAlerts && daysBetween(c.dataSchimbareStatus) < (c.termenAlertaZile || 3)) return false;
       if (onlyBlocked && !c.blocat) return false;
+      if (onlyGataNeridicate && !(c.gataDeRidicare && !c.ridicata)) return false;
       if (!q) return true;
       return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
         (c.numarDosar || "").toLowerCase().includes(q) || (c.asigurator || "").toLowerCase().includes(q) || (c.vin || "").toLowerCase().includes(q);
     });
-  }, [claims, search, filterTip, filterStatus, onlyAlerts, onlyBlocked]);
+  }, [claims, search, filterTip, filterStatus, onlyAlerts, onlyBlocked, onlyGataNeridicate]);
 
   const alertCount = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)).length, [claims]);
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
+  const gataNeridicateCount = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare).length, [claims, pragRidicare]);
 
   const exportExcel = () => {
     const rows = claims.map((c) => ({
@@ -1711,7 +1937,13 @@ export default function App() {
                 <AlertTriangle size={13} /> {blockedCount} blocate
               </button>
             )}
+            {gataNeridicateCount > 0 && (
+              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
+                <PackageCheck size={13} /> {gataNeridicateCount} neridicate
+              </button>
+            )}
             <div className="flex rounded overflow-hidden border border-white/20">
+              <button onClick={() => setView("brief")} className={`p-1.5 ${view === "brief" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Rezumat zilnic"><Sunrise size={15} /></button>
               <button onClick={() => setView("kanban")} className={`p-1.5 ${view === "kanban" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Kanban"><LayoutGrid size={15} /></button>
               <button onClick={() => setView("list")} className={`p-1.5 ${view === "list" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Listă"><List size={15} /></button>
               <button onClick={() => setView("dashboard")} className={`p-1.5 ${view === "dashboard" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Dashboard"><BarChart3 size={15} /></button>
@@ -1741,12 +1973,14 @@ export default function App() {
       <div className={`flex-1 min-h-0 p-4 ${view === "kanban" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+        ) : view === "brief" ? (
+          <BriefZilnic claims={claims} onOpen={openExisting} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
         ) : view === "kanban" ? (
-          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} canEditFn={canEdit} />
+          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
-          <Dashboard claims={filtered} onOpen={openExisting} />
+          <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
         ) : view === "programator" ? (
           <Programator claims={filtered} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} />
         ) : (
