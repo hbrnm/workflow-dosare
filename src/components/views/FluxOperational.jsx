@@ -19,7 +19,7 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
   return (
     <div
       onClick={() => onOpen(claim)}
-      className={`group relative bg-white rounded-lg border p-3 transition-all duration-150 hover:shadow-md cursor-pointer ${
+      className={`group relative bg-white rounded-lg border p-2 transition-all duration-150 hover:shadow-md cursor-pointer text-[11.5px] ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -27,7 +27,7 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       {/* Header Row: Nr Dosar + Asigurare */}
       <div className="flex items-center justify-between gap-1">
         <span
-          className="font-mono text-[13px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
+          className="font-mono text-[12.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
         >
           {claim.numarDosar || "(fără nr.)"}
         </span>
@@ -38,26 +38,26 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       </div>
 
       {/* Interactive 1-Click Status Dropdown Badge */}
-      <div className="mt-2 relative">
+      <div className="mt-1.5 relative">
         <button
           onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
-          className="w-full flex items-center justify-between px-2 py-1 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors text-[11.5px] font-semibold text-[#23282E]"
+          className="w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors text-[11px] font-semibold text-[#23282E]"
           title="Apasă pentru a schimba etapa dosarului"
         >
-          <span className="flex items-center gap-1.5 truncate">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
-            <span className="font-mono text-[10.5px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
+          <span className="flex items-center gap-1 truncate">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
+            <span className="font-mono text-[10px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
             <span className="truncate">{statusDef.label}</span>
           </span>
-          <ChevronDown size={13} className="text-[#8A8375] shrink-0" />
+          <ChevronDown size={12} className="text-[#8A8375] shrink-0" />
         </button>
 
         {showStatusPicker && (
           <div
-            className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11.5px] space-y-0.5"
+            className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-2 py-1 text-[10px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
+            <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
               Schimbă etapa dosarului:
             </div>
             {STATUSES.map((s) => (
@@ -68,15 +68,15 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
                   onMoveToStatus(claim, s.key);
                   setShowStatusPicker(false);
                 }}
-                className={`w-full flex items-center justify-between px-2 py-1 rounded text-left transition-colors ${
+                className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
                   claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
                 }`}
               >
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="font-mono text-[10.5px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
+                <span className="flex items-center gap-1 truncate">
+                  <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
                   <span className="truncate">{s.label}</span>
                 </span>
-                {claim.status === s.key && <Check size={12} className="shrink-0" />}
+                {claim.status === s.key && <Check size={11} className="shrink-0" />}
               </button>
             ))}
           </div>
@@ -84,46 +84,46 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       </div>
 
       {/* Client & Phone */}
-      <div className="mt-2 flex items-center justify-between gap-1 text-[12px]">
+      <div className="mt-1.5 flex items-center justify-between gap-1 text-[11.5px]">
         <span
-          className="font-medium text-[#23282E] truncate group-hover:underline"
+          className="font-semibold text-[#23282E] truncate group-hover:underline"
         >
           {claim.client || "Client neintrodus"}
         </span>
         {claim.telefonClient && (
-          <div className="flex items-center gap-1 shrink-0">
-            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
-              <Phone size={12} />
+          <div className="flex items-center gap-0.5 shrink-0">
+            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
+              <Phone size={11} />
             </a>
-            <a href={waLink(claim.telefonClient)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="WhatsApp" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3E6B45]">
-              <MessageCircle size={12} />
+            <a href={waLink(claim.telefonClient)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="WhatsApp" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3E6B45]">
+              <MessageCircle size={11} />
             </a>
           </div>
         )}
       </div>
 
       {/* Auto & Insurer */}
-      <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-[#6B6558]">
+      <div className="mt-1 flex items-center justify-between gap-1 text-[10.5px] text-[#6B6558]">
         <span className="flex items-center gap-1 font-mono font-bold text-[#23282E]">
-          <Car size={12} className="text-[#8A8375]" />
+          <Car size={11} className="text-[#8A8375]" />
           {claim.numarInmatriculare || "—"}
         </span>
-        <span className="truncate max-w-[110px]" title={claim.marcaModel}>
+        <span className="truncate max-w-[95px]" title={claim.marcaModel || claim.asigurator}>
           {claim.marcaModel || claim.asigurator}
         </span>
       </div>
 
       {/* Active Badges */}
       {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
-        <div className="mt-2 flex items-center gap-1 flex-wrap text-[10px]">
+        <div className="mt-1.5 flex items-center gap-1 flex-wrap text-[9.5px]">
           {claim.blocat && <Pill tone="danger">⚠️ blocat</Pill>}
           {claim.masinaSchimb && (
-            <span className="px-1.5 py-0.5 rounded bg-[#FBF3E6] text-[#7A5316] font-bold text-[10px]">
+            <span className="px-1.5 py-0.2 rounded bg-[#FBF3E6] text-[#7A5316] font-bold text-[9.5px]">
               🚗 {claim.masinaSchimb}
             </span>
           )}
           {claim.gataDeRidicare && !claim.ridicata && (
-            <span className={`px-1.5 py-0.5 rounded font-bold text-[10px] ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+            <span className={`px-1.5 py-0.2 rounded font-bold text-[9.5px] ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
               📦 gata ({zileNeridicata}z)
             </span>
           )}
@@ -131,18 +131,18 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       )}
 
       {/* Card Footer: Days + Quick Actions */}
-      <div className="mt-2.5 pt-2 border-t border-[#EFEAE1] flex items-center justify-between text-[10.5px]">
+      <div className="mt-1.5 pt-1.5 border-t border-[#EFEAE1] flex items-center justify-between text-[10px]">
         <span className="text-[#8A8375] font-mono flex items-center gap-1">
-          <Clock size={11} /> {days} zile în etapă
+          <Clock size={10} /> {days}z în etapă
         </span>
 
         <div className="flex items-center gap-1">
           <button
             onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
             title="Duplică dosarul"
-            className="px-1.5 py-0.5 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[10px] font-semibold transition-colors"
+            className="px-1 py-0.2 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[9.5px] font-semibold transition-colors"
           >
-            <Copy size={11} className="inline mr-0.5" /> Duplică
+            <Copy size={10} className="inline mr-0.5" /> Duplică
           </button>
         </div>
       </div>
@@ -167,21 +167,21 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
   }, [claims, quickFilter, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-3">
+    <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
       {/* Top Smart Quick Filters Bar */}
-      <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-xs flex items-center justify-between flex-wrap gap-2 shrink-0">
+      <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <Layers size={16} className="text-[#C98A2B]" /> Flux Operațional
+            <Layers size={15} className="text-[#C98A2B]" /> Flux Operațional
           </span>
           <span className="text-[11.5px] text-[#8A8375]">({claims.length} dosare)</span>
         </div>
 
         {/* Quick Filter Buttons */}
-        <div className="flex items-center gap-1.5 flex-wrap text-[11.5px]">
+        <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
           <button
             onClick={() => setQuickFilter("toate")}
-            className={`px-2.5 py-1 rounded-md font-semibold transition-all ${
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
               quickFilter === "toate"
                 ? "bg-[#23282E] text-white shadow-xs font-bold"
                 : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"
@@ -191,95 +191,95 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
           </button>
           <button
             onClick={() => setQuickFilter(quickFilter === "intarziate" ? "toate" : "intarziate")}
-            className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
               quickFilter === "intarziate"
                 ? "bg-[#B23A2E] text-white shadow-xs font-bold"
                 : "bg-[#B23A2E]/10 text-[#B23A2E] hover:bg-[#B23A2E]/20"
             }`}
           >
-            <AlertTriangle size={12} /> Depășite ({alertClaims.length})
+            <AlertTriangle size={11} /> Depășite ({alertClaims.length})
           </button>
           <button
             onClick={() => setQuickFilter(quickFilter === "blocate" ? "toate" : "blocate")}
-            className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
               quickFilter === "blocate"
                 ? "bg-[#23282E] text-white shadow-xs font-bold"
                 : "bg-[#23282E]/10 text-[#23282E] hover:bg-[#23282E]/20"
             }`}
           >
-            <AlertOctagon size={12} /> Blocate ({blockedClaims.length})
+            <AlertOctagon size={11} /> Blocate ({blockedClaims.length})
           </button>
           <button
             onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
-            className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
               quickFilter === "piese_sosite"
                 ? "bg-[#C98A2B] text-white shadow-xs font-bold"
                 : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
             }`}
           >
-            <PackageCheck size={12} /> Piese Sosite ({pieseSositeClaims.length})
+            <PackageCheck size={11} /> Piese Sosite ({pieseSositeClaims.length})
           </button>
           <button
             onClick={() => setQuickFilter(quickFilter === "masini_schimb" ? "toate" : "masini_schimb")}
-            className={`px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 ${
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
               quickFilter === "masini_schimb"
                 ? "bg-[#3B5166] text-white shadow-xs font-bold"
                 : "bg-[#3B5166]/10 text-[#3B5166] hover:bg-[#3B5166]/20"
             }`}
           >
-            <Car size={12} /> Auto la Schimb ({masinaSchimbClaims.length})
+            <Car size={11} /> Auto la Schimb ({masinaSchimbClaims.length})
           </button>
         </div>
       </div>
 
       {/* 4 Phase Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));
 
           return (
             <div
               key={phase.key}
-              className="flex flex-col h-full rounded-xl overflow-hidden border border-[#DAD4C6] shadow-sm shrink-0"
+              className="flex flex-col h-full rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0"
               style={{ background: phase.bgColor }}
             >
               {/* Phase Column Header */}
-              <div className="p-3 text-white shrink-0" style={{ background: phase.barColor }}>
+              <div className="p-2.5 text-white shrink-0" style={{ background: phase.barColor }}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-bold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <div className="flex items-center gap-1.5 font-bold text-[12.5px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                     {phase.label}
                   </div>
-                  <span className="min-w-[24px] h-[24px] px-1.5 flex items-center justify-center rounded-full bg-white/20 text-[12px] font-bold text-white">
+                  <span className="min-w-[22px] h-[22px] px-1 flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
                     {phaseClaims.length}
                   </span>
                 </div>
-                <div className="mt-0.5 text-[10.5px] opacity-80 leading-tight">
+                <div className="mt-0.5 text-[10px] opacity-80 leading-tight">
                   {phase.description}
                 </div>
 
                 {/* Sub-status Pills inside Phase */}
-                <div className="mt-2.5 flex items-center gap-1 flex-wrap">
+                <div className="mt-2 flex items-center gap-1 flex-wrap">
                   {phase.statuses.map((stKey) => {
                     const stDef = getStatusDefinition(stKey);
                     const stCount = phaseClaims.filter((c) => c.status === stKey).length;
                     return (
                       <span
                         key={stKey}
-                        className="px-1.5 py-0.5 rounded bg-white/15 text-[10px] font-semibold flex items-center gap-1"
+                        className="px-1.5 py-0.2 rounded bg-white/15 text-[9.5px] font-semibold flex items-center gap-1"
                       >
                         <span className="opacity-75">{stDef.num}.</span>
                         <span>{stDef.label}</span>
-                        <span className="bg-white/25 px-1 rounded-full text-[9.5px] font-bold">{stCount}</span>
+                        <span className="bg-white/25 px-1 rounded-full text-[9px] font-bold">{stCount}</span>
                       </span>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Claims List inside Phase */}
-              <div className="p-2.5 flex flex-col gap-2.5 overflow-y-auto flex-1 min-h-0">
+              {/* Claims Grid (2 Cards per row when width permits) */}
+              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto flex-1 min-h-0 items-start auto-rows-max">
                 {phaseClaims.length === 0 ? (
-                  <div className="text-center py-10 text-[12px] text-[#8A8375]/70 italic">
+                  <div className="col-span-full text-center py-8 text-[11.5px] text-[#8A8375]/70 italic">
                     Niciun dosar în această fază
                   </div>
                 ) : (
@@ -290,7 +290,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                       onOpen={onOpen}
                       onMoveToStatus={onMoveToStatus}
                       onDuplicate={onDuplicate}
-                      canEdit={canEditFn(claim)}
+                      canEdit={canEditFn ? canEditFn(claim) : true}
                       pragRidicare={pragRidicare}
                     />
                   ))
