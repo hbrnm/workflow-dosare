@@ -80,6 +80,12 @@ export default function DatePickerInput({
     onChange(`${dateToUse}T${newTime}`);
   };
 
+  // Snap minutes to 30-min grid
+  const snapTo30 = (timeStr) => {
+    const [h, m] = timeStr.split(":");
+    return `${h}:${Number(m) < 30 ? "00" : "30"}`;
+  };
+
   const handleClear = (e) => {
     e.stopPropagation();
     onChange("");
@@ -189,7 +195,7 @@ export default function DatePickerInput({
       </div>
 
       {open && !disabled && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-[#DAD4C6] shadow-2xl rounded-lg p-3 w-[290px] text-[#23282E] text-[12px]">
+        <div className="absolute bottom-full left-0 mb-1 z-50 bg-white border border-[#DAD4C6] shadow-2xl rounded-lg p-3 w-[290px] text-[#23282E] text-[12px]">
           <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#EFEAE1]">
             <button
               type="button"
@@ -265,20 +271,20 @@ export default function DatePickerInput({
                 <span className="font-bold text-[#8A8375]">:</span>
                 <select
                   className="border border-[#DAD4C6] rounded px-1.5 py-1 text-[11.5px] bg-[#FAF8F5] focus:bg-white font-mono flex-1"
-                  value={selectedTime.split(":")[1] || "00"}
+                  value={["00", "30"].includes(selectedTime.split(":")[1]) ? selectedTime.split(":")[1] : "00"}
                   onChange={(e) => {
                     const hrs = selectedTime.split(":")[0] || "08";
                     handleSelectTime(`${hrs}:${e.target.value}`);
                   }}
                 >
-                  {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((mm) => (
+                  {["00", "30"].map((mm) => (
                     <option key={mm} value={mm}>{mm} min</option>
                   ))}
                 </select>
               </div>
 
               <div className="flex flex-wrap gap-1">
-                {["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"].map((t) => (
+                {["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30", "18:00"].map((t) => (
                   <button
                     key={t}
                     type="button"

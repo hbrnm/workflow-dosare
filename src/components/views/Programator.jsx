@@ -10,23 +10,45 @@ import Pill from "../common/Pill";
 import DatePickerInput from "../common/DatePickerInput";
 
 export const SLOTURI_ORARE = [
-  "08:00 - 10:00",
-  "10:00 - 12:00",
-  "12:00 - 14:00",
-  "14:00 - 16:00",
-  "16:00 - 18:00",
+  "08:00 - 08:30",
+  "08:30 - 09:00",
+  "09:00 - 09:30",
+  "09:30 - 10:00",
+  "10:00 - 10:30",
+  "10:30 - 11:00",
+  "11:00 - 11:30",
+  "11:30 - 12:00",
+  "12:00 - 12:30",
+  "12:30 - 13:00",
+  "13:00 - 13:30",
+  "13:30 - 14:00",
+  "14:00 - 14:30",
+  "14:30 - 15:00",
+  "15:00 - 15:30",
+  "15:30 - 16:00",
+  "16:00 - 16:30",
+  "16:30 - 17:00",
+  "17:00 - 17:30",
+  "17:30 - 18:00",
 ];
 
 const STADII_PROGRAMABILE = ["reconstatare", "piese_sosite", "programat"];
 
 export function getSlotForIso(isoStr) {
-  if (!isoStr) return "08:00 - 10:00";
-  const ora = Number(isoStr.slice(11, 13)) || 8;
-  if (ora < 10) return "08:00 - 10:00";
-  if (ora < 12) return "10:00 - 12:00";
-  if (ora < 14) return "12:00 - 14:00";
-  if (ora < 16) return "14:00 - 16:00";
-  return "16:00 - 18:00";
+  if (!isoStr) return "08:00 - 08:30";
+  const [hPart, mPart] = (isoStr.slice(11, 16) || "08:00").split(":");
+  const h = Number(hPart) || 8;
+  const m = Number(mPart) || 0;
+  // find slot where startH:startM <= h:m < endH:endM
+  for (const slot of SLOTURI_ORARE) {
+    const [startStr] = slot.split(" - ");
+    const [sh, sm] = startStr.split(":").map(Number);
+    const startMinutes = sh * 60 + sm;
+    const endMinutes = startMinutes + 30;
+    const currentMinutes = h * 60 + m;
+    if (currentMinutes >= startMinutes && currentMinutes < endMinutes) return slot;
+  }
+  return SLOTURI_ORARE[0];
 }
 
 export function makeIsoFromSlot(baseIsoStr, slot) {
