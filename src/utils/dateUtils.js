@@ -20,6 +20,28 @@ export function daysBetween(iso) {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
 }
 
+export function getMondayOfISOWeek(d = new Date()) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+
+export function getDaysOfWeek(mondayDate = getMondayOfISOWeek()) {
+  const list = [];
+  const start = new Date(mondayDate);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const dateIso = d.toISOString().slice(0, 10);
+    const isToday = dateIso === todayISO();
+    const labelShort = d.toLocaleDateString("ro-RO", { weekday: "short", day: "numeric", month: "short" });
+    const label = d.toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long" });
+    list.push({ dateIso, isToday, labelShort, label });
+  }
+  return list;
+}
+
 // Format dată simplu: DD/MM/YYYY
 export function fmtDate(iso) {
   if (!iso) return "—";
