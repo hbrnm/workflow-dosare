@@ -248,8 +248,8 @@ export default function App() {
                 { id: "flux", label: "Flux Operațional", icon: Layers },
                 { id: "brief", label: "Brief", icon: Sunrise },
                 { id: "list", label: "Listă", icon: List },
-                { id: "dashboard", label: "Statistici", icon: BarChart3 },
                 { id: "programator", label: "Calendar", icon: CalendarClock },
+                { id: "dashboard", label: "Statistici", icon: BarChart3 },
                 { id: "rapoarte", label: "Financiar", icon: Wallet },
               ].map(({ id, label, icon: Icon }) => {
                 const active = view === id;

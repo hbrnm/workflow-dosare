@@ -50,8 +50,8 @@ export default function CommandPalette({
       { type: "view", id: "flux", label: "Flux Operațional", sub: "Tabloul pe 4 faze", icon: Layers },
       { type: "view", id: "brief", label: "Brieful dimineții", sub: "Dosare de livrat & sunat azi", icon: Sunrise },
       { type: "view", id: "list", label: "Tabel Dosare", sub: "Listă detaliată cu sortare", icon: List },
-      { type: "view", id: "dashboard", label: "Statistici & Grafice", sub: "Indicatori cheie de performanță", icon: BarChart3 },
       { type: "view", id: "programator", label: "Calendar Service", sub: "Agendă săptămânală & lunară", icon: CalendarClock },
+      { type: "view", id: "dashboard", label: "Statistici & Grafice", sub: "Indicatori cheie de performanță", icon: BarChart3 },
       { type: "view", id: "rapoarte", label: "Rapoarte Financiar", sub: "Marjă piese & venit manoperă", icon: Wallet },
     ];
 
