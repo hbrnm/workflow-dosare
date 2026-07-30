@@ -63,6 +63,26 @@ export function sanitizeClaim(c) {
   };
 }
 
+export function storagePath(claimId, file, folder = "poze") {
+  const ext = file.name ? file.name.split(".").pop() : "bin";
+  return `${claimId || "temp"}/${folder}/${uid()}.${ext}`;
+}
+
+export async function refreshStorageUrls(items = [], bucketName, supabase) {
+  if (!items || !items.length || !supabase) return items || [];
+  return Promise.all(
+    items.map(async (item) => {
+      if (!item || !item.path) return item;
+      try {
+        const { data: signed } = await supabase.storage.from(bucketName).createSignedUrl(item.path, 60 * 60);
+        return { ...item, url: signed?.signedUrl || item.url || "" };
+      } catch (err) {
+        return item;
+      }
+    })
+  );
+}
+
 export function toDb(c) {
   return {
     id: c.id,
