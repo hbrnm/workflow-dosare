@@ -69,7 +69,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   }, [claim?.id, isNew]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...f.manopera, [dept]: val } }));
+  const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
   const toggleGata = (checked) => setForm((f) => ({ ...f, gataDeRidicare: checked, dataGataRidicare: checked && !f.dataGataRidicare ? nowISO() : f.dataGataRidicare }));
   const toggleRidicata = (checked) => setForm((f) => ({ ...f, ridicata: checked, dataRidicare: checked && !f.dataRidicare ? nowISO() : f.dataRidicare }));
 
@@ -632,8 +632,8 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       <Paintbrush size={14} /> Manoperă Facturată pe Etape
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
-                      <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera.tinichigerie} onChange={(v) => setStage("tinichigerie", v)} />
-                      <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera.vopsitorie} onChange={(v) => setStage("vopsitorie", v)} />
+                      <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("tinichigerie", v)} />
+                      <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("vopsitorie", v)} />
                     </div>
                   </div>
 

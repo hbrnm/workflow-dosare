@@ -8,7 +8,7 @@ export default function StageBar({ label, icon, data, onChange }) {
   const alocat = Number(safeData.alocat) || 0;
   const pct = alocat > 0 ? Math.min(100, Math.round((facturat / alocat) * 100)) : 0;
   const started = !!safeData.dataIntrareEtapa;
-  const days = daysBetween(safeData.dataIntrareEtapa);
+  const days = safeData.dataIntrareEtapa ? daysBetween(safeData.dataIntrareEtapa) : 0;
 
   return (
     <div className="border border-[#DAD4C6] rounded-xl p-3 bg-white space-y-2.5 shadow-2xs">
