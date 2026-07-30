@@ -1,38 +1,70 @@
 import React from "react";
-import { Play } from "lucide-react";
+import { Play, CheckCircle2 } from "lucide-react";
 import { daysBetween, nowISO } from "../../utils/dateUtils";
 
 export default function StageBar({ label, icon, data, onChange }) {
   const safeData = data || { facturat: 0, alocat: 0, dataIntrareEtapa: null };
-  const pct = safeData.alocat > 0 ? Math.min(100, Math.round(((safeData.facturat || 0) / safeData.alocat) * 100)) : 0;
+  const facturat = Number(safeData.facturat) || 0;
+  const alocat = Number(safeData.alocat) || 0;
+  const pct = alocat > 0 ? Math.min(100, Math.round((facturat / alocat) * 100)) : 0;
   const started = !!safeData.dataIntrareEtapa;
   const days = daysBetween(safeData.dataIntrareEtapa);
 
   return (
-    <div className="border border-[#DAD4C6] rounded-lg p-2.5 bg-white">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-[#23282E]">{icon}{label}</span>
+    <div className="border border-[#DAD4C6] rounded-xl p-3 bg-white space-y-2.5 shadow-2xs">
+      <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
+        <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-[#23282E]">
+          {icon} {label}
+        </span>
         {started ? (
-          <span className="text-[10.5px] text-[#8A8375]">{days} zile în etapă</span>
+          <span className="text-[10.5px] font-semibold text-[#3E6B45] bg-[#EEF5EE] px-2 py-0.5 rounded-full flex items-center gap-1">
+            <CheckCircle2 size={11} /> {days}z în lucru
+          </span>
         ) : (
-          <button onClick={() => onChange({ ...safeData, dataIntrareEtapa: nowISO() })} className="flex items-center gap-1 text-[10.5px] font-semibold text-[#3B5166] hover:underline">
+          <button
+            type="button"
+            onClick={() => onChange({ ...safeData, dataIntrareEtapa: nowISO() })}
+            className="flex items-center gap-1 text-[10.5px] font-bold text-[#3B5166] hover:bg-[#3B5166]/10 px-2 py-0.5 rounded transition-colors"
+          >
             <Play size={10} /> pornește
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2">
-        <input type="number" min={0} className="w-20 border border-[#DAD4C6] rounded px-1.5 py-1 text-[12.5px]"
-          value={safeData.facturat || 0} onChange={(e) => onChange({ ...safeData, facturat: Number(e.target.value) || 0 })} />
-        <div className="flex-1 h-1.5 bg-[#EFEAE1] rounded overflow-hidden">
-          <div className="h-full bg-[#C98A2B]" style={{ width: `${pct}%` }} />
+
+      <div className="grid grid-cols-2 gap-2 text-[11px]">
+        <div>
+          <span className="block text-[10.5px] text-[#6B6558] mb-0.5 font-medium">Facturat (lei)</span>
+          <input
+            type="number"
+            min={0}
+            className="w-full border border-[#DAD4C6] rounded-md px-2 py-1 font-mono font-bold text-[#23282E] text-[12px]"
+            value={facturat}
+            onChange={(e) => onChange({ ...safeData, facturat: Number(e.target.value) || 0 })}
+          />
+        </div>
+        <div>
+          <span className="block text-[10.5px] text-[#6B6558] mb-0.5 font-medium">Buget Alocat (lei)</span>
+          <input
+            type="number"
+            min={0}
+            className="w-full border border-[#DAD4C6] rounded-md px-2 py-1 font-mono text-[#6B6558] text-[12px]"
+            value={alocat}
+            onChange={(e) => onChange({ ...safeData, alocat: Number(e.target.value) || 0 })}
+          />
         </div>
       </div>
-      <div className="flex items-center gap-1 mt-1.5 text-[10.5px] text-[#8A8375]">
-        alocat{" "}
-        <input type="number" min={0} className="w-16 border border-[#DAD4C6] rounded px-1 py-0.5 text-[10.5px]"
-          value={safeData.alocat || 0} onChange={(e) => onChange({ ...safeData, alocat: Number(e.target.value) || 0 })} />
-        lei
-      </div>
+
+      {alocat > 0 && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-[10px] text-[#8A8375] font-semibold">
+            <span>Progres decontare</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="w-full h-2 bg-[#EFEAE1] rounded-full overflow-hidden">
+            <div className="h-full bg-[#C98A2B] transition-all" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

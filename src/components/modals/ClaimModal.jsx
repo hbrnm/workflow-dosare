@@ -533,7 +533,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </div>
 
                     <Field label="Ce este de reparat (Descriere operațiuni)" full>
-                      <textarea className="in min-h-[70px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
+                      <textarea className="in min-h-[75px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
                     </Field>
                   </div>
 
@@ -561,6 +561,19 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         <input type="number" min={0} className="in font-bold text-center" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} />
                       </Field>
                     </div>
+
+                    {form.masinaSchimb && form.dataDariiLaSchimb && (
+                      <div className="mt-2 text-[11.5px] font-semibold flex items-center justify-between px-3 py-1.5 bg-white border border-[#DAD4C6] rounded-lg">
+                        <span className="text-[#6B6558]">Zile utilizate mașină la schimb:</span>
+                        <span className={`font-bold font-mono px-2 py-0.5 rounded ${
+                          form.zileChirieAudatex > 0 && daysBetween(form.dataDariiLaSchimb) > form.zileChirieAudatex
+                            ? "bg-[#B23A2E] text-white"
+                            : "bg-[#3E6B45]/10 text-[#3E6B45]"
+                        }`}>
+                          {daysBetween(form.dataDariiLaSchimb)}z {form.zileChirieAudatex > 0 ? `/ ${form.zileChirieAudatex}z Audatex` : ""}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -576,21 +589,30 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                   </div>
 
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      💰 Piese &amp; Tracking Decontare
+                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <span className="flex items-center gap-1.5">💰 Decontare Piese &amp; Marjă Estimată</span>
+                      {((Number(form.valoarePieseAudatex) || 0) > 0 || (Number(form.valoareAchizitiePiese) || 0) > 0) && (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          ((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)) >= 0
+                            ? "bg-[#3E6B45]/15 text-[#3E6B45]"
+                            : "bg-[#B23A2E]/15 text-[#B23A2E]"
+                        }`}>
+                          Marjă: {((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)).toLocaleString("ro-RO")} lei
+                        </span>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
-                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white">
-                        <div className="text-[12px] font-bold text-[#23282E] mb-1">Valoare piese Audatex</div>
+                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white space-y-1">
+                        <div className="text-[11.5px] font-bold text-[#23282E]">Valoare piese Audatex</div>
                         <div className="flex items-center gap-1.5">
-                          <input type="number" min={0} className="in font-mono font-bold" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
+                          <input type="number" min={0} className="in font-mono font-bold text-[#23282E]" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
                           <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
                         </div>
                       </div>
-                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white">
-                        <div className="text-[12px] font-bold text-[#23282E] mb-1">Achiziție piese service</div>
+                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white space-y-1">
+                        <div className="text-[11.5px] font-bold text-[#23282E]">Achiziție piese service</div>
                         <div className="flex items-center gap-1.5">
-                          <input type="number" min={0} className="in font-mono font-bold" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
+                          <input type="number" min={0} className="in font-mono font-bold text-[#23282E]" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
                           <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
                         </div>
                       </div>
