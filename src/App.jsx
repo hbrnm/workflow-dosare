@@ -307,7 +307,7 @@ export default function App() {
         ) : view === "flux" ? (
           <TablouPeFaze claims={filtered} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
         ) : view === "brief" ? (
-          <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
+          <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
