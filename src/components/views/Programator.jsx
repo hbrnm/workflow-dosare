@@ -48,6 +48,82 @@ function checkMasinaSchimbConflict(claims, currentId, masinaSchimb, dateStr) {
   );
 }
 
+function QueueCard({ claim, editable, onOpen, onPatch }) {
+  const [draftDate, setDraftDate] = useState(claim.dataProgramare || "");
+  const hasDate = !!(draftDate && draftDate.trim());
+
+  return (
+    <div
+      draggable={editable}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", claim.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2.5 text-[11.5px] space-y-1.5 hover:border-[#3B5166] transition-all shadow-2xs group cursor-grab active:cursor-grabbing"
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className="font-mono font-bold text-[#3B5166] cursor-pointer hover:underline"
+          onClick={() => onOpen(claim)}
+        >
+          {claim.numarDosar || "—"}
+        </span>
+        <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>
+          {claim.tipAsigurare}
+        </Pill>
+      </div>
+
+      <div className="font-bold text-[#23282E] truncate">{claim.client || "—"}</div>
+      <div className="text-[10.5px] font-mono text-[#6B6558]">{claim.numarInmatriculare || "—"}</div>
+
+      {/* Dedicated Scheduling Controls & Action Button */}
+      <div className="pt-2 mt-1 border-t border-[#DAD4C6]/60 space-y-1.5">
+        <div className="text-[10px] font-bold text-[#6B6558] flex items-center justify-between">
+          <span>Alege Data &amp; Ora:</span>
+          {hasDate ? (
+            <span className="text-[#3E6B45] font-semibold">✓ Dată selectată</span>
+          ) : (
+            <span className="text-[#B23A2E] font-medium">Neselectată</span>
+          )}
+        </div>
+
+        <DatePickerInput
+          value={draftDate}
+          withTime={true}
+          disabled={!editable}
+          placeholder="zi/luna/an, ore"
+          className="w-full text-[11px] border border-[#DAD4C6] rounded px-2 py-1 bg-white min-h-[28px]"
+          onChange={(val) => {
+            setDraftDate(val);
+          }}
+        />
+
+        <button
+          type="button"
+          disabled={!editable || !hasDate}
+          onClick={() => {
+            if (hasDate && onPatch) {
+              onPatch(claim.id, {
+                dataProgramare: draftDate,
+                status: "programat",
+                dataSchimbareStatus: nowISO(),
+              });
+            }
+          }}
+          className={`w-full mt-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+            hasDate
+              ? "bg-[#3B5166] text-white hover:bg-[#2C4160] shadow-2xs cursor-pointer"
+              : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6] cursor-not-allowed opacity-75"
+          }`}
+        >
+          <CalendarClock size={13} />
+          {hasDate ? "Confirmă Programare Service" : "Selectează mai întâi data & ora"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetPrag, onSetCapacitate }) {
   const [tabProgramator, setTabProgramator] = useState("masa"); // 'masa' | 'agenda'
   const [capInput, setCapInput] = useState(capacitate || 5);
@@ -331,83 +407,15 @@ function MasaZilnica({ claims, capacitate, canEditFn, onOpen, onPatch }) {
             </div>
           ) : (
             <div className="space-y-2.5 overflow-y-auto flex-1 pr-1 scrollbar-thin">
-              {unassignedQueue.map((c) => {
-                const editable = canEditFn ? canEditFn(c) : true;
-                const hasDate = !!(c.dataProgramare && c.dataProgramare.trim());
-
-                return (
-                  <div
-                    key={c.id}
-                    draggable={editable}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", c.id);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2.5 text-[11.5px] space-y-1.5 hover:border-[#3B5166] transition-all shadow-2xs group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="font-mono font-bold text-[#3B5166] cursor-pointer hover:underline"
-                        onClick={() => onOpen(c)}
-                      >
-                        {c.numarDosar || "—"}
-                      </span>
-                      <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>
-                        {c.tipAsigurare}
-                      </Pill>
-                    </div>
-
-                    <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
-                    <div className="text-[10.5px] font-mono text-[#6B6558]">{c.numarInmatriculare || "—"}</div>
-
-                    {/* Dedicated Scheduling Controls & Conditional Action Button */}
-                    <div className="pt-2 mt-1 border-t border-[#DAD4C6]/60 space-y-1.5">
-                      <div className="text-[10px] font-bold text-[#6B6558] flex items-center justify-between">
-                        <span>Alege Data &amp; Ora:</span>
-                        {hasDate ? (
-                          <span className="text-[#3E6B45] font-semibold">✓ Data selectată</span>
-                        ) : (
-                          <span className="text-[#B23A2E] font-medium">Ne-selectată</span>
-                        )}
-                      </div>
-
-                      <DatePickerInput
-                        value={c.dataProgramare || ""}
-                        withTime={true}
-                        disabled={!editable}
-                        placeholder="zi/luna/an, ore"
-                        className="w-full text-[11px] border border-[#DAD4C6] rounded px-2 py-1 bg-white min-h-[28px]"
-                        onChange={(val) => {
-                          if (onPatch) {
-                            onPatch(c.id, { dataProgramare: val });
-                          }
-                        }}
-                      />
-
-                      <button
-                        type="button"
-                        disabled={!editable || !hasDate}
-                        onClick={() => {
-                          if (hasDate && onPatch) {
-                            onPatch(c.id, {
-                              status: "programat",
-                              dataSchimbareStatus: nowISO(),
-                            });
-                          }
-                        }}
-                        className={`w-full mt-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
-                          hasDate
-                            ? "bg-[#3B5166] text-white hover:bg-[#2C4160] shadow-2xs cursor-pointer"
-                            : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6] cursor-not-allowed opacity-75"
-                        }`}
-                      >
-                        <CalendarClock size={13} />
-                        {hasDate ? "Confirmă Programare Service" : "Selectează mai întâi data & ora"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {unassignedQueue.map((c) => (
+                <QueueCard
+                  key={c.id}
+                  claim={c}
+                  editable={canEditFn ? canEditFn(c) : true}
+                  onOpen={onOpen}
+                  onPatch={onPatch}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -454,7 +462,7 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
   return (
     <div className="space-y-3">
       {/* Week Header Controls */}
-      <div className="bg-white rounded-lg border border-[#DAD4C6] px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+      <div className="bg-[#FAF8F5] rounded-lg border border-[#DAD4C6] px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <button onClick={prevWeek} className="p-1 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166]"><ChevronLeft size={16} /></button>
           <button onClick={currentWeek} className="px-2.5 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160]">Săptămâna aceasta</button>
@@ -468,7 +476,7 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
           <Search size={14} className="absolute left-2.5 top-2 text-[#8A8375]" />
           <input
             type="text"
-            className="w-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-md pl-8 pr-2 py-1 text-[11.5px] focus:outline-hidden"
+            className="w-full bg-white border border-[#DAD4C6] rounded-md pl-8 pr-2 py-1 text-[11.5px] focus:outline-hidden"
             placeholder="Caută dosar în agendă..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -562,83 +570,15 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
             </div>
           ) : (
             <div className="space-y-2.5 overflow-y-auto flex-1 pr-1 scrollbar-thin">
-              {unassignedQueue.map((c) => {
-                const editable = canEditFn ? canEditFn(c) : true;
-                const hasDate = !!(c.dataProgramare && c.dataProgramare.trim());
-
-                return (
-                  <div
-                    key={c.id}
-                    draggable={editable}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", c.id);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2.5 text-[11.5px] space-y-1.5 hover:border-[#3B5166] transition-all shadow-2xs group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className="font-mono font-bold text-[#3B5166] cursor-pointer hover:underline"
-                        onClick={() => onOpen(c)}
-                      >
-                        {c.numarDosar || "—"}
-                      </span>
-                      <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>
-                        {c.tipAsigurare}
-                      </Pill>
-                    </div>
-
-                    <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
-                    <div className="text-[10.5px] font-mono text-[#6B6558]">{c.numarInmatriculare || "—"}</div>
-
-                    {/* Dedicated Scheduling Controls & Conditional Action Button */}
-                    <div className="pt-2 mt-1 border-t border-[#DAD4C6]/60 space-y-1.5">
-                      <div className="text-[10px] font-bold text-[#6B6558] flex items-center justify-between">
-                        <span>Alege Data &amp; Ora:</span>
-                        {hasDate ? (
-                          <span className="text-[#3E6B45] font-semibold">✓ Data selectată</span>
-                        ) : (
-                          <span className="text-[#B23A2E] font-medium">Ne-selectată</span>
-                        )}
-                      </div>
-
-                      <DatePickerInput
-                        value={c.dataProgramare || ""}
-                        withTime={true}
-                        disabled={!editable}
-                        placeholder="zi/luna/an, ore"
-                        className="w-full text-[11px] border border-[#DAD4C6] rounded px-2 py-1 bg-white min-h-[28px]"
-                        onChange={(val) => {
-                          if (onPatch) {
-                            onPatch(c.id, { dataProgramare: val });
-                          }
-                        }}
-                      />
-
-                      <button
-                        type="button"
-                        disabled={!editable || !hasDate}
-                        onClick={() => {
-                          if (hasDate && onPatch) {
-                            onPatch(c.id, {
-                              status: "programat",
-                              dataSchimbareStatus: nowISO(),
-                            });
-                          }
-                        }}
-                        className={`w-full mt-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
-                          hasDate
-                            ? "bg-[#3B5166] text-white hover:bg-[#2C4160] shadow-2xs cursor-pointer"
-                            : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6] cursor-not-allowed opacity-75"
-                        }`}
-                      >
-                        <CalendarClock size={13} />
-                        {hasDate ? "Confirmă Programare Service" : "Selectează mai întâi data & ora"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {unassignedQueue.map((c) => (
+                <QueueCard
+                  key={c.id}
+                  claim={c}
+                  editable={canEditFn ? canEditFn(c) : true}
+                  onOpen={onOpen}
+                  onPatch={onPatch}
+                />
+              ))}
             </div>
           )}
         </div>
