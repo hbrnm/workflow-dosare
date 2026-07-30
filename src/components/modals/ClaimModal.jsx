@@ -21,7 +21,7 @@ import { SLOTURI_ORARE, getSlotForIso, makeIsoFromSlot } from "../views/Programa
 function Field({ label, children, full }) {
   return (
     <label className={`block ${full ? "col-span-2" : ""}`}>
-      <span className="block text-[11px] font-semibold text-[#6B6558] mb-0.5">{label}</span>
+      <span className="block text-[10px] font-semibold text-[#6B6558] mb-0">{label}</span>
       {children}
     </label>
   );
@@ -373,10 +373,10 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* Header Modal Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] text-white shrink-0">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-[#23282E] text-white shrink-0">
           <div className="flex items-center gap-2">
-            <FileText size={18} className="text-[#C98A2B]" />
-            <span className="font-bold text-[15px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <FileText size={15} className="text-[#C98A2B]" />
+            <span className="font-bold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               {isNew ? "Creare dosar nouă daună" : `Dosar ${form.numarDosar || "(fără nr.)"}`}
             </span>
           </div>
@@ -424,14 +424,14 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         </div>
 
         {readOnly && (
-          <div className="px-4 py-2 bg-[#EFEAE1] text-[#6B6558] text-[12px] flex items-center gap-1.5 shrink-0 border-b border-[#DAD4C6]">
-            <ShieldCheck size={14} /> Doar vizualizare — acest dosar a fost creat de {form.createdByEmail || "alt coleg"}.
+          <div className="px-3 py-1 bg-[#EFEAE1] text-[#6B6558] text-[11px] flex items-center gap-1 shrink-0 border-b border-[#DAD4C6]">
+            <ShieldCheck size={12} /> Doar vizualizare — creat de {form.createdByEmail || "alt coleg"}.
           </div>
         )}
 
         {/* Compact Stepper Row */}
         {!isNew && (
-          <div className="px-4 py-2 border-b border-[#DAD4C6] bg-white shrink-0">
+          <div className="px-3 py-1 border-b border-[#DAD4C6] bg-white shrink-0">
             <ClaimTimeline
               currentStatus={form.status}
               dataSchimbareStatus={form.dataSchimbareStatus}
@@ -442,35 +442,35 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         )}
 
         {/* Modal Internal Sub-Tabs Navigation Bar */}
-        <div className="flex items-center gap-1 px-4 py-1.5 bg-[#FAF8F5] border-b border-[#DAD4C6] shrink-0 text-[12px] font-semibold flex-wrap">
+        <div className="flex items-center gap-0.5 px-3 py-1 bg-[#FAF8F5] border-b border-[#DAD4C6] shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab("date")}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-              activeTab === "date" ? "bg-[#3B5166] text-white font-bold shadow-xs" : "text-[#6B6558] hover:bg-[#EFEAE1]"
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+              activeTab === "date" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
-            <ShieldCheck size={14} /> Date Principale
+            <ShieldCheck size={12} /> Date Principale
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("service")}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-              activeTab === "service" ? "bg-[#3B5166] text-white font-bold shadow-xs" : "text-[#6B6558] hover:bg-[#EFEAE1]"
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+              activeTab === "service" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
-            <Wrench size={14} /> Service &amp; Reparație
+            <Wrench size={12} /> Service &amp; Reparație
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("media")}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-              activeTab === "media" ? "bg-[#3B5166] text-white font-bold shadow-xs" : "text-[#6B6558] hover:bg-[#EFEAE1]"
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+              activeTab === "media" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
-            <ImageIcon size={14} /> Poze &amp; Documente
+            <ImageIcon size={12} /> Poze &amp; Documente
             {(form.poze.length > 0 || form.documente.length > 0) && (
-              <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-bold">
+              <span className="ml-0.5 px-1 text-[9.5px] rounded-full bg-white/20 font-bold">
                 {form.poze.length + form.documente.length}
               </span>
             )}
@@ -478,33 +478,33 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           <button
             type="button"
             onClick={() => setActiveTab("note")}
-            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
-              activeTab === "note" ? "bg-[#3B5166] text-white font-bold shadow-xs" : "text-[#6B6558] hover:bg-[#EFEAE1]"
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+              activeTab === "note" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
-            <MessageSquare size={14} /> Note &amp; Istoric
+            <MessageSquare size={12} /> Note &amp; Istoric
             {form.note.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-bold">
+              <span className="ml-0.5 px-1 text-[9.5px] rounded-full bg-white/20 font-bold">
                 {form.note.length}
               </span>
             )}
           </button>
         </div>
 
-        {/* Modal Scrollable Tab Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-white">
+        {/* Modal Tab Content Body — no scroll needed */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 bg-white">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
             
             {/* TAB 1: DATE PRINCIPALE */}
             {activeTab === "date" && (
-              <div className="grid md:grid-cols-2 gap-5">
+              <div className="grid md:grid-cols-2 gap-3">
                 {/* Stânga: Identificare & Status */}
-                <div className="space-y-4">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <ShieldCheck size={14} /> Identificare &amp; Asigurare
+                <div className="space-y-2">
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
+                      <ShieldCheck size={12} /> Identificare &amp; Asigurare
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                       <Field label="Nr. dosar daună">
                         <input className="in font-bold text-[#23282E]" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" required />
                       </Field>
@@ -523,11 +523,11 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </div>
                   </div>
 
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <Clock size={14} /> Tracking Status &amp; Programare
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
+                      <Clock size={12} /> Tracking Status &amp; Programare
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                       <Field label="Status dosar">
                         <select className="in font-bold text-[#23282E]" value={form.status} onChange={(e) => set("status", e.target.value)}>
                           {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
@@ -577,36 +577,36 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       </Field>
                     </div>
 
-                    <label className={`flex items-center gap-2 text-[12.5px] mt-2 cursor-pointer px-2.5 py-2 rounded-lg border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "border-[#DAD4C6] text-[#23282E]"}`}>
+                    <label className={`flex items-center gap-1.5 text-[11px] cursor-pointer px-2 py-1 rounded border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "border-[#DAD4C6] text-[#23282E]"}`}>
                       <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
                     </label>
                     {form.blocat && (
-                      <div className="px-3 py-2 bg-[#B23A2E] text-white rounded-lg text-[12px] flex items-center gap-2">
-                        <AlertOctagon size={15} />
-                        <span className="font-semibold">Motiv blocare:</span>
-                        <input className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Scrie motivul blocării..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                      <div className="px-2 py-1 bg-[#B23A2E] text-white rounded text-[11px] flex items-center gap-1.5">
+                        <AlertOctagon size={12} />
+                        <span className="font-semibold">Motiv:</span>
+                        <input className="flex-1 bg-white/10 border border-white/20 rounded px-1.5 py-px text-white text-[11px] placeholder:text-white/60 focus:outline-hidden" placeholder="Motiv blocare..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Dreapta: Client & Vehicul */}
-                <div className="space-y-4">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <Car size={14} /> Informații Client &amp; Vehicul
+                <div className="space-y-2">
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
+                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
+                      <Car size={12} /> Informații Client &amp; Vehicul
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                       <Field label="Nume / Denumire asigurat" full>
                         <input className="in font-semibold text-[#23282E]" value={form.client} onChange={(e) => set("client", e.target.value)} placeholder="Nume complet client" />
                       </Field>
                       <Field label="Telefon client" full>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           <input className="in font-mono" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} />
                           {form.telefonClient && (
                             <>
-                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-2 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={14} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="Mesaj WhatsApp" className="shrink-0 p-2 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={14} /></a>
+                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="Mesaj WhatsApp" className="shrink-0 p-1.5 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
                             </>
                           )}
                         </div>
@@ -623,20 +623,19 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </div>
 
                     {istoricClientVehicul.length > 0 && (
-                      <div className="mt-3 rounded-lg border border-[#3B5166]/30 bg-[#ECF1F7] p-2.5">
-                        <div className="text-[11.5px] font-bold text-[#2C4160] flex items-center gap-1.5 mb-1.5">
-                          <History size={13} /> Client/vehicul cunoscut — {istoricClientVehicul.length} dosar(e) anterior(oare)
-                        </div>
-                        <div className="space-y-1">
-                          {istoricClientVehicul.slice(0, 5).map((c) => {
-                            const s = getStatusDefinition(c.status);
-                            return (
-                              <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)} className="block w-full text-left text-[11.5px] text-[#2C4160] hover:underline font-medium truncate">
-                                {c.numarDosar || "—"} · {c.marcaModel} · {String(s.num).padStart(2, "0")}. {s.label} · {fmtDate(c.dataDeschiderii)}
-                              </button>
-                            );
-                          })}
-                        </div>
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-[#DAD4C6]/60">
+                        <span className="text-[9.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
+                          <History size={10} /> {istoricClientVehicul.length} dosar(e) anterioare:
+                        </span>
+                        {istoricClientVehicul.slice(0, 4).map((c) => {
+                          const s = getStatusDefinition(c.status);
+                          return (
+                            <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
+                              className="text-[9.5px] text-[#2C4160] hover:underline font-semibold bg-[#ECF1F7] border border-[#3B5166]/20 rounded px-1.5 py-px truncate max-w-[160px]">
+                              {c.numarDosar || "—"} · {String(s.num).padStart(2,"0")}. {s.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -916,7 +915,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         </div>
 
         {/* Footer Actions Docked Bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#DAD4C6] bg-white shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between px-3 py-1.5 border-t border-[#DAD4C6] bg-white shrink-0">
           {readOnly ? (
             <span />
           ) : (
@@ -925,17 +924,17 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               onClick={() => {
                 if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id);
               }}
-              className="flex items-center gap-1.5 text-[#B23A2E] text-[12.5px] font-semibold hover:opacity-70 px-2.5 py-1.5 rounded-lg hover:bg-[#B23A2E]/5 transition-colors"
+              className="flex items-center gap-1 text-[#B23A2E] text-[11.5px] font-semibold hover:opacity-70 px-2 py-1 rounded hover:bg-[#B23A2E]/5 transition-colors"
             >
-              <Trash2 size={14} /> Șterge dosar
+              <Trash2 size={12} /> Șterge dosar
             </button>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-[#C7C0B0] text-[13px] font-semibold text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
+              className="px-3 py-1 rounded border border-[#C7C0B0] text-[12px] font-semibold text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
             >
               {readOnly ? "Închide" : "Anulează"}
             </button>
@@ -943,9 +942,9 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors"
+                className="flex items-center gap-1 px-4 py-1 rounded bg-[#C98A2B] text-white text-[12px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors"
               >
-                <Save size={15} /> Salvează modificările
+                <Save size={13} /> Salvează modificările
               </button>
             )}
           </div>

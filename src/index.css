@@ -12,9 +12,9 @@ body {
 .in {
   width: 100%;
   border: 1px solid #dad4c6;
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-size: 12px;
   background: white;
   color: #23282e;
 }
