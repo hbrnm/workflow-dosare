@@ -517,19 +517,68 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       )}
                     </div>
 
-                    <label className="flex items-center gap-2 text-[12.5px] font-semibold text-[#23282E] cursor-pointer">
-                      <input type="checkbox" checked={form.adusaFizic} onChange={(e) => set("adusaFizic", e.target.checked)} /> Mașina este adusă fizic în service
-                    </label>
+                    {/* Interactive 3-Step Physical Status Stepper */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2 flex items-center justify-between gap-1 text-[11.5px] shadow-2xs">
+                      {/* Step 1: Adusă fizic */}
+                      <button
+                        type="button"
+                        onClick={() => set("adusaFizic", !form.adusaFizic)}
+                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                          form.adusaFizic
+                            ? "bg-[#3B5166] text-white border-[#3B5166] font-bold shadow-xs"
+                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1 font-bold">
+                          <Car size={13} /> 1. Adusă în service
+                        </span>
+                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
+                          {form.adusaFizic ? "Fizic în curte" : "Neintrată încă"}
+                        </span>
+                      </button>
 
-                    <div className="flex flex-wrap gap-2">
-                      <label className={`flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg border cursor-pointer font-semibold transition-all ${form.gataDeRidicare ? "bg-[#FBF3E6] border-[#C98A2B] text-[#7A5316]" : "border-[#DAD4C6] text-[#23282E]"}`}>
-                        <input type="checkbox" checked={form.gataDeRidicare} onChange={(e) => toggleGata(e.target.checked)} />
-                        Gata de ridicare{form.gataDeRidicare && form.dataGataRidicare && ` (${daysBetween(form.dataGataRidicare)}z)`}
-                      </label>
-                      <label className={`flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-lg border cursor-pointer font-semibold transition-all ${form.ridicata ? "bg-[#EEF5EE] border-[#3E6B45] text-[#294A2E]" : "border-[#DAD4C6] text-[#23282E]"}`}>
-                        <input type="checkbox" checked={form.ridicata} onChange={(e) => toggleRidicata(e.target.checked)} disabled={!form.gataDeRidicare} />
-                        Ridicată de client{form.ridicata && form.dataRidicare && ` — ${fmtDate(form.dataRidicare)}`}
-                      </label>
+                      <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+
+                      {/* Step 2: Gata de ridicare */}
+                      <button
+                        type="button"
+                        onClick={() => toggleGata(!form.gataDeRidicare)}
+                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                          form.gataDeRidicare
+                            ? "bg-[#C98A2B] text-white border-[#C98A2B] font-bold shadow-xs"
+                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1 font-bold">
+                          <PackageCheck size={13} /> 2. Gata de ridicare
+                        </span>
+                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
+                          {form.gataDeRidicare ? `${daysBetween(form.dataGataRidicare)}z în curte` : "În reparație"}
+                        </span>
+                      </button>
+
+                      <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+
+                      {/* Step 3: Ridicată de client */}
+                      <button
+                        type="button"
+                        onClick={() => toggleRidicata(!form.ridicata)}
+                        disabled={!form.gataDeRidicare && !form.ridicata}
+                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                          form.ridicata
+                            ? "bg-[#3E6B45] text-white border-[#3E6B45] font-bold shadow-xs"
+                            : !form.gataDeRidicare
+                            ? "opacity-50 cursor-not-allowed bg-[#FAF8F5] text-[#8A8375] border-[#DAD4C6]"
+                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                        }`}
+                      >
+                        <span className="flex items-center gap-1 font-bold">
+                          <CheckCircle2 size={13} /> 3. Predată client
+                        </span>
+                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
+                          {form.ridicata && form.dataRidicare ? fmtDate(form.dataRidicare) : "Nepredată"}
+                        </span>
+                      </button>
                     </div>
 
                     <Field label="Ce este de reparat (Descriere operațiuni)" full>
