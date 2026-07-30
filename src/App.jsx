@@ -103,19 +103,19 @@ function daysBetween(iso) {
 }
 function fmtDate(iso) {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("ro-RO", { day: "2-digit", month: "2-digit", year: "numeric" });
+  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 function fmtDateTime(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("ro-RO", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
-}
-
-// Format dată programare: zi/luna/an, ore simple 24h (ex: 30/07/2026, 14:30)
-function fmtProgramare(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
@@ -125,6 +125,12 @@ function fmtProgramare(iso) {
   const hh = String(d.getHours()).padStart(2, "0");
   const min = String(d.getMinutes()).padStart(2, "0");
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`;
+}
+
+// Format dată programare: zi/luna/an, ore simple 24h (ex: 30/07/2026, 14:30)
+function fmtProgramare(iso) {
+  if (!iso) return "—";
+  return fmtDateTime(iso);
 }
 
 // Linkuri rapide de contact — tel: pentru apel, wa.me pentru WhatsApp
@@ -266,7 +272,8 @@ const COMPLEX_FIELDS = new Set(["note", "documente", "manopera", "poze"]);
 function formatIstoricValoare(camp, val) {
   if (val === null || val === undefined || val === "") return "—";
   if (camp === "status") { const s = STATUSES.find((x) => x.key === val); return s ? s.label : val; }
-  if (camp === "data_programare" || camp === "data_darii_la_schimb") return fmtProgramare(val);
+  if (camp === "data_programare" || camp === "data_darii_la_schimb" || camp === "data_schimbare_status" || camp === "data_ultimei_actualizari") return fmtDateTime(val);
+  if (camp === "data_deschiderii" || camp === "data_ridicare" || camp === "data_gata_ridicare") return fmtDate(val);
   if (typeof val === "boolean") return val ? "da" : "nu";
   if (COMPLEX_FIELDS.has(camp)) return "actualizat(ă)";
   return String(val);
@@ -292,7 +299,7 @@ function generateazaPDF(claim, istoric = []) {
   doc.setFontSize(16);
   doc.text(sd("Proces verbal / Fișă dosar"), 14, y); y += 10;
   doc.setFontSize(10); doc.setTextColor(120);
-  doc.text(`Generat la ${new Date().toLocaleString("ro-RO")}`, 14, y); y += 10;
+  doc.text(`Generat la ${fmtDateTime(new Date())}`, 14, y); y += 10;
   doc.setTextColor(0); doc.setFontSize(11);
 
   const linie = (label, val) => { doc.setFont(undefined, "bold"); doc.text(`${sd(label)}:`, 14, y); doc.setFont(undefined, "normal"); doc.text(sd(val), 70, y); y += 7; };
@@ -340,7 +347,7 @@ function generateazaPDF(claim, istoric = []) {
     doc.setFont(undefined, "normal"); doc.setFontSize(10);
     for (const h of istoric) {
       ensureSpace(18);
-      const when = new Date(h.created_at).toLocaleString("ro-RO");
+      const when = fmtDateTime(h.created_at);
       doc.setFontSize(9); doc.setTextColor(110);
       doc.text(`${when} · ${sd(h.user_email || "necunoscut")}`, 14, y); y += 6;
       doc.setTextColor(0); doc.setFontSize(10);
@@ -1058,7 +1065,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
                   <div className="text-[11.5px] text-[#8A8375]">Fără modificări înregistrate.</div>
                 ) : istoric.map((h) => (
                   <div key={h.id} className="text-[11.5px]">
-                    <div className="text-[10px] text-[#8A8375] font-mono">{new Date(h.created_at).toLocaleString("ro-RO")} · {h.user_email || "necunoscut"}</div>
+                    <div className="text-[10px] text-[#8A8375] font-mono">{fmtDateTime(h.created_at)} · {h.user_email || "necunoscut"}</div>
                     {Object.entries(h.modificari || {}).map(([camp, diff]) => (
                       <div key={camp} className="text-[#23282E]">
                         <span className="font-semibold">{CAMP_LABELS[camp] || camp}</span>
@@ -1140,7 +1147,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               </Field>
               <Field label="Alertă după (zile în etapă)"><input type="number" min={1} className="in" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} /></Field>
               <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
-              <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
+              <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDateTime(form.dataUltimeiActualizari)}</div></Field>
               <Field label="Programare service" full>
                 <div className="flex flex-wrap items-center gap-1 mb-1.5">
                   <span className="text-[11px] text-[#6B6558] mr-1">Slot orar rapid:</span>
@@ -1287,7 +1294,7 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               {form.note.map((n) => (
                 <div key={n.id} className="bg-white border border-[#DAD4C6] rounded px-2.5 py-1.5 text-[12.5px]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-[#8A8375] font-mono">{new Date(n.data).toLocaleString("ro-RO")}</span>
+                    <span className="text-[10px] text-[#8A8375] font-mono">{fmtDateTime(n.data)}</span>
                     <button onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-70"><Trash2 size={12} /></button>
                   </div>
                   <div className="mt-0.5">{n.text}</div>
@@ -1398,9 +1405,7 @@ function getDaysOfWeek(mondayDate) {
 function formatWeekRange(mondayDate) {
   const saturday = new Date(mondayDate);
   saturday.setDate(mondayDate.getDate() + 5);
-  const mStr = mondayDate.toLocaleDateString("ro-RO", { day: "2-digit", month: "short" });
-  const sStr = saturday.toLocaleDateString("ro-RO", { day: "2-digit", month: "short", year: "numeric" });
-  return `${mStr} – ${sStr}`;
+  return `${fmtDate(mondayDate)} – ${fmtDate(saturday)}`;
 }
 
 function CalendarLunar({ claims, capacitate, selectedDay, onSelectDay, monthOffset, setMonthOffset }) {
@@ -2016,7 +2021,7 @@ function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag }) {
 
   const blocate = useMemo(() => claims.filter((c) => c.blocat), [claims]);
 
-  const azi = new Date().toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long" });
+  const azi = fmtDate(new Date());
 
   const Sectiune = ({ icon, titlu, tone, items, gol, renderItem }) => (
     <div className="bg-white rounded-lg border border-[#DAD4C6] overflow-hidden">
@@ -2313,7 +2318,7 @@ export default function App() {
     const rows = claims.map((c) => ({
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
       "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
-      "Status": getStatusDefinition(c.status).label, "Data deschiderii": c.dataDeschiderii,
+      "Status": getStatusDefinition(c.status).label, "Data deschiderii": fmtDate(c.dataDeschiderii),
       "Facturat Tinichigerie": c.manopera.tinichigerie.facturat, "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
