@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { CheckCircle2, Clock, DollarSign, Wallet, ShieldCheck, Filter } from "lucide-react";
+import { CheckCircle2, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 import StatCard from "../common/StatCard";
-import Pill from "../common/Pill";
 import { nowISO, fmtDate } from "../../utils/dateUtils";
 
 export default function Rapoarte({ claims, onPatch, canEditFn }) {
@@ -46,6 +45,26 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
       map[key] = (map[key] || 0) + c.venitTotal;
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value: Math.round(value) }));
+  }, [withMargin]);
+
+  // Breakdown of Uncollected Money by Insurer
+  const neincasatPerAsigurator = useMemo(() => {
+    const map = {};
+    withMargin.forEach((c) => {
+      const asig = c.asigurator?.trim() || "Neprecizat";
+      if (!map[asig]) {
+        map[asig] = { asigurator: asig, total: 0, incasat: 0, neincasat: 0, countTotal: 0, countNeincasat: 0 };
+      }
+      map[asig].total += c.venitTotal;
+      map[asig].countTotal += 1;
+      if (c.incasat) {
+        map[asig].incasat += c.venitTotal;
+      } else {
+        map[asig].neincasat += c.venitTotal;
+        map[asig].countNeincasat += 1;
+      }
+    });
+    return Object.values(map).sort((a, b) => b.neincasat - a.neincasat);
   }, [withMargin]);
 
   const filteredIncasare = useMemo(() => {
@@ -97,6 +116,57 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
               </BarChart>
             </ResponsiveContainer>
           )}
+        </div>
+      </div>
+
+      {/* NEW SECTION: Uncollected Breakdown by Insurer */}
+      <div className="bg-white rounded-lg border border-[#DAD4C6] overflow-hidden shadow-xs">
+        <div className="px-3 py-2 bg-[#3B5166] text-white text-[12.5px] font-bold flex items-center justify-between">
+          <span className="flex items-center gap-1.5"><ShieldCheck size={14} /> Situație Restanțe Încasare per Asigurător</span>
+          <span className="text-[11px] font-semibold opacity-85">Centralizator plăților pe asigurători</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="bg-[#FAF8F5] text-[#6B6558] border-b border-[#DAD4C6]">
+                <th className="text-left px-3 py-2">Societate Asigurări</th>
+                <th className="text-right px-3 py-2">Total Facturat</th>
+                <th className="text-right px-3 py-2">Total Încasat</th>
+                <th className="text-right px-3 py-2">Restanță În Așteptare</th>
+                <th className="text-center px-3 py-2">Dosare Neîncasate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {neincasatPerAsigurator.map((item) => (
+                <tr key={item.asigurator} className="border-t border-[#EFEAE1] hover:bg-[#FCFAF5]">
+                  <td className="px-3 py-2 font-semibold text-[#23282E]">{item.asigurator}</td>
+                  <td className="px-3 py-2 text-right font-mono">{leiFmt(item.total)}</td>
+                  <td className="px-3 py-2 text-right font-mono text-[#3E6B45] font-semibold">{leiFmt(item.incasat)}</td>
+                  <td className={`px-3 py-2 text-right font-mono font-bold ${item.neincasat > 0 ? "text-[#B23A2E]" : "text-[#3E6B45]"}`}>
+                    {leiFmt(item.neincasat)}
+                  </td>
+                  <td className="px-3 py-2 text-center font-bold">
+                    {item.countNeincasat > 0 ? (
+                      <span className="px-2 py-0.5 rounded bg-[#B23A2E]/10 text-[#B23A2E] text-[11px]">
+                        {item.countNeincasat} / {item.countTotal} dosare
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded bg-[#3E6B45]/10 text-[#3E6B45] text-[11px]">
+                        Toate achitate ({item.countTotal})
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {neincasatPerAsigurator.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-3 py-6 text-center text-[#8A8375] italic">
+                    Nicio factură înregistrată pentru calculul pe asigurători.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

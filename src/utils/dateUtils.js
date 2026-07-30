@@ -59,10 +59,41 @@ export function telLink(phone) {
   return digits ? `tel:${digits}` : null;
 }
 
-export function waLink(phone) {
+export function waLink(phone, message) {
   let digits = String(phone || "").replace(/\D/g, "");
   if (!digits) return null;
   if (digits.startsWith("0")) digits = `4${digits}`;
   else if (!digits.startsWith("40")) digits = `40${digits}`;
-  return `https://wa.me/${digits}`;
+  const textParam = message ? `?text=${encodeURIComponent(message)}` : "";
+  return `https://wa.me/${digits}${textParam}`;
+}
+
+// Șabloane pre-definite mesaje WhatsApp pentru recepție
+export const WA_TEMPLATES = [
+  {
+    key: "gata",
+    label: "📦 Mașină Gata de Ridicare",
+    text: (c) => `Buna ziua! Masina dvs. ${c.numarInmatriculare || ""} (dosar ${c.numarDosar || ""}) este gata de ridicare. Va asteptam la service!`
+  },
+  {
+    key: "piese",
+    label: "🛠️ Piese Sosite / Programare",
+    text: (c) => `Buna ziua! Piesele pentru dosarul dvs. ${c.numarDosar || ""} (${c.numarInmatriculare || ""}) au sosit. Va asteptam la service.`
+  },
+  {
+    key: "acte",
+    label: "📋 Solicitare Acte / Talon",
+    text: (c) => `Buna ziua! Referitor la dosarul de dauna ${c.numarDosar || ""} (${c.numarInmatriculare || ""}), va rugam sa ne trimiteti o copie dupa talon / buletin.`
+  },
+  {
+    key: "auto_schimb",
+    label: "🚗 Returnare Auto la Schimb",
+    text: (c) => `Buna ziua! Va rugam sa returnati autovehiculul la schimb oferit pentru dosarul ${c.numarDosar || ""} (${c.numarInmatriculare || ""}).`
+  }
+];
+
+export function getWaTemplateLink(phone, templateKey, claim) {
+  const tmpl = WA_TEMPLATES.find((t) => t.key === templateKey);
+  const msg = tmpl && claim ? tmpl.text(claim) : "";
+  return waLink(phone, msg);
 }

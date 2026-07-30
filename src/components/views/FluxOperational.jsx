@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import {
-  Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone, MessageCircle,
-  ChevronDown, Check, Clock, Copy
+  Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
+  ChevronDown, Check, Clock, Copy, ShieldCheck
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
-import { daysBetween, telLink, waLink } from "../../utils/dateUtils";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
+import { daysBetween, telLink } from "../../utils/dateUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
+import WhatsAppButton from "../common/WhatsAppButton";
 
 function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -101,12 +102,10 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
         </span>
         {claim.telefonClient && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
+            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
               <Phone size={11} />
             </a>
-            <a href={waLink(claim.telefonClient)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} title="WhatsApp" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3E6B45]">
-              <MessageCircle size={11} />
-            </a>
+            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
           </div>
         )}
       </div>
@@ -161,29 +160,46 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
 
 export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite"
+  const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
   const masinaSchimbClaims = useMemo(() => claims.filter((c) => c.masinaSchimb), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
 
+  // Unique list of active insurers with claim counts
+  const insurerStats = useMemo(() => {
+    const map = {};
+    claims.forEach((c) => {
+      if (c.asigurator) {
+        map[c.asigurator] = (map[c.asigurator] || 0) + 1;
+      }
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [claims]);
+
   const displayClaims = useMemo(() => {
-    if (quickFilter === "intarziate") return alertClaims;
-    if (quickFilter === "blocate") return blockedClaims;
-    if (quickFilter === "masini_schimb") return masinaSchimbClaims;
-    if (quickFilter === "piese_sosite") return pieseSositeClaims;
-    return claims;
-  }, [claims, quickFilter, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims]);
+    let list = claims;
+    if (quickFilter === "intarziate") list = alertClaims;
+    else if (quickFilter === "blocate") list = blockedClaims;
+    else if (quickFilter === "masini_schimb") list = masinaSchimbClaims;
+    else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
+
+    if (selectedInsurer !== "toti") {
+      list = list.filter((c) => c.asigurator === selectedInsurer);
+    }
+    return list;
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
-      {/* Top Smart Quick Filters Bar */}
+      {/* Top Smart Quick Filters & Insurer Filter Bar */}
       <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <Layers size={15} className="text-[#C98A2B]" /> Flux Operațional
           </span>
-          <span className="text-[11.5px] text-[#8A8375]">({claims.length} dosare)</span>
+          <span className="text-[11.5px] text-[#8A8375]">({displayClaims.length} / {claims.length} dosare)</span>
         </div>
 
         {/* Quick Filter Buttons */}
@@ -238,6 +254,25 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
           >
             <Car size={11} /> Auto la Schimb ({masinaSchimbClaims.length})
           </button>
+
+          {/* Insurer Quick Filter Selector */}
+          {insurerStats.length > 0 && (
+            <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+              <ShieldCheck size={12} className="text-[#3B5166]" />
+              <select
+                className="bg-[#FAF8F5] border border-[#DAD4C6] rounded px-1.5 py-0.5 text-[11px] font-semibold text-[#23282E] focus:outline-hidden"
+                value={selectedInsurer}
+                onChange={(e) => setSelectedInsurer(e.target.value)}
+              >
+                <option value="toti">Toti Asigurătorii</option>
+                {insurerStats.map(([name, count]) => (
+                  <option key={name} value={name}>
+                    {name} ({count})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
