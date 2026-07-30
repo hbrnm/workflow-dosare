@@ -2690,13 +2690,32 @@ export default function App() {
                 <PackageCheck size={13} /> {gataNeridicateCount} neridicate
               </button>
             )}
-            <div className="flex rounded overflow-hidden border border-white/20">
-              <button onClick={() => setView("brief")} className={`p-1.5 ${view === "brief" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Rezumat zilnic"><Sunrise size={15} /></button>
-              <button onClick={() => setView("kanban")} className={`p-1.5 ${view === "kanban" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Kanban"><LayoutGrid size={15} /></button>
-              <button onClick={() => setView("list")} className={`p-1.5 ${view === "list" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Listă"><List size={15} /></button>
-              <button onClick={() => setView("dashboard")} className={`p-1.5 ${view === "dashboard" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Dashboard"><BarChart3 size={15} /></button>
-              <button onClick={() => setView("programator")} className={`p-1.5 ${view === "programator" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Programator"><CalendarClock size={15} /></button>
-              <button onClick={() => setView("rapoarte")} className={`p-1.5 ${view === "rapoarte" ? "bg-[#C98A2B] text-white" : "text-white/60 hover:text-white"}`} title="Rapoarte"><Wallet size={15} /></button>
+            <div className="flex items-center gap-0.5 rounded-lg border border-white/25 bg-black/20 p-1">
+              {[
+                { id: "brief", label: "Brief", icon: Sunrise },
+                { id: "kanban", label: "Kanban", icon: LayoutGrid },
+                { id: "list", label: "Listă", icon: List },
+                { id: "dashboard", label: "Statistici", icon: BarChart3 },
+                { id: "programator", label: "Calendar", icon: CalendarClock },
+                { id: "rapoarte", label: "Financiar", icon: Wallet },
+              ].map(({ id, label, icon: Icon }) => {
+                const active = view === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setView(id)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-all ${
+                      active
+                        ? "bg-[#C98A2B] text-white shadow-sm font-bold"
+                        : "text-white/80 hover:text-white hover:bg-white/15"
+                    }`}
+                    title={label}
+                  >
+                    <Icon size={18} strokeWidth={2.2} />
+                    <span className="hidden md:inline">{label}</span>
+                  </button>
+                );
+              })}
             </div>
             <button onClick={exportExcel} className="flex items-center gap-1 px-3 py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /> Excel</button>
             <button onClick={() => openNew()} className="flex items-center gap-1 px-3 py-1.5 rounded bg-[#C98A2B] text-white text-[12.5px] font-semibold hover:bg-[#B37A22]"><Plus size={14} /> Dosar nou</button>
