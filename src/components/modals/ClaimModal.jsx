@@ -88,25 +88,25 @@ function InlineMiniCalendar({ value, onChange, status }) {
   return (
     <div className="flex-1 min-w-0 border border-[#DAD4C6] rounded-md bg-white overflow-hidden">
       {/* Month navigation */}
-      <div className="flex items-center justify-between bg-[#3B5166] text-white px-2 py-1">
+      <div className="flex items-center justify-between bg-[#3B5166] text-white px-2 py-0.5">
         <button type="button" onClick={prevMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <span className="text-[11px] font-bold">{MONTH_NAMES_RO[viewMonth]} {viewYear}</span>
+        <span className="text-[10.5px] font-bold">{MONTH_NAMES_RO[viewMonth]} {viewYear}</span>
         <button type="button" onClick={nextMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
         </button>
       </div>
 
       {/* Day names */}
       <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
         {DAY_NAMES_RO.map((d) => (
-          <span key={d} className="text-[8.5px] font-bold text-[#8A8375] py-0.5">{d}</span>
+          <span key={d} className="text-[8px] font-bold text-[#8A8375] py-0.5">{d}</span>
         ))}
       </div>
 
       {/* Days grid */}
-      <div className="grid grid-cols-7 text-center p-1 gap-y-0.5">
+      <div className="grid grid-cols-7 text-center px-0.5 pt-0.5 pb-0.5 gap-y-0">
         {days.map((item, idx) => {
           const itemStr = `${item.year}-${String(item.month + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
           const isSelected = selectedDateStr === itemStr;
@@ -116,7 +116,7 @@ function InlineMiniCalendar({ value, onChange, status }) {
               key={idx}
               type="button"
               onClick={() => handleSelectDay(item.year, item.month, item.day)}
-              className={`h-[18px] w-full rounded text-[9.5px] font-medium transition-colors mx-auto ${
+              className={`h-[15px] w-full rounded text-[9px] font-medium transition-colors mx-auto ${
                 isSelected
                   ? "bg-[#3B5166] text-white font-bold"
                   : isToday
@@ -133,10 +133,10 @@ function InlineMiniCalendar({ value, onChange, status }) {
       </div>
 
       {/* Time selector */}
-      <div className="border-t border-[#EFEAE1] px-1.5 py-1 flex items-center gap-1.5">
-        <Clock size={11} className="text-[#6B6558] shrink-0" />
+      <div className="border-t border-[#EFEAE1] px-1.5 py-0.5 flex items-center gap-1">
+        <Clock size={10} className="text-[#6B6558] shrink-0" />
         <select
-          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0.5 text-[10px] bg-[#FAF8F5] font-mono"
+          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0 text-[9.5px] bg-[#FAF8F5] font-mono"
           value={selectedTime.split(":")[0] || "08"}
           onChange={(e) => handleTimeChange(`${e.target.value}:${selectedTime.split(":")[1] || "00"}`)}
         >
@@ -147,7 +147,7 @@ function InlineMiniCalendar({ value, onChange, status }) {
         </select>
         <span className="text-[10px] font-bold text-[#8A8375]">:</span>
         <select
-          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0.5 text-[10px] bg-[#FAF8F5] font-mono"
+          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0 text-[9.5px] bg-[#FAF8F5] font-mono"
           value={["00", "30"].includes(selectedTime.split(":")[1]) ? selectedTime.split(":")[1] : "00"}
           onChange={(e) => handleTimeChange(`${selectedTime.split(":")[0] || "08"}:${e.target.value}`)}
         >
@@ -155,17 +155,15 @@ function InlineMiniCalendar({ value, onChange, status }) {
           <option value="30">:30</option>
         </select>
         {selectedDateStr && (
-          <span className="text-[9.5px] text-[#3B5166] font-bold truncate ml-1">
+          <span className="text-[9px] text-[#3B5166] font-bold truncate ml-0.5">
             {String(selectedDateStr.split("-")[2]).padStart(2, "0")}/{String(selectedDateStr.split("-")[1]).padStart(2, "0")}
           </span>
         )}
       </div>
 
       {/* Status note */}
-      {value && (
-        <div className="px-1.5 pb-1 text-[9px] text-[#6B6558]">
-          {status === "piese_sosite" && <span className="text-[#C98A2B] font-semibold">→ va fi mutat în „Programat"</span>}
-        </div>
+      {value && status === "piese_sosite" && (
+        <div className="px-1.5 pb-0.5 text-[9px] text-[#C98A2B] font-semibold">→ va fi mutat în „Programat"</div>
       )}
     </div>
   );
@@ -548,7 +546,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       <Field label="Programare service (Intrare)" full>
                         <div className="flex gap-2 items-start">
                           {/* Scrollable slot list */}
-                          <div className="flex flex-col gap-0.5 h-[168px] overflow-y-auto border border-[#DAD4C6] rounded-md p-1 bg-[#FAF8F5] shrink-0 w-[120px] scrollbar-thin">
+                          <div className="flex flex-col gap-px h-[130px] overflow-y-auto border border-[#DAD4C6] rounded-md p-0.5 bg-[#FAF8F5] shrink-0 w-[112px] scrollbar-thin">
                             {SLOTURI_ORARE.map((slot) => {
                               const active = getSlotForIso(form.dataProgramare) === slot;
                               return (
@@ -559,7 +557,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                                     const newIso = makeIsoFromSlot(form.dataProgramare, slot);
                                     set("dataProgramare", newIso);
                                   }}
-                                  className={`w-full px-1.5 py-0.5 rounded text-[10px] font-semibold border text-left transition-colors ${
+                                  className={`w-full px-1 py-px rounded text-[9.5px] font-semibold border text-left transition-colors ${
                                     active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
                                   }`}
                                 >
