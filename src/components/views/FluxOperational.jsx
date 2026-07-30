@@ -147,8 +147,6 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
         <span className="text-[#8A8375] font-mono flex items-center gap-1">
           <Clock size={compact ? 9 : 10} /> {days}z în etapă
         </span>
-          <Clock size={10} /> {days}z în etapă
-        </span>
 
         <div className="flex items-center gap-1">
           <button
