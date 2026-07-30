@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   CalendarClock, PackageCheck, AlertTriangle, AlertOctagon, Phone,
-  Car, Clock, CheckCircle2
+  Car, Clock, ChevronDown, Check
 } from "lucide-react";
-import { getStatusDefinition, getPhaseColors } from "../../constants/config";
+import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { todayISO, daysBetween, telLink } from "../../utils/dateUtils";
 import Pill from "../common/Pill";
 import WhatsAppButton from "../common/WhatsAppButton";
 
-function BriefCard({ claim, onOpen, badge, extraContext }) {
+function BriefCard({ claim, onOpen, onMoveToStatus, badge, extraContext }) {
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
 
@@ -31,16 +32,48 @@ function BriefCard({ claim, onOpen, badge, extraContext }) {
         </div>
       </div>
 
-      {/* Stage Badge & Days in Stage */}
-      <div className="mt-1.5 flex items-center justify-between text-[10.5px]">
-        <span className="flex items-center gap-1 text-[#6B6558] font-semibold truncate">
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
-          <span className="font-mono text-[10px]">{String(statusDef.num).padStart(2, "0")}.</span>
-          <span className="truncate">{statusDef.label}</span>
-        </span>
-        <span className="text-[#8A8375] font-mono text-[10px] shrink-0">
-          {days}z în etapă
-        </span>
+      {/* Interactive 1-Click Status Dropdown Badge */}
+      <div className="mt-1.5 relative">
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
+          className="w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors text-[11px] font-semibold text-[#23282E]"
+          title="Schimbă etapa dosarului"
+        >
+          <span className="flex items-center gap-1 truncate">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
+            <span className="font-mono text-[10px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
+            <span className="truncate">{statusDef.label}</span>
+          </span>
+          <ChevronDown size={12} className="text-[#8A8375] shrink-0" />
+        </button>
+
+        {showStatusPicker && (
+          <>
+            <div className="fixed inset-0 z-20 cursor-default" onClick={(e) => { e.stopPropagation(); setShowStatusPicker(false); }} />
+            <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5" onClick={(e) => e.stopPropagation()}>
+              <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">Schimbă etapa:</div>
+              {STATUSES.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onMoveToStatus) onMoveToStatus(claim, s.key);
+                    setShowStatusPicker(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
+                    claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
+                  }`}
+                >
+                  <span className="flex items-center gap-1 truncate">
+                    <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
+                    <span className="truncate">{s.label}</span>
+                  </span>
+                  {claim.status === s.key && <Check size={11} className="shrink-0" />}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Client Name + Phone & WhatsApp Quick Actions */}
@@ -74,17 +107,18 @@ function BriefCard({ claim, onOpen, badge, extraContext }) {
         </span>
       </div>
 
-      {/* Extra context footer */}
-      {extraContext && (
-        <div className="mt-1.5 pt-1 border-t border-[#EFEAE1]">
-          {extraContext}
-        </div>
-      )}
+      {/* Days in stage + Extra context footer */}
+      <div className="mt-1.5 pt-1 border-t border-[#EFEAE1] flex items-center justify-between text-[10px]">
+        <span className="text-[#8A8375] font-mono flex items-center gap-1">
+          <Clock size={10} /> {days}z în etapă
+        </span>
+        {extraContext}
+      </div>
     </div>
   );
 }
 
-export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag }) {
+export default function BriefZilnic({ claims, onOpen, onMoveToStatus, pragRidicare, onSetPrag }) {
   const [pragInput, setPragInput] = useState(pragRidicare);
   useEffect(() => setPragInput(pragRidicare), [pragRidicare]);
   const todayStr = todayISO();
@@ -218,6 +252,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
               key={c.id}
               claim={c}
               onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
               badge={
                 <span className="text-[10.5px] font-bold font-mono px-1.5 py-0.5 rounded bg-[#3B5166]/10 text-[#3B5166]">
                   🕒 {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "Neprecizat"}
@@ -238,6 +273,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
               key={c.id}
               claim={c}
               onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
               badge={<Pill tone="green">gata azi</Pill>}
             />
           )}
@@ -254,6 +290,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
               key={c.id}
               claim={c}
               onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
               badge={
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#B23A2E] text-white">
                   {daysBetween(c.dataGataRidicare)}z în curte
@@ -274,6 +311,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
               key={c.id}
               claim={c}
               onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
               badge={
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#B23A2E] text-white">
                   🚗 {c.masinaSchimb} (+{c.zile - c.zileChirieAudatex}z)
@@ -294,6 +332,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
               key={c.id}
               claim={c}
               onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
               badge={
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#B23A2E] text-white">
                   +{daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 3)}z depășit
@@ -315,6 +354,7 @@ export default function BriefZilnic({ claims, onOpen, pragRidicare, onSetPrag })
                 key={c.id}
                 claim={c}
                 onOpen={onOpen}
+                onMoveToStatus={onMoveToStatus}
                 badge={<Pill tone="danger">⚠️ blocat</Pill>}
                 extraContext={
                   <div className="text-[10.5px] font-semibold text-[#B23A2E] truncate">
