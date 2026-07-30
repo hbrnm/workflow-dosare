@@ -18,7 +18,8 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
 
   return (
     <div
-      className={`group relative bg-white rounded-lg border p-3 transition-all duration-150 hover:shadow-md ${
+      onClick={() => onOpen(claim)}
+      className={`group relative bg-white rounded-lg border p-3 transition-all duration-150 hover:shadow-md cursor-pointer ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -26,8 +27,7 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       {/* Header Row: Nr Dosar + Asigurare */}
       <div className="flex items-center justify-between gap-1">
         <span
-          onClick={() => onOpen(claim)}
-          className="font-mono text-[13px] font-bold text-[#23282E] hover:text-[#C98A2B] cursor-pointer truncate"
+          className="font-mono text-[13px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
         >
           {claim.numarDosar || "(fără nr.)"}
         </span>
@@ -63,7 +63,8 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
             {STATUSES.map((s) => (
               <button
                 key={s.key}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   onMoveToStatus(claim, s.key);
                   setShowStatusPicker(false);
                 }}
@@ -85,8 +86,7 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
       {/* Client & Phone */}
       <div className="mt-2 flex items-center justify-between gap-1 text-[12px]">
         <span
-          onClick={() => onOpen(claim)}
-          className="font-medium text-[#23282E] truncate cursor-pointer hover:underline"
+          className="font-medium text-[#23282E] truncate group-hover:underline"
         >
           {claim.client || "Client neintrodus"}
         </span>
@@ -138,14 +138,14 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
 
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onDuplicate(claim)}
+            onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
             title="Duplică dosarul"
             className="px-1.5 py-0.5 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[10px] font-semibold transition-colors"
           >
             <Copy size={11} className="inline mr-0.5" /> Duplică
           </button>
           <button
-            onClick={() => onOpen(claim)}
+            onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
             className="px-2 py-0.5 rounded bg-[#3B5166] text-white text-[10.5px] font-bold hover:bg-[#2C4160] transition-colors"
           >
             Detalii
