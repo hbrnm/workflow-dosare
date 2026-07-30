@@ -53,33 +53,42 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
         </button>
 
         {showStatusPicker && (
-          <div
-            className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
-              Schimbă etapa dosarului:
+          <>
+            <div
+              className="fixed inset-0 z-20 cursor-default"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStatusPicker(false);
+              }}
+            />
+            <div
+              className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
+                Schimbă etapa dosarului:
+              </div>
+              {STATUSES.map((s) => (
+                <button
+                  key={s.key}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveToStatus(claim, s.key);
+                    setShowStatusPicker(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
+                    claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
+                  }`}
+                >
+                  <span className="flex items-center gap-1 truncate">
+                    <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
+                    <span className="truncate">{s.label}</span>
+                  </span>
+                  {claim.status === s.key && <Check size={11} className="shrink-0" />}
+                </button>
+              ))}
             </div>
-            {STATUSES.map((s) => (
-              <button
-                key={s.key}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveToStatus(claim, s.key);
-                  setShowStatusPicker(false);
-                }}
-                className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
-                  claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
-                }`}
-              >
-                <span className="flex items-center gap-1 truncate">
-                  <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
-                  <span className="truncate">{s.label}</span>
-                </span>
-                {claim.status === s.key && <Check size={11} className="shrink-0" />}
-              </button>
-            ))}
-          </div>
+          </>
         )}
       </div>
 
