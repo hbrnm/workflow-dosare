@@ -279,7 +279,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </div>
         )}
         {!isNew && (
-          <div className="px-4 py-3 border-b border-[#DAD4C6] bg-white">
+          <div className="px-4 py-2 border-b border-[#DAD4C6] bg-white">
             <ClaimTimeline
               currentStatus={form.status}
               dataSchimbareStatus={form.dataSchimbareStatus}
