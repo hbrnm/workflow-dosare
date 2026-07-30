@@ -1142,6 +1142,27 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
               <Field label="Data deschiderii"><input type="date" className="in" value={form.dataDeschiderii} onChange={(e) => set("dataDeschiderii", e.target.value)} /></Field>
               <Field label="Ultima actualizare"><div className="in bg-[#EFEAE1] text-[#6B6558]">{fmtDate(form.dataUltimeiActualizari)}</div></Field>
               <Field label="Programare service" full>
+                <div className="flex flex-wrap items-center gap-1 mb-1.5">
+                  <span className="text-[11px] text-[#6B6558] mr-1">Slot orar rapid:</span>
+                  {SLOTURI_ORARE.map((slot) => {
+                    const active = getSlotForIso(form.dataProgramare) === slot;
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => {
+                          const newIso = makeIsoFromSlot(form.dataProgramare, slot);
+                          set("dataProgramare", newIso);
+                        }}
+                        className={`px-2 py-0.5 rounded text-[10.5px] font-semibold border transition-colors ${
+                          active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
+                </div>
                 <input type="datetime-local" lang="ro" className="in" value={form.dataProgramare} onChange={(e) => set("dataProgramare", e.target.value)} />
                 {form.dataProgramare && (
                   <div className="text-[11px] text-[#3B5166] mt-1 font-semibold">
@@ -1314,8 +1335,49 @@ function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJ
 }
 
 // ---------------------------------------------------------------------------
-// Programator: agendă de programări în service, pornind din „Piese sosite"
+// Programator: agendă de programări în service, cu slot-uri orare și mașină la schimb
 // ---------------------------------------------------------------------------
+const SLOTURI_ORARE = [
+  "08:00 - 10:00",
+  "10:00 - 12:00",
+  "12:00 - 14:00",
+  "14:00 - 16:00",
+  "16:00 - 18:00",
+];
+
+function getSlotForIso(iso) {
+  if (!iso || !iso.includes("T")) return null;
+  const time = iso.slice(11, 16);
+  if (time >= "08:00" && time < "10:00") return "08:00 - 10:00";
+  if (time >= "10:00" && time < "12:00") return "10:00 - 12:00";
+  if (time >= "12:00" && time < "14:00") return "12:00 - 14:00";
+  if (time >= "14:00" && time < "16:00") return "14:00 - 16:00";
+  if (time >= "16:00" && time <= "18:00") return "16:00 - 18:00";
+  return null;
+}
+
+function makeIsoFromSlot(dateStr, slotStr) {
+  const baseDate = dateStr ? dateStr.slice(0, 10) : todayISO();
+  const startTime = slotStr ? slotStr.split(" - ")[0] : "08:00";
+  return `${baseDate}T${startTime}`;
+}
+
+function checkMasinaSchimbConflict(claims, claimId, masinaSchimb, dateStr) {
+  if (!masinaSchimb || !masinaSchimb.trim() || !dateStr) return null;
+  const nameClean = masinaSchimb.trim().toLowerCase();
+  const targetDate = dateStr.slice(0, 10);
+  const conflict = claims.find((c) => 
+    c.id !== claimId &&
+    c.masinaSchimb &&
+    c.masinaSchimb.trim().toLowerCase() === nameClean &&
+    (
+      (c.dataProgramare && c.dataProgramare.slice(0, 10) === targetDate) ||
+      (c.dataDariiLaSchimb && c.dataDariiLaSchimb.slice(0, 10) === targetDate)
+    )
+  );
+  return conflict || null;
+}
+
 function CalendarLunar({ claims, capacitate, selectedDay, onSelectDay, monthOffset, setMonthOffset }) {
   const base = new Date();
   const viewDate = new Date(base.getFullYear(), base.getMonth() + monthOffset, 1);
@@ -1327,12 +1389,14 @@ function CalendarLunar({ claims, capacitate, selectedDay, onSelectDay, monthOffs
   const monthLabel = viewDate.toLocaleDateString("ro-RO", { month: "long", year: "numeric" });
   const todayStr = todayISO();
 
-  const countByDay = useMemo(() => {
+  const dayStats = useMemo(() => {
     const map = {};
     claims.forEach((c) => {
       if (!c.dataProgramare) return;
       const d = c.dataProgramare.slice(0, 10);
-      map[d] = (map[d] || 0) + 1;
+      if (!map[d]) map[d] = { count: 0, masiniSchimb: 0 };
+      map[d].count += 1;
+      if (c.masinaSchimb) map[d].masiniSchimb += 1;
     });
     return map;
   }, [claims]);
@@ -1355,25 +1419,120 @@ function CalendarLunar({ claims, capacitate, selectedDay, onSelectDay, monthOffs
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
           const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-          const count = countByDay[dateStr] || 0;
+          const stat = dayStats[dateStr] || { count: 0, masiniSchimb: 0 };
+          const count = stat.count;
           const pct = capacitate > 0 ? count / capacitate : 0;
           const bg = count === 0 ? "bg-[#F5F2EA]" : pct < 1 ? "bg-[#E8F3E9]" : pct === 1 ? "bg-[#FBF3E6]" : "bg-[#F9E3E1]";
           const isSelected = selectedDay === dateStr;
           const isToday = dateStr === todayStr;
           return (
             <button key={i} onClick={() => onSelectDay(isSelected ? null : dateStr)}
-              className={`aspect-square rounded flex flex-col items-center justify-center text-[11px] border transition-colors ${isSelected ? "border-[#23282E] border-2" : isToday ? "border-[#C98A2B]" : "border-transparent"} ${bg} hover:brightness-95`}>
+              className={`aspect-square rounded flex flex-col items-center justify-center text-[11px] border transition-colors relative ${isSelected ? "border-[#23282E] border-2" : isToday ? "border-[#C98A2B]" : "border-transparent"} ${bg} hover:brightness-95`}>
               <span className="font-semibold text-[#23282E]">{d}</span>
               {count > 0 && <span className={`text-[9.5px] font-bold ${pct > 1 ? "text-[#B23A2E]" : "text-[#6B6558]"}`}>{count}/{capacitate}</span>}
+              {stat.masiniSchimb > 0 && (
+                <span className="absolute bottom-0.5 right-0.5 text-[9px]" title={`${stat.masiniSchimb} mașină/i la schimb`}>🚗</span>
+              )}
             </button>
           );
         })}
       </div>
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-[#8A8375]">
+      <div className="flex flex-wrap items-center gap-3 mt-2 text-[10px] text-[#8A8375]">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#E8F3E9] inline-block" /> sub capacitate</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#FBF3E6] inline-block" /> la capacitate</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#F9E3E1] inline-block" /> suprarezervat</span>
+        <span className="flex items-center gap-1"><span>🚗</span> auto la schimb</span>
       </div>
+    </div>
+  );
+}
+
+function AgendaSloturi({ claims, selectedDay, capacitate, canEditFn, onOpen, onPatch }) {
+  const targetDate = selectedDay || todayISO();
+  const dayClaims = useMemo(() => {
+    return claims.filter((c) => STADII_PROGRAMABILE.includes(c.status) && c.dataProgramare && c.dataProgramare.slice(0, 10) === targetDate);
+  }, [claims, targetDate]);
+
+  const slotGroups = useMemo(() => {
+    const groups = {};
+    SLOTURI_ORARE.forEach((s) => (groups[s] = []));
+    groups["Alte ore"] = [];
+
+    dayClaims.forEach((c) => {
+      const s = getSlotForIso(c.dataProgramare);
+      if (s && groups[s]) {
+        groups[s].push(c);
+      } else {
+        groups["Alte ore"].push(c);
+      }
+    });
+    return groups;
+  }, [dayClaims]);
+
+  return (
+    <div className="bg-white rounded-lg border border-[#DAD4C6] p-3 space-y-3">
+      <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
+        <div className="text-[13px] font-bold text-[#23282E] flex items-center gap-1.5">
+          <Clock size={15} className="text-[#3B5166]" /> Orar pe slot-uri din {fmtDate(targetDate)}
+        </div>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${dayClaims.length > capacitate ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#E8F3E9] text-[#3E6B45]"}`}>
+          {dayClaims.length} / {capacitate} programate {dayClaims.length > capacitate && "— suprarezervat zi"}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+        {SLOTURI_ORARE.map((slot) => {
+          const list = slotGroups[slot] || [];
+          return (
+            <div key={slot} className={`border rounded-lg p-2.5 flex flex-col justify-between min-h-[140px] ${list.length > 0 ? "border-[#3B5166]/40 bg-[#F5F8FA]" : "border-[#DAD4C6] bg-[#FAF8F5]"}`}>
+              <div>
+                <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-1 mb-2">
+                  <span className="text-[11.5px] font-bold text-[#23282E]">{slot}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${list.length > 0 ? "bg-[#3B5166] text-white" : "text-[#8A8375]"}`}>
+                    {list.length}
+                  </span>
+                </div>
+                {list.length === 0 ? (
+                  <div className="text-[10.5px] text-[#8A8375] italic text-center py-4">Slot liber</div>
+                ) : (
+                  <div className="space-y-2">
+                    {list.map((c) => {
+                      const conflict = checkMasinaSchimbConflict(claims, c.id, c.masinaSchimb, targetDate);
+                      return (
+                        <div key={c.id} className="bg-white border border-[#DAD4C6] rounded p-2 text-[11px] shadow-sm space-y-1">
+                          <div className="font-bold text-[#23282E] flex items-center justify-between cursor-pointer hover:underline" onClick={() => onOpen(c)}>
+                            <span>{c.numarDosar}</span>
+                            <span className="font-mono text-[#8A8375] text-[10px]">{c.numarInmatriculare}</span>
+                          </div>
+                          <div className="text-[#6B6558] truncate">{c.client}</div>
+                          {c.masinaSchimb && (
+                            <div className={`text-[10px] font-semibold flex items-center gap-1 ${conflict ? "text-[#B23A2E]" : "text-[#C98A2B]"}`}>
+                              <Car size={11} /> Auto schimb: {c.masinaSchimb}
+                              {conflict && <span className="font-bold">⚠️ conflict!</span>}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {slotGroups["Alte ore"].length > 0 && (
+        <div className="mt-2 pt-2 border-t border-[#EFEAE1]">
+          <div className="text-[11px] font-bold text-[#8A8375] mb-1">În afara slot-urilor standard:</div>
+          <div className="flex flex-wrap gap-2">
+            {slotGroups["Alte ore"].map((c) => (
+              <span key={c.id} onClick={() => onOpen(c)} className="bg-white border border-[#DAD4C6] px-2 py-1 rounded text-[11px] cursor-pointer hover:underline">
+                <strong>{c.numarDosar}</strong> ({c.client}) — {c.dataProgramare.slice(11, 16)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1381,6 +1540,7 @@ function CalendarLunar({ claims, capacitate, selectedDay, onSelectDay, monthOffs
 function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [viewMode, setViewMode] = useState("lunar"); // 'lunar' | 'sloturi'
   const [capInput, setCapInput] = useState(capacitate);
   useEffect(() => setCapInput(capacitate), [capacitate]);
 
@@ -1399,14 +1559,28 @@ function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapa
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 bg-white rounded-lg border border-[#DAD4C6] p-2.5">
-        <span className="text-[12px] text-[#6B6558]">Capacitate zilnică (mașini programate/zi):</span>
-        <input type="number" min={1} className="w-16 border border-[#DAD4C6] rounded px-2 py-1 text-[12.5px]" value={capInput} onChange={(e) => setCapInput(Number(e.target.value) || 1)} />
-        <button onClick={() => onSetCapacitate(capInput)} className="px-2.5 py-1 rounded bg-[#3B5166] text-white text-[11.5px] font-semibold hover:bg-[#2C3E4C]">Salvează</button>
-        <span className="text-[10.5px] text-[#8A8375]">valabilă pentru toată echipa</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white rounded-lg border border-[#DAD4C6] p-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[12px] text-[#6B6558]">Capacitate zilnică (mașini/zi):</span>
+          <input type="number" min={1} className="w-16 border border-[#DAD4C6] rounded px-2 py-1 text-[12.5px]" value={capInput} onChange={(e) => setCapInput(Number(e.target.value) || 1)} />
+          <button onClick={() => onSetCapacitate(capInput)} className="px-2.5 py-1 rounded bg-[#3B5166] text-white text-[11.5px] font-semibold hover:bg-[#2C3E4C]">Salvează</button>
+          <span className="text-[10.5px] text-[#8A8375]">valabilă pentru toată echipa</span>
+        </div>
+        <div className="flex items-center gap-1 bg-[#F5F2EA] p-1 rounded-md border border-[#DAD4C6]">
+          <button onClick={() => setViewMode("lunar")} className={`px-2.5 py-1 rounded text-[11.5px] font-semibold transition-colors ${viewMode === "lunar" ? "bg-[#3B5166] text-white shadow-sm" : "text-[#6B6558] hover:text-[#23282E]"}`}>
+            Calendar Lunar
+          </button>
+          <button onClick={() => setViewMode("sloturi")} className={`px-2.5 py-1 rounded text-[11.5px] font-semibold transition-colors ${viewMode === "sloturi" ? "bg-[#3B5166] text-white shadow-sm" : "text-[#6B6558] hover:text-[#23282E]"}`}>
+            Orar pe Sloturi
+          </button>
+        </div>
       </div>
 
-      <CalendarLunar claims={claims} capacitate={capacitate} selectedDay={selectedDay} onSelectDay={setSelectedDay} monthOffset={monthOffset} setMonthOffset={setMonthOffset} />
+      {viewMode === "lunar" ? (
+        <CalendarLunar claims={claims} capacitate={capacitate} selectedDay={selectedDay} onSelectDay={setSelectedDay} monthOffset={monthOffset} setMonthOffset={setMonthOffset} />
+      ) : (
+        <AgendaSloturi claims={claims} selectedDay={selectedDay} capacitate={capacitate} canEditFn={canEditFn} onOpen={onOpen} onPatch={onPatch} />
+      )}
 
       <div className="bg-white rounded-lg border border-[#DAD4C6] overflow-hidden">
         <div className="px-3 py-2.5 bg-[#23282E] text-white text-[12.5px] font-bold flex items-center justify-between">
@@ -1420,35 +1594,109 @@ function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapa
             {eligibile.map((c) => {
               const s = getStatusDefinition(c.status);
               const editable = canEditFn(c);
-              const dayCount = c.dataProgramare ? countForDate(c.dataProgramare.slice(0, 10)) : 0;
-              const overbooked = c.dataProgramare && dayCount > capacitate;
+              const dateStr = c.dataProgramare ? c.dataProgramare.slice(0, 10) : "";
+              const dayCount = dateStr ? countForDate(dateStr) : 0;
+              const overbooked = dateStr && dayCount > capacitate;
+              const currentSlot = getSlotForIso(c.dataProgramare);
+              const conflictSchimb = checkMasinaSchimbConflict(claims, c.id, c.masinaSchimb, dateStr);
+
               return (
-                <div key={c.id} className="p-3 flex flex-wrap items-center gap-2.5">
-                  <div className="min-w-[140px] flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-[12.5px] cursor-pointer hover:underline" onClick={() => onOpen(c)}>{c.numarDosar || "—"}</span>
-                      <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill>
-                      {!editable && <Pill tone="ghost">doar vizualizare</Pill>}
+                <div key={c.id} className="p-3 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-[140px] flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-[13px] cursor-pointer hover:underline text-[#3B5166]" onClick={() => onOpen(c)}>{c.numarDosar || "—"}</span>
+                        <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill>
+                        {!editable && <Pill tone="ghost">doar vizualizare</Pill>}
+                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded" style={{ background: getPhaseColors(c.status).tint, color: "#4A443A" }}>
+                          {String(s.num).padStart(2, "0")}. {s.label}
+                        </span>
+                      </div>
+                      <div className="text-[12.5px] text-[#23282E] mt-0.5">
+                        <strong>{c.client || "—"}</strong> <span className="text-[#8A8375] font-mono">({c.numarInmatriculare})</span>
+                        {c.telefonClient && <span className="text-[11px] text-[#6B6558] ml-2 font-mono">📞 {c.telefonClient}</span>}
+                      </div>
                     </div>
-                    <div className="text-[12.5px] text-[#23282E]">{c.client || "—"} <span className="text-[#8A8375] font-mono">{c.numarInmatriculare}</span></div>
-                    {c.telefonClient && <div className="text-[11px] text-[#6B6558] flex items-center gap-1"><Phone size={10} />{c.telefonClient}</div>}
-                  </div>
-                  <span className="text-[10.5px] font-semibold px-2 py-1 rounded" style={{ background: getPhaseColors(c.status).tint, color: "#4A443A" }}>
-                    {String(s.num).padStart(2, "0")}. {s.label}
-                  </span>
-                  <div>
-                    <input type="datetime-local" lang="ro" disabled={!editable} className="border border-[#DAD4C6] rounded px-2 py-1.5 text-[12.5px] disabled:opacity-50 disabled:bg-[#EFEAE1]" value={c.dataProgramare || ""} onChange={(e) => onPatch(c.id, { dataProgramare: e.target.value })} />
-                    {c.dataProgramare && (
-                      <>
-                        <div className="text-[10px] mt-0.5 text-[#3B5166] font-semibold">{fmtProgramare(c.dataProgramare)}</div>
-                        <div className={`text-[10px] ${overbooked ? "text-[#B23A2E] font-bold" : "text-[#8A8375]"}`}>{dayCount}/{capacitate} în acea zi{overbooked ? " — suprarezervat" : ""}</div>
-                      </>
+
+                    {c.status === "piese_sosite" && (
+                      <button disabled={!editable} onClick={() => onPatch(c.id, { status: "programat", dataSchimbareStatus: nowISO() })} className="flex items-center gap-1 px-3 py-1.5 rounded bg-[#3B5166] text-white text-[11.5px] font-semibold hover:bg-[#2C3E4C] disabled:opacity-40 shadow-sm">
+                        Confirmă Programat <ArrowRight size={13} />
+                      </button>
                     )}
                   </div>
-                  {c.status === "piese_sosite" && (
-                    <button disabled={!editable} onClick={() => onPatch(c.id, { status: "programat", dataSchimbareStatus: nowISO() })} className="flex items-center gap-1 px-2.5 py-1.5 rounded bg-[#3B5166] text-white text-[11.5px] font-semibold hover:bg-[#2C3E4C] disabled:opacity-40">
-                      Programat <ArrowRight size={12} />
-                    </button>
+
+                  <div className="flex flex-wrap items-center gap-3 bg-[#FAF8F5] p-2 rounded-md border border-[#DAD4C6]/60">
+                    <div className="space-y-1">
+                      <div className="text-[10.5px] font-bold text-[#6B6558] flex items-center gap-1">
+                        <Clock size={12} /> Dată & Oră programare:
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input type="datetime-local" lang="ro" disabled={!editable} className="border border-[#DAD4C6] rounded px-2 py-1 text-[12px] bg-white disabled:opacity-50" value={c.dataProgramare || ""} onChange={(e) => onPatch(c.id, { dataProgramare: e.target.value })} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="text-[10.5px] font-bold text-[#6B6558]">Slot orar rapid:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {SLOTURI_ORARE.map((slot) => {
+                          const active = currentSlot === slot;
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              disabled={!editable}
+                              onClick={() => {
+                                const newIso = makeIsoFromSlot(c.dataProgramare, slot);
+                                onPatch(c.id, { dataProgramare: newIso });
+                              }}
+                              className={`px-2 py-0.5 rounded text-[10.5px] font-semibold border transition-colors ${
+                                active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                              }`}
+                            >
+                              {slot}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 ml-auto">
+                      <div className="text-[10.5px] font-bold text-[#6B6558] flex items-center gap-1">
+                        <Car size={12} /> Mașină la schimb (auto de înlocuire):
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          disabled={!editable}
+                          placeholder="Nr. auto (ex: B 999 AAA)"
+                          className="w-40 border border-[#DAD4C6] rounded px-2 py-1 text-[12px] bg-white disabled:opacity-50"
+                          value={c.masinaSchimb || ""}
+                          onChange={(e) => onPatch(c.id, { masinaSchimb: e.target.value })}
+                        />
+                        <input
+                          type="date"
+                          disabled={!editable}
+                          className="border border-[#DAD4C6] rounded px-2 py-1 text-[12px] bg-white disabled:opacity-50"
+                          value={c.dataDariiLaSchimb || ""}
+                          onChange={(e) => onPatch(c.id, { dataDariiLaSchimb: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {(overbooked || conflictSchimb) && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {overbooked && (
+                        <div className="text-[10.5px] font-bold text-[#B23A2E] bg-[#F9E3E1] px-2 py-1 rounded flex items-center gap-1 border border-[#B23A2E]/30">
+                          <AlertTriangle size={12} /> Depășire capacitate zi ({dayCount}/{capacitate} mașini)
+                        </div>
+                      )}
+                      {conflictSchimb && (
+                        <div className="text-[10.5px] font-bold text-[#B23A2E] bg-[#F9E3E1] px-2 py-1 rounded flex items-center gap-1 border border-[#B23A2E]/30">
+                          <AlertTriangle size={12} /> Conflict Mașină la schimb ({c.masinaSchimb} este alocată și la dosarul {conflictSchimb.numarDosar})
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
