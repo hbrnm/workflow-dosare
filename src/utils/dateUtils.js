@@ -1,0 +1,68 @@
+// ---------------------------------------------------------------------------
+// Helpers pentru manipularea datelor calendaristice și contactelor
+// ---------------------------------------------------------------------------
+
+export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+export const todayISO = () => new Date().toISOString().slice(0, 10);
+export const nowISO = () => new Date().toISOString();
+
+export function normalizedText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+export function isValidPhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+export function daysBetween(iso) {
+  if (!iso) return 0;
+  return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+}
+
+// Format dată simplu: DD/MM/YYYY
+export function fmtDate(iso) {
+  if (!iso) return "—";
+  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+// Format dată + oră simplă 24h: DD/MM/YYYY, HH:mm
+export function fmtDateTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${yyyy}, ${hh}:${min}`;
+}
+
+export function fmtProgramare(iso) {
+  if (!iso) return "—";
+  return fmtDateTime(iso);
+}
+
+// Linkuri rapide apel / WhatsApp
+export function telLink(phone) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits ? `tel:${digits}` : null;
+}
+
+export function waLink(phone) {
+  let digits = String(phone || "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("0")) digits = `4${digits}`;
+  else if (!digits.startsWith("40")) digits = `40${digits}`;
+  return `https://wa.me/${digits}`;
+}
