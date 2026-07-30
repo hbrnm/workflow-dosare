@@ -227,7 +227,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     <div className="fixed inset-0 z-50 bg-black/40 overflow-y-auto">
       <div onClick={(e) => e.stopPropagation()} className="mx-auto my-4 bg-[#FCFAF5] w-full max-w-5xl rounded-lg shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 bg-[#23282E] rounded-t-lg shrink-0">
-          <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${claim.numarDosar}`}</span></div>
+          <div className="flex items-center gap-2 text-white"><FileText size={16} /><span className="font-semibold text-[14px]">{isNew ? "Dosar nou" : `Dosar ${form.numarDosar || ""}`}</span></div>
           <div className="flex items-center gap-2 flex-wrap">
             {!isNew && (
               <div className="flex items-center gap-1">
@@ -264,10 +264,10 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                 <Copy size={12} /> Duplică
               </button>
             )}
-            {!isNew && (claim.createdByEmail || claim.updatedByEmail) && (
+            {!isNew && (form.createdByEmail || form.updatedByEmail) && (
               <span className="hidden sm:block text-[10.5px] text-white/45 text-right leading-tight">
-                {claim.createdByEmail && <div>creat de {claim.createdByEmail}</div>}
-                {claim.updatedByEmail && <div>ultima modificare: {claim.updatedByEmail}</div>}
+                {form.createdByEmail && <div>creat de {form.createdByEmail}</div>}
+                {form.updatedByEmail && <div>ultima modificare: {form.updatedByEmail}</div>}
               </span>
             )}
             <button onClick={onClose} className="text-white/70 hover:text-white"><X size={18} /></button>
@@ -275,7 +275,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         </div>
         {readOnly && (
           <div className="px-4 py-2 bg-[#EFEAE1] text-[#6B6558] text-[12px] flex items-center gap-1.5 shrink-0 border-b border-[#DAD4C6]">
-            <ShieldCheck size={13} /> Doar vizualizare — acest dosar a fost creat de {claim.createdByEmail || "alt coleg"}, doar el îl poate edita sau șterge.
+            <ShieldCheck size={13} /> Doar vizualizare — acest dosar a fost creat de {form.createdByEmail || "alt coleg"}, doar el îl poate edita sau șterge.
           </div>
         )}
         {!isNew && (

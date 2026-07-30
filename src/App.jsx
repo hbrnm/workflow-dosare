@@ -19,6 +19,7 @@ import Programator from "./components/views/Programator";
 import Rapoarte from "./components/views/Rapoarte";
 import ClaimModal from "./components/modals/ClaimModal";
 import CommandPalette from "./components/common/CommandPalette";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -319,7 +320,20 @@ export default function App() {
         )}
       </div>
 
-      {modalClaim && <ClaimModal claim={modalClaim} onClose={() => setModalClaim(null)} onSave={handleSave} onDelete={handleDelete} readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)} allClaims={claims} onJumpTo={(c) => setModalClaim(c)} onNotify={showNotice} />}
+      {modalClaim && (
+        <ErrorBoundary onReset={() => setModalClaim(null)}>
+          <ClaimModal
+            claim={modalClaim}
+            onClose={() => setModalClaim(null)}
+            onSave={handleSave}
+            onDelete={handleDelete}
+            readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)}
+            allClaims={claims}
+            onJumpTo={(c) => setModalClaim(c)}
+            onNotify={showNotice}
+          />
+        </ErrorBoundary>
+      )}
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}

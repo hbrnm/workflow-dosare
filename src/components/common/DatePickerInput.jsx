@@ -15,11 +15,12 @@ export default function DatePickerInput({
 
   const parseVal = (valStr) => {
     if (!valStr) return { dateStr: "", timeStr: "08:00" };
-    if (valStr.includes("T")) {
-      const [d, t] = valStr.split("T");
+    const str = String(valStr);
+    if (str.includes("T")) {
+      const [d, t] = str.split("T");
       return { dateStr: d, timeStr: t ? t.slice(0, 5) : "08:00" };
     }
-    return { dateStr: valStr, timeStr: "08:00" };
+    return { dateStr: str, timeStr: "08:00" };
   };
 
   const parsed = parseVal(value);
