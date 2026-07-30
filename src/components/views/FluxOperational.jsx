@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
-  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock
+  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock, Truck
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -172,13 +172,14 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
 }
 
 export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
-  const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite"
+  const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite", "gata_ridicare"
   const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
   const masinaSchimbClaims = useMemo(() => claims.filter((c) => c.masinaSchimb), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
+  const gataRidicareClaims = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata), [claims]);
 
   // Unique list of active insurers with claim counts
   const insurerStats = useMemo(() => {
@@ -197,12 +198,13 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     else if (quickFilter === "blocate") list = blockedClaims;
     else if (quickFilter === "masini_schimb") list = masinaSchimbClaims;
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
+    else if (quickFilter === "gata_ridicare") list = gataRidicareClaims;
 
     if (selectedInsurer !== "toti") {
       list = list.filter((c) => c.asigurator === selectedInsurer);
     }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims]);
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, gataRidicareClaims]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
@@ -266,6 +268,16 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
             }`}
           >
             <Car size={11} /> Auto la Schimb ({masinaSchimbClaims.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter(quickFilter === "gata_ridicare" ? "toate" : "gata_ridicare")}
+            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
+              quickFilter === "gata_ridicare"
+                ? "bg-[#4A7C3E] text-white shadow-xs font-bold"
+                : "bg-[#4A7C3E]/15 text-[#3A5C2E] hover:bg-[#4A7C3E]/25"
+            }`}
+          >
+            <Truck size={11} /> Gata de ridicare ({gataRidicareClaims.length})
           </button>
 
           {/* Insurer Quick Filter Selector */}
