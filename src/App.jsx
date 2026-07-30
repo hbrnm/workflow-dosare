@@ -321,7 +321,7 @@ export default function App() {
       </div>
 
       {modalClaim && (
-        <ErrorBoundary onReset={() => setModalClaim(null)}>
+        <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={() => setModalClaim(null)}>
           <ClaimModal
             claim={modalClaim}
             onClose={() => setModalClaim(null)}
