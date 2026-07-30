@@ -750,7 +750,7 @@ function StageBar({ label, icon, data, onChange }) {
 // ---------------------------------------------------------------------------
 // Card Kanban
 // ---------------------------------------------------------------------------
-function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare }) {
+function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false }) {
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
   const days = daysBetween(claim.dataSchimbareStatus);
@@ -758,6 +758,98 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare }
   const phase = getStatusDefinition(claim.status).phase;
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
+
+  if (compact) {
+    return (
+      <div
+        onClick={() => onOpen(claim)}
+        draggable={canEdit}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", claim.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        className={`group relative bg-white rounded-md border cursor-pointer transition-all duration-150 hover:shadow-md ${
+          claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
+        }`}
+        style={{ borderLeftWidth: 4, borderLeftColor: PHASE_COLORS[phase]?.bar || "#DAD4C6" }}
+      >
+        <div className="p-2 space-y-1">
+          {/* Row 1: Nr. dosar + Tip + Alert badge */}
+          <div className="flex items-center justify-between gap-1">
+            <span className="font-mono text-[11.5px] font-bold text-[#23282E] truncate">
+              {claim.numarDosar || "(fără nr.)"}
+            </span>
+            <div className="flex items-center gap-1 shrink-0">
+              <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
+              <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
+            </div>
+          </div>
+
+          {/* Row 2: Client & Nr inmatriculare */}
+          <div className="flex items-center justify-between gap-1 text-[11px]">
+            <span className="font-semibold text-[#23282E] truncate" title={claim.client}>
+              {claim.client || "Client neintrodus"}
+            </span>
+            <span className="font-mono text-[10.5px] text-[#6B6558] shrink-0">
+              {claim.numarInmatriculare || "—"}
+            </span>
+          </div>
+
+          {/* Row 3: Badges & status info (only if present) */}
+          {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
+            <div className="flex items-center gap-1 flex-wrap text-[10px]">
+              {claim.blocat && <Pill tone="danger">blocat</Pill>}
+              {claim.masinaSchimb && (
+                <span className="px-1 py-0.2 rounded bg-[#FBF3E6] text-[#7A5316] font-bold text-[9.5px]">
+                  🚗 {claim.masinaSchimb}
+                </span>
+              )}
+              {claim.gataDeRidicare && !claim.ridicata && (
+                <span className={`px-1 py-0.2 rounded font-bold text-[9.5px] ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+                  gata ({zileNeridicata}z)
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Compact Footer Bar */}
+        <div
+          className="flex items-center justify-between border-t border-[#EFEAE1] px-1.5 py-0.5 bg-[#FCFAF5]/80 text-[10px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-0.5">
+            <button
+              disabled={!canEdit || !hasKnownStatus || idx === 0}
+              onClick={() => onMove(claim, -1)}
+              className="p-0.5 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"
+              title="Mută înapoi"
+            >
+              <ChevronLeft size={13} />
+            </button>
+            <button
+              onClick={() => onDuplicate(claim)}
+              title="Duplică dosarul"
+              className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166]"
+            >
+              <Copy size={11} />
+            </button>
+          </div>
+          <span className="text-[#8A8375] font-mono text-[9.5px]">
+            {days}z
+          </span>
+          <button
+            disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
+            onClick={() => onMove(claim, 1)}
+            className="p-0.5 rounded hover:bg-[#EFEAE1] disabled:opacity-25 text-[#3B5166]"
+            title="Mută înainte"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -885,72 +977,115 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare }
 
 function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [dragOverKey, setDragOverKey] = useState(null);
+  const [compactMode, setCompactMode] = useState(true);
+  const [fitScreen, setFitScreen] = useState(true);
+
   return (
-    <div className="flex gap-3 overflow-x-auto overflow-y-hidden flex-1 min-h-0 -mx-1 px-1">
-      {STATUSES.map((s) => {
-        const colClaims = claims.filter((c) => c.status === s.key);
-        const colors = PHASE_COLORS[s.phase];
-        return (
-          <div
-            key={s.key}
-            className="flex-shrink-0 w-[260px] h-full flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-sm"
-            style={{ background: colors.tint }}
+    <div className="flex flex-col flex-1 min-h-0 space-y-2">
+      {/* Controls Bar */}
+      <div className="flex items-center justify-between bg-white rounded-lg border border-[#DAD4C6] px-3 py-1.5 shadow-xs shrink-0 flex-wrap gap-2 text-[12px]">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-[#23282E] flex items-center gap-1.5">
+            <LayoutGrid size={15} className="text-[#C98A2B]" /> Kanban Board ({claims.length} dosare)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCompactMode(!compactMode)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11.5px] font-semibold transition-all ${
+              compactMode
+                ? "bg-[#3B5166] text-white border-[#3B5166] shadow-xs"
+                : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+            }`}
           >
+            {compactMode ? <List size={14} /> : <LayoutGrid size={14} />}
+            {compactMode ? "Mod Compact (Toate pe pagină)" : "Mod Detaliat"}
+          </button>
+
+          <button
+            onClick={() => setFitScreen(!fitScreen)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11.5px] font-semibold transition-all ${
+              fitScreen
+                ? "bg-[#C98A2B] text-white border-[#C98A2B] shadow-xs"
+                : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+            }`}
+          >
+            {fitScreen ? "Lățime ajustată pe ecran" : "Lățime fixă (Scroll orizontal)"}
+          </button>
+        </div>
+      </div>
+
+      {/* Board Columns */}
+      <div className="flex gap-2 overflow-x-auto overflow-y-hidden flex-1 min-h-0 -mx-1 px-1">
+        {STATUSES.map((s) => {
+          const colClaims = claims.filter((c) => c.status === s.key);
+          const colors = PHASE_COLORS[s.phase];
+          return (
             <div
-              className="px-3 py-2.5 flex items-center justify-between shrink-0"
-              style={{ background: colors.bar }}
+              key={s.key}
+              className={`flex-shrink-0 ${fitScreen ? "w-[195px] xl:w-[215px]" : "w-[260px]"} h-full flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-xs`}
+              style={{ background: colors.tint }}
             >
-              <div className="flex items-center gap-1.5 text-white">
-                <span className="font-mono text-[11px] opacity-70">
-                  {String(s.num).padStart(2, "0")}
-                </span>
-                <span className="text-[12.5px] font-semibold leading-tight">{s.label}</span>
-              </div>
-              <span className="min-w-[22px] h-[22px] flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
-                {colClaims.length}
-              </span>
-            </div>
-            <div
-              className={`p-3 flex flex-col gap-3 overflow-y-auto flex-1 min-h-0 transition-colors ${
-                dragOverKey === s.key ? "bg-white/60 ring-2 ring-[#3B5166] ring-inset" : ""
-              }`}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-              onDragEnter={() => setDragOverKey(s.key)}
-              onDragLeave={(e) => { if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) setDragOverKey(null); }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const claimId = e.dataTransfer.getData("text/plain");
-                const draggedClaim = claims.find((c) => c.id === claimId);
-                if (draggedClaim && draggedClaim.status !== s.key) onMoveToStatus(draggedClaim, s.key);
-                setDragOverKey(null);
-              }}
-            >
-              {colClaims.length === 0 && (
-                <div className="text-center py-6 text-[11.5px] text-[#8A8375]/80">
-                  Niciun dosar în această etapă
-                </div>
-              )}
-              {colClaims.map((c) => (
-                <ClaimCard
-                  key={c.id}
-                  claim={c}
-                  onOpen={onOpen}
-                  onMove={onMove}
-                  onDuplicate={onDuplicate}
-                  canEdit={canEditFn(c)}
-                  pragRidicare={pragRidicare}
-                />
-              ))}
-              <button
-                onClick={() => onAddInStatus(s.key)}
-                className="flex items-center justify-center gap-1.5 py-2 text-[11.5px] text-[#6B6558] rounded-lg border border-dashed border-[#C7C0B0] hover:bg-white/70 hover:text-[#23282E] hover:border-[#A89F8A] transition-colors shrink-0"
+              <div
+                className="px-2.5 py-2 flex items-center justify-between shrink-0"
+                style={{ background: colors.bar }}
               >
-                <Plus size={13} /> dosar nou
-              </button>
+                <div className="flex items-center gap-1 text-white min-w-0">
+                  <span className="font-mono text-[10.5px] opacity-75 shrink-0">
+                    {String(s.num).padStart(2, "0")}
+                  </span>
+                  <span className="text-[11.5px] font-semibold leading-tight truncate" title={s.label}>
+                    {s.label}
+                  </span>
+                </div>
+                <span className="min-w-[20px] h-[20px] px-1 flex items-center justify-center rounded-full bg-white/20 text-[10.5px] font-bold text-white shrink-0 ml-1">
+                  {colClaims.length}
+                </span>
+              </div>
+              <div
+                className={`p-2 flex flex-col gap-2 overflow-y-auto flex-1 min-h-0 transition-colors ${
+                  dragOverKey === s.key ? "bg-white/60 ring-2 ring-[#3B5166] ring-inset" : ""
+                }`}
+                onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                onDragEnter={() => setDragOverKey(s.key)}
+                onDragLeave={(e) => { if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) setDragOverKey(null); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const claimId = e.dataTransfer.getData("text/plain");
+                  const draggedClaim = claims.find((c) => c.id === claimId);
+                  if (draggedClaim && draggedClaim.status !== s.key) onMoveToStatus(draggedClaim, s.key);
+                  setDragOverKey(null);
+                }}
+              >
+                {colClaims.length === 0 && (
+                  <div className="text-center py-6 text-[11px] text-[#8A8375]/80">
+                    Niciun dosar în această etapă
+                  </div>
+                )}
+                {colClaims.map((c) => (
+                  <ClaimCard
+                    key={c.id}
+                    claim={c}
+                    onOpen={onOpen}
+                    onMove={onMove}
+                    onDuplicate={onDuplicate}
+                    canEdit={canEditFn(c)}
+                    pragRidicare={pragRidicare}
+                    compact={compactMode}
+                  />
+                ))}
+                <button
+                  onClick={() => onAddInStatus(s.key)}
+                  className="flex items-center justify-center gap-1 py-1.5 text-[11px] text-[#6B6558] rounded-lg border border-dashed border-[#C7C0B0] hover:bg-white/70 hover:text-[#23282E] hover:border-[#A89F8A] transition-colors shrink-0"
+                >
+                  <Plus size={12} /> dosar nou
+                </button>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
