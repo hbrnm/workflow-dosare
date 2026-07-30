@@ -51,7 +51,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
   const totalActiuniAzi = programariAzi.length + gataAzi.length + neridicateVechi.length + masiniSchimbDepasite.length + restante.length;
 
   const Sectiune = ({ icon, titlu, tone, items, gol }) => (
-    <div className="flex flex-col h-[520px] rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0 bg-[#F5F2EA]">
+    <div className="flex flex-col h-[500px] rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0 bg-[#F5F2EA]">
       {/* Section Header Bar */}
       <div className={`px-2.5 py-1.5 text-white text-[12px] font-bold flex items-center justify-between shrink-0 ${tone}`}>
         <span className="flex items-center gap-1.5 truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -62,7 +62,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
         </span>
       </div>
 
-      {/* Taller Scrollable Grid of Cards (2 Cards per row, compact size) */}
+      {/* Taller Scrollable Grid of Cards (2 Cards per row, extra compact size) */}
       <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 overflow-y-auto flex-1 items-start auto-rows-max scrollbar-thin">
         {items.length === 0 ? (
           <div className="col-span-full text-[11px] text-[#8A8375] py-8 text-center italic bg-white/60 rounded-lg border border-dashed border-[#DAD4C6]">
@@ -142,51 +142,57 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
         </div>
       </div>
 
-      {/* Taller Scrollable Columns Grid */}
+      {/* Main Section Columns Grid: Dosare Restante PRIMUL */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-1 min-h-0 overflow-y-auto">
+        {/* 1. DOSARE RESTANTE ÎN ETAPĂ (PRIMUL SECTOR) */}
         <Sectiune
-          icon={<CalendarClock size={14} />}
-          titlu="Programări & Intrări Service"
-          tone="bg-[#3B5166]"
-          items={programariAzi}
-          gol="Nicio intrare în service programată azi."
-        />
-
-        <Sectiune
-          icon={<PackageCheck size={14} />}
-          titlu="Finalizate Azi (Gata Predare)"
-          tone="bg-[#3E6B45]"
-          items={gataAzi}
-          gol="Nicio mașină finalizată azi."
-        />
-
-        <Sectiune
-          icon={<Phone size={14} />}
-          titlu="Clienți de Sunat (În Curte)"
-          tone="bg-[#C98A2B]"
-          items={neridicateVechi}
-          gol="Nicio mașină nepreluată peste termen."
-        />
-
-        <Sectiune
-          icon={<Car size={14} />}
-          titlu="Auto Schimb (Depășesc Audatex)"
-          tone="bg-[#7A5316]"
-          items={masiniSchimbDepasite}
-          gol="Toate mașinile la schimb sunt în termen."
-        />
-
-        <Sectiune
-          icon={<AlertTriangle size={14} />}
+          icon={<AlertTriangle size={15} />}
           titlu="Dosare Restante în Etapă"
           tone="bg-[#B23A2E]"
           items={restante}
           gol="Niciun dosar restant."
         />
 
+        {/* 2. PROGRAMĂRI & INTRĂRI SERVICE */}
+        <Sectiune
+          icon={<CalendarClock size={15} />}
+          titlu="Programări & Intrări Service"
+          tone="bg-[#3B5166]"
+          items={programariAzi}
+          gol="Nicio intrare în service programată azi."
+        />
+
+        {/* 3. FINALIZATE AZI */}
+        <Sectiune
+          icon={<PackageCheck size={15} />}
+          titlu="Finalizate Azi (Gata Predare)"
+          tone="bg-[#3E6B45]"
+          items={gataAzi}
+          gol="Nicio mașină finalizată azi."
+        />
+
+        {/* 4. CLIENȚI DE SUNAT */}
+        <Sectiune
+          icon={<Phone size={15} />}
+          titlu="Clienți de Sunat (În Curte)"
+          tone="bg-[#C98A2B]"
+          items={neridicateVechi}
+          gol="Nicio mașină nepreluată peste termen."
+        />
+
+        {/* 5. AUTO SCHIMB DEPĂȘITE */}
+        <Sectiune
+          icon={<Car size={15} />}
+          titlu="Auto Schimb (Depășesc Audatex)"
+          tone="bg-[#7A5316]"
+          items={masiniSchimbDepasite}
+          gol="Toate mașinile la schimb sunt în termen."
+        />
+
+        {/* 6. DOSARE BLOCATE */}
         {blocate.length > 0 && (
           <Sectiune
-            icon={<AlertOctagon size={14} />}
+            icon={<AlertOctagon size={15} />}
             titlu="Dosare Blocate"
             tone="bg-[#23282E]"
             items={blocate}

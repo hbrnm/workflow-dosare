@@ -21,7 +21,7 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
     <div
       onClick={() => onOpen(claim)}
       className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer ${
-        compact ? "p-1.5 text-[10.5px]" : "p-2 text-[11.5px]"
+        compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
       } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
@@ -30,7 +30,9 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       {/* Header Row: Nr Dosar + Asigurare */}
       <div className="flex items-center justify-between gap-1">
         <span
-          className="font-mono text-[12.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
+          className={`font-mono font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate ${
+            compact ? "text-[11.5px]" : "text-[12.5px]"
+          }`}
         >
           {claim.numarDosar || "(fără nr.)"}
         </span>
@@ -41,18 +43,20 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       </div>
 
       {/* Interactive 1-Click Status Dropdown Badge */}
-      <div className="mt-1.5 relative">
+      <div className={`${compact ? "mt-1" : "mt-1.5"} relative`}>
         <button
           onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
-          className="w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors text-[11px] font-semibold text-[#23282E]"
+          className={`w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors font-semibold text-[#23282E] ${
+            compact ? "text-[10px]" : "text-[11px]"
+          }`}
           title="Apasă pentru a schimba etapa dosarului"
         >
           <span className="flex items-center gap-1 truncate">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
-            <span className="font-mono text-[10px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
+            <span className="font-mono text-[9.5px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
             <span className="truncate">{statusDef.label}</span>
           </span>
-          <ChevronDown size={12} className="text-[#8A8375] shrink-0" />
+          <ChevronDown size={11} className="text-[#8A8375] shrink-0" />
         </button>
 
         {showStatusPicker && (
@@ -96,44 +100,42 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       </div>
 
       {/* Client & Phone */}
-      <div className="mt-1.5 flex items-center justify-between gap-1 text-[11.5px]">
-        <span
-          className="font-semibold text-[#23282E] truncate group-hover:underline"
-        >
+      <div className={`${compact ? "mt-1 text-[10.5px]" : "mt-1.5 text-[11.5px]"} flex items-center justify-between gap-1`}>
+        <span className="font-semibold text-[#23282E] truncate group-hover:underline">
           {claim.client || "Client neintrodus"}
         </span>
         {claim.telefonClient && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
-              <Phone size={11} />
+            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
+              <Phone size={compact ? 10 : 11} />
             </a>
-            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
+            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={compact ? 10 : 11} />
           </div>
         )}
       </div>
 
       {/* Auto & Insurer */}
-      <div className="mt-1 flex items-center justify-between gap-1 text-[10.5px] text-[#6B6558]">
+      <div className={`${compact ? "mt-0.5 text-[9.5px]" : "mt-1 text-[10.5px]"} flex items-center justify-between gap-1 text-[#6B6558]`}>
         <span className="flex items-center gap-1 font-mono font-bold text-[#23282E]">
-          <Car size={11} className="text-[#8A8375]" />
+          <Car size={compact ? 10 : 11} className="text-[#8A8375]" />
           {claim.numarInmatriculare || "—"}
         </span>
-        <span className="truncate max-w-[95px]" title={claim.marcaModel || claim.asigurator}>
+        <span className="truncate max-w-[90px]" title={claim.marcaModel || claim.asigurator}>
           {claim.marcaModel || claim.asigurator}
         </span>
       </div>
 
       {/* Active Badges */}
       {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
-        <div className="mt-1.5 flex items-center gap-1 flex-wrap text-[9.5px]">
+        <div className="mt-1 flex items-center gap-1 flex-wrap text-[9px]">
           {claim.blocat && <Pill tone="danger">⚠️ blocat</Pill>}
           {claim.masinaSchimb && (
-            <span className="px-1.5 py-0.2 rounded bg-[#FBF3E6] text-[#7A5316] font-bold text-[9.5px]">
+            <span className="px-1 py-0.1 rounded bg-[#FBF3E6] text-[#7A5316] font-bold">
               🚗 {claim.masinaSchimb}
             </span>
           )}
           {claim.gataDeRidicare && !claim.ridicata && (
-            <span className={`px-1.5 py-0.2 rounded font-bold text-[9.5px] ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+            <span className={`px-1 py-0.1 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
               📦 gata ({zileNeridicata}z)
             </span>
           )}
@@ -141,8 +143,10 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       )}
 
       {/* Card Footer: Days + Quick Actions */}
-      <div className="mt-1.5 pt-1.5 border-t border-[#EFEAE1] flex items-center justify-between text-[10px]">
+      <div className={`${compact ? "mt-1 pt-1 text-[9.5px]" : "mt-1.5 pt-1.5 text-[10px]"} border-t border-[#EFEAE1] flex items-center justify-between`}>
         <span className="text-[#8A8375] font-mono flex items-center gap-1">
+          <Clock size={compact ? 9 : 10} /> {days}z în etapă
+        </span>
           <Clock size={10} /> {days}z în etapă
         </span>
 
