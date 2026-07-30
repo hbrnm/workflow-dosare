@@ -27,6 +27,150 @@ function Field({ label, children, full }) {
   );
 }
 
+const MONTH_NAMES_RO = ["Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DAY_NAMES_RO = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
+
+function InlineMiniCalendar({ value, onChange, status }) {
+  const parseVal = (v) => {
+    if (!v) return { dateStr: "", timeStr: "08:00" };
+    const s = String(v);
+    if (s.includes("T")) {
+      const [d, t] = s.split("T");
+      return { dateStr: d, timeStr: t ? t.slice(0, 5) : "08:00" };
+    }
+    return { dateStr: s, timeStr: "08:00" };
+  };
+
+  const { dateStr: selectedDateStr, timeStr: selectedTime } = parseVal(value);
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  const initDate = selectedDateStr ? new Date(selectedDateStr) : today;
+  const [viewYear, setViewYear] = React.useState(isNaN(initDate.getTime()) ? today.getFullYear() : initDate.getFullYear());
+  const [viewMonth, setViewMonth] = React.useState(isNaN(initDate.getTime()) ? today.getMonth() : initDate.getMonth());
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
+  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+
+  const days = [];
+  for (let i = startWeekday - 1; i >= 0; i--) {
+    days.push({ day: prevMonthDays - i, current: false, year: viewMonth === 0 ? viewYear - 1 : viewYear, month: viewMonth === 0 ? 11 : viewMonth - 1 });
+  }
+  for (let i = 1; i <= totalDays; i++) {
+    days.push({ day: i, current: true, year: viewYear, month: viewMonth });
+  }
+  const remaining = (7 - (days.length % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    days.push({ day: i, current: false, year: viewMonth === 11 ? viewYear + 1 : viewYear, month: viewMonth === 11 ? 0 : viewMonth + 1 });
+  }
+
+  const handleSelectDay = (year, month, day) => {
+    const dateS = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    onChange(`${dateS}T${selectedTime || "08:00"}`);
+  };
+
+  const handleTimeChange = (newTime) => {
+    const d = selectedDateStr || todayStr;
+    onChange(`${d}T${newTime}`);
+  };
+
+  return (
+    <div className="flex-1 min-w-0 border border-[#DAD4C6] rounded-md bg-white overflow-hidden">
+      {/* Month navigation */}
+      <div className="flex items-center justify-between bg-[#3B5166] text-white px-2 py-1">
+        <button type="button" onClick={prevMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+        </button>
+        <span className="text-[11px] font-bold">{MONTH_NAMES_RO[viewMonth]} {viewYear}</span>
+        <button type="button" onClick={nextMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+
+      {/* Day names */}
+      <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
+        {DAY_NAMES_RO.map((d) => (
+          <span key={d} className="text-[8.5px] font-bold text-[#8A8375] py-0.5">{d}</span>
+        ))}
+      </div>
+
+      {/* Days grid */}
+      <div className="grid grid-cols-7 text-center p-1 gap-y-0.5">
+        {days.map((item, idx) => {
+          const itemStr = `${item.year}-${String(item.month + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
+          const isSelected = selectedDateStr === itemStr;
+          const isToday = itemStr === todayStr;
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSelectDay(item.year, item.month, item.day)}
+              className={`h-[18px] w-full rounded text-[9.5px] font-medium transition-colors mx-auto ${
+                isSelected
+                  ? "bg-[#3B5166] text-white font-bold"
+                  : isToday
+                  ? "border border-[#C98A2B] text-[#C98A2B] font-bold"
+                  : item.current
+                  ? "hover:bg-[#EFEAE1] text-[#23282E]"
+                  : "text-[#C2BCB0] hover:bg-[#F5F2EA]"
+              }`}
+            >
+              {item.day}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Time selector */}
+      <div className="border-t border-[#EFEAE1] px-1.5 py-1 flex items-center gap-1.5">
+        <Clock size={11} className="text-[#6B6558] shrink-0" />
+        <select
+          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0.5 text-[10px] bg-[#FAF8F5] font-mono"
+          value={selectedTime.split(":")[0] || "08"}
+          onChange={(e) => handleTimeChange(`${e.target.value}:${selectedTime.split(":")[1] || "00"}`)}
+        >
+          {Array.from({ length: 24 }).map((_, h) => {
+            const hh = String(h).padStart(2, "0");
+            return <option key={hh} value={hh}>{hh}</option>;
+          })}
+        </select>
+        <span className="text-[10px] font-bold text-[#8A8375]">:</span>
+        <select
+          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0.5 text-[10px] bg-[#FAF8F5] font-mono"
+          value={["00", "30"].includes(selectedTime.split(":")[1]) ? selectedTime.split(":")[1] : "00"}
+          onChange={(e) => handleTimeChange(`${selectedTime.split(":")[0] || "08"}:${e.target.value}`)}
+        >
+          <option value="00">:00</option>
+          <option value="30">:30</option>
+        </select>
+        {selectedDateStr && (
+          <span className="text-[9.5px] text-[#3B5166] font-bold truncate ml-1">
+            {String(selectedDateStr.split("-")[2]).padStart(2, "0")}/{String(selectedDateStr.split("-")[1]).padStart(2, "0")}
+          </span>
+        )}
+      </div>
+
+      {/* Status note */}
+      {value && (
+        <div className="px-1.5 pb-1 text-[9px] text-[#6B6558]">
+          {status === "piese_sosite" && <span className="text-[#C98A2B] font-semibold">→ va fi mutat în „Programat"</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [form, setForm] = useState(safeClaim);
@@ -404,7 +548,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       <Field label="Programare service (Intrare)" full>
                         <div className="flex gap-2 items-start">
                           {/* Scrollable slot list */}
-                          <div className="flex flex-col gap-0.5 h-[120px] overflow-y-auto pr-1 border border-[#DAD4C6] rounded-md p-1 bg-[#FAF8F5] shrink-0 w-[130px] scrollbar-thin">
+                          <div className="flex flex-col gap-0.5 h-[168px] overflow-y-auto border border-[#DAD4C6] rounded-md p-1 bg-[#FAF8F5] shrink-0 w-[120px] scrollbar-thin">
                             {SLOTURI_ORARE.map((slot) => {
                               const active = getSlotForIso(form.dataProgramare) === slot;
                               return (
@@ -425,16 +569,12 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                             })}
                           </div>
 
-                          {/* Date + time picker + confirmation */}
-                          <div className="flex-1 flex flex-col gap-1 min-w-0">
-                            <DatePickerInput value={form.dataProgramare} onChange={(v) => set("dataProgramare", v)} withTime={true} placeholder="zi/luna/an, ore" />
-                            {form.dataProgramare && (
-                              <div className="text-[10.5px] text-[#3B5166] font-semibold flex items-center gap-1">
-                                📅 {fmtProgramare(form.dataProgramare)}
-                                {form.status === "piese_sosite" && <span className="text-[#C98A2B]"> — va fi mutat în „Programat"</span>}
-                              </div>
-                            )}
-                          </div>
+                          {/* Inline mini calendar */}
+                          <InlineMiniCalendar
+                            value={form.dataProgramare}
+                            onChange={(v) => set("dataProgramare", v)}
+                            status={form.status}
+                          />
                         </div>
                       </Field>
                     </div>
