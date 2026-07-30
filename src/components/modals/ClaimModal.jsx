@@ -6,7 +6,7 @@ import {
 import { STATUSES, INSURERS, getStatusDefinition } from "../../constants/config";
 import { fmtDate, fmtDateTime, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
-  emptyClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS
+  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS
 } from "../../utils/claimUtils";
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
@@ -27,15 +27,16 @@ function Field({ label, children, full }) {
 }
 
 export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
-  const [form, setForm] = useState(claim);
+  const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
+  const [form, setForm] = useState(safeClaim);
   const [noteText, setNoteText] = useState("");
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
-  const isNew = !claim.numarDosar && claim.note.length === 0 && claim.documente.length === 0;
+  const isNew = !safeClaim.numarDosar && (safeClaim.note || []).length === 0 && (safeClaim.documente || []).length === 0;
 
-  useEffect(() => setForm(claim), [claim]);
+  useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,8 +45,8 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       if (!claim?.id) return;
 
       const [poze, documente] = await Promise.all([
-        refreshStorageUrls(claim.poze, "poze-dosare", supabase),
-        refreshStorageUrls(claim.documente, "documente-dosare", supabase),
+        refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
+        refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
       ]);
 
       if (!cancelled) {
@@ -58,12 +59,12 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   }, [claim]);
 
   useEffect(() => {
-    if (isNew) { setIstoric([]); return; }
+    if (isNew || !claim?.id) { setIstoric([]); return; }
     setLoadingIstoric(true);
     supabase.from("istoric_dosar").select("*").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(100)
       .then(({ data }) => setIstoric(data || []))
       .finally(() => setLoadingIstoric(false));
-  }, [claim.id, isNew]);
+  }, [claim?.id, isNew]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...f.manopera, [dept]: val } }));
@@ -73,13 +74,13 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   const handleDuplicate = () => {
     const dup = {
       ...emptyClaim("primit"),
-      numarInmatriculare: claim.numarInmatriculare,
-      vin: claim.vin,
-      marcaModel: claim.marcaModel,
-      client: claim.client,
-      telefonClient: claim.telefonClient,
-      tipAsigurare: claim.tipAsigurare,
-      asigurator: claim.asigurator,
+      numarInmatriculare: form.numarInmatriculare,
+      vin: form.vin,
+      marcaModel: form.marcaModel,
+      client: form.client,
+      telefonClient: form.telefonClient,
+      tipAsigurare: form.tipAsigurare,
+      asigurator: form.asigurator,
     };
     onNotify("Date duplicate — completează numărul de dosar nou și verifică restul.", "success");
     onJumpTo(dup);
@@ -87,19 +88,19 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   const istoricClientVehicul = useMemo(() => {
     if (!allClaims) return [];
-    const tel = form.telefonClient.trim();
-    const vin = form.vin.trim().toUpperCase();
+    const tel = (form.telefonClient || "").trim();
+    const vin = (form.vin || "").trim().toUpperCase();
     if (!tel && !vin) return [];
     return allClaims.filter((c) => c.id !== claim.id && (
-      (tel && c.telefonClient.trim() === tel) || (vin && c.vin.trim().toUpperCase() === vin)
+      (tel && (c.telefonClient || "").trim() === tel) || (vin && (c.vin || "").trim().toUpperCase() === vin)
     ));
-  }, [allClaims, form.telefonClient, form.vin, claim.id]);
+  }, [allClaims, form.telefonClient, form.vin, claim?.id]);
 
   const handleSave = () => {
-    const numarDosar = form.numarDosar.trim();
-    const numarInmatriculare = form.numarInmatriculare.trim().toUpperCase();
-    const vin = form.vin.trim().toUpperCase();
-    const telefonClient = form.telefonClient.trim();
+    const numarDosar = (form.numarDosar || "").trim();
+    const numarInmatriculare = (form.numarInmatriculare || "").trim().toUpperCase();
+    const vin = (form.vin || "").trim().toUpperCase();
+    const telefonClient = (form.telefonClient || "").trim();
 
     if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return; }
     if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return; }

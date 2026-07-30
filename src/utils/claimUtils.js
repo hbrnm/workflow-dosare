@@ -23,6 +23,34 @@ export function emptyClaim(status = "primit") {
   };
 }
 
+export function sanitizeClaim(c) {
+  const base = emptyClaim();
+  if (!c) return base;
+  return {
+    ...base,
+    ...c,
+    numarDosar: c.numarDosar || "",
+    tipAsigurare: c.tipAsigurare || "CASCO",
+    asigurator: c.asigurator || "",
+    client: c.client || "",
+    telefonClient: c.telefonClient || "",
+    numarInmatriculare: c.numarInmatriculare || "",
+    vin: c.vin || "",
+    marcaModel: c.marcaModel || "",
+    status: c.status || "primit",
+    ceEsteDeReparat: c.ceEsteDeReparat || "",
+    masinaSchimb: c.masinaSchimb || "",
+    motivBlocare: c.motivBlocare || "",
+    note: Array.isArray(c.note) ? c.note : [],
+    documente: Array.isArray(c.documente) ? c.documente : [],
+    poze: Array.isArray(c.poze) ? c.poze : [],
+    manopera: {
+      tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(c.manopera?.tinichigerie || {}) },
+      vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(c.manopera?.vopsitorie || {}) },
+    },
+  };
+}
+
 export function toDb(c) {
   return {
     id: c.id,

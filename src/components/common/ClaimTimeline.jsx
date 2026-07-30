@@ -84,24 +84,28 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
                 </div>
 
                 <div className="mt-1 space-y-0.5 text-[11.5px]">
-                  {Object.entries(h.modificari || {}).map(([camp, diff]) => (
-                    <div key={camp} className="bg-white border border-[#DAD4C6]/70 rounded px-2 py-1 flex flex-wrap items-center gap-1">
-                      <span className="font-semibold text-[#3B5166]">{CAMP_LABELS[camp] || camp}:</span>
-                      {camp === "_creat" ? (
-                        <span className="text-[#3E6B45] font-semibold">Dosar înregistrat în sistem</span>
-                      ) : (
-                        <span className="text-[#23282E]">
-                          <span className="line-through text-[#8A8375] mr-1">
-                            {camp === "data_schimbare_status" ? fmtDateTime(diff.old) : formatIstoricValoare(camp, diff.old)}
+                  {Object.entries(h.modificari || {}).map(([camp, diff]) => {
+                    const oldVal = diff && typeof diff === "object" ? diff.old : undefined;
+                    const newVal = diff && typeof diff === "object" ? diff.new : diff;
+                    return (
+                      <div key={camp} className="bg-white border border-[#DAD4C6]/70 rounded px-2 py-1 flex flex-wrap items-center gap-1">
+                        <span className="font-semibold text-[#3B5166]">{CAMP_LABELS[camp] || camp}:</span>
+                        {camp === "_creat" ? (
+                          <span className="text-[#3E6B45] font-semibold">Dosar înregistrat în sistem</span>
+                        ) : (
+                          <span className="text-[#23282E]">
+                            <span className="line-through text-[#8A8375] mr-1">
+                              {camp === "data_schimbare_status" ? fmtDateTime(oldVal) : formatIstoricValoare(camp, oldVal)}
+                            </span>
+                            ➔{" "}
+                            <span className="font-bold text-[#C98A2B]">
+                              {camp === "data_schimbare_status" ? fmtDateTime(newVal) : formatIstoricValoare(camp, newVal)}
+                            </span>
                           </span>
-                          ➔{" "}
-                          <span className="font-bold text-[#C98A2B]">
-                            {camp === "data_schimbare_status" ? fmtDateTime(diff.new) : formatIstoricValoare(camp, diff.new)}
-                          </span>
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))
