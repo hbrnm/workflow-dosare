@@ -144,12 +144,6 @@ function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRi
           >
             <Copy size={11} className="inline mr-0.5" /> Duplică
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-            className="px-2 py-0.5 rounded bg-[#3B5166] text-white text-[10.5px] font-bold hover:bg-[#2C4160] transition-colors"
-          >
-            Detalii
-          </button>
         </div>
       </div>
     </div>
