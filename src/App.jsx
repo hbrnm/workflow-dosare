@@ -1183,7 +1183,7 @@ function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplica
       <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-xs flex items-center justify-between flex-wrap gap-2 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <Layers size={16} className="text-[#C98A2B]" /> Flux Operațional pe Faze (Cel Mai Eficient)
+            <Layers size={16} className="text-[#C98A2B]" /> Flux Operațional
           </span>
           <span className="text-[11.5px] text-[#8A8375]">({claims.length} dosare)</span>
         </div>
@@ -3481,7 +3481,7 @@ export default function App() {
             )}
             <div className="flex items-center gap-0.5 rounded-lg border border-white/25 bg-black/20 p-1">
               {[
-                { id: "flux", label: "Flux Faze", icon: Layers },
+                { id: "flux", label: "Flux Operațional", icon: Layers },
                 { id: "brief", label: "Brief", icon: Sunrise },
                 { id: "kanban", label: "Kanban", icon: LayoutGrid },
                 { id: "list", label: "Listă", icon: List },
