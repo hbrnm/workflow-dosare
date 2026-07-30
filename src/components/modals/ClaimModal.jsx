@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen
+  FolderOpen, PackageCheck, CheckCircle2
 } from "lucide-react";
 import { STATUSES, INSURERS, getStatusDefinition } from "../../constants/config";
 import { fmtDate, fmtDateTime, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
