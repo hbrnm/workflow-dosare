@@ -553,7 +553,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                           <PackageCheck size={13} /> 2. Gata de ridicare
                         </span>
                         <span className="text-[10px] opacity-85 mt-0.5 font-medium">
-                          {form.gataDeRidicare ? `${daysBetween(form.dataGataRidicare)}z în curte` : "În reparație"}
+                          {form.gataDeRidicare ? `${form.dataGataRidicare ? daysBetween(form.dataGataRidicare) : 0}z în curte` : "În reparație"}
                         </span>
                       </button>
 
