@@ -978,7 +978,6 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [dragOverKey, setDragOverKey] = useState(null);
   const [compactMode, setCompactMode] = useState(true);
-  const [fitScreen, setFitScreen] = useState(true);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2">
@@ -1002,17 +1001,6 @@ function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, on
             {compactMode ? <List size={14} /> : <LayoutGrid size={14} />}
             {compactMode ? "Mod Compact (Toate pe pagină)" : "Mod Detaliat"}
           </button>
-
-          <button
-            onClick={() => setFitScreen(!fitScreen)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11.5px] font-semibold transition-all ${
-              fitScreen
-                ? "bg-[#C98A2B] text-white border-[#C98A2B] shadow-xs"
-                : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            {fitScreen ? "Lățime ajustată pe ecran" : "Lățime fixă (Scroll orizontal)"}
-          </button>
         </div>
       </div>
 
@@ -1024,7 +1012,7 @@ function KanbanBoard({ claims, onOpen, onMove, onMoveToStatus, onAddInStatus, on
           return (
             <div
               key={s.key}
-              className={`flex-shrink-0 ${fitScreen ? "w-[195px] xl:w-[215px]" : "w-[260px]"} h-full flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-xs`}
+              className="flex-shrink-0 w-[195px] xl:w-[215px] h-full flex flex-col rounded-xl overflow-hidden border border-[#DAD4C6] shadow-xs"
               style={{ background: colors.tint }}
             >
               <div
