@@ -9,7 +9,7 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
-export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare }) {
+export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
@@ -20,7 +20,9 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   return (
     <div
       onClick={() => onOpen(claim)}
-      className={`group relative bg-white rounded-lg border p-2 transition-all duration-150 hover:shadow-md cursor-pointer text-[11.5px] ${
+      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer ${
+        compact ? "p-1.5 text-[10.5px]" : "p-2 text-[11.5px]"
+      } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
