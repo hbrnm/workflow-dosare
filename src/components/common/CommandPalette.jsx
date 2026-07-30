@@ -49,7 +49,6 @@ export default function CommandPalette({
     const views = [
       { type: "view", id: "flux", label: "Flux Operațional", sub: "Tabloul pe 4 faze", icon: Layers },
       { type: "view", id: "brief", label: "Brieful dimineții", sub: "Dosare de livrat & sunat azi", icon: Sunrise },
-      { type: "view", id: "kanban", label: "Tablou Kanban", sub: "Vizualizare pe coloane de status", icon: LayoutGrid },
       { type: "view", id: "list", label: "Tabel Dosare", sub: "Listă detaliată cu sortare", icon: List },
       { type: "view", id: "dashboard", label: "Statistici & Grafice", sub: "Indicatori cheie de performanță", icon: BarChart3 },
       { type: "view", id: "programator", label: "Calendar Service", sub: "Agendă săptămânală & lunară", icon: CalendarClock },

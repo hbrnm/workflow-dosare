@@ -11,7 +11,6 @@ import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
 import TablouPeFaze from "./components/views/FluxOperational";
-import KanbanBoard from "./components/views/KanbanBoard";
 import BriefZilnic from "./components/views/BriefZilnic";
 import ClaimTable from "./components/views/ClaimTable";
 import Dashboard from "./components/views/Dashboard";
@@ -248,7 +247,6 @@ export default function App() {
               {[
                 { id: "flux", label: "Flux Operațional", icon: Layers },
                 { id: "brief", label: "Brief", icon: Sunrise },
-                { id: "kanban", label: "Kanban", icon: LayoutGrid },
                 { id: "list", label: "Listă", icon: List },
                 { id: "dashboard", label: "Statistici", icon: BarChart3 },
                 { id: "programator", label: "Calendar", icon: CalendarClock },
@@ -300,15 +298,13 @@ export default function App() {
         </select>
       </div>
 
-      <div className={`flex-1 min-h-0 p-4 ${view === "kanban" || view === "flux" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+      <div className={`flex-1 min-h-0 p-4 ${view === "flux" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "flux" ? (
           <TablouPeFaze claims={filtered} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
         ) : view === "brief" ? (
           <BriefZilnic claims={claims} onOpen={openExisting} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
-        ) : view === "kanban" ? (
-          <KanbanBoard claims={filtered} onOpen={openExisting} onMove={handleMove} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
         ) : view === "list" ? (
           <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
         ) : view === "dashboard" ? (
