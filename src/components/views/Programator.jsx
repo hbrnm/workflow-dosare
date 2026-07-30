@@ -58,7 +58,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       <div className="bg-white rounded-lg border border-[#DAD4C6] px-3.5 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="text-[14px] font-bold text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Programări Service
+            Programator Service
           </div>
 
           <div className="flex items-center gap-1 bg-[#FAF8F5] p-1 rounded-md border border-[#DAD4C6]">
@@ -333,6 +333,8 @@ function MasaZilnica({ claims, capacitate, canEditFn, onOpen, onPatch }) {
             <div className="space-y-2.5 overflow-y-auto flex-1 pr-1 scrollbar-thin">
               {unassignedQueue.map((c) => {
                 const editable = canEditFn ? canEditFn(c) : true;
+                const hasDate = !!(c.dataProgramare && c.dataProgramare.trim());
+
                 return (
                   <div
                     key={c.id}
@@ -358,11 +360,15 @@ function MasaZilnica({ claims, capacitate, canEditFn, onOpen, onPatch }) {
                     <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
                     <div className="text-[10.5px] font-mono text-[#6B6558]">{c.numarInmatriculare || "—"}</div>
 
-                    {/* Dedicated Scheduling Controls & Action Button */}
+                    {/* Dedicated Scheduling Controls & Conditional Action Button */}
                     <div className="pt-2 mt-1 border-t border-[#DAD4C6]/60 space-y-1.5">
                       <div className="text-[10px] font-bold text-[#6B6558] flex items-center justify-between">
                         <span>Alege Data &amp; Ora:</span>
-                        {c.dataProgramare && <span className="text-[#3E6B45] font-semibold">✓ Selectat</span>}
+                        {hasDate ? (
+                          <span className="text-[#3E6B45] font-semibold">✓ Data selectată</span>
+                        ) : (
+                          <span className="text-[#B23A2E] font-medium">Ne-selectată</span>
+                        )}
                       </div>
 
                       <DatePickerInput
@@ -373,31 +379,30 @@ function MasaZilnica({ claims, capacitate, canEditFn, onOpen, onPatch }) {
                         className="w-full text-[11px] border border-[#DAD4C6] rounded px-2 py-1 bg-white min-h-[28px]"
                         onChange={(val) => {
                           if (onPatch) {
-                            onPatch(c.id, {
-                              dataProgramare: val,
-                              status: val ? "programat" : c.status,
-                              dataSchimbareStatus: nowISO(),
-                            });
+                            onPatch(c.id, { dataProgramare: val });
                           }
                         }}
                       />
 
                       <button
                         type="button"
-                        disabled={!editable}
+                        disabled={!editable || !hasDate}
                         onClick={() => {
-                          const targetDate = c.dataProgramare || `${selectedDate}T09:00:00`;
-                          if (onPatch) {
+                          if (hasDate && onPatch) {
                             onPatch(c.id, {
-                              dataProgramare: targetDate,
                               status: "programat",
                               dataSchimbareStatus: nowISO(),
                             });
                           }
                         }}
-                        className="w-full mt-1.5 py-1.5 rounded-md bg-[#3B5166] text-white text-[11px] font-bold hover:bg-[#2C4160] transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                        className={`w-full mt-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+                          hasDate
+                            ? "bg-[#3B5166] text-white hover:bg-[#2C4160] shadow-2xs cursor-pointer"
+                            : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6] cursor-not-allowed opacity-75"
+                        }`}
                       >
-                        <CalendarClock size={13} /> Confirmă Programare Service
+                        <CalendarClock size={13} />
+                        {hasDate ? "Confirmă Programare Service" : "Selectează mai întâi data & ora"}
                       </button>
                     </div>
                   </div>
@@ -559,6 +564,8 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
             <div className="space-y-2.5 overflow-y-auto flex-1 pr-1 scrollbar-thin">
               {unassignedQueue.map((c) => {
                 const editable = canEditFn ? canEditFn(c) : true;
+                const hasDate = !!(c.dataProgramare && c.dataProgramare.trim());
+
                 return (
                   <div
                     key={c.id}
@@ -584,11 +591,15 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
                     <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
                     <div className="text-[10.5px] font-mono text-[#6B6558]">{c.numarInmatriculare || "—"}</div>
 
-                    {/* Dedicated Scheduling Controls & Action Button */}
+                    {/* Dedicated Scheduling Controls & Conditional Action Button */}
                     <div className="pt-2 mt-1 border-t border-[#DAD4C6]/60 space-y-1.5">
                       <div className="text-[10px] font-bold text-[#6B6558] flex items-center justify-between">
                         <span>Alege Data &amp; Ora:</span>
-                        {c.dataProgramare && <span className="text-[#3E6B45] font-semibold">✓ Selectat</span>}
+                        {hasDate ? (
+                          <span className="text-[#3E6B45] font-semibold">✓ Data selectată</span>
+                        ) : (
+                          <span className="text-[#B23A2E] font-medium">Ne-selectată</span>
+                        )}
                       </div>
 
                       <DatePickerInput
@@ -599,31 +610,30 @@ function AgendaSaptamanala({ claims, capacitate, canEditFn, onOpen, onPatch }) {
                         className="w-full text-[11px] border border-[#DAD4C6] rounded px-2 py-1 bg-white min-h-[28px]"
                         onChange={(val) => {
                           if (onPatch) {
-                            onPatch(c.id, {
-                              dataProgramare: val,
-                              status: val ? "programat" : c.status,
-                              dataSchimbareStatus: nowISO(),
-                            });
+                            onPatch(c.id, { dataProgramare: val });
                           }
                         }}
                       />
 
                       <button
                         type="button"
-                        disabled={!editable}
+                        disabled={!editable || !hasDate}
                         onClick={() => {
-                          const targetDate = c.dataProgramare || nowISO();
-                          if (onPatch) {
+                          if (hasDate && onPatch) {
                             onPatch(c.id, {
-                              dataProgramare: targetDate,
                               status: "programat",
                               dataSchimbareStatus: nowISO(),
                             });
                           }
                         }}
-                        className="w-full mt-1.5 py-1.5 rounded-md bg-[#3B5166] text-white text-[11px] font-bold hover:bg-[#2C4160] transition-colors flex items-center justify-center gap-1 shadow-2xs"
+                        className={`w-full mt-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+                          hasDate
+                            ? "bg-[#3B5166] text-white hover:bg-[#2C4160] shadow-2xs cursor-pointer"
+                            : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6] cursor-not-allowed opacity-75"
+                        }`}
                       >
-                        <CalendarClock size={13} /> Confirmă Programare Service
+                        <CalendarClock size={13} />
+                        {hasDate ? "Confirmă Programare Service" : "Selectează mai întâi data & ora"}
                       </button>
                     </div>
                   </div>
