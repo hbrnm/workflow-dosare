@@ -216,11 +216,15 @@ export default function App() {
       <Notification notice={notice} onClose={() => setNotice(null)} />
       <div className="bg-[#23282E] px-4 py-3 shrink-0 z-30">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-[#C98A2B] flex items-center justify-center"><ShieldCheck size={18} className="text-white" /></div>
-            <div>
-              <div className="text-white font-semibold text-[15px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Dosare Daună · Flux Administrativ &amp; Fizic</div>
-              <div className="text-[11px] text-white/50">{claims.length} dosare {saving && <span className="inline-flex items-center gap-1 ml-1"><Loader2 size={10} className="animate-spin" />se salvează</span>}</div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => openNew()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all"
+            >
+              <Plus size={16} /> Dosar nou
+            </button>
+            <div className="text-[12px] text-white/70 font-semibold border-l border-white/20 pl-3">
+              {claims.length} dosare {saving && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Loader2 size={11} className="animate-spin" />se salvează</span>}
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -271,7 +275,6 @@ export default function App() {
               })}
             </div>
             <button onClick={exportExcel} className="flex items-center gap-1 px-3 py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /> Excel</button>
-            <button onClick={() => openNew()} className="flex items-center gap-1 px-3 py-1.5 rounded bg-[#C98A2B] text-white text-[12.5px] font-semibold hover:bg-[#B37A22]"><Plus size={14} /> Dosar nou</button>
           </div>
         </div>
       </div>
