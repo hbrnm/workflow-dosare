@@ -128,9 +128,9 @@ export function toDb(c) {
     created_by_email: c.createdByEmail,
     updated_by_email: c.updatedByEmail,
     gata_de_ridicare: c.gataDeRidicare,
-    data_gata_ridicare: c.data_gata_ridicare || null,
+    data_gata_ridicare: c.dataGataRidicare || null,
     ridicata: c.ridicata,
-    data_ridicare: c.data_ridicare || null,
+    data_ridicare: c.dataRidicare || null,
     incasat: c.incasat || false,
     data_incasarii: c.dataIncasarii || null,
   };
