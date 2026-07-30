@@ -34,6 +34,13 @@ export const PIE_COLORS = ["#3B5166", "#4A6FA5", "#C98A2B", "#3E6B45", "#B23A2E"
 
 export const FALLBACK_STATUS = STATUSES[0];
 
+// Limite pentru încărcarea fișierelor (poze / documente pe dosar), ca să nu
+// se umple accidental storage-ul cu fișiere prea mari sau prea multe.
+export const MAX_UPLOAD_SIZE_MB = 8;
+export const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+export const MAX_POZE_PER_DOSAR = 20;
+export const MAX_DOCUMENTE_PER_DOSAR = 15;
+
 export function getStatusDefinition(statusKey) {
   return STATUSES.find((status) => status.key === statusKey) || FALLBACK_STATUS;
 }

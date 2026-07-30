@@ -4,7 +4,10 @@ import {
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
   FolderOpen, PackageCheck, CheckCircle2
 } from "lucide-react";
-import { STATUSES, INSURERS, getStatusDefinition } from "../../constants/config";
+import {
+  STATUSES, INSURERS, getStatusDefinition,
+  MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
+} from "../../constants/config";
 import { fmtDate, fmtDateTime, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
   emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS
@@ -313,9 +316,32 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   };
 
   const handleUploadPoze = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const requested = Array.from(fileList || []);
+    if (requested.length === 0) return;
+
+    const locMax = MAX_POZE_PER_DOSAR - form.poze.length;
+    if (locMax <= 0) {
+      onNotify(`Ai atins limita de ${MAX_POZE_PER_DOSAR} poze pentru acest dosar.`, "error");
+      return;
+    }
+
+    const files = [];
+    const respinse = [];
+    for (const file of requested) {
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) { respinse.push(file.name); continue; }
+      if (files.length >= locMax) break;
+      files.push(file);
+    }
+    if (respinse.length) {
+      onNotify(`${respinse.length} fișier(e) peste ${MAX_UPLOAD_SIZE_MB}MB au fost ignorate: ${respinse.join(", ")}`, "error");
+    }
+    if (requested.length > locMax && files.length === locMax) {
+      onNotify(`Doar ${locMax} poze au fost încărcate — limita e ${MAX_POZE_PER_DOSAR}/dosar.`, "error");
+    }
     if (files.length === 0) return;
+
     setUploadingPoze(true);
+    const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
       const path = storagePath(claimId, file);
@@ -335,8 +361,30 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   };
 
   const handleUploadDocumente = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const requested = Array.from(fileList || []);
+    if (requested.length === 0) return;
+
+    const locMax = MAX_DOCUMENTE_PER_DOSAR - form.documente.length;
+    if (locMax <= 0) {
+      onNotify(`Ai atins limita de ${MAX_DOCUMENTE_PER_DOSAR} documente pentru acest dosar.`, "error");
+      return;
+    }
+
+    const files = [];
+    const respinse = [];
+    for (const file of requested) {
+      if (file.size > MAX_UPLOAD_SIZE_BYTES) { respinse.push(file.name); continue; }
+      if (files.length >= locMax) break;
+      files.push(file);
+    }
+    if (respinse.length) {
+      onNotify(`${respinse.length} fișier(e) peste ${MAX_UPLOAD_SIZE_MB}MB au fost ignorate: ${respinse.join(", ")}`, "error");
+    }
+    if (requested.length > locMax && files.length === locMax) {
+      onNotify(`Doar ${locMax} documente au fost încărcate — limita e ${MAX_DOCUMENTE_PER_DOSAR}/dosar.`, "error");
+    }
     if (files.length === 0) return;
+
     setUploadingDocumente(true);
     const noi = [];
     const claimId = form.id || claim?.id || uid();
