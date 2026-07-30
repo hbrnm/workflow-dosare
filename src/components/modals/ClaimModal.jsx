@@ -402,34 +402,40 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       </Field>
 
                       <Field label="Programare service (Intrare)" full>
-                        <div className="flex flex-wrap items-center gap-1 mb-1.5">
-                          <span className="text-[11px] text-[#6B6558] mr-1 font-semibold">Slot orar rapid:</span>
-                          {SLOTURI_ORARE.map((slot) => {
-                            const active = getSlotForIso(form.dataProgramare) === slot;
-                            return (
-                              <button
-                                key={slot}
-                                type="button"
-                                onClick={() => {
-                                  const newIso = makeIsoFromSlot(form.dataProgramare, slot);
-                                  set("dataProgramare", newIso);
-                                }}
-                                className={`px-2 py-0.5 rounded text-[10.5px] font-semibold border transition-colors ${
-                                  active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                                }`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <DatePickerInput value={form.dataProgramare} onChange={(v) => set("dataProgramare", v)} withTime={true} placeholder="zi/luna/an, ore" />
-                        {form.dataProgramare && (
-                          <div className="text-[11px] text-[#3B5166] mt-1 font-semibold">
-                            {fmtProgramare(form.dataProgramare)}
-                            {form.status === "piese_sosite" && <span className="text-[#C98A2B]"> — va fi mutat automat în „Programat"</span>}
+                        <div className="flex gap-2 items-start">
+                          {/* Scrollable slot list */}
+                          <div className="flex flex-col gap-0.5 h-[120px] overflow-y-auto pr-1 border border-[#DAD4C6] rounded-md p-1 bg-[#FAF8F5] shrink-0 w-[130px] scrollbar-thin">
+                            {SLOTURI_ORARE.map((slot) => {
+                              const active = getSlotForIso(form.dataProgramare) === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => {
+                                    const newIso = makeIsoFromSlot(form.dataProgramare, slot);
+                                    set("dataProgramare", newIso);
+                                  }}
+                                  className={`w-full px-1.5 py-0.5 rounded text-[10px] font-semibold border text-left transition-colors ${
+                                    active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                                  }`}
+                                >
+                                  {slot}
+                                </button>
+                              );
+                            })}
                           </div>
-                        )}
+
+                          {/* Date + time picker + confirmation */}
+                          <div className="flex-1 flex flex-col gap-1 min-w-0">
+                            <DatePickerInput value={form.dataProgramare} onChange={(v) => set("dataProgramare", v)} withTime={true} placeholder="zi/luna/an, ore" />
+                            {form.dataProgramare && (
+                              <div className="text-[10.5px] text-[#3B5166] font-semibold flex items-center gap-1">
+                                📅 {fmtProgramare(form.dataProgramare)}
+                                {form.status === "piese_sosite" && <span className="text-[#C98A2B]"> — va fi mutat în „Programat"</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </Field>
                     </div>
 
