@@ -63,6 +63,17 @@ export function sanitizeClaim(c) {
   };
 }
 
+export function normalizedText(str) {
+  if (!str) return "";
+  return String(str).toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+}
+
+export function isValidPhone(phone) {
+  if (!phone) return false;
+  const digits = String(phone).replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 export function storagePath(claimId, file, folder = "poze") {
   const ext = file.name ? file.name.split(".").pop() : "bin";
   return `${claimId || "temp"}/${folder}/${uid()}.${ext}`;
@@ -117,9 +128,9 @@ export function toDb(c) {
     created_by_email: c.createdByEmail,
     updated_by_email: c.updatedByEmail,
     gata_de_ridicare: c.gataDeRidicare,
-    data_gata_ridicare: c.dataGataRidicare || null,
+    data_gata_ridicare: c.data_gata_ridicare || null,
     ridicata: c.ridicata,
-    data_ridicare: c.dataRidicare || null,
+    data_ridicare: c.data_ridicare || null,
     incasat: c.incasat || false,
     data_incasarii: c.dataIncasarii || null,
   };
