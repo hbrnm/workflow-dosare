@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
-  ChevronDown, Check, Clock, Copy, ShieldCheck
+  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -149,6 +149,15 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
         </span>
 
         <div className="flex items-center gap-1">
+          {claim.status === "piese_sosite" && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+              title="Programează service"
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/30 text-[9px] font-bold transition-colors border border-[#C98A2B]/30"
+            >
+              <CalendarClock size={9} /> Programează
+            </button>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
             title="Duplică dosarul"
