@@ -10,7 +10,7 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
-export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false, highlighted = false }) {
+export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
@@ -38,12 +38,10 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       id={`claim-card-${claim.id}`}
       onClick={handleCardClick}
       onDoubleClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-      className={`group relative bg-white rounded-lg border transition-all duration-300 hover:shadow-md cursor-pointer select-none ${
+      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none ${
         compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
       } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
-      } ${
-        highlighted ? "ring-2 ring-[#C98A2B] ring-offset-2 scale-[1.02] shadow-lg animate-pulse" : ""
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
       title={compact && !isExpanded ? "Dublu-click pentru a deschide sau click simplu pentru detalii" : ""}
@@ -252,8 +250,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
   const [isCompactMode, setIsCompactMode] = useState(() => {
     return localStorage.getItem("flux_compact_mode") === "true";
   });
-  const [highlightedStatus, setHighlightedStatus] = useState(null);
-  const [highlightedStatuses, setHighlightedStatuses] = useState([]);
+  const [selectedSubStatus, setSelectedSubStatus] = useState(null);
 
   const toggleCompactMode = () => {
     setIsCompactMode((prev) => {
@@ -261,32 +258,6 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       localStorage.setItem("flux_compact_mode", String(next));
       return next;
     });
-  };
-
-  const handleSubStatusClick = (statusKey) => {
-    const matched = displayClaims.filter((c) => c.status === statusKey);
-    if (matched.length === 0) return;
-
-    const firstClaimId = matched[0].id;
-    const el = document.getElementById(`claim-card-${firstClaimId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightedStatus(statusKey);
-      setTimeout(() => setHighlightedStatus(null), 2500);
-    }
-  };
-
-  const handlePhaseHeaderClick = (phase) => {
-    const matched = displayClaims.filter((c) => phase.statuses.includes(c.status));
-    if (matched.length === 0) return;
-
-    const firstClaimId = matched[0].id;
-    const el = document.getElementById(`claim-card-${firstClaimId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      setHighlightedStatuses(phase.statuses);
-      setTimeout(() => setHighlightedStatuses([]), 2500);
-    }
   };
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
@@ -306,7 +277,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [claims]);
 
-  const displayClaims = useMemo(() => {
+  const claimsForCounts = useMemo(() => {
     let list = claims;
     if (quickFilter === "intarziate") list = alertClaims;
     else if (quickFilter === "blocate") list = blockedClaims;
@@ -319,6 +290,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     }
     return list;
   }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, gataRidicareClaims]);
+
+  const displayClaims = useMemo(() => {
+    let list = claimsForCounts;
+    if (selectedSubStatus) {
+      list = list.filter((c) => c.status === selectedSubStatus);
+    }
+    return list;
+  }, [claimsForCounts, selectedSubStatus]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
@@ -428,12 +407,26 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               <span>Mod Compact</span>
             </button>
           </div>
+
+          {/* Reset Sub-status Filter */}
+          {selectedSubStatus && (
+            <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+              <button
+                onClick={() => setSelectedSubStatus(null)}
+                className="px-2.5 py-0.5 rounded-md font-bold transition-all bg-[#B23A2E] text-white hover:bg-[#922D24] shadow-xs flex items-center gap-1 text-[11px]"
+                title="Resetează filtrul de etapă selectat"
+              >
+                <span>Filtru: {getStatusDefinition(selectedSubStatus).label} (X)</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 4 Phase Columns Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
+          const phaseClaimsForCount = claimsForCounts.filter((c) => phase.statuses.includes(c.status));
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));
 
           return (
@@ -443,18 +436,13 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               style={{ background: phase.bgColor }}
             >
               {/* Phase Column Header */}
-              <div
-                onClick={() => handlePhaseHeaderClick(phase)}
-                className="p-2.5 text-white shrink-0 cursor-pointer hover:brightness-105 active:brightness-95 transition-all select-none"
-                style={{ background: phase.barColor }}
-                title="Click pentru a derula și evidenția toate dosarele din această fază"
-              >
+              <div className="p-2.5 text-white shrink-0" style={{ background: phase.barColor }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-[12.5px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                     {phase.label}
                   </div>
                   <span className="min-w-[22px] h-[22px] px-1 flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
-                    {phaseClaims.length}
+                    {phaseClaimsForCount.length}
                   </span>
                 </div>
                 <div className="mt-0.5 text-[10px] opacity-80 leading-tight">
@@ -465,25 +453,36 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                 <div className="mt-2 flex items-center gap-1 flex-wrap">
                   {phase.statuses.map((stKey) => {
                     const stDef = getStatusDefinition(stKey);
-                    const stCount = phaseClaims.filter((c) => c.status === stKey).length;
+                    const stCount = phaseClaimsForCount.filter((c) => c.status === stKey).length;
                     const hasClaims = stCount > 0;
+                    const isActive = selectedSubStatus === stKey;
                     return (
                       <span
                         key={stKey}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (hasClaims) handleSubStatusClick(stKey);
+                          if (hasClaims) {
+                            setSelectedSubStatus(isActive ? null : stKey);
+                          }
                         }}
                         className={`px-1.5 py-0.2 rounded text-[9.5px] font-semibold flex items-center gap-1 transition-all select-none ${
-                          hasClaims
+                          isActive
+                            ? "bg-white text-[#23282E] font-bold shadow-xs scale-105"
+                            : hasClaims
                             ? "bg-white/15 hover:bg-white/30 cursor-pointer active:scale-95"
                             : "bg-white/5 opacity-40 cursor-not-allowed"
                         }`}
-                        title={hasClaims ? `Click pentru a derula la dosarele în etapa ${stDef.label}` : "Niciun dosar în această etapă"}
+                        title={
+                          isActive
+                            ? "Apasă pentru a șterge filtrul"
+                            : hasClaims
+                            ? `Filtrează după: ${stDef.label}`
+                            : "Niciun dosar în această etapă"
+                        }
                       >
                         <span className="opacity-75">{stDef.num}.</span>
                         <span>{stDef.label}</span>
-                        <span className="bg-white/25 px-1 rounded-full text-[9px] font-bold">{stCount}</span>
+                        <span className={`px-1 rounded-full text-[9px] font-bold ${isActive ? "bg-[#3B5166] text-white" : "bg-white/25"}`}>{stCount}</span>
                       </span>
                     );
                   })}
@@ -507,7 +506,6 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                       canEdit={canEditFn ? canEditFn(claim) : true}
                       pragRidicare={pragRidicare}
                       compact={isCompactMode}
-                      highlighted={highlightedStatus === claim.status || highlightedStatuses.includes(claim.status)}
                     />
                   ))
                 )}
