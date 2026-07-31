@@ -212,7 +212,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1]">
+    <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-[#EFEAE1]">
       <Notification notice={notice} onClose={() => setNotice(null)} />
       <div className="bg-[#23282E] px-4 py-3 shrink-0 z-30">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -233,18 +233,18 @@ export default function App() {
               Delogare
             </button>
             {alertCount > 0 && (
-              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {alertCount} depășite
+              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
+                <AlertTriangle size={13} /> {alertCount}<span className="hidden sm:inline"> depășite</span>
               </button>
             )}
             {blockedCount > 0 && (
-              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {blockedCount} blocate
+              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
+                <AlertTriangle size={13} /> {blockedCount}<span className="hidden sm:inline"> blocate</span>
               </button>
             )}
             {gataNeridicateCount > 0 && (
-              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
-                <PackageCheck size={13} /> {gataNeridicateCount} neridicate
+              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
+                <PackageCheck size={13} /> {gataNeridicateCount}<span className="hidden sm:inline"> neridicate</span>
               </button>
             )}
             <div className="flex items-center gap-0.5 rounded-lg border border-white/25 bg-black/20 p-1">
@@ -261,7 +261,7 @@ export default function App() {
                   <button
                     key={id}
                     onClick={() => setView(id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-all ${
+                    className={`flex items-center gap-1.5 px-2 py-1 md:px-2.5 md:py-1.5 rounded-md text-[12px] font-semibold transition-all ${
                       active
                         ? "bg-[#C98A2B] text-white shadow-sm font-bold"
                         : "text-white/80 hover:text-white hover:bg-white/15"
@@ -274,7 +274,7 @@ export default function App() {
                 );
               })}
             </div>
-            <button onClick={exportExcel} className="flex items-center gap-1 px-3 py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /> Excel</button>
+            <button onClick={exportExcel} className="flex items-center gap-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden sm:inline"> Excel</span></button>
           </div>
         </div>
       </div>
@@ -301,7 +301,7 @@ export default function App() {
         </select>
       </div>
 
-      <div className={`flex-1 min-h-0 p-4 ${view === "flux" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+      <div className={`flex-1 min-h-0 p-3 md:p-4 ${view === "flux" ? "flex flex-col overflow-y-auto md:overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "flux" ? (

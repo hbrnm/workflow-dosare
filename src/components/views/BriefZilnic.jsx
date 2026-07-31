@@ -51,7 +51,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
   const totalActiuniAzi = programariAzi.length + gataAzi.length + neridicateVechi.length + masiniSchimbDepasite.length + restante.length;
 
   const Sectiune = ({ icon, titlu, tone, items, gol }) => (
-    <div className="flex flex-col h-[500px] rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0 bg-[#F5F2EA]">
+    <div className="flex flex-col h-auto md:h-[500px] rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0 bg-[#F5F2EA]">
       {/* Section Header Bar */}
       <div className={`px-2.5 py-1.5 text-white text-[12px] font-bold flex items-center justify-between shrink-0 ${tone}`}>
         <span className="flex items-center gap-1.5 truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -63,7 +63,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
       </div>
 
       {/* Taller Scrollable Grid of Cards (2 Cards per row, extra compact size) */}
-      <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 overflow-y-auto flex-1 items-start auto-rows-max scrollbar-thin">
+      <div className="p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 overflow-y-visible md:overflow-y-auto flex-1 items-start auto-rows-max scrollbar-thin">
         {items.length === 0 ? (
           <div className="col-span-full text-[11px] text-[#8A8375] py-8 text-center italic bg-white/60 rounded-lg border border-dashed border-[#DAD4C6]">
             {gol}
@@ -143,7 +143,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
       </div>
 
       {/* Main Section Columns Grid: Dosare Restante PRIMUL */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-1 min-h-0 overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-1 min-h-0 md:overflow-y-auto">
         {/* 1. DOSARE RESTANTE ÎN ETAPĂ (PRIMUL SECTOR) */}
         <Sectiune
           icon={<AlertTriangle size={15} />}

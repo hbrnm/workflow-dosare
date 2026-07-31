@@ -424,7 +424,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       </div>
 
       {/* 4 Phase Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 md:overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaimsForCount = claimsForCounts.filter((c) => phase.statuses.includes(c.status));
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));
@@ -432,7 +432,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
           return (
             <div
               key={phase.key}
-              className="flex flex-col h-full rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0"
+              className="flex flex-col h-auto md:h-full rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0"
               style={{ background: phase.bgColor }}
             >
               {/* Phase Column Header */}
@@ -490,7 +490,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               </div>
 
               {/* Claims Grid (2 Cards per row when width permits) */}
-              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto flex-1 min-h-0 items-start auto-rows-max">
+              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-visible md:overflow-y-auto flex-1 md:min-h-0 items-start auto-rows-max">
                 {phaseClaims.length === 0 ? (
                   <div className="col-span-full text-center py-8 text-[11.5px] text-[#8A8375]/70 italic">
                     Niciun dosar în această fază

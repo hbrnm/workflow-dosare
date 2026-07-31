@@ -430,15 +430,13 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {!isNew && (
-              <div className="flex items-center gap-1.5">
-                <button
+                 <button
                   type="button"
                   onClick={() => generateazaPDF(form, istoric)}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
                 >
-                  <FileDown size={12} /> PDF Dosar
+                  <FileDown size={12} /><span className="hidden sm:inline"> PDF Dosar</span>
                 </button>
                 <button
                   type="button"
@@ -446,7 +444,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
                 >
-                  <FileDown size={12} /> Fișă Service
+                  <FileDown size={12} /><span className="hidden sm:inline"> Fișă Service</span>
                 </button>
                 {form.masinaSchimb && (
                   <button
@@ -455,14 +453,14 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-md px-2.5 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
                     title="Descarcă Proces-Verbal Predare/Primire Mașină la Schimb"
                   >
-                    <Car size={12} /> PV Auto Schimb
+                    <Car size={12} /><span className="hidden sm:inline"> PV Auto Schimb</span>
                   </button>
                 )}
               </div>
             )}
             {!isNew && (
               <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2 py-1 hover:bg-white/10">
-                <Copy size={12} /> Duplică
+                <Copy size={12} /><span className="hidden sm:inline"> Duplică</span>
               </button>
             )}
             <button onClick={onClose} className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
@@ -490,11 +488,11 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         )}
 
         {/* Modal Internal Sub-Tabs Navigation Bar */}
-        <div className="flex items-center gap-0.5 px-3 py-1 bg-[#FAF8F5] border-b border-[#DAD4C6] shrink-0">
+        <div className="flex items-center gap-0.5 px-3 py-1 bg-[#FAF8F5] border-b border-[#DAD4C6] shrink-0 overflow-x-auto whitespace-nowrap scrollbar-none">
           <button
             type="button"
             onClick={() => setActiveTab("date")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
               activeTab === "date" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
@@ -503,7 +501,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           <button
             type="button"
             onClick={() => setActiveTab("service")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
               activeTab === "service" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
@@ -512,7 +510,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           <button
             type="button"
             onClick={() => setActiveTab("media")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
               activeTab === "media" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
@@ -526,7 +524,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           <button
             type="button"
             onClick={() => setActiveTab("note")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all ${
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
               activeTab === "note" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
             }`}
           >
@@ -710,12 +708,12 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </div>
 
                     {/* Interactive 3-Step Physical Status Stepper */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2 flex items-center justify-between gap-1 text-[11.5px] shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-1 text-[11.5px] shadow-2xs">
                       {/* Step 1: Adusă fizic */}
                       <button
                         type="button"
                         onClick={() => set("adusaFizic", !form.adusaFizic)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
                           form.adusaFizic
                             ? "bg-[#3B5166] text-white border-[#3B5166] font-bold shadow-xs"
                             : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
@@ -729,13 +727,13 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         </span>
                       </button>
 
-                      <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+                      <span className="text-[#8A8375] font-bold text-[11px] rotate-90 sm:rotate-0">➔</span>
 
                       {/* Step 2: Gata de ridicare */}
                       <button
                         type="button"
                         onClick={() => toggleGata(!form.gataDeRidicare)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
                           form.gataDeRidicare
                             ? "bg-[#C98A2B] text-white border-[#C98A2B] font-bold shadow-xs"
                             : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
@@ -749,14 +747,14 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         </span>
                       </button>
 
-                      <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+                      <span className="text-[#8A8375] font-bold text-[11px] rotate-90 sm:rotate-0">➔</span>
 
                       {/* Step 3: Ridicată de client */}
                       <button
                         type="button"
                         onClick={() => toggleRidicata(!form.ridicata)}
                         disabled={!form.gataDeRidicare && !form.ridicata}
-                        className={`flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
                           form.ridicata
                             ? "bg-[#3E6B45] text-white border-[#3E6B45] font-bold shadow-xs"
                             : !form.gataDeRidicare
@@ -791,7 +789,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         </button>
                       )}
                     </div>
-                    <div className="grid grid-cols-3 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <Field label="Mașină la schimb (nr.)">
                         <input className="in font-semibold" placeholder="lasă gol dacă nu" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} />
                       </Field>
@@ -823,7 +821,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
                       <Paintbrush size={14} /> Manoperă Facturată pe Etape
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("tinichigerie", v)} />
                       <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("vopsitorie", v)} />
                     </div>
@@ -842,7 +840,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         </span>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white space-y-1">
                         <div className="text-[11.5px] font-bold text-[#23282E]">Valoare piese Audatex</div>
                         <div className="flex items-center gap-1.5">
