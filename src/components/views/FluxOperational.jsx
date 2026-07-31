@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
-  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock, Truck,
+  ChevronDown, Check, Clock, Copy, CalendarClock, Truck,
   Minimize2, Maximize2, ExternalLink
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
@@ -248,7 +248,6 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
 }
 
 export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, quickFilter, setQuickFilter }) {
-  const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [mobileExpandedPhases, setMobileExpandedPhases] = useState({ start: true });
 
@@ -260,37 +259,23 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
   };
 
   const alertClaims = useMemo(() => claims.filter(isStageOverdue), [claims]);
-  const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
+  const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
   const inLucruClaims = useMemo(() => claims.filter((c) => c.adusaFizic && !c.gataDeRidicare && !c.ridicata && c.status !== "facturat"), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
   const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
   const gataRidicareIntarziateClaims = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare || 3)), [claims, pragRidicare]);
 
-  // Unique list of active insurers with claim counts
-  const insurerStats = useMemo(() => {
-    const map = {};
-    claims.forEach((c) => {
-      if (c.asigurator) {
-        map[c.asigurator] = (map[c.asigurator] || 0) + 1;
-      }
-    });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]);
-  }, [claims]);
-
   const claimsForCounts = useMemo(() => {
     let list = claims;
     if (quickFilter === "intarziate") list = alertClaims;
-    else if (quickFilter === "blocate") list = blockedClaims;
+    else if (quickFilter === "atentie") list = attentionClaims;
     else if (quickFilter === "in_lucru") list = inLucruClaims;
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
     else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "gata_ridicare_intarziate") list = gataRidicareIntarziateClaims;
 
-    if (selectedInsurer !== "toti") {
-      list = list.filter((c) => c.asigurator === selectedInsurer);
-    }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, inLucruClaims, pieseSositeClaims, programateClaims, gataRidicareIntarziateClaims]);
+  }, [claims, quickFilter, alertClaims, attentionClaims, inLucruClaims, pieseSositeClaims, programateClaims, gataRidicareIntarziateClaims]);
 
   const displayClaims = useMemo(() => {
     let list = claimsForCounts;
@@ -304,9 +289,9 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
       <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs shrink-0">
         <div className="flex items-center justify-between gap-2 mb-1.5 md:mb-0">
-          <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5 shrink-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <button onClick={() => { setQuickFilter("toate"); setSelectedSubStatus(null); }} className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5 shrink-0 hover:text-[#3B5166]" title="Arată toate dosarele" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <Layers size={15} className="text-[#C98A2B]" /> Flux Operațional
-          </span>
+          </button>
           <span className="text-[11.5px] text-[#8A8375] shrink-0">({displayClaims.length} / {claims.length})</span>
         </div>
 
@@ -314,34 +299,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
         <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
           <div className="flex items-center gap-1.5 text-[11px] min-w-max">
             <button
-              onClick={() => setQuickFilter("toate")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all whitespace-nowrap ${
-                quickFilter === "toate"
-                  ? "bg-[#23282E] text-white shadow-xs font-bold"
-                  : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"
-              }`}
-            >
-              Toate ({claims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "intarziate" ? "toate" : "intarziate")}
+              onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "intarziate"
+                quickFilter === "atentie"
                   ? "bg-[#B23A2E] text-white shadow-xs font-bold"
                   : "bg-[#B23A2E]/10 text-[#B23A2E] hover:bg-[#B23A2E]/20"
               }`}
             >
-              <AlertTriangle size={11} /> Depășite ({alertClaims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "blocate" ? "toate" : "blocate")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "blocate"
-                  ? "bg-[#23282E] text-white shadow-xs font-bold"
-                  : "bg-[#23282E]/10 text-[#23282E] hover:bg-[#23282E]/20"
-              }`}
-            >
-              <AlertOctagon size={11} /> Blocate ({blockedClaims.length})
+              <AlertTriangle size={11} /> Necesită atenție ({attentionClaims.length})
             </button>
             <button
               onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
@@ -383,27 +348,6 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
             >
               <Truck size={11} /> Neridicate ({gataRidicareIntarziateClaims.length})
             </button>
-
-            {/* Insurer Quick Filter - hidden on mobile */}
-            {insurerStats.length > 0 && (
-              <div className="hidden md:flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
-                <ShieldCheck size={12} className="text-[#3B5166]" />
-                <select
-                  className="bg-[#FAF8F5] border border-[#DAD4C6] rounded px-1.5 py-0.5 text-[11px] font-semibold text-[#23282E] focus:outline-hidden"
-                  value={selectedInsurer}
-                  onChange={(e) => setSelectedInsurer(e.target.value)}
-                >
-                  <option value="toti">Toti Asigurătorii</option>
-                  {insurerStats.map(([name, count]) => (
-                    <option key={name} value={name}>
-                      {name} ({count})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-
 
             {/* Reset Sub-status Filter */}
             {selectedSubStatus && (

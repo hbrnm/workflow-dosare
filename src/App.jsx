@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, LayoutGrid, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, ShieldCheck
+  AlertTriangle, PackageCheck, Loader2, ShieldCheck, SlidersHorizontal, X
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -32,6 +32,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filterTip, setFilterTip] = useState("toate");
   const [filterStatus, setFilterStatus] = useState("toate");
+  const [filterAsigurator, setFilterAsigurator] = useState("toti");
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
@@ -193,12 +195,23 @@ export default function App() {
     return claims.filter((c) => {
       if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
+      if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
       if (onlyBlocked && !c.blocat) return false;
       if (!q) return true;
       return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
         (c.numarDosar || "").toLowerCase().includes(q) || (c.asigurator || "").toLowerCase().includes(q) || (c.vin || "").toLowerCase().includes(q);
     });
-  }, [claims, search, filterTip, filterStatus, onlyBlocked]);
+  }, [claims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked]);
+
+  const insurers = useMemo(() => [...new Set(claims.map((c) => c.asigurator).filter(Boolean))].sort(), [claims]);
+  const activeFilterCount = [filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti"].filter(Boolean).length;
+  const resetFilters = () => {
+    setFilterTip("toate");
+    setFilterStatus("toate");
+    setFilterAsigurator("toti");
+    setOnlyBlocked(false);
+    setFluxFilter("toate");
+  };
 
   const alertCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
@@ -348,8 +361,10 @@ export default function App() {
         </div>
       </div>
 
-      <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 shrink-0 z-20">
-        <div className="relative w-full sm:w-[260px]">
+      {!["brief", "programator"].includes(view) && (
+      <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] shrink-0 z-20">
+        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-[280px]">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8375]" />
           <input className="w-full pl-8 pr-16 py-1.5 rounded border border-[#DAD4C6] text-[16px] md:text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid..." value={search} onChange={(e) => setSearch(e.target.value)} />
           <button
@@ -361,14 +376,42 @@ export default function App() {
             Ctrl+K
           </button>
         </div>
-        <select className="in max-w-[110px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
-          <option value="toate">Toate tipurile</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
-        </select>
-        <select className="in max-w-[200px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="toate">Toate statusurile</option>
-          {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-        </select>
+        <button
+          type="button"
+          onClick={() => setShowFilterPanel((open) => !open)}
+          className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
+        >
+          <SlidersHorizontal size={14} /> Filtre
+          {activeFilterCount > 0 && <span className="rounded-full bg-[#3B5166] px-1.5 text-[10px] text-white">{activeFilterCount}</span>}
+        </button>
+        </div>
+        {showFilterPanel && (
+          <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[#DAD4C6] bg-[#FAF8F5] p-2.5">
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Tip asigurare</span>
+              <select className="in min-w-[130px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
+                <option value="toate">Toate</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Asigurător</span>
+              <select className="in min-w-[190px]" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
+                <option value="toti">Toți asigurătorii</option>
+                {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Status</span>
+              <select className="in min-w-[190px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                <option value="toate">Toate statusurile</option>
+                {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
+              </select>
+            </label>
+            {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[#B23A2E] hover:underline"><X size={13} /> Resetează</button>}
+          </div>
+        )}
       </div>
+      )}
 
       <div className={`flex-1 min-h-0 p-3 md:p-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
