@@ -261,7 +261,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
 
   const alertClaims = useMemo(() => claims.filter(isStageOverdue), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
-  const masinaSchimbClaims = useMemo(() => claims.filter((c) => c.masinaSchimb), [claims]);
+  const inLucruClaims = useMemo(() => claims.filter((c) => c.adusaFizic), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
   const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
   const gataRidicareClaims = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata), [claims]);
@@ -282,7 +282,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     let list = claims;
     if (quickFilter === "intarziate") list = alertClaims;
     else if (quickFilter === "blocate") list = blockedClaims;
-    else if (quickFilter === "masini_schimb") list = masinaSchimbClaims;
+    else if (quickFilter === "in_lucru") list = inLucruClaims;
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
     else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "gata_ridicare") list = gataRidicareClaims;
@@ -292,7 +292,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       list = list.filter((c) => c.asigurator === selectedInsurer);
     }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, programateClaims, gataRidicareClaims, gataRidicareIntarziateClaims]);
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, inLucruClaims, pieseSositeClaims, programateClaims, gataRidicareClaims, gataRidicareIntarziateClaims]);
 
   const displayClaims = useMemo(() => {
     let list = claimsForCounts;
@@ -366,14 +366,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               <CalendarClock size={11} /> Programate ({programateClaims.length})
             </button>
             <button
-              onClick={() => setQuickFilter(quickFilter === "masini_schimb" ? "toate" : "masini_schimb")}
+              onClick={() => setQuickFilter(quickFilter === "in_lucru" ? "toate" : "in_lucru")}
               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "masini_schimb"
+                quickFilter === "in_lucru"
                   ? "bg-[#3B5166] text-white shadow-xs font-bold"
                   : "bg-[#3B5166]/10 text-[#3B5166] hover:bg-[#3B5166]/20"
               }`}
             >
-              <Car size={11} /> Auto ({masinaSchimbClaims.length})
+              <Car size={11} /> În lucru ({inLucruClaims.length})
             </button>
             <button
               onClick={() => setQuickFilter(quickFilter === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate")}
