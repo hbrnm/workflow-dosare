@@ -359,7 +359,15 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
-  const toggleGata = (checked) => setForm((f) => ({ ...f, gataDeRidicare: checked, dataGataRidicare: checked && !f.dataGataRidicare ? nowISO() : f.dataGataRidicare }));
+  // Repornește termenul de neridicare de fiecare dată când mașina este
+  // marcată din nou ca gata de ridicare.
+  const toggleGata = (checked) => setForm((f) => ({
+    ...f,
+    gataDeRidicare: checked,
+    dataGataRidicare: checked ? nowISO() : null,
+    ridicata: checked ? f.ridicata : false,
+    dataRidicare: checked ? f.dataRidicare : null,
+  }));
   const toggleRidicata = (checked) => setForm((f) => ({ ...f, ridicata: checked, dataRidicare: checked && !f.dataRidicare ? nowISO() : f.dataRidicare }));
 
   const handleDuplicate = () => {

@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
+import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import StatCard from "../common/StatCard";
 
 export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
@@ -14,10 +15,11 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
   const casco = claims.filter((c) => c.tipAsigurare === "CASCO").length;
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
-  const gataNeridicateCount = claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare).length;
+  const gataNeridicateCount = claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length;
   
-  const overdueList = claims.map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 3) }))
-    .filter((c) => c.zileIntarziere >= 0).sort((a, b) => b.zileIntarziere - a.zileIntarziere);
+  const overdueList = claims.filter(isStageOverdue)
+    .map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - (c.termenAlertaZile || 3) }))
+    .sort((a, b) => b.zileIntarziere - a.zileIntarziere);
   
   // Replacement car active monitoring
   const masiniSchimbActive = useMemo(() => {

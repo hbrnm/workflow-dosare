@@ -6,7 +6,8 @@ import {
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import { STATUSES, getStatusDefinition } from "./constants/config";
-import { todayISO, nowISO, fmtDate, daysBetween } from "./utils/dateUtils";
+import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
+import { isReadyForPickupOverdue, isStageOverdue } from "./utils/alertUtils";
 import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
@@ -31,9 +32,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [filterTip, setFilterTip] = useState("toate");
   const [filterStatus, setFilterStatus] = useState("toate");
-  const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [onlyBlocked, setOnlyBlocked] = useState(false);
-  const [onlyGataNeridicate, setOnlyGataNeridicate] = useState(false);
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
@@ -185,18 +184,16 @@ export default function App() {
     return claims.filter((c) => {
       if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
-      if (onlyAlerts && daysBetween(c.dataSchimbareStatus) < (c.termenAlertaZile || 3)) return false;
       if (onlyBlocked && !c.blocat) return false;
-      if (onlyGataNeridicate && !(c.gataDeRidicare && !c.ridicata)) return false;
       if (!q) return true;
       return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
         (c.numarDosar || "").toLowerCase().includes(q) || (c.asigurator || "").toLowerCase().includes(q) || (c.vin || "").toLowerCase().includes(q);
     });
-  }, [claims, search, filterTip, filterStatus, onlyAlerts, onlyBlocked, onlyGataNeridicate]);
+  }, [claims, search, filterTip, filterStatus, onlyBlocked]);
 
-  const alertCount = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)).length, [claims]);
+  const alertCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
-  const gataNeridicateCount = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare).length, [claims, pragRidicare]);
+  const gataNeridicateCount = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [claims, pragRidicare]);
 
   const exportExcel = () => {
     const rows = claims.map((c) => ({
@@ -290,7 +287,14 @@ export default function App() {
               </button>
             )}
             {gataNeridicateCount > 0 && (
-              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
+              <button
+                onClick={() => {
+                  setView("flux");
+                  setFluxFilter((prev) => prev === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate");
+                }}
+                className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${view === "flux" && fluxFilter === "gata_ridicare_intarziate" ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}
+                title={`Mașini gata de ridicare de cel puțin ${pragRidicare} zile`}
+              >
                 <PackageCheck size={13} /> {gataNeridicateCount}
               </button>
             )}

@@ -4,6 +4,7 @@ import {
   Clock, CheckCircle2, ShieldAlert, BarChart3, ChevronRight, User, HelpCircle
 } from "lucide-react";
 import { todayISO, daysBetween, telLink } from "../../utils/dateUtils";
+import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
@@ -31,7 +32,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
   // Clients to call (vehicles finished but not picked up past the threshold)
   const neridicateVechi = useMemo(() =>
-    claims.filter((c) => c.gataDeRidicare && !c.ridicata && daysBetween(c.dataGataRidicare) >= pragRidicare)
+    claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare))
       .sort((a, b) => daysBetween(b.dataGataRidicare) - daysBetween(a.dataGataRidicare)),
     [claims, pragRidicare]);
 
@@ -49,7 +50,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
   // Files overdue in their current stage/status
   const restante = useMemo(() =>
-    claims.filter((c) => c.status !== "facturat" && daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3))
+    claims.filter(isStageOverdue)
       .sort((a, b) => daysBetween(b.dataSchimbareStatus) - daysBetween(a.dataSchimbareStatus)),
     [claims]);
 

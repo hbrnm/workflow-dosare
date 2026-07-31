@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
+import { isStageOverdue } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 
@@ -55,7 +56,7 @@ export default function ClaimTable({ claims, onOpen, canEditFn }) {
           {sorted.map((c, i) => {
             const s = getStatusDefinition(c.status);
             const days = daysBetween(c.dataSchimbareStatus);
-            const overdue = days >= (c.termenAlertaZile || 3);
+            const overdue = isStageOverdue(c);
             return (
               <tr key={c.id} onClick={() => onOpen(c)} className={`cursor-pointer border-t border-[#EFEAE1] hover:bg-[#F7F4EC] ${i % 2 ? "bg-[#FCFAF5]" : "bg-white"}`}>
                 <td className="px-3 py-2 font-mono font-semibold whitespace-nowrap">{c.numarDosar || "—"}</td>

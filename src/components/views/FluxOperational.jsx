@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
+import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -16,9 +17,9 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
-  const overdue = days >= (claim.termenAlertaZile || 3);
+  const overdue = isStageOverdue(claim);
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
-  const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
+  const neridicataAlert = isReadyForPickupOverdue(claim, pragRidicare || 3);
 
   const expanded = isExpanded;
 
@@ -59,7 +60,7 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
         </span>
         <div className="flex items-center gap-1 shrink-0">
           <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
-          <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
+          {overdue && <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />}
           
           {/* Quick open button in compact collapsed view */}
           {compact && !isExpanded && (
@@ -258,12 +259,13 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     }));
   };
 
-  const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
+  const alertClaims = useMemo(() => claims.filter(isStageOverdue), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
   const masinaSchimbClaims = useMemo(() => claims.filter((c) => c.masinaSchimb), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
   const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
   const gataRidicareClaims = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata), [claims]);
+  const gataRidicareIntarziateClaims = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare || 3)), [claims, pragRidicare]);
 
   // Unique list of active insurers with claim counts
   const insurerStats = useMemo(() => {
@@ -284,12 +286,13 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
     else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "gata_ridicare") list = gataRidicareClaims;
+    else if (quickFilter === "gata_ridicare_intarziate") list = gataRidicareIntarziateClaims;
 
     if (selectedInsurer !== "toti") {
       list = list.filter((c) => c.asigurator === selectedInsurer);
     }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, programateClaims, gataRidicareClaims]);
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, programateClaims, gataRidicareClaims, gataRidicareIntarziateClaims]);
 
   const displayClaims = useMemo(() => {
     let list = claimsForCounts;
@@ -373,14 +376,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               <Car size={11} /> Auto ({masinaSchimbClaims.length})
             </button>
             <button
-              onClick={() => setQuickFilter(quickFilter === "gata_ridicare" ? "toate" : "gata_ridicare")}
+              onClick={() => setQuickFilter(quickFilter === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate")}
               className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "gata_ridicare"
-                  ? "bg-[#4A7C3E] text-white shadow-xs font-bold"
-                  : "bg-[#4A7C3E]/15 text-[#3A5C2E] hover:bg-[#4A7C3E]/25"
+                quickFilter === "gata_ridicare_intarziate"
+                  ? "bg-[#C98A2B] text-white shadow-xs font-bold"
+                  : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
               }`}
             >
-              <Truck size={11} /> Gata ({gataRidicareClaims.length})
+              <Truck size={11} /> Neridicate ({gataRidicareIntarziateClaims.length})
             </button>
 
             {/* Insurer Quick Filter - hidden on mobile */}
