@@ -15,6 +15,7 @@ import {
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
 } from "../../utils/pdfGenerator";
+import { jsPDF } from "jspdf";
 import { supabase } from "../../supabaseClient";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
@@ -172,11 +173,55 @@ function InlineMiniCalendar({ value, onChange, status }) {
   );
 }
 
+export function processScanImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+
+          // Apply high-contrast grayscale filter for B&W "scan" look
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i+1];
+            const b = data[i+2];
+            let v = (0.2126 * r + 0.7152 * g + 0.0722 * b);
+            // Increase contrast dynamically to make background white and text dark
+            v = v > 130 ? Math.min(255, v * 1.2) : Math.max(0, v * 0.8);
+            data[i] = v;
+            data[i+1] = v;
+            data[i+2] = v;
+          }
+          ctx.putImageData(imgData, 0, 0);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(new Error("Eroare la procesarea imaginii."));
+        }
+      };
+      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [form, setForm] = useState(safeClaim);
   const [activeTab, setActiveTab] = useState("date"); // "date", "service", "media", "note"
   const [noteText, setNoteText] = useState("");
+  const [scanSession, setScanSession] = useState(null);
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
@@ -405,6 +450,75 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     if (noi.length) onNotify(`${noi.length} document(e) încărcat(e).`, "success");
   };
 
+  const handleStartScanSession = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    try {
+      const processedPageDataUrl = await processScanImage(file);
+      setScanSession({
+        pages: [processedPageDataUrl],
+        fileName: `Document_${form.numarDosar || "Nou"}_${uid().slice(0, 4)}`
+      });
+    } catch (err) {
+      onNotify(err.message, "error");
+    }
+  };
+
+  const handleAddPageToScan = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    try {
+      const processedPageDataUrl = await processScanImage(file);
+      setScanSession((prev) => ({
+        ...prev,
+        pages: [...prev.pages, processedPageDataUrl]
+      }));
+    } catch (err) {
+      onNotify(err.message, "error");
+    }
+  };
+
+  const handleSaveMultiPageScan = async () => {
+    if (!scanSession || scanSession.pages.length === 0) return;
+    setUploadingDocumente(true);
+    try {
+      const pdf = new jsPDF({
+        unit: "pt",
+        format: "a4"
+      });
+
+      for (let i = 0; i < scanSession.pages.length; i++) {
+        const pageDataUrl = scanSession.pages[i];
+        const img = await new Promise((resolve, reject) => {
+          const o = new Image();
+          o.onload = () => resolve(o);
+          o.onerror = () => reject(new Error("Eroare la încărcarea paginii."));
+          o.src = pageDataUrl;
+        });
+
+        const orientation = img.width > img.height ? "l" : "p";
+        if (i > 0) {
+          pdf.addPage([img.width, img.height], orientation);
+        } else {
+          pdf.deletePage(1);
+          pdf.addPage([img.width, img.height], orientation);
+        }
+        pdf.addImage(pageDataUrl, "JPEG", 0, 0, img.width, img.height);
+      }
+
+      const blob = pdf.output("blob");
+      const name = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+      const pdfFile = new File([blob], `${name}.pdf`, { type: "application/pdf" });
+
+      await handleUploadDocumente([pdfFile]);
+      setScanSession(null);
+    } catch (err) {
+      onNotify(err.message, "error");
+    } finally {
+      setUploadingDocumente(false);
+    }
+  };
+
   const removePoza = async (poza) => {
     if (poza?.path) {
       const { error } = await supabase.storage.from("poze-dosare").remove([poza.path]);
@@ -418,7 +532,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div onClick={(e) => e.stopPropagation()} className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+      <div onClick={(e) => e.stopPropagation()} className="relative bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
         
         {/* Header Modal Bar */}
         <div className="flex items-center justify-between px-3 py-1.5 bg-[#23282E] text-white shrink-0">
@@ -916,7 +1030,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </label>
                     <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
                       {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Deschidere cameră...</> : <><FileText size={13} /> Scanează (Cameră)</>}
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleStartScanSession(e.target.files)} />
                     </label>
                   </div>
 
@@ -1010,6 +1124,80 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </div>
         </div>
 
+        {/* Scanner Session Overlay */}
+        {scanSession && (
+          <div className="absolute inset-0 bg-[#23282E]/95 z-50 flex flex-col p-4 text-white">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+              <h3 className="font-bold text-[13px] flex items-center gap-1.5 text-[#C98A2B]"><FileText size={16} /> Scanare document cu pagini multiple</h3>
+              <button type="button" onClick={() => setScanSession(null)} className="text-white/70 hover:text-white"><X size={18} /></button>
+            </div>
+
+            {/* Pages list / preview */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {scanSession.pages.map((pageDataUrl, idx) => (
+                  <div key={idx} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-[3/4] bg-white/5">
+                    <img src={pageDataUrl} alt={`Pagina ${idx + 1}`} className="w-full h-full object-contain" />
+                    <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-bold">Pag. {idx + 1}</div>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setScanSession(prev => ({
+                          ...prev,
+                          pages: prev.pages.filter((_, i) => i !== idx)
+                        }));
+                      }} 
+                      className="absolute top-1 right-1 bg-[#B23A2E] text-white rounded p-1 hover:opacity-80"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+                {/* Add Page Button */}
+                <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
+                  <Plus size={20} className="text-[#C98A2B]" />
+                  <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleAddPageToScan(e.target.files)} />
+                </label>
+              </div>
+            </div>
+
+            {/* Footer controls */}
+            <div className="border-t border-white/10 pt-3 space-y-3 shrink-0">
+              <div>
+                <label className="block text-[10px] text-white/60 font-semibold mb-1">Nume document (PDF)</label>
+                <div className="flex items-center gap-1 bg-white/5 border border-white/20 rounded-lg px-2 py-1">
+                  <input 
+                    className="bg-transparent border-0 text-[13px] text-white focus:outline-hidden w-full placeholder:text-white/30" 
+                    placeholder="ex: Declaratie_accident" 
+                    value={scanSession.fileName} 
+                    onChange={(e) => setScanSession(prev => ({ ...prev, fileName: e.target.value }))} 
+                  />
+                  <span className="text-[12px] text-white/40 font-bold font-mono shrink-0">.pdf</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => setScanSession(null)} 
+                  className="px-4 py-1.5 rounded-lg border border-white/20 hover:bg-white/5 text-[12.5px] font-semibold text-white/80 transition-colors"
+                >
+                  Anulează
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSaveMultiPageScan} 
+                  disabled={scanSession.pages.length === 0}
+                  className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><Save size={13} /> Salvează PDF ({scanSession.pages.length} pag.)</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
