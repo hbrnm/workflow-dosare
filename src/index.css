@@ -63,17 +63,19 @@ input, textarea, select, [contenteditable="true"] {
   background: transparent;
 }
 
-/* Custom Red Pulse Glow Animation for Alerts */
+/* Custom Super-Strident Pulse Glow Animation for Alerts */
 @keyframes pulse-red-glow {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(178, 58, 46, 0.6);
+    background-color: #B23A2E;
+    box-shadow: 0 0 0 0 rgba(255, 26, 0, 0.9), 0 0 0 0 rgba(255, 26, 0, 0.4);
   }
   50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 6px rgba(178, 58, 46, 0);
+    transform: scale(1.15);
+    background-color: #FF1A00; /* Super bright neon red */
+    box-shadow: 0 0 15px 5px rgba(255, 26, 0, 0.8), 0 0 0 16px rgba(255, 26, 0, 0);
   }
 }
 .animate-pulse-red {
-  animation: pulse-red-glow 1.4s infinite ease-in-out;
+  animation: pulse-red-glow 0.8s infinite ease-in-out;
 }
