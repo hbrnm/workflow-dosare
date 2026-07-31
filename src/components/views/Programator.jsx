@@ -72,20 +72,25 @@ function AppointmentCard({ claim, onOpen, allClaims }) {
   return (
     <div
       onClick={() => onOpen(claim)}
-      className="bg-white border border-[#DAD4C6] rounded-lg px-2 py-1.5 text-[10.5px] cursor-pointer hover:border-[#3B5166] hover:shadow-sm transition-all space-y-0.5"
+      className="bg-white border border-[#DAD4C6] rounded-md p-1 cursor-pointer hover:border-[#3B5166] hover:shadow-xs transition-all flex flex-col justify-between min-h-[54px] select-none"
+      title={`Dosar: ${claim.numarDosar}\nClient: ${claim.client || "—"}\nTip: ${claim.marcaModel || "—"}\nReparație: ${claim.ceEsteDeReparat || "—"}`}
     >
-      <div className="flex items-center justify-between gap-1">
-        <span className="font-mono text-[9.5px] font-bold bg-[#3B5166] text-white px-1.5 py-0.2 rounded">
+      <div className="flex items-center justify-between text-[8.5px] gap-0.5">
+        <span className="font-mono font-bold text-[#3B5166]">
           {claim.dataProgramare ? claim.dataProgramare.slice(11, 16) : "08:00"}
         </span>
-        <span className="font-mono font-bold text-[#3B5166] truncate">{claim.numarDosar}</span>
-        <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${claim.tipAsigurare === "CASCO" ? "bg-[#C98A2B]" : "bg-[#3B5166]"}`} title={claim.tipAsigurare} />
       </div>
-      <div className="font-semibold text-[#23282E] truncate">{claim.client || "—"}</div>
-      <div className="text-[9.5px] font-mono text-[#6B6558]">{claim.numarInmatriculare}</div>
+      <div className="font-mono font-bold text-[#23282E] text-[9.5px] leading-tight truncate uppercase mt-0.5">
+        {claim.numarInmatriculare || "—"}
+      </div>
+      <div className="text-[8.5px] text-[#6B6558] truncate leading-none mt-0.5">
+        {claim.marcaModel || claim.client || "—"}
+      </div>
       {claim.masinaSchimb && (
-        <div className={`text-[9px] font-bold px-1 py-0.2 rounded flex items-center gap-1 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
-          <Car size={8} /> {claim.masinaSchimb} {conflict && "⚠️ Conflict!"}
+        <div className={`text-[7.5px] font-bold px-0.5 py-px rounded flex items-center justify-between mt-0.5 truncate shrink-0 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+          <span>🚗 {claim.masinaSchimb.slice(0, 7)}</span>
+          {conflict && <span title="Conflict auto schimb!">⚠️</span>}
         </div>
       )}
     </div>
@@ -228,13 +233,15 @@ function AgendaSaptamanala({ claims, capacitate, onOpen }) {
               </div>
 
               {/* Appointments */}
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-1.5 min-h-[200px] max-h-[420px]">
+              <div className="flex-1 overflow-y-auto scrollbar-thin p-1.5 min-h-[220px] max-h-[500px]">
                 {dayList.length === 0 ? (
                   <div className="text-[10.5px] text-[#C2BCB0] italic text-center pt-8">Liber</div>
                 ) : (
-                  dayList.map((c) => (
-                    <AppointmentCard key={c.id} claim={c} onOpen={onOpen} allClaims={claims} />
-                  ))
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-1">
+                    {dayList.map((c) => (
+                      <AppointmentCard key={c.id} claim={c} onOpen={onOpen} allClaims={claims} />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -282,32 +289,137 @@ function MasaZilnica({ claims, capacitate, onOpen }) {
     return map;
   }, [dayList]);
 
+  const handleCopyList = () => {
+    const sortedList = [...dayList].sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
+    if (sortedList.length === 0) {
+      alert("Nicio programare pentru această zi.");
+      return;
+    }
+    const dateFormatted = selectedDate.split("-").reverse().join(".");
+    let text = `📅 PROGRAMĂRI SERVICE - ${dateFormatted}\n\n`;
+    sortedList.forEach((c, idx) => {
+      const time = c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00";
+      text += `${idx + 1}. [${time}] ${c.numarInmatriculare} | ${c.marcaModel || "—"} | ${c.ceEsteDeReparat || "Fără operațiuni specificate"}\n`;
+    });
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Lista a fost copiată în clipboard! O poți trimite pe WhatsApp colegilor.");
+    }).catch(() => {
+      alert("Eroare la copiere.");
+    });
+  };
+
+  const handlePrintList = () => {
+    const sortedList = [...dayList].sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
+    if (sortedList.length === 0) {
+      alert("Nicio programare pentru această zi.");
+      return;
+    }
+    const dateFormatted = selectedDate.split("-").reverse().join(".");
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Programari Service - ${dateFormatted}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 25px; color: #111; }
+            h2 { border-bottom: 2px solid #23282E; padding-bottom: 6px; margin-bottom: 12px; font-size: 18px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #dad4c6; padding: 8px 10px; text-align: left; font-size: 12.5px; }
+            th { background-color: #faf8f5; font-weight: bold; color: #3b5166; }
+            .time { font-family: monospace; font-weight: bold; }
+            .plate { font-family: monospace; font-weight: bold; font-size: 13.5px; }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Programări Service - ${dateFormatted}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">Ora</th>
+                <th style="width: 130px;">Nr. Înmatriculare</th>
+                <th style="width: 180px;">Autoturism</th>
+                <th>Operațiuni de efectuat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedList.map(c => `
+                <tr>
+                  <td class="time">${c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}</td>
+                  <td class="plate">${c.numarInmatriculare || "—"}</td>
+                  <td>${c.marcaModel || "—"}</td>
+                  <td>${c.ceEsteDeReparat || "—"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-3">
-      {/* Day selector */}
-      <div className="bg-white border border-[#DAD4C6] rounded-lg p-2.5 flex items-center flex-wrap gap-1.5 shadow-sm">
-        <span className="text-[11px] font-bold text-[#6B6558] mr-1">Ziua:</span>
-        {days7.map((dh) => {
-          const count = claims.filter((c) => c.dataProgramare && c.dataProgramare.slice(0, 10) === dh.iso).length;
-          const active = dh.iso === selectedDate;
-          return (
-            <button
-              key={dh.iso}
-              onClick={() => setSelectedDate(dh.iso)}
-              className={`px-3 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1.5 transition-all ${
-                active ? "bg-[#3B5166] text-white shadow-sm" : "bg-[#FAF8F5] text-[#23282E] border border-[#DAD4C6] hover:bg-[#EFEAE1]"
-              }`}
-            >
-              {dh.label}
-              <span className={`px-1.5 py-0.2 rounded-full text-[9.5px] ${active ? "bg-white/20 text-white" : "bg-[#3B5166]/10 text-[#3B5166]"}`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-        <span className="ml-auto text-[11px] text-[#6B6558] font-medium">
-          {dayList.length}/{capacitate} programate · capacitate {capacitate > dayList.length ? <span className="text-[#3E6B45] font-bold">{capacitate - dayList.length} locuri libere</span> : <span className="text-[#B23A2E] font-bold">Depășit!</span>}
-        </span>
+      {/* Day selector & Share tools */}
+      <div className="bg-white border border-[#DAD4C6] rounded-lg p-2.5 flex items-center flex-wrap gap-2 shadow-sm">
+        <div className="flex items-center gap-1.5 mr-1 shrink-0">
+          <span className="text-[11px] font-bold text-[#6B6558]">Alege dată:</span>
+          <input
+            type="date"
+            className="bg-[#FAF8F5] border border-[#DAD4C6] rounded px-2 py-0.5 text-[11px] font-bold text-[#23282E] focus:outline-none focus:border-[#3B5166]"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+        </div>
+        <div className="flex flex-wrap gap-1 items-center border-l border-[#DAD4C6] pl-2">
+          {days7.map((dh) => {
+            const count = claims.filter((c) => c.dataProgramare && c.dataProgramare.slice(0, 10) === dh.iso).length;
+            const active = dh.iso === selectedDate;
+            return (
+              <button
+                key={dh.iso}
+                onClick={() => setSelectedDate(dh.iso)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all ${
+                  active ? "bg-[#3B5166] text-white shadow-sm" : "bg-[#FAF8F5] text-[#23282E] border border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                }`}
+              >
+                {dh.label}
+                <span className={`px-1 rounded-full text-[9px] ${active ? "bg-white/20 text-white" : "bg-[#3B5166]/10 text-[#3B5166]"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Print / WhatsApp actions */}
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <button
+            onClick={handleCopyList}
+            className="px-2.5 py-1 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] text-[11px] font-bold transition-all shadow-xs"
+            title="Copiază textul listei pentru WhatsApp"
+          >
+            💬 Copiază pt. WhatsApp
+          </button>
+          <button
+            onClick={handlePrintList}
+            className="px-2.5 py-1 rounded bg-[#3B5166] hover:bg-[#2C4160] text-white text-[11px] font-bold transition-all shadow-xs"
+            title="Printează lista de programări a zilei"
+          >
+            🖨️ Tipărește Programul
+          </button>
+          <span className="text-[11px] text-[#6B6558] font-bold border-l border-[#DAD4C6] pl-2">
+            {dayList.length}/{capacitate}
+          </span>
+        </div>
       </div>
 
       {/* Slot grid */}
