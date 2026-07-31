@@ -481,7 +481,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               </div>
 
               {/* Claims Grid (2 Cards per row when width permits) */}
-              <div className={`p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-visible md:overflow-y-auto flex-1 md:min-h-0 items-start auto-rows-max ${
+              <div className={`p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto scrollbar-thin flex-1 max-h-[500px] md:max-h-none md:min-h-0 items-start auto-rows-max ${
                 isExpandedMobile ? "block" : "hidden md:grid"
               }`}>
                 {phaseClaims.length === 0 ? (
