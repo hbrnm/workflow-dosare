@@ -262,6 +262,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
   const masinaSchimbClaims = useMemo(() => claims.filter((c) => c.masinaSchimb), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
+  const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
   const gataRidicareClaims = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata), [claims]);
 
   // Unique list of active insurers with claim counts
@@ -281,13 +282,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     else if (quickFilter === "blocate") list = blockedClaims;
     else if (quickFilter === "masini_schimb") list = masinaSchimbClaims;
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
+    else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "gata_ridicare") list = gataRidicareClaims;
 
     if (selectedInsurer !== "toti") {
       list = list.filter((c) => c.asigurator === selectedInsurer);
     }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, gataRidicareClaims]);
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, masinaSchimbClaims, pieseSositeClaims, programateClaims, gataRidicareClaims]);
 
   const displayClaims = useMemo(() => {
     let list = claimsForCounts;
@@ -349,6 +351,16 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               }`}
             >
               <PackageCheck size={11} /> Piese ({pieseSositeClaims.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "programate"
+                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
+                  : "bg-[#3B5166]/15 text-[#2C4160] hover:bg-[#3B5166]/25"
+              }`}
+            >
+              <CalendarClock size={11} /> Programate ({programateClaims.length})
             </button>
             <button
               onClick={() => setQuickFilter(quickFilter === "masini_schimb" ? "toate" : "masini_schimb")}
