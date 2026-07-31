@@ -12,8 +12,15 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-input, textarea, [contenteditable="true"] {
+input, textarea, select, [contenteditable="true"] {
   user-select: text;
+}
+
+/* Prevent iOS Safari auto-zoom on input focus (requires 16px min) */
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
 }
 
 .in {
@@ -21,11 +28,37 @@ input, textarea, [contenteditable="true"] {
   border: 1px solid #dad4c6;
   border-radius: 5px;
   padding: 4px 7px;
-  font-size: 12px;
+  font-size: 13px;
   background: white;
   color: #23282e;
 }
 .in:focus {
   outline: 2px solid #c98a2b;
   outline-offset: 1px;
+}
+
+/* Hide scrollbar but allow scrolling (for filter bars, nav tabs) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin scrollbar for content areas */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #dad4c6 transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #dad4c6;
+  border-radius: 3px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
 }

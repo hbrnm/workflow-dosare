@@ -41,7 +41,7 @@ export default function ClaimTable({ claims, onOpen, canEditFn }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-[#DAD4C6] bg-white">
       <table className="w-full text-[12.5px]">
-        <thead>
+        <thead className="sticky top-0 z-10">
           <tr className="bg-[#23282E] text-white">
             {cols.map((c) => (
               <th key={c.key} onClick={() => toggleSort(c.key)} className="text-left px-3 py-2 font-semibold cursor-pointer select-none whitespace-nowrap">

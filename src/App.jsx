@@ -214,67 +214,72 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1]">
       <Notification notice={notice} onClose={() => setNotice(null)} />
-      <div className="bg-[#23282E] px-4 py-3 shrink-0 z-30">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-3">
+      <div className="bg-[#23282E] shrink-0 z-30">
+        {/* Top Row: Brand + Actions */}
+        <div className="px-3 md:px-4 py-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all"
             >
-              <Plus size={16} /> Dosar nou
+              <Plus size={16} /> <span className="hidden sm:inline">Dosar</span> nou
             </button>
-            <div className="text-[12px] text-white/70 font-semibold border-l border-white/20 pl-3">
-              {claims.length} dosare {saving && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Loader2 size={11} className="animate-spin" />se salvează</span>}
+            <div className="text-[12px] text-white/70 font-semibold border-l border-white/20 pl-2">
+              {claims.length} <span className="hidden sm:inline">dosare</span>{saving && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Loader2 size={11} className="animate-spin" /></span>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-[11px] text-white/50">{myEmail}</span>
-            <button onClick={() => supabase.auth.signOut()} className="px-2.5 py-1.5 rounded border border-white/20 text-white/70 text-[11.5px] font-semibold hover:bg-white/10 hover:text-white">
-              Delogare
-            </button>
+          <div className="flex items-center gap-1.5">
             {alertCount > 0 && (
-              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {alertCount}<span className="hidden sm:inline"> depășite</span>
+              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
+                <AlertTriangle size={13} /> {alertCount}
               </button>
             )}
             {blockedCount > 0 && (
-              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {blockedCount}<span className="hidden sm:inline"> blocate</span>
+              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
+                <AlertTriangle size={13} /> {blockedCount}
               </button>
             )}
             {gataNeridicateCount > 0 && (
-              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2 py-1 md:px-2.5 md:py-1.5 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
-                <PackageCheck size={13} /> {gataNeridicateCount}<span className="hidden sm:inline"> neridicate</span>
+              <button onClick={() => setOnlyGataNeridicate((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${onlyGataNeridicate ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}>
+                <PackageCheck size={13} /> {gataNeridicateCount}
               </button>
             )}
-            <div className="flex items-center gap-0.5 rounded-lg border border-white/25 bg-black/20 p-1">
-              {[
-                { id: "flux", label: "Flux Operațional", icon: Layers },
-                { id: "brief", label: "Brief", icon: Sunrise },
-                { id: "list", label: "Listă", icon: List },
-                { id: "programator", label: "Programator", icon: CalendarClock },
-                { id: "dashboard", label: "Statistici", icon: BarChart3 },
-                { id: "rapoarte", label: "Financiar", icon: Wallet },
-              ].map(({ id, label, icon: Icon }) => {
-                const active = view === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setView(id)}
-                    className={`flex items-center gap-1.5 px-2 py-1 md:px-2.5 md:py-1.5 rounded-md text-[12px] font-semibold transition-all ${
-                      active
-                        ? "bg-[#C98A2B] text-white shadow-sm font-bold"
-                        : "text-white/80 hover:text-white hover:bg-white/15"
-                    }`}
-                    title={label}
-                  >
-                    <Icon size={18} strokeWidth={2.2} />
-                    <span className="hidden md:inline">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <button onClick={exportExcel} className="flex items-center gap-1 px-2.5 py-1 md:px-3 md:py-1.5 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden sm:inline"> Excel</span></button>
+            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
+            <span className="hidden md:inline text-[11px] text-white/50">{myEmail}</span>
+            <button onClick={() => supabase.auth.signOut()} className="px-2 py-1 rounded border border-white/20 text-white/70 text-[11.5px] font-semibold hover:bg-white/10 hover:text-white">
+              <span className="hidden sm:inline">Delogare</span><span className="sm:hidden text-[11px]">⏻</span>
+            </button>
+          </div>
+        </div>
+        {/* Bottom Row: Navigation Tabs - scrollable on mobile */}
+        <div className="px-2 md:px-4 pb-2 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 rounded-lg border border-white/20 bg-black/20 p-1 min-w-max">
+            {[
+              { id: "flux", label: "Flux", labelFull: "Flux Operațional", icon: Layers },
+              { id: "brief", label: "Brief", labelFull: "Brief", icon: Sunrise },
+              { id: "list", label: "Listă", labelFull: "Listă", icon: List },
+              { id: "programator", label: "Programări", labelFull: "Programator", icon: CalendarClock },
+              { id: "dashboard", label: "Statistici", labelFull: "Statistici", icon: BarChart3 },
+              { id: "rapoarte", label: "Financiar", labelFull: "Financiar", icon: Wallet },
+            ].map(({ id, label, labelFull, icon: Icon }) => {
+              const active = view === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setView(id)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap ${
+                    active
+                      ? "bg-[#C98A2B] text-white shadow-sm font-bold"
+                      : "text-white/80 hover:text-white hover:bg-white/15"
+                  }`}
+                  title={labelFull}
+                >
+                  <Icon size={16} strokeWidth={2.2} />
+                  <span className="sm:hidden">{label}</span>
+                  <span className="hidden sm:inline">{labelFull}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

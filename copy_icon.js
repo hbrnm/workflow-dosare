@@ -1,1 +1,1 @@
-// Script temporary de copiere (nefolosit)
+// REMOVED - unused temporary script

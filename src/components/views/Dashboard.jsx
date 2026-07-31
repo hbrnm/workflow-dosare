@@ -45,15 +45,16 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
   }, [claims]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+    <div className="space-y-4 pb-4">
+      {/* Responsive Grid for Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <StatCard label="Total dosare" value={total} tone="steel" />
         <StatCard label="RCA / CASCO" value={`${rca} / ${casco}`} tone="steel" />
         <StatCard label="Active (nefacturate)" value={active} tone="amber" />
         <StatCard label="Dosare blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
         <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
-        <StatCard label="Auto la schimb alocate" value={masiniSchimbActive.length} sub={`${masiniSchimbActive.filter(m => m.depasit).length} depășesc Audatex`} tone={masiniSchimbActive.some(m => m.depasit) ? "amber" : "steel"} />
-        <StatCard label="Zile medii pe dosar" value={avgDaysOpen ?? "—"} sub="dosare facturate" tone="green" />
+        <StatCard label="Auto la schimb" value={masiniSchimbActive.length} sub={`${masiniSchimbActive.filter(m => m.depasit).length} depășite`} tone={masiniSchimbActive.some(m => m.depasit) ? "amber" : "steel"} />
+        <StatCard label="Zile medii" value={avgDaysOpen ?? "—"} sub="dosare facturate" tone="green" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -91,24 +92,26 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
         <div className="bg-white rounded-lg border border-[#C98A2B]/40 overflow-hidden shadow-sm">
           <div className="bg-[#FBF3E6] border-b border-[#C98A2B]/30 px-3 py-2 text-[12.5px] font-bold text-[#7A5316] flex items-center justify-between">
             <span className="flex items-center gap-1.5"><Car size={15} /> Monitorizare Mașini la Schimb Active ({masiniSchimbActive.length})</span>
-            <span className="text-[11px] font-normal">Alerte depășire zile aprobate Audatex</span>
+            <span className="hidden sm:inline text-[11px] font-normal">Alerte depășire zile aprobate Audatex</span>
           </div>
           <div className="divide-y divide-[#EFEAE1] max-h-56 overflow-y-auto">
             {masiniSchimbActive.map((c) => {
               const statusDef = getStatusDefinition(c.status);
               return (
-                <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#FCFAF5] text-[12px]">
+                <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:bg-[#FCFAF5] text-[12px]">
                   <div>
-                    <span className="font-mono font-bold text-[#3B5166]">{c.numarDosar || "—"}</span>
-                    <span className="text-[#23282E] font-semibold ml-2">{c.client || "—"}</span>
-                    <span className="text-[#6B6558] ml-2">({c.numarInmatriculare})</span>
-                    <div className="text-[11px] text-[#8A8375] font-mono">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono font-bold text-[#3B5166]">{c.numarDosar || "—"}</span>
+                      <span className="text-[#23282E] font-semibold">{c.client || "—"}</span>
+                      <span className="text-[#6B6558]">({c.numarInmatriculare})</span>
+                    </div>
+                    <div className="text-[11px] text-[#8A8375] font-mono mt-0.5">
                       🚗 <span className="font-bold text-[#7A5316]">{c.masinaSchimb}</span> · dată predare: {c.dataDariiLaSchimb ? fmtDate(c.dataDariiLaSchimb) : "neprecizată"} · status: {statusDef.label}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold font-mono">
-                      {c.zileChirieEfective} zile în folosință
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] font-bold font-mono text-[#6B6558]">
+                      {c.zileChirieEfective} zile
                     </span>
                     {c.depasit ? (
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white">
@@ -135,13 +138,15 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
             {overdueList.map((c) => {
               const s = getStatusDefinition(c.status);
               return (
-                <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2 flex items-center justify-between cursor-pointer hover:bg-[#FCFAF5]">
+                <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:bg-[#FCFAF5]">
                   <div>
-                    <span className="font-mono font-semibold text-[12.5px]">{c.numarDosar || "—"}</span>
-                    <span className="text-[12px] text-[#6B6558] ml-2">{c.client}</span>
-                    <div className="text-[11px] text-[#8A8375]">{String(s.num).padStart(2, "0")}. {s.label}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono font-semibold text-[12.5px]">{c.numarDosar || "—"}</span>
+                      <span className="text-[12px] text-[#6B6558]">{c.client}</span>
+                    </div>
+                    <div className="text-[11px] text-[#8A8375] mt-0.5">{String(s.num).padStart(2, "0")}. {s.label}</div>
                   </div>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white">+{c.zileIntarziere}z</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#B23A2E] text-white self-start sm:self-auto shrink-0">+{c.zileIntarziere}z restante</span>
                 </div>
               );
             })}

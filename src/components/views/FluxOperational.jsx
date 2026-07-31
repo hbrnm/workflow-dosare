@@ -309,125 +309,124 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
-      {/* Top Smart Quick Filters & Insurer Filter Bar */}
-      <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs flex items-center justify-between flex-wrap gap-2 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs shrink-0">
+        <div className="flex items-center justify-between gap-2 mb-1.5 md:mb-0">
+          <span className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5 shrink-0" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <Layers size={15} className="text-[#C98A2B]" /> Flux Operațional
           </span>
-          <span className="text-[11.5px] text-[#8A8375]">({displayClaims.length} / {claims.length} dosare)</span>
+          <span className="text-[11.5px] text-[#8A8375] shrink-0">({displayClaims.length} / {claims.length})</span>
         </div>
 
-        {/* Quick Filter Buttons */}
-        <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-          <button
-            onClick={() => setQuickFilter("toate")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all ${
-              quickFilter === "toate"
-                ? "bg-[#23282E] text-white shadow-xs font-bold"
-                : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            Toate ({claims.length})
-          </button>
-          <button
-            onClick={() => setQuickFilter(quickFilter === "intarziate" ? "toate" : "intarziate")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-              quickFilter === "intarziate"
-                ? "bg-[#B23A2E] text-white shadow-xs font-bold"
-                : "bg-[#B23A2E]/10 text-[#B23A2E] hover:bg-[#B23A2E]/20"
-            }`}
-          >
-            <AlertTriangle size={11} /> Depășite ({alertClaims.length})
-          </button>
-          <button
-            onClick={() => setQuickFilter(quickFilter === "blocate" ? "toate" : "blocate")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-              quickFilter === "blocate"
-                ? "bg-[#23282E] text-white shadow-xs font-bold"
-                : "bg-[#23282E]/10 text-[#23282E] hover:bg-[#23282E]/20"
-            }`}
-          >
-            <AlertOctagon size={11} /> Blocate ({blockedClaims.length})
-          </button>
-          <button
-            onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-              quickFilter === "piese_sosite"
-                ? "bg-[#C98A2B] text-white shadow-xs font-bold"
-                : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
-            }`}
-          >
-            <PackageCheck size={11} /> Piese Sosite ({pieseSositeClaims.length})
-          </button>
-          <button
-            onClick={() => setQuickFilter(quickFilter === "masini_schimb" ? "toate" : "masini_schimb")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-              quickFilter === "masini_schimb"
-                ? "bg-[#3B5166] text-white shadow-xs font-bold"
-                : "bg-[#3B5166]/10 text-[#3B5166] hover:bg-[#3B5166]/20"
-            }`}
-          >
-            <Car size={11} /> Auto la Schimb ({masinaSchimbClaims.length})
-          </button>
-          <button
-            onClick={() => setQuickFilter(quickFilter === "gata_ridicare" ? "toate" : "gata_ridicare")}
-            className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-              quickFilter === "gata_ridicare"
-                ? "bg-[#4A7C3E] text-white shadow-xs font-bold"
-                : "bg-[#4A7C3E]/15 text-[#3A5C2E] hover:bg-[#4A7C3E]/25"
-            }`}
-          >
-            <Truck size={11} /> Gata de ridicare ({gataRidicareClaims.length})
-          </button>
-
-          {/* Insurer Quick Filter Selector */}
-          {insurerStats.length > 0 && (
-            <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
-              <ShieldCheck size={12} className="text-[#3B5166]" />
-              <select
-                className="bg-[#FAF8F5] border border-[#DAD4C6] rounded px-1.5 py-0.5 text-[11px] font-semibold text-[#23282E] focus:outline-hidden"
-                value={selectedInsurer}
-                onChange={(e) => setSelectedInsurer(e.target.value)}
-              >
-                <option value="toti">Toti Asigurătorii</option>
-                {insurerStats.map(([name, count]) => (
-                  <option key={name} value={name}>
-                    {name} ({count})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Compact Mode Toggle */}
-          <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+        {/* Quick Filter Buttons - scrollable on mobile */}
+        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+          <div className="flex items-center gap-1.5 text-[11px] min-w-max">
             <button
-              onClick={toggleCompactMode}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-                isCompactMode
-                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
-                  : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1] border border-[#DAD4C6]"
+              onClick={() => setQuickFilter("toate")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all whitespace-nowrap ${
+                quickFilter === "toate"
+                  ? "bg-[#23282E] text-white shadow-xs font-bold"
+                  : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"
               }`}
-              title={isCompactMode ? "Dezactivează modul compact" : "Activează modul compact"}
             >
-              {isCompactMode ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
-              <span>Mod Compact</span>
+              Toate ({claims.length})
             </button>
-          </div>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "intarziate" ? "toate" : "intarziate")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "intarziate"
+                  ? "bg-[#B23A2E] text-white shadow-xs font-bold"
+                  : "bg-[#B23A2E]/10 text-[#B23A2E] hover:bg-[#B23A2E]/20"
+              }`}
+            >
+              <AlertTriangle size={11} /> Depășite ({alertClaims.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "blocate" ? "toate" : "blocate")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "blocate"
+                  ? "bg-[#23282E] text-white shadow-xs font-bold"
+                  : "bg-[#23282E]/10 text-[#23282E] hover:bg-[#23282E]/20"
+              }`}
+            >
+              <AlertOctagon size={11} /> Blocate ({blockedClaims.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "piese_sosite"
+                  ? "bg-[#C98A2B] text-white shadow-xs font-bold"
+                  : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
+              }`}
+            >
+              <PackageCheck size={11} /> Piese ({pieseSositeClaims.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "masini_schimb" ? "toate" : "masini_schimb")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "masini_schimb"
+                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
+                  : "bg-[#3B5166]/10 text-[#3B5166] hover:bg-[#3B5166]/20"
+              }`}
+            >
+              <Car size={11} /> Auto ({masinaSchimbClaims.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter(quickFilter === "gata_ridicare" ? "toate" : "gata_ridicare")}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
+                quickFilter === "gata_ridicare"
+                  ? "bg-[#4A7C3E] text-white shadow-xs font-bold"
+                  : "bg-[#4A7C3E]/15 text-[#3A5C2E] hover:bg-[#4A7C3E]/25"
+              }`}
+            >
+              <Truck size={11} /> Gata ({gataRidicareClaims.length})
+            </button>
 
-          {/* Reset Sub-status Filter */}
-          {selectedSubStatus && (
-            <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+            {/* Insurer Quick Filter - hidden on mobile */}
+            {insurerStats.length > 0 && (
+              <div className="hidden md:flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+                <ShieldCheck size={12} className="text-[#3B5166]" />
+                <select
+                  className="bg-[#FAF8F5] border border-[#DAD4C6] rounded px-1.5 py-0.5 text-[11px] font-semibold text-[#23282E] focus:outline-hidden"
+                  value={selectedInsurer}
+                  onChange={(e) => setSelectedInsurer(e.target.value)}
+                >
+                  <option value="toti">Toti Asigurătorii</option>
+                  {insurerStats.map(([name, count]) => (
+                    <option key={name} value={name}>
+                      {name} ({count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Compact Mode Toggle - hidden on mobile */}
+            <div className="hidden md:flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
               <button
-                onClick={() => setSelectedSubStatus(null)}
-                className="px-2.5 py-0.5 rounded-md font-bold transition-all bg-[#B23A2E] text-white hover:bg-[#922D24] shadow-xs flex items-center gap-1 text-[11px]"
-                title="Resetează filtrul de etapă selectat"
+                onClick={toggleCompactMode}
+                className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
+                  isCompactMode
+                    ? "bg-[#3B5166] text-white shadow-xs font-bold"
+                    : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1] border border-[#DAD4C6]"
+                }`}
+                title={isCompactMode ? "Dezactivează modul compact" : "Activează modul compact"}
               >
-                <span>Filtru: {getStatusDefinition(selectedSubStatus).label} (X)</span>
+                {isCompactMode ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                <span>Compact</span>
               </button>
             </div>
-          )}
+
+            {/* Reset Sub-status Filter */}
+            {selectedSubStatus && (
+              <button
+                onClick={() => setSelectedSubStatus(null)}
+                className="px-2.5 py-0.5 rounded-md font-bold transition-all bg-[#B23A2E] text-white hover:bg-[#922D24] shadow-xs flex items-center gap-1 text-[11px] whitespace-nowrap"
+                title="Resetează filtrul de etapă selectat"
+              >
+                <span>{getStatusDefinition(selectedSubStatus).label} ✕</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
