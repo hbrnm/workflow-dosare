@@ -430,7 +430,9 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-                 <button
+            {!isNew && (
+              <div className="flex items-center gap-1.5">
+                <button
                   type="button"
                   onClick={() => generateazaPDF(form, istoric)}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
