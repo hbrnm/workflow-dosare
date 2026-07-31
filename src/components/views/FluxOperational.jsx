@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
-  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock, Truck
+  ChevronDown, Check, Clock, Copy, ShieldCheck, CalendarClock, Truck,
+  Minimize2, Maximize2, ExternalLink
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, INSURERS } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -10,6 +11,7 @@ import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
 export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
@@ -17,15 +19,31 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
 
+  const expanded = !compact || isExpanded;
+
+  const handleCardClick = (e) => {
+    // If click was on an interactive element, let its own handler execute
+    if (e.target.closest("button") || e.target.closest("a") || e.target.closest("select")) {
+      return;
+    }
+    if (!compact) {
+      onOpen(claim);
+    } else {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   return (
     <div
-      onClick={() => onOpen(claim)}
-      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer ${
+      onClick={handleCardClick}
+      onDoubleClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none ${
         compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
       } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
+      title={compact && !isExpanded ? "Dublu-click pentru a deschide sau click simplu pentru detalii" : ""}
     >
       {/* Header Row: Nr Dosar + Asigurare */}
       <div className="flex items-center justify-between gap-1">
@@ -39,134 +57,188 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
         <div className="flex items-center gap-1 shrink-0">
           <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
           <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
+          
+          {/* Quick open button in compact collapsed view */}
+          {compact && !isExpanded && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+              title="Deschide detalii complet"
+              className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"
+            >
+              <ExternalLink size={11} />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Interactive 1-Click Status Dropdown Badge */}
-      <div className={`${compact ? "mt-1" : "mt-1.5"} relative`}>
-        <button
-          onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
-          className={`w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors font-semibold text-[#23282E] ${
-            compact ? "text-[10px]" : "text-[11px]"
-          }`}
-          title="Apasă pentru a schimba etapa dosarului"
-        >
-          <span className="flex items-center gap-1 truncate">
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
-            <span className="font-mono text-[9.5px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
-            <span className="truncate">{statusDef.label}</span>
+      {/* Row 2: Client & License Plate (Collapsed view version) */}
+      {!expanded && (
+        <div className="mt-1 flex items-center justify-between gap-1">
+          <span className="font-semibold text-[#23282E] truncate max-w-[60%]" title={claim.client}>
+            {claim.client || "Client neintrodus"}
           </span>
-          <ChevronDown size={11} className="text-[#8A8375] shrink-0" />
-        </button>
+          <span className="font-mono font-bold text-[#23282E] shrink-0 text-[10px] bg-[#FAF8F5] px-1 border border-[#DAD4C6] rounded">
+            {claim.numarInmatriculare || "—"}
+          </span>
+        </div>
+      )}
 
-        {showStatusPicker && (
-          <>
-            <div
-              className="fixed inset-0 z-20 cursor-default"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowStatusPicker(false);
-              }}
-            />
-            <div
-              className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
-                Schimbă etapa dosarului:
-              </div>
-              {STATUSES.map((s) => (
-                <button
-                  key={s.key}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMoveToStatus(claim, s.key);
-                    setShowStatusPicker(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
-                    claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
-                  }`}
-                >
-                  <span className="flex items-center gap-1 truncate">
-                    <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
-                    <span className="truncate">{s.label}</span>
-                  </span>
-                  {claim.status === s.key && <Check size={11} className="shrink-0" />}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Client & Phone */}
-      <div className={`${compact ? "mt-1 text-[10.5px]" : "mt-1.5 text-[11.5px]"} flex items-center justify-between gap-1`}>
-        <span className="font-semibold text-[#23282E] truncate group-hover:underline">
-          {claim.client || "Client neintrodus"}
-        </span>
-        {claim.telefonClient && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
-              <Phone size={compact ? 10 : 11} />
-            </a>
-            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={compact ? 10 : 11} />
-          </div>
-        )}
-      </div>
-
-      {/* Auto & Insurer */}
-      <div className={`${compact ? "mt-0.5 text-[9.5px]" : "mt-1 text-[10.5px]"} flex items-center justify-between gap-1 text-[#6B6558]`}>
-        <span className="flex items-center gap-1 font-mono font-bold text-[#23282E]">
-          <Car size={compact ? 10 : 11} className="text-[#8A8375]" />
-          {claim.numarInmatriculare || "—"}
-        </span>
-        <span className="truncate max-w-[90px]" title={claim.marcaModel || claim.asigurator}>
-          {claim.marcaModel || claim.asigurator}
-        </span>
-      </div>
-
-      {/* Active Badges */}
-      {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
+      {/* Row 3: Active Badges when collapsed */}
+      {!expanded && (claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
         <div className="mt-1 flex items-center gap-1 flex-wrap text-[9px]">
-          {claim.blocat && <Pill tone="danger">⚠️ blocat</Pill>}
+          {claim.blocat && <span className="text-[#B23A2E] font-bold" title="Blocat">⚠️ bl</span>}
           {claim.masinaSchimb && (
-            <span className="px-1 py-0.1 rounded bg-[#FBF3E6] text-[#7A5316] font-bold">
-              🚗 {claim.masinaSchimb}
+            <span className="px-0.5 rounded bg-[#FBF3E6] text-[#7A5316] font-bold" title={`Mașină la schimb: ${claim.masinaSchimb}`}>
+              🚗
             </span>
           )}
           {claim.gataDeRidicare && !claim.ridicata && (
-            <span className={`px-1 py-0.1 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
-              📦 gata ({zileNeridicata}z)
+            <span className={`px-0.5 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`} title={`Gata de ridicare (${zileNeridicata} zile)`}>
+              📦 {zileNeridicata}z
             </span>
           )}
         </div>
       )}
 
-      {/* Card Footer: Days + Quick Actions */}
-      <div className={`${compact ? "mt-1 pt-1 text-[9.5px]" : "mt-1.5 pt-1.5 text-[10px]"} border-t border-[#EFEAE1] flex items-center justify-between`}>
-        <span className="text-[#8A8375] font-mono flex items-center gap-1">
-          <Clock size={compact ? 9 : 10} /> {days}z în etapă
-        </span>
-
-        <div className="flex items-center gap-1">
-          {claim.status === "piese_sosite" && (
+      {/* Expandable fields (only visible when expanded) */}
+      {expanded && (
+        <>
+          {/* Interactive 1-Click Status Dropdown Badge */}
+          <div className={`${compact ? "mt-1" : "mt-1.5"} relative`}>
             <button
-              onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-              title="Programează service"
-              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/30 text-[9px] font-bold transition-colors border border-[#C98A2B]/30"
+              onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
+              className={`w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors font-semibold text-[#23282E] ${
+                compact ? "text-[10px]" : "text-[11px]"
+              }`}
+              title="Apasă pentru a schimba etapa dosarului"
             >
-              <CalendarClock size={9} /> Programează
+              <span className="flex items-center gap-1 truncate">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
+                <span className="font-mono text-[9.5px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
+                <span className="truncate">{statusDef.label}</span>
+              </span>
+              <ChevronDown size={11} className="text-[#8A8375] shrink-0" />
             </button>
+
+            {showStatusPicker && (
+              <>
+                <div
+                  className="fixed inset-0 z-20 cursor-default"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowStatusPicker(false);
+                  }}
+                />
+                <div
+                  className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
+                    Schimbă etapa dosarului:
+                  </div>
+                  {STATUSES.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMoveToStatus(claim, s.key);
+                        setShowStatusPicker(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
+                        claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1 truncate">
+                        <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
+                        <span className="truncate">{s.label}</span>
+                      </span>
+                      {claim.status === s.key && <Check size={11} className="shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Client & Phone */}
+          <div className={`${compact ? "mt-1 text-[10.5px]" : "mt-1.5 text-[11.5px]"} flex items-center justify-between gap-1`}>
+            <span className="font-semibold text-[#23282E] truncate group-hover:underline">
+              {claim.client || "Client neintrodus"}
+            </span>
+            {claim.telefonClient && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
+                  <Phone size={compact ? 10 : 11} />
+                </a>
+                <WhatsAppButton phone={claim.telefonClient} claim={claim} size={compact ? 10 : 11} />
+              </div>
+            )}
+          </div>
+
+          {/* Auto & Insurer */}
+          <div className={`${compact ? "mt-0.5 text-[9.5px]" : "mt-1 text-[10.5px]"} flex items-center justify-between gap-1 text-[#6B6558]`}>
+            <span className="flex items-center gap-1 font-mono font-bold text-[#23282E]">
+              <Car size={compact ? 10 : 11} className="text-[#8A8375]" />
+              {claim.numarInmatriculare || "—"}
+            </span>
+            <span className="truncate max-w-[90px]" title={claim.marcaModel || claim.asigurator}>
+              {claim.marcaModel || claim.asigurator}
+            </span>
+          </div>
+
+          {/* Active Badges */}
+          {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
+            <div className="mt-1 flex items-center gap-1 flex-wrap text-[9px]">
+              {claim.blocat && <Pill tone="danger">⚠️ blocat</Pill>}
+              {claim.masinaSchimb && (
+                <span className="px-1 py-0.1 rounded bg-[#FBF3E6] text-[#7A5316] font-bold">
+                  🚗 {claim.masinaSchimb}
+                </span>
+              )}
+              {claim.gataDeRidicare && !claim.ridicata && (
+                <span className={`px-1 py-0.1 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+                  📦 gata ({zileNeridicata}z)
+                </span>
+              )}
+            </div>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
-            title="Duplică dosarul"
-            className="px-1 py-0.2 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[9.5px] font-semibold transition-colors"
-          >
-            <Copy size={10} className="inline mr-0.5" /> Duplică
-          </button>
-        </div>
-      </div>
+
+          {/* Card Footer: Days + Quick Actions */}
+          <div className={`${compact ? "mt-1 pt-1 text-[9.5px]" : "mt-1.5 pt-1.5 text-[10px]"} border-t border-[#EFEAE1] flex items-center justify-between`}>
+            <span className="text-[#8A8375] font-mono flex items-center gap-1">
+              <Clock size={compact ? 9 : 10} /> {days}z în etapă
+            </span>
+
+            <div className="flex items-center gap-1">
+              {compact && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+                  title="Deschide detalii complet"
+                  className="px-1.5 py-0.5 rounded bg-[#3B5166] text-white hover:bg-[#2C4160] text-[9.5px] font-bold transition-colors"
+                >
+                  Deschide
+                </button>
+              )}
+              {claim.status === "piese_sosite" && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+                  title="Programează service"
+                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/30 text-[9px] font-bold transition-colors border border-[#C98A2B]/30"
+                >
+                  <CalendarClock size={9} /> Programează
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
+                title="Duplică dosarul"
+                className="px-1 py-0.2 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[9.5px] font-semibold transition-colors"
+              >
+                <Copy size={10} className="inline mr-0.5" /> Duplică
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -174,6 +246,17 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
 export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite", "gata_ridicare"
   const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
+  const [isCompactMode, setIsCompactMode] = useState(() => {
+    return localStorage.getItem("flux_compact_mode") === "true";
+  });
+
+  const toggleCompactMode = () => {
+    setIsCompactMode((prev) => {
+      const next = !prev;
+      localStorage.setItem("flux_compact_mode", String(next));
+      return next;
+    });
+  };
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
@@ -298,6 +381,22 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               </select>
             </div>
           )}
+
+          {/* Compact Mode Toggle */}
+          <div className="flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
+            <button
+              onClick={toggleCompactMode}
+              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
+                isCompactMode
+                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
+                  : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1] border border-[#DAD4C6]"
+              }`}
+              title={isCompactMode ? "Dezactivează modul compact" : "Activează modul compact"}
+            >
+              {isCompactMode ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+              <span>Mod Compact</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -361,6 +460,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                       onDuplicate={onDuplicate}
                       canEdit={canEditFn ? canEditFn(claim) : true}
                       pragRidicare={pragRidicare}
+                      compact={isCompactMode}
                     />
                   ))
                 )}
