@@ -185,11 +185,17 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   }, [claims]);
 
   const dateRangeLabel = useMemo(() => {
-    if (calendarCells.length === 0) return "";
-    const start = calendarCells[0].iso.split("-").reverse().slice(0, 2).join("/");
-    const end = calendarCells[calendarCells.length - 1].iso.split("-").reverse().slice(0, 2).join("/");
+    if (calendarCells.length === 0 || !activeDateStr) return "";
+    const activeMonth = Number(activeDateStr.slice(5, 7)) - 1;
+    const visibleCells = calendarCells.filter(cell => {
+      const cellMonth = Number(cell.iso.slice(5, 7)) - 1;
+      return cellMonth === activeMonth;
+    });
+    if (visibleCells.length === 0) return "";
+    const start = visibleCells[0].iso.split("-").reverse().slice(0, 2).join("/");
+    const end = visibleCells[visibleCells.length - 1].iso.split("-").reverse().slice(0, 2).join("/");
     return `${start} — ${end}`;
-  }, [calendarCells]);
+  }, [calendarCells, activeDateStr]);
 
   const handleCopyList = () => {
     if (activeDayClaims.length === 0) return;
