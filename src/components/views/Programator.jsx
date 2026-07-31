@@ -462,10 +462,323 @@ function MasaZilnica({ claims, capacitate, onOpen }) {
 }
 
 /* ───────────────────────────────────────────────────────────────────────── */
+/* Agendă Lunară — vizualizare calendaristică pe lună                      */
+/* ───────────────────────────────────────────────────────────────────────── */
+const MONTHS_RO = [
+  "Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie",
+  "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"
+];
+
+function AgendaLunara({ claims, capacitate, onOpen }) {
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-11
+  
+  // Selected day for the popover/details panel
+  const [activeDateStr, setActiveDateStr] = useState(() => today.toISOString().slice(0, 10));
+
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(prev => prev - 1);
+    } else {
+      setCurrentMonth(prev => prev - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(prev => prev + 1);
+    } else {
+      setCurrentMonth(prev => prev + 1);
+    }
+  };
+
+  const setToday = () => {
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth());
+    setActiveDateStr(today.toISOString().slice(0, 10));
+  };
+
+  // Generate calendar days
+  const calendarCells = useMemo(() => {
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
+    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
+
+    const cells = [];
+    
+    // Trail from previous month
+    for (let i = startWeekday - 1; i >= 0; i--) {
+      const d = prevMonthDays - i;
+      const m = currentMonth === 0 ? 11 : currentMonth - 1;
+      const y = currentMonth === 0 ? currentYear - 1 : currentYear;
+      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      cells.push({ dayNum: d, isCurrentMonth: false, iso });
+    }
+
+    // Current month days
+    for (let i = 1; i <= totalDays; i++) {
+      const iso = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      cells.push({ dayNum: i, isCurrentMonth: true, iso });
+    }
+
+    // Lead from next month
+    const totalCells = cells.length;
+    const remaining = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      const m = currentMonth === 11 ? 0 : currentMonth + 1;
+      const y = currentMonth === 11 ? currentYear + 1 : currentYear;
+      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
+      cells.push({ dayNum: i, isCurrentMonth: false, iso });
+    }
+
+    return cells;
+  }, [currentYear, currentMonth]);
+
+  // Claims on the active date for the detail panel
+  const activeDayClaims = useMemo(() => {
+    if (!activeDateStr) return [];
+    return claims
+      .filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === activeDateStr)
+      .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
+  }, [claims, activeDateStr]);
+
+  const activeDayFormatted = useMemo(() => {
+    if (!activeDateStr) return "";
+    return activeDateStr.split("-").reverse().join(".");
+  }, [activeDateStr]);
+
+  const handleCopyList = () => {
+    if (activeDayClaims.length === 0) return;
+    let text = `📅 PROGRAMĂRI SERVICE - ${activeDayFormatted}\n\n`;
+    activeDayClaims.forEach((c, idx) => {
+      const time = c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00";
+      text += `${idx + 1}. [${time}] ${c.numarInmatriculare} | ${c.marcaModel || "—"} | ${c.ceEsteDeReparat || "Fără operațiuni specificate"}\n`;
+    });
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Lista a fost copiată în clipboard!");
+    });
+  };
+
+  const handlePrintList = () => {
+    if (activeDayClaims.length === 0) return;
+    const printWindow = window.open("", "_blank");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Programari Service - ${activeDayFormatted}</title>
+          <style>
+            body { font-family: system-ui, sans-serif; padding: 25px; color: #111; }
+            h2 { border-bottom: 2px solid #23282E; padding-bottom: 6px; margin-bottom: 12px; font-size: 18px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #dad4c6; padding: 8px 10px; text-align: left; font-size: 12.5px; }
+            th { background-color: #faf8f5; font-weight: bold; color: #3b5166; }
+            .time { font-family: monospace; font-weight: bold; }
+            .plate { font-family: monospace; font-weight: bold; font-size: 13.5px; }
+          </style>
+        </head>
+        <body>
+          <h2>Programări Service - ${activeDayFormatted}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 80px;">Ora</th>
+                <th style="width: 130px;">Nr. Înmatriculare</th>
+                <th style="width: 180px;">Autoturism</th>
+                <th>Operațiuni de efectuat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${activeDayClaims.map(c => `
+                <tr>
+                  <td class="time">${c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}</td>
+                  <td class="plate">${c.numarInmatriculare || "—"}</td>
+                  <td>${c.marcaModel || "—"}</td>
+                  <td>${c.ceEsteDeReparat || "—"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Month nav header */}
+      <div className="bg-white border border-[#DAD4C6] rounded-lg px-3.5 py-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={prevMonth} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors">
+            <ChevronLeft size={15} />
+          </button>
+          <button onClick={setToday} className="px-3 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160] transition-colors">
+            Luna curentă
+          </button>
+          <button onClick={nextMonth} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors">
+            <ChevronRight size={15} />
+          </button>
+          <span className="font-bold text-[#23282E] text-[13px] ml-1">
+            {MONTHS_RO[currentMonth]} {currentYear}
+          </span>
+        </div>
+        <div className="text-[11px] text-[#6B6558] font-medium">
+          Dă click pe o zi pentru a vedea programările detaliate
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-3 items-start">
+        {/* Calendar Grid */}
+        <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden">
+          {/* Days names */}
+          <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
+            {["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"].map(d => (
+              <span key={d} className="text-[10px] font-bold text-[#8A8375] py-2">{d}</span>
+            ))}
+          </div>
+
+          {/* Days cells */}
+          <div className="grid grid-cols-7 gap-px bg-[#DAD4C6]">
+            {calendarCells.map((cell, idx) => {
+              const dayClaims = claims.filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === cell.iso);
+              const total = dayClaims.length;
+              const isSelected = activeDateStr === cell.iso;
+              const isToday = cell.iso === today.toISOString().slice(0, 10);
+              
+              let capClass = "bg-white text-[#23282E]";
+              let badgeColor = "bg-[#FAF8F5] text-[#6B6558]";
+              
+              if (total > 0) {
+                if (total > capacitate) {
+                  capClass = "bg-[#B23A2E]/5 hover:bg-[#B23A2E]/10";
+                  badgeColor = "bg-[#B23A2E] text-white";
+                } else if (total === capacitate) {
+                  capClass = "bg-[#C98A2B]/5 hover:bg-[#C98A2B]/10";
+                  badgeColor = "bg-[#C98A2B] text-white";
+                } else {
+                  capClass = "bg-[#3E6B45]/5 hover:bg-[#3E6B45]/10";
+                  badgeColor = "bg-[#3E6B45] text-white";
+                }
+              }
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => setActiveDateStr(cell.iso)}
+                  className={`min-h-[75px] p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
+                    isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
+                  } ${
+                    cell.isCurrentMonth ? capClass : "bg-[#FAF8F5] text-[#C2BCB0]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[11.5px] font-bold ${isToday ? "w-[20px] h-[20px] flex items-center justify-center rounded-full bg-[#C98A2B] text-white font-mono" : ""}`}>
+                      {cell.dayNum}
+                    </span>
+                    {total > 0 && (
+                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${badgeColor}`}>
+                        {total}
+                      </span>
+                    )}
+                  </div>
+                  {/* Micro list of cars */}
+                  <div className="mt-1.5 space-y-0.5 text-[8.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
+                    {dayClaims.slice(0, 3).map(c => (
+                      <div key={c.id} className="truncate">
+                        🚗 {c.numarInmatriculare || "—"}
+                      </div>
+                    ))}
+                    {total > 3 && (
+                      <div className="text-[8px] text-[#8A8375] font-normal italic pl-3">
+                        +{total - 3} altele
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sidebar Details Panel */}
+        <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 min-h-[300px]">
+          {activeDateStr ? (
+            <>
+              <div className="border-b border-[#EFEAE1] pb-2">
+                <div className="text-[12.5px] font-bold text-[#23282E]">Programări {activeDayFormatted}</div>
+                <div className="text-[10.5px] text-[#8A8375]">{activeDayClaims.length} programate</div>
+              </div>
+
+              {activeDayClaims.length === 0 ? (
+                <div className="text-[11.5px] text-[#8A8375] italic text-center py-12">Nicio programare pentru această zi.</div>
+              ) : (
+                <>
+                  <div className="space-y-1.5 max-h-[350px] overflow-y-auto scrollbar-thin pr-1">
+                    {activeDayClaims.map(c => (
+                      <div
+                        key={c.id}
+                        onClick={() => onOpen(c)}
+                        className="p-2 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all space-y-1 text-[11px] bg-[#FAF8F5]"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-bold bg-[#3B5166] text-white px-1 py-0.2 rounded text-[9px]">
+                            {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}
+                          </span>
+                          <span className="font-mono font-bold text-[#3B5166] uppercase">{c.numarInmatriculare}</span>
+                        </div>
+                        <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
+                        <div className="text-[10px] text-[#6B6558] truncate">{c.marcaModel || "—"}</div>
+                        {c.ceEsteDeReparat && (
+                          <div className="text-[9px] text-[#8A8375] border-t border-[#EFEAE1] pt-1 mt-1 truncate">
+                            ⚙️ {c.ceEsteDeReparat}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
+                    <button
+                      onClick={handleCopyList}
+                      className="w-full py-1.5 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                    >
+                      💬 Copiază pt. WhatsApp
+                    </button>
+                    <button
+                      onClick={handlePrintList}
+                      className="w-full py-1.5 rounded bg-[#3B5166] hover:bg-[#2C4160] text-white text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5"
+                    >
+                      🖨️ Tipărește Programul
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-20 text-[11.5px] text-[#8A8375] italic">
+              Selectează o zi din calendar pentru a afișa programările.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
 /* Main export                                                               */
 /* ───────────────────────────────────────────────────────────────────────── */
 export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate }) {
-  const [view, setView] = useState("agenda"); // 'agenda' | 'masa'
+  const [view, setView] = useState("agenda"); // 'agenda' | 'masa' | 'luna'
   const [capInput, setCapInput] = useState(capacitate || 5);
 
   return (
@@ -489,6 +802,12 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
               className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${view === "masa" ? "bg-[#3B5166] text-white shadow-sm" : "text-[#6B6558] hover:text-[#23282E]"}`}
             >
               Masă Sloturi
+            </button>
+            <button
+              onClick={() => setView("luna")}
+              className={`px-3 py-1 rounded-md text-[11px] font-bold transition-all ${view === "luna" ? "bg-[#3B5166] text-white shadow-sm" : "text-[#6B6558] hover:text-[#23282E]"}`}
+            >
+              Agendă Lunară
             </button>
           </div>
         </div>
@@ -519,8 +838,10 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       {/* View */}
       {view === "agenda" ? (
         <AgendaSaptamanala claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
-      ) : (
+      ) : view === "masa" ? (
         <MasaZilnica claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+      ) : (
+        <AgendaLunara claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
       )}
     </div>
   );
