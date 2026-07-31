@@ -535,10 +535,18 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                                     setSelectingFromArrived(false);
                                   }
                                 }}
-                                className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold"
+                                className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
                               >
-                                <span className="font-mono text-[#3B5166] font-bold">{c.numarInmatriculare || c.numarDosar}</span>
-                                <span className="text-[#8A8375] truncate max-w-[120px]">{c.client || "—"}</span>
+                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                  <span className="font-mono text-[#3B5166] font-bold uppercase shrink-0">{c.numarInmatriculare || c.numarDosar}</span>
+                                  {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
+                                    <>
+                                      <span className="text-[#8A8375] shrink-0">·</span>
+                                      <span className="text-[#6B6558] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <span className="text-[#8A8375] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
                               </button>
                             ))
                           )}
