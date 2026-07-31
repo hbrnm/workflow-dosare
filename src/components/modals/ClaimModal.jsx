@@ -8,7 +8,7 @@ import {
   STATUSES, INSURERS, getStatusDefinition,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
-import { fmtDate, fmtDateTime, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
+import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
   emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS
 } from "../../utils/claimUtils";
@@ -47,7 +47,7 @@ function InlineMiniCalendar({ value, onChange, status }) {
 
   const { dateStr: selectedDateStr, timeStr: selectedTime } = parseVal(value);
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = todayISO();
 
   const initDate = selectedDateStr ? new Date(selectedDateStr) : today;
   const [viewYear, setViewYear] = React.useState(isNaN(initDate.getTime()) ? today.getFullYear() : initDate.getFullYear());

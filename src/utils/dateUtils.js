@@ -3,7 +3,13 @@
 // ---------------------------------------------------------------------------
 
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
-export const todayISO = () => new Date().toISOString().slice(0, 10);
+export const todayISO = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 export const nowISO = () => new Date().toISOString();
 
 export function normalizedText(value) {
@@ -33,7 +39,10 @@ export function getDaysOfWeek(mondayDate = getMondayOfISOWeek()) {
   for (let i = 0; i < 7; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    const dateIso = d.toISOString().slice(0, 10);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateIso = `${year}-${month}-${day}`;
     const isToday = dateIso === todayISO();
     const labelShort = d.toLocaleDateString("ro-RO", { weekday: "short", day: "numeric", month: "short" });
     const label = d.toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long" });

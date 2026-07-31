@@ -108,7 +108,7 @@ const WEEKDAYS_RO = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri",
 
 export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate, onAddInStatus }) {
   const today = new Date();
-  const [activeDateStr, setActiveDateStr] = useState(() => today.toISOString().slice(0, 10));
+  const [activeDateStr, setActiveDateStr] = useState(() => todayISO());
   const [weekOffset, setWeekOffset] = useState(0);
   const [capInput, setCapInput] = useState(capacitate || 5);
   
@@ -117,7 +117,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   const [selectingFromArrived, setSelectingFromArrived] = useState(false);
 
   const prevWeek = () => {
-    setWeekOffset(prev => Math.max(0, prev - 1));
+    setWeekOffset(prev => prev - 1);
   };
 
   const nextWeek = () => {
@@ -126,7 +126,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
 
   const handleSetToday = () => {
     setWeekOffset(0);
-    setActiveDateStr(today.toISOString().slice(0, 10));
+    setActiveDateStr(todayISO());
     setActiveSlotForScheduling(null);
     setSelectingFromArrived(false);
   };
@@ -140,7 +140,10 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
     for (let i = 0; i < 35; i++) {
       const d = new Date(baseDate);
       d.setDate(baseDate.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const iso = `${year}-${month}-${day}`;
       cells.push({
         dayNum: d.getDate(),
         monthNum: d.getMonth() + 1,
@@ -264,8 +267,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           <div className="flex items-center gap-1">
             <button
               onClick={prevWeek}
-              disabled={weekOffset === 0}
-              className={`p-1.5 rounded border border-[#DAD4C6] text-[#3B5166] transition-colors ${weekOffset === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-[#EFEAE1]"}`}
+              className="p-1.5 rounded border border-[#DAD4C6] text-[#3B5166] transition-colors hover:bg-[#EFEAE1]"
               title="Săptămâna anterioară"
             >
               <ChevronLeft size={15} />
@@ -326,7 +328,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
               const dayClaims = claims.filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
               const isSelected = activeDateStr === cell.iso;
-              const isToday = cell.iso === today.toISOString().slice(0, 10);
+              const isToday = cell.iso === todayISO();
               
               let capClass = "bg-white text-[#23282E]";
               let badgeColor = "bg-[#FAF8F5] text-[#6B6558]";
