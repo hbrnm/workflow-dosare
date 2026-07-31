@@ -173,6 +173,56 @@ function InlineMiniCalendar({ value, onChange, status }) {
   );
 }
 
+export function compressColorImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          // Resize image to max 1500px on the longest edge
+          const MAX_DIM = 1500;
+          let w = img.width;
+          let h = img.height;
+          if (w > MAX_DIM || h > MAX_DIM) {
+            if (w > h) {
+              h = Math.round((h * MAX_DIM) / w);
+              w = MAX_DIM;
+            } else {
+              w = Math.round((w * MAX_DIM) / h);
+              h = MAX_DIM;
+            }
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+
+          // Export as JPEG at 0.75 quality for color photos
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("Eroare la comprimarea imaginii."));
+              return;
+            }
+            const name = (file.name || "foto").replace(/\.[^/.]+$/, "");
+            const compressedFile = new File([blob], `${name}_opt.jpg`, { type: "image/jpeg" });
+            resolve(compressedFile);
+          }, "image/jpeg", 0.75);
+        } catch (err) {
+          reject(new Error("Eroare la comprimarea imaginii."));
+        }
+      };
+      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export function processScanImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -182,12 +232,27 @@ export function processScanImage(file) {
         try {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
+
+          // Resize image to max 1500px on the longest edge to optimize file size
+          const MAX_DIM = 1500;
+          let w = img.width;
+          let h = img.height;
+          if (w > MAX_DIM || h > MAX_DIM) {
+            if (w > h) {
+              h = Math.round((h * MAX_DIM) / w);
+              w = MAX_DIM;
+            } else {
+              w = Math.round((w * MAX_DIM) / h);
+              h = MAX_DIM;
+            }
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
 
           // Apply high-contrast grayscale filter for B&W "scan" look
-          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const imgData = ctx.getImageData(0, 0, w, h);
           const data = imgData.data;
           for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
@@ -202,7 +267,8 @@ export function processScanImage(file) {
           }
           ctx.putImageData(imgData, 0, 0);
 
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+          // Using 0.7 JPEG quality gives excellent legibility and very small file size (~100-200 KB)
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.70);
           resolve(dataUrl);
         } catch (err) {
           reject(new Error("Eroare la procesarea imaginii."));
@@ -370,22 +436,42 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       return;
     }
 
+    setUploadingPoze(true);
     const files = [];
     const respinse = [];
     for (const file of requested) {
-      if (file.size > MAX_UPLOAD_SIZE_BYTES) { respinse.push(file.name); continue; }
-      if (files.length >= locMax) break;
-      files.push(file);
+      try {
+        let fileToUpload = file;
+        if (file.type && file.type.startsWith("image/")) {
+          fileToUpload = await compressColorImage(file);
+        }
+        if (fileToUpload.size > MAX_UPLOAD_SIZE_BYTES) {
+          respinse.push(file.name);
+          continue;
+        }
+        if (files.length >= locMax) break;
+        files.push(fileToUpload);
+      } catch (cErr) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          respinse.push(file.name);
+          continue;
+        }
+        if (files.length >= locMax) break;
+        files.push(file);
+      }
     }
+
     if (respinse.length) {
       onNotify(`${respinse.length} fișier(e) peste ${MAX_UPLOAD_SIZE_MB}MB au fost ignorate: ${respinse.join(", ")}`, "error");
     }
     if (requested.length > locMax && files.length === locMax) {
       onNotify(`Doar ${locMax} poze au fost încărcate — limita e ${MAX_POZE_PER_DOSAR}/dosar.`, "error");
     }
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setUploadingPoze(false);
+      return;
+    }
 
-    setUploadingPoze(true);
     const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
@@ -457,7 +543,9 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       const processedPageDataUrl = await processScanImage(file);
       setScanSession({
         pages: [processedPageDataUrl],
-        fileName: `Document_${form.numarDosar || "Nou"}_${uid().slice(0, 4)}`
+        fileName: `Document_${form.numarDosar || "Nou"}_${uid().slice(0, 4)}`,
+        saveAsPdf: true,
+        saveAsPhotos: false
       });
     } catch (err) {
       onNotify(err.message, "error");
@@ -480,42 +568,71 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   const handleSaveMultiPageScan = async () => {
     if (!scanSession || scanSession.pages.length === 0) return;
-    setUploadingDocumente(true);
-    try {
-      const pdf = new jsPDF({
-        unit: "pt",
-        format: "a4"
-      });
+    if (!scanSession.saveAsPdf && !scanSession.saveAsPhotos) {
+      onNotify("Te rog selectează cel puțin o opțiune de salvare (PDF sau Poze).", "error");
+      return;
+    }
 
-      for (let i = 0; i < scanSession.pages.length; i++) {
-        const pageDataUrl = scanSession.pages[i];
-        const img = await new Promise((resolve, reject) => {
-          const o = new Image();
-          o.onload = () => resolve(o);
-          o.onerror = () => reject(new Error("Eroare la încărcarea paginii."));
-          o.src = pageDataUrl;
+    setUploadingDocumente(true);
+    setUploadingPoze(true);
+    try {
+      const claimId = form.id || claim?.id || uid();
+
+      // 1. Save as PDF
+      if (scanSession.saveAsPdf) {
+        const pdf = new jsPDF({
+          unit: "pt",
+          format: "a4"
         });
 
-        const orientation = img.width > img.height ? "l" : "p";
-        if (i > 0) {
-          pdf.addPage([img.width, img.height], orientation);
-        } else {
-          pdf.deletePage(1);
-          pdf.addPage([img.width, img.height], orientation);
+        for (let i = 0; i < scanSession.pages.length; i++) {
+          const pageDataUrl = scanSession.pages[i];
+          const img = await new Promise((resolve, reject) => {
+            const o = new Image();
+            o.onload = () => resolve(o);
+            o.onerror = () => reject(new Error("Eroare la încărcarea paginii."));
+            o.src = pageDataUrl;
+          });
+
+          const orientation = img.width > img.height ? "l" : "p";
+          if (i > 0) {
+            pdf.addPage([img.width, img.height], orientation);
+          } else {
+            pdf.deletePage(1);
+            pdf.addPage([img.width, img.height], orientation);
+          }
+          pdf.addImage(pageDataUrl, "JPEG", 0, 0, img.width, img.height);
         }
-        pdf.addImage(pageDataUrl, "JPEG", 0, 0, img.width, img.height);
+
+        const blob = pdf.output("blob");
+        const name = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        const pdfFile = new File([blob], `${name}.pdf`, { type: "application/pdf" });
+
+        await handleUploadDocumente([pdfFile]);
       }
 
-      const blob = pdf.output("blob");
-      const name = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
-      const pdfFile = new File([blob], `${name}.pdf`, { type: "application/pdf" });
+      // 2. Save as individual Photos in claim's gallery
+      if (scanSession.saveAsPhotos) {
+        const photoFiles = [];
+        const baseName = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        
+        for (let i = 0; i < scanSession.pages.length; i++) {
+          const pageDataUrl = scanSession.pages[i];
+          const res = await fetch(pageDataUrl);
+          const blob = await res.blob();
+          const photoFile = new File([blob], `${baseName}_pagina_${i + 1}.jpg`, { type: "image/jpeg" });
+          photoFiles.push(photoFile);
+        }
+        
+        await handleUploadPoze(photoFiles);
+      }
 
-      await handleUploadDocumente([pdfFile]);
       setScanSession(null);
     } catch (err) {
       onNotify(err.message, "error");
     } finally {
       setUploadingDocumente(false);
+      setUploadingPoze(false);
     }
   };
 
@@ -1165,16 +1282,38 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
             {/* Footer controls */}
             <div className="border-t border-white/10 pt-3 space-y-3 shrink-0">
-              <div>
-                <label className="block text-[10px] text-white/60 font-semibold mb-1">Nume document (PDF)</label>
-                <div className="flex items-center gap-1 bg-white/5 border border-white/20 rounded-lg px-2 py-1">
-                  <input 
-                    className="bg-transparent border-0 text-[13px] text-white focus:outline-hidden w-full placeholder:text-white/30" 
-                    placeholder="ex: Declaratie_accident" 
-                    value={scanSession.fileName} 
-                    onChange={(e) => setScanSession(prev => ({ ...prev, fileName: e.target.value }))} 
-                  />
-                  <span className="text-[12px] text-white/40 font-bold font-mono shrink-0">.pdf</span>
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="flex-1 w-full">
+                  <label className="block text-[10.5px] text-white/60 font-semibold mb-1">Nume fișier (fără extensie)</label>
+                  <div className="flex items-center gap-1 bg-white/5 border border-white/20 rounded-lg px-2.5 py-1.5">
+                    <input 
+                      className="bg-transparent border-0 text-[13px] text-white focus:outline-hidden w-full placeholder:text-white/30" 
+                      placeholder="ex: Declaratie_accident" 
+                      value={scanSession.fileName} 
+                      onChange={(e) => setScanSession(prev => ({ ...prev, fileName: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 shrink-0 self-stretch sm:self-auto justify-center">
+                  <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={scanSession.saveAsPdf} 
+                      onChange={(e) => setScanSession(prev => ({ ...prev, saveAsPdf: e.target.checked }))}
+                      className="rounded border-white/20 bg-white/5 text-[#C98A2B] focus:ring-0 focus:ring-offset-0"
+                    />
+                    <span>Salvează ca document PDF unic</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={scanSession.saveAsPhotos} 
+                      onChange={(e) => setScanSession(prev => ({ ...prev, saveAsPhotos: e.target.checked }))}
+                      className="rounded border-white/20 bg-white/5 text-[#C98A2B] focus:ring-0 focus:ring-offset-0"
+                    />
+                    <span>Salvează ca poze în Galerie</span>
+                  </label>
                 </div>
               </div>
 
@@ -1192,7 +1331,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                   disabled={scanSession.pages.length === 0}
                   className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><Save size={13} /> Salvează PDF ({scanSession.pages.length} pag.)</>}
+                  {(uploadingDocumente || uploadingPoze) ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><Save size={13} /> Finalizează &amp; Încarcă ({scanSession.pages.length} pag.)</>}
                 </button>
               </div>
             </div>
