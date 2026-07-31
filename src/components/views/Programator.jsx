@@ -644,7 +644,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-3 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-start">
         {/* Calendar Grid */}
         <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden">
           {/* Days names */}
@@ -686,32 +686,32 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                     setShowAddOptions(false);
                     setSelectingFromArrived(false);
                   }}
-                  className={`min-h-[75px] p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`min-h-[62px] p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
                   } ${
                     cell.isCurrentMonth ? capClass : "bg-[#FAF8F5] text-[#C2BCB0]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11.5px] font-bold ${isToday ? "w-[20px] h-[20px] flex items-center justify-center rounded-full bg-[#C98A2B] text-white font-mono" : ""}`}>
+                    <span className={`text-[11px] font-bold ${isToday ? "w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#C98A2B] text-white font-mono" : ""}`}>
                       {cell.dayNum}
                     </span>
                     {total > 0 && (
-                      <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${badgeColor}`}>
+                      <span className={`text-[9px] font-bold px-1 rounded-full ${badgeColor}`}>
                         {total}
                       </span>
                     )}
                   </div>
                   {/* Micro list of cars */}
-                  <div className="mt-1.5 space-y-0.5 text-[8.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
-                    {dayClaims.slice(0, 3).map(c => (
+                  <div className="mt-1 space-y-0.5 text-[8.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
+                    {dayClaims.slice(0, 2).map(c => (
                       <div key={c.id} className="truncate">
                         🚗 {c.numarInmatriculare || "—"}
                       </div>
                     ))}
-                    {total > 3 && (
+                    {total > 2 && (
                       <div className="text-[8px] text-[#8A8375] font-normal italic pl-3">
-                        +{total - 3} altele
+                        +{total - 2} altele
                       </div>
                     )}
                   </div>
