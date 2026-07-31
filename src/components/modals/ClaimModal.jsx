@@ -899,6 +899,9 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       <Field label="Marcă / Model autovehicul" full>
                         <input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} placeholder="ex: Volkswagen Passat 2.0 TDI" />
                       </Field>
+                      <Field label="Ce este de reparat (Descriere operațiuni)" full>
+                        <textarea className="in min-h-[75px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
+                      </Field>
                     </div>
 
                     {istoricClientVehicul.length > 0 && (
@@ -1003,10 +1006,6 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         </span>
                       </button>
                     </div>
-
-                    <Field label="Ce este de reparat (Descriere operațiuni)" full>
-                      <textarea className="in min-h-[75px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
-                    </Field>
                   </div>
 
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
