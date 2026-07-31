@@ -214,7 +214,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
             body { font-family: system-ui, sans-serif; padding: 25px; color: #111; }
             h2 { border-bottom: 2px solid #23282E; padding-bottom: 6px; margin-bottom: 12px; font-size: 18px; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #dad4c6; padding: 8px 10px; text-align: left; font-size: 12.5px; }
+            th, td { border: 1px solid #dad4c6; padding: 8px 10px; text-align: left; font-size: 12.5px; vertical-align: top; }
             th { background-color: #faf8f5; font-weight: bold; color: #3b5166; }
             .time { font-family: monospace; font-weight: bold; }
             .plate { font-family: monospace; font-weight: bold; font-size: 13.5px; }
@@ -226,18 +226,18 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           <table>
             <thead>
               <tr>
-                <th style="width: 55px; white-space: nowrap;">Ora</th>
-                <th style="width: 100px; white-space: nowrap;">Nr. Înmatriculare</th>
-                <th style="width: 110px;">Autoturism</th>
+                <th style="width: 1%; white-space: nowrap;">Ora</th>
+                <th style="width: 1%; white-space: nowrap;">Nr. Înmatriculare</th>
+                <th style="width: 1%; white-space: nowrap;">Autoturism</th>
                 <th>Operațiuni de efectuat</th>
               </tr>
             </thead>
             <tbody>
               ${activeDayClaims.map(c => `
                 <tr>
-                  <td class="time">${c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}</td>
-                  <td class="plate">${c.numarInmatriculare || "—"}</td>
-                  <td>${c.marcaModel || "—"}</td>
+                  <td class="time" style="white-space: nowrap;">${c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}</td>
+                  <td class="plate" style="white-space: nowrap;">${c.numarInmatriculare || "—"}</td>
+                  <td style="white-space: nowrap;">${c.marcaModel || "—"}</td>
                   <td class="operations">${c.ceEsteDeReparat || "—"}</td>
                 </tr>
               `).join("")}
