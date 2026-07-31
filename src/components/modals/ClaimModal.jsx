@@ -872,10 +872,16 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze Dosar ({form.poze.length})</span>
                   </div>
 
-                  <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg py-3 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
-                    {uploadingPoze ? <><Loader2 size={15} className="animate-spin" /> Se încarcă pozele...</> : <><Upload size={15} /> Încărcare poze noi</>}
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
+                      {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă din galerie</>}
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                    </label>
+                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#3E6B45]/40 text-[#294A2E] font-semibold"}`}>
+                      {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Deschidere cameră...</> : <><Car size={13} /> Fă poză (Cameră)</>}
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                    </label>
+                  </div>
 
                   {form.poze.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1">
@@ -903,10 +909,16 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente &amp; Fișiere PDF ({form.documente.length})</span>
                   </div>
 
-                  <label className={`flex items-center justify-center gap-2 border-2 border-dashed rounded-lg py-3 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#3B5166]/40 text-[#3B5166] font-semibold"}`}>
-                    {uploadingDocumente ? <><Loader2 size={15} className="animate-spin" /> Se încarcă documentele...</> : <><Upload size={15} /> Încărcare documente</>}
-                    <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
-                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#3B5166]/40 text-[#3B5166] font-semibold"}`}>
+                      {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
+                      <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
+                    </label>
+                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
+                      {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Deschidere cameră...</> : <><FileText size={13} /> Scanează (Cameră)</>}
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
+                    </label>
+                  </div>
 
                   <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
                     {form.documente.map((d) => (
