@@ -10,7 +10,7 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
-export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false }) {
+export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false, highlighted = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
@@ -35,12 +35,15 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
 
   return (
     <div
+      id={`claim-card-${claim.id}`}
       onClick={handleCardClick}
       onDoubleClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none ${
+      className={`group relative bg-white rounded-lg border transition-all duration-300 hover:shadow-md cursor-pointer select-none ${
         compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
       } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
+      } ${
+        highlighted ? "ring-2 ring-[#C98A2B] ring-offset-2 scale-[1.02] shadow-lg animate-pulse" : ""
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
       title={compact && !isExpanded ? "Dublu-click pentru a deschide sau click simplu pentru detalii" : ""}
@@ -249,6 +252,8 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
   const [isCompactMode, setIsCompactMode] = useState(() => {
     return localStorage.getItem("flux_compact_mode") === "true";
   });
+  const [highlightedStatus, setHighlightedStatus] = useState(null);
+  const [highlightedStatuses, setHighlightedStatuses] = useState([]);
 
   const toggleCompactMode = () => {
     setIsCompactMode((prev) => {
@@ -256,6 +261,32 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       localStorage.setItem("flux_compact_mode", String(next));
       return next;
     });
+  };
+
+  const handleSubStatusClick = (statusKey) => {
+    const matched = displayClaims.filter((c) => c.status === statusKey);
+    if (matched.length === 0) return;
+
+    const firstClaimId = matched[0].id;
+    const el = document.getElementById(`claim-card-${firstClaimId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedStatus(statusKey);
+      setTimeout(() => setHighlightedStatus(null), 2500);
+    }
+  };
+
+  const handlePhaseHeaderClick = (phase) => {
+    const matched = displayClaims.filter((c) => phase.statuses.includes(c.status));
+    if (matched.length === 0) return;
+
+    const firstClaimId = matched[0].id;
+    const el = document.getElementById(`claim-card-${firstClaimId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedStatuses(phase.statuses);
+      setTimeout(() => setHighlightedStatuses([]), 2500);
+    }
   };
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
@@ -412,7 +443,12 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               style={{ background: phase.bgColor }}
             >
               {/* Phase Column Header */}
-              <div className="p-2.5 text-white shrink-0" style={{ background: phase.barColor }}>
+              <div
+                onClick={() => handlePhaseHeaderClick(phase)}
+                className="p-2.5 text-white shrink-0 cursor-pointer hover:brightness-105 active:brightness-95 transition-all select-none"
+                style={{ background: phase.barColor }}
+                title="Click pentru a derula și evidenția toate dosarele din această fază"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-[12.5px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                     {phase.label}
@@ -430,10 +466,20 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                   {phase.statuses.map((stKey) => {
                     const stDef = getStatusDefinition(stKey);
                     const stCount = phaseClaims.filter((c) => c.status === stKey).length;
+                    const hasClaims = stCount > 0;
                     return (
                       <span
                         key={stKey}
-                        className="px-1.5 py-0.2 rounded bg-white/15 text-[9.5px] font-semibold flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (hasClaims) handleSubStatusClick(stKey);
+                        }}
+                        className={`px-1.5 py-0.2 rounded text-[9.5px] font-semibold flex items-center gap-1 transition-all select-none ${
+                          hasClaims
+                            ? "bg-white/15 hover:bg-white/30 cursor-pointer active:scale-95"
+                            : "bg-white/5 opacity-40 cursor-not-allowed"
+                        }`}
+                        title={hasClaims ? `Click pentru a derula la dosarele în etapa ${stDef.label}` : "Niciun dosar în această etapă"}
                       >
                         <span className="opacity-75">{stDef.num}.</span>
                         <span>{stDef.label}</span>
@@ -461,6 +507,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                       canEdit={canEditFn ? canEditFn(claim) : true}
                       pragRidicare={pragRidicare}
                       compact={isCompactMode}
+                      highlighted={highlightedStatus === claim.status || highlightedStatuses.includes(claim.status)}
                     />
                   ))
                 )}
