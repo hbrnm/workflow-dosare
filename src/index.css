@@ -7,6 +7,13 @@
 body {
   margin: 0;
   font-family: "Inter", system-ui, sans-serif;
+  overscroll-behavior-y: contain;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, [contenteditable="true"] {
+  user-select: text;
 }
 
 .in {
