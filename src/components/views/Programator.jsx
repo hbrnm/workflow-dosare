@@ -810,19 +810,23 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                       <div
                         key={c.id}
                         onClick={() => onOpen(c)}
-                        className="p-2 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all space-y-1 text-[11px] bg-[#FAF8F5]"
+                        className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[11px] hover:shadow-xs"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold bg-[#3B5166] text-white px-1 py-0.2 rounded text-[9px]">
-                            {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}
-                          </span>
-                          <span className="font-mono font-bold text-[#3B5166] uppercase">{c.numarInmatriculare}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-mono font-bold bg-[#3B5166] text-white px-1 py-0.2 rounded text-[9px] shrink-0">
+                              {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}
+                            </span>
+                            <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">{c.numarInmatriculare}</span>
+                            <span className="text-[#8A8375] shrink-0">·</span>
+                            <span className="font-bold text-[#23282E] truncate">{c.client || "—"}</span>
+                          </div>
+                          <span className="text-[10px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[120px]">{c.marcaModel || "—"}</span>
                         </div>
-                        <div className="font-bold text-[#23282E] truncate">{c.client || "—"}</div>
-                        <div className="text-[10px] text-[#6B6558] truncate">{c.marcaModel || "—"}</div>
-                        {c.ceEsteDeReparat && (
-                          <div className="text-[9px] text-[#8A8375] border-t border-[#EFEAE1] pt-1 mt-1 truncate">
-                            ⚙️ {c.ceEsteDeReparat}
+                        {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
+                          <div className="text-[9.5px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1 mt-1 truncate flex items-center gap-1">
+                            <span className="text-[#8A8375]">⚙️</span>
+                            <span className="truncate">{c.ceEsteDeReparat}</span>
                           </div>
                         )}
                       </div>
