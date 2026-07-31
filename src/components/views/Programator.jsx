@@ -358,6 +358,28 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                     setActiveSlotForScheduling(null);
                     setSelectingFromArrived(false);
                   }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }}
+                  onDragEnter={(e) => {
+                    e.currentTarget.classList.add("ring-2", "ring-[#C98A2B]", "ring-inset");
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    const claimId = e.dataTransfer.getData("text/plain");
+                    if (claimId && onPatch) {
+                      const claim = claims.find(cl => cl.id === claimId);
+                      if (claim) {
+                        const oldTime = claim.dataProgramare ? claim.dataProgramare.slice(11, 16) : "08:00";
+                        onPatch(claim.id, { dataProgramare: `${cell.iso}T${oldTime}:00` });
+                      }
+                    }
+                  }}
                   className={`p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
                   } ${
@@ -377,7 +399,17 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                   {/* Micro list of cars */}
                   <div className="mt-1 space-y-0.5 text-[9.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
                     {dayClaims.slice(0, total > 5 ? 4 : 5).map(c => (
-                      <div key={c.id} className="truncate">
+                      <div
+                        key={c.id}
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.setData("text/plain", c.id);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        className="truncate cursor-grab active:cursor-grabbing hover:text-[#C98A2B] transition-colors"
+                        title="Trage mașina pentru a o muta în altă zi"
+                      >
                         🚗 {c.numarInmatriculare || "—"}
                       </div>
                     ))}
@@ -433,7 +465,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                 <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between text-[10.5px] font-mono text-[#8A8375] mb-1 font-bold">
                     <span>{slot}</span>
-                    {!hasItems && !isSchedulingThisSlot && (
+                    {!isSchedulingThisSlot && (
                       <button
                         type="button"
                         onClick={() => {
@@ -455,7 +487,12 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                           <div
                             key={c.id}
                             onClick={() => onOpen(c)}
-                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[11px] flex flex-col hover:shadow-2xs"
+                            draggable={true}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", c.id);
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[11px] flex flex-col hover:shadow-2xs active:opacity-60"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">

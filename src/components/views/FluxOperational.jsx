@@ -35,7 +35,12 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
       id={`claim-card-${claim.id}`}
       onClick={handleCardClick}
       onDoubleClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none ${
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", claim.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none active:opacity-60 ${
         compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
       } ${
         claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
@@ -411,6 +416,28 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
           return (
             <div
               key={phase.key}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDragEnter={(e) => {
+                e.currentTarget.classList.add("ring-2", "ring-[#C98A2B]", "ring-inset");
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                const claimId = e.dataTransfer.getData("text/plain");
+                if (claimId && onMoveToStatus) {
+                  const claim = claims.find(cl => cl.id === claimId);
+                  if (claim) {
+                    const targetStatus = phase.statuses[0];
+                    onMoveToStatus(claim, targetStatus);
+                  }
+                }
+              }}
               className="flex flex-col h-auto md:h-full rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0"
               style={{ background: phase.bgColor }}
             >
@@ -453,6 +480,31 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                           e.stopPropagation();
                           if (hasClaims) {
                             setSelectedSubStatus(isActive ? null : stKey);
+                          }
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDragEnter={(e) => {
+                          e.stopPropagation();
+                          e.currentTarget.classList.add("bg-white", "text-[#23282E]", "font-bold");
+                        }}
+                        onDragLeave={(e) => {
+                          e.stopPropagation();
+                          e.currentTarget.classList.remove("bg-white", "text-[#23282E]", "font-bold");
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.currentTarget.classList.remove("bg-white", "text-[#23282E]", "font-bold");
+                          const claimId = e.dataTransfer.getData("text/plain");
+                          if (claimId && onMoveToStatus) {
+                            const claim = claims.find(cl => cl.id === claimId);
+                            if (claim) {
+                              onMoveToStatus(claim, stKey);
+                            }
                           }
                         }}
                         className={`px-1.5 py-0.2 rounded text-[9.5px] font-semibold flex items-center gap-1 transition-all select-none ${

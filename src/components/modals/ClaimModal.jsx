@@ -284,6 +284,39 @@ export function processScanImage(file) {
 
 export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = React.useRef({ x: 0, y: 0 });
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("select") || e.target.closest("textarea") || e.target.closest("a") || e.target.closest("label")) return;
+    setIsDragging(true);
+    dragStartPos.current = {
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y
+    };
+    e.preventDefault();
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e) => {
+      setDragOffset({
+        x: e.clientX - dragStartPos.current.x,
+        y: e.clientY - dragStartPos.current.y
+      });
+    };
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
   const [form, setForm] = useState(safeClaim);
   const [activeTab, setActiveTab] = useState("date"); // "date", "service", "media", "note"
   const [noteText, setNoteText] = useState("");
@@ -649,10 +682,17 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div onClick={(e) => e.stopPropagation()} className="relative bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+      <div 
+        onClick={(e) => e.stopPropagation()} 
+        style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
+        className="relative bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden"
+      >
         
         {/* Header Modal Bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-[#23282E] text-white shrink-0">
+        <div 
+          onMouseDown={handleMouseDown}
+          className="flex items-center justify-between px-3 py-1.5 bg-[#23282E] text-white shrink-0 select-none cursor-move"
+        >
           <div className="flex items-center gap-2">
             <FileText size={15} className="text-[#C98A2B]" />
             <span className="font-bold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
