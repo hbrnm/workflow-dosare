@@ -218,6 +218,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
             th { background-color: #faf8f5; font-weight: bold; color: #3b5166; }
             .time { font-family: monospace; font-weight: bold; }
             .plate { font-family: monospace; font-weight: bold; font-size: 13.5px; }
+            .operations { white-space: pre-wrap; word-break: break-word; font-size: 13.5px; line-height: 1.45; }
           </style>
         </head>
         <body>
@@ -237,7 +238,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                   <td class="time">${c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}</td>
                   <td class="plate">${c.numarInmatriculare || "—"}</td>
                   <td>${c.marcaModel || "—"}</td>
-                  <td>${c.ceEsteDeReparat || "—"}</td>
+                  <td class="operations">${c.ceEsteDeReparat || "—"}</td>
                 </tr>
               `).join("")}
             </tbody>
@@ -245,6 +246,9 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           <script>
             window.onload = function() {
               window.print();
+              setTimeout(function() {
+                window.close();
+              }, 100);
             }
           </script>
         </body>
