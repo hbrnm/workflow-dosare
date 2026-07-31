@@ -693,8 +693,8 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11px] font-bold ${isToday ? "w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#C98A2B] text-white font-mono" : ""}`}>
-                      {cell.dayNum}
+                    <span className={`text-[9.5px] font-mono font-bold px-1 rounded ${isToday ? "bg-[#C98A2B] text-white" : cell.isCurrentMonth ? "text-[#23282E]" : "text-[#C2BCB0]"}`}>
+                      {cell.iso.slice(8, 10)}/{cell.iso.slice(5, 7)}
                     </span>
                     {total > 0 && (
                       <span className={`text-[9px] font-bold px-1 rounded-full ${badgeColor}`}>
