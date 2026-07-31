@@ -424,7 +424,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       </div>
 
       {/* 4 Phase Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 md:overflow-y-auto xl:overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaimsForCount = claimsForCounts.filter((c) => phase.statuses.includes(c.status));
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));

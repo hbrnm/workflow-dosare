@@ -632,7 +632,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       <div className="px-2 py-1 bg-[#B23A2E] text-white rounded text-[11px] flex items-center gap-1.5">
                         <AlertOctagon size={12} />
                         <span className="font-semibold">Motiv:</span>
-                        <input className="flex-1 bg-white/10 border border-white/20 rounded px-1.5 py-px text-white text-[11px] placeholder:text-white/60 focus:outline-hidden" placeholder="Motiv blocare..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                        <input className="flex-1 bg-white/10 border border-white/20 rounded px-1.5 py-px text-white text-[16px] md:text-[11px] placeholder:text-white/60 focus:outline-hidden" placeholder="Motiv blocare..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
                       </div>
                     )}
                   </div>
@@ -663,7 +663,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                         <input className="in font-mono font-bold text-[#23282E] uppercase" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} placeholder="ex: B111AAA" required />
                       </Field>
                       <Field label="Serie șasiu (VIN)">
-                        <input className="in font-mono text-[11.5px] uppercase" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} placeholder="17 caractere VIN" />
+                        <input className="in font-mono text-[16px] md:text-[11.5px] uppercase" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} placeholder="17 caractere VIN" />
                       </Field>
                       <Field label="Marcă / Model autovehicul" full>
                         <input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} placeholder="ex: Volkswagen Passat 2.0 TDI" />

@@ -212,7 +212,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen md:h-screen flex flex-col md:overflow-hidden bg-[#EFEAE1]">
+    <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1]">
       <Notification notice={notice} onClose={() => setNotice(null)} />
       <div className="bg-[#23282E] px-4 py-3 shrink-0 z-30">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -282,7 +282,7 @@ export default function App() {
       <div className="px-4 py-2.5 bg-white border-b border-[#DAD4C6] flex flex-wrap items-center gap-2 shrink-0 z-20">
         <div className="relative w-full sm:w-[260px]">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-          <input className="w-full pl-8 pr-16 py-1.5 rounded border border-[#DAD4C6] text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="w-full pl-8 pr-16 py-1.5 rounded border border-[#DAD4C6] text-[16px] md:text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid..." value={search} onChange={(e) => setSearch(e.target.value)} />
           <button
             type="button"
             onClick={() => setIsCommandPaletteOpen(true)}
@@ -301,7 +301,7 @@ export default function App() {
         </select>
       </div>
 
-      <div className={`flex-1 min-h-0 p-3 md:p-4 ${view === "flux" ? "flex flex-col overflow-y-auto md:overflow-hidden" : "overflow-y-auto"}`}>
+      <div className={`flex-1 min-h-0 p-3 md:p-4 ${view === "flux" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "flux" ? (

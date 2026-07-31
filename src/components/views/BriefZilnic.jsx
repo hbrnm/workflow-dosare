@@ -143,7 +143,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
       </div>
 
       {/* Main Section Columns Grid: Dosare Restante PRIMUL */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-1 min-h-0 md:overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 flex-1 min-h-0 overflow-y-auto">
         {/* 1. DOSARE RESTANTE ÎN ETAPĂ (PRIMUL SECTOR) */}
         <Sectiune
           icon={<AlertTriangle size={15} />}
