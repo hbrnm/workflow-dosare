@@ -241,8 +241,7 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   );
 }
 
-export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
-  const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite", "gata_ridicare"
+export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, quickFilter, setQuickFilter }) {
   const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [mobileExpandedPhases, setMobileExpandedPhases] = useState({ start: true });

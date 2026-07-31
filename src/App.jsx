@@ -34,6 +34,7 @@ export default function App() {
   const [onlyAlerts, setOnlyAlerts] = useState(false);
   const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [onlyGataNeridicate, setOnlyGataNeridicate] = useState(false);
+  const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
@@ -262,9 +263,12 @@ export default function App() {
           <div className="flex items-center gap-1.5 shrink-0">
             {alertCount > 0 && (
               <button
-                onClick={() => setOnlyAlerts((v) => !v)}
+                onClick={() => {
+                  setView("flux");
+                  setFluxFilter((prev) => prev === "intarziate" ? "toate" : "intarziate");
+                }}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded text-[12px] font-bold shadow-md transition-all ${
-                  onlyAlerts
+                  view === "flux" && fluxFilter === "intarziate"
                     ? "bg-[#B23A2E] text-white border border-[#B23A2E]"
                     : "bg-[#B23A2E] text-white hover:bg-[#922D24] animate-pulse-red"
                 }`}
@@ -351,7 +355,17 @@ export default function App() {
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "flux" ? (
-          <TablouPeFaze claims={filtered} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onAddInStatus={openNew} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
+          <TablouPeFaze
+            claims={filtered}
+            onOpen={openExisting}
+            onMoveToStatus={handleMoveToStatus}
+            onAddInStatus={openNew}
+            onDuplicate={duplicateClaim}
+            canEditFn={canEdit}
+            pragRidicare={pragRidicare}
+            quickFilter={fluxFilter}
+            setQuickFilter={setFluxFilter}
+          />
         ) : view === "brief" ? (
           <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
         ) : view === "list" ? (
