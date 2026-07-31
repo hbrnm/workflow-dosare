@@ -10,7 +10,8 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
-export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare, compact = false }) {
+export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare }) {
+  const compact = true;
   const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
@@ -19,18 +20,14 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
 
-  const expanded = !compact || isExpanded;
+  const expanded = isExpanded;
 
   const handleCardClick = (e) => {
     // If click was on an interactive element, let its own handler execute
     if (e.target.closest("button") || e.target.closest("a") || e.target.closest("select")) {
       return;
     }
-    if (!compact) {
-      onOpen(claim);
-    } else {
-      setIsExpanded(!isExpanded);
-    }
+    setIsExpanded(!isExpanded);
   };
 
   return (
@@ -247,9 +244,6 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
 export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [quickFilter, setQuickFilter] = useState("toate"); // "toate", "intarziate", "blocate", "masini_schimb", "piese_sosite", "gata_ridicare"
   const [selectedInsurer, setSelectedInsurer] = useState("toti"); // "toti" or insurer name
-  const [isCompactMode, setIsCompactMode] = useState(() => {
-    return localStorage.getItem("flux_compact_mode") === "true";
-  });
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [mobileExpandedPhases, setMobileExpandedPhases] = useState({ start: true });
 
@@ -258,14 +252,6 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
       ...prev,
       [phaseKey]: !prev[phaseKey],
     }));
-  };
-
-  const toggleCompactMode = () => {
-    setIsCompactMode((prev) => {
-      const next = !prev;
-      localStorage.setItem("flux_compact_mode", String(next));
-      return next;
-    });
   };
 
   const alertClaims = useMemo(() => claims.filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 3)), [claims]);
@@ -400,21 +386,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               </div>
             )}
 
-            {/* Compact Mode Toggle - hidden on mobile */}
-            <div className="hidden md:flex items-center gap-1 pl-2 border-l border-[#DAD4C6] ml-1">
-              <button
-                onClick={toggleCompactMode}
-                className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 ${
-                  isCompactMode
-                    ? "bg-[#3B5166] text-white shadow-xs font-bold"
-                    : "bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1] border border-[#DAD4C6]"
-                }`}
-                title={isCompactMode ? "Dezactivează modul compact" : "Activează modul compact"}
-              >
-                {isCompactMode ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
-                <span>Compact</span>
-              </button>
-            </div>
+
 
             {/* Reset Sub-status Filter */}
             {selectedSubStatus && (
@@ -526,7 +498,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                       onDuplicate={onDuplicate}
                       canEdit={canEditFn ? canEditFn(claim) : true}
                       pragRidicare={pragRidicare}
-                      compact={isCompactMode}
+                      compact={true}
                     />
                   ))
                 )}
