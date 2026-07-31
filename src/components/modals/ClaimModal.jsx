@@ -427,12 +427,15 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       }
     }
 
-    let effectiveStatus = form.status;
-    if (form.dataProgramare && form.status === "piese_sosite") {
+    // Predarea către client închide automat fluxul operațional: dosarul
+    // ajunge în coloana „Finalizare & Predare” (statusul facturat).
+    const autoFinalizeOnDelivery = form.ridicata && form.status !== "facturat";
+    let effectiveStatus = autoFinalizeOnDelivery ? "facturat" : form.status;
+    if (!autoFinalizeOnDelivery && form.dataProgramare && form.status === "piese_sosite") {
       effectiveStatus = "programat";
     }
     const statusChanged = effectiveStatus !== claim.status;
-    if (statusChanged && effectiveStatus === "facturat") {
+    if (statusChanged && effectiveStatus === "facturat" && !autoFinalizeOnDelivery) {
       const faraValori = !form.manopera.tinichigerie.facturat && !form.manopera.vopsitorie.facturat &&
         !form.valoarePieseAudatex && !form.valoareAchizitiePiese;
       if (faraValori) {
