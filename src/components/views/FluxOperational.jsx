@@ -251,6 +251,14 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     return localStorage.getItem("flux_compact_mode") === "true";
   });
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
+  const [mobileExpandedPhases, setMobileExpandedPhases] = useState({ start: true });
+
+  const togglePhaseMobile = (phaseKey) => {
+    setMobileExpandedPhases((prev) => ({
+      ...prev,
+      [phaseKey]: !prev[phaseKey],
+    }));
+  };
 
   const toggleCompactMode = () => {
     setIsCompactMode((prev) => {
@@ -428,6 +436,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaimsForCount = claimsForCounts.filter((c) => phase.statuses.includes(c.status));
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));
+          const isExpandedMobile = mobileExpandedPhases[phase.key] ?? false;
 
           return (
             <div
@@ -436,21 +445,32 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               style={{ background: phase.bgColor }}
             >
               {/* Phase Column Header */}
-              <div className="p-2.5 text-white shrink-0" style={{ background: phase.barColor }}>
+              <div
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    togglePhaseMobile(phase.key);
+                  }
+                }}
+                className="p-2.5 text-white shrink-0 md:cursor-default cursor-pointer select-none"
+                style={{ background: phase.barColor }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 font-bold text-[12.5px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <span className="md:hidden mr-1 text-[10px]">
+                      {isExpandedMobile ? "▼" : "▶"}
+                    </span>
                     {phase.label}
                   </div>
                   <span className="min-w-[22px] h-[22px] px-1 flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
                     {phaseClaimsForCount.length}
                   </span>
                 </div>
-                <div className="mt-0.5 text-[10px] opacity-80 leading-tight">
+                <div className={`mt-0.5 text-[10px] opacity-80 leading-tight ${isExpandedMobile ? "block" : "hidden md:block"}`}>
                   {phase.description}
                 </div>
 
                 {/* Sub-status Pills inside Phase */}
-                <div className="mt-2 flex items-center gap-1 flex-wrap">
+                <div className={`mt-2 flex items-center gap-1 flex-wrap ${isExpandedMobile ? "flex" : "hidden md:flex"}`}>
                   {phase.statuses.map((stKey) => {
                     const stDef = getStatusDefinition(stKey);
                     const stCount = phaseClaimsForCount.filter((c) => c.status === stKey).length;
@@ -490,7 +510,9 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
               </div>
 
               {/* Claims Grid (2 Cards per row when width permits) */}
-              <div className="p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-visible md:overflow-y-auto flex-1 md:min-h-0 items-start auto-rows-max">
+              <div className={`p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-visible md:overflow-y-auto flex-1 md:min-h-0 items-start auto-rows-max ${
+                isExpandedMobile ? "block" : "hidden md:grid"
+              }`}>
                 {phaseClaims.length === 0 ? (
                   <div className="col-span-full text-center py-8 text-[11.5px] text-[#8A8375]/70 italic">
                     Niciun dosar în această fază
