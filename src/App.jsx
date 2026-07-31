@@ -217,7 +217,8 @@ export default function App() {
       <div className="bg-[#23282E] shrink-0 z-30">
         {/* Top Row: Brand + Actions */}
         <div className="px-3 md:px-4 py-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          {/* Left Side: Brand + New Claim Button */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all"
@@ -228,10 +229,49 @@ export default function App() {
               {claims.length} <span className="hidden sm:inline">dosare</span>{saving && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Loader2 size={11} className="animate-spin" /></span>}
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
+
+          {/* Center Side: Navigation Tabs (Desktop only) */}
+          <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-black/25 p-1">
+            {[
+              { id: "flux", label: "Flux Operațional", icon: Layers },
+              { id: "brief", label: "Brief", icon: Sunrise },
+              { id: "list", label: "Listă", icon: List },
+              { id: "programator", label: "Programări", icon: CalendarClock },
+              { id: "dashboard", label: "Statistici", icon: BarChart3 },
+              { id: "rapoarte", label: "Financiar", icon: Wallet },
+            ].map(({ id, label, icon: Icon }) => {
+              const active = view === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setView(id)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap ${
+                    active
+                      ? "bg-[#C98A2B] text-white shadow-sm font-bold"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  <Icon size={14} strokeWidth={2.2} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Side: Actions (Alerts, Excel, user, delogare) */}
+          <div className="flex items-center gap-1.5 shrink-0">
             {alertCount > 0 && (
-              <button onClick={() => setOnlyAlerts((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded text-[12px] font-semibold ${onlyAlerts ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {alertCount}
+              <button
+                onClick={() => setOnlyAlerts((v) => !v)}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[12px] font-bold shadow-md transition-all ${
+                  onlyAlerts
+                    ? "bg-[#B23A2E] text-white border border-[#B23A2E]"
+                    : "bg-[#B23A2E] text-white hover:bg-[#922D24] animate-pulse-red"
+                }`}
+                title="Dosare cu termene depășite"
+              >
+                <AlertTriangle size={13} className="fill-white" />
+                <span>{alertCount}</span>
               </button>
             )}
             {blockedCount > 0 && (
@@ -251,8 +291,9 @@ export default function App() {
             </button>
           </div>
         </div>
-        {/* Bottom Row: Navigation Tabs - scrollable on mobile */}
-        <div className="px-2 md:px-4 pb-2 overflow-x-auto scrollbar-none">
+
+        {/* Bottom Row: Navigation Tabs - scrollable on mobile (Hidden on Desktop) */}
+        <div className="px-2 md:px-4 pb-2 overflow-x-auto scrollbar-none md:hidden">
           <div className="flex items-center gap-1 rounded-lg border border-white/20 bg-black/20 p-1 min-w-max">
             {[
               { id: "flux", label: "Flux", labelFull: "Flux Operațional", icon: Layers },
