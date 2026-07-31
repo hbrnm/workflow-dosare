@@ -322,13 +322,23 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           {/* Days names */}
           <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
             {headers.map(d => (
-              <span key={d} className="text-[10.5px] font-bold text-[#8A8375] py-2">{d}</span>
+              <span key={d} className="text-[13.5px] font-bold text-[#6B6558] py-2.5">{d}</span>
             ))}
           </div>
 
           {/* Days cells */}
           <div className="grid grid-cols-7 auto-rows-fr gap-px bg-[#DAD4C6] flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
+              const activeMonth = Number(activeDateStr.slice(5, 7)) - 1;
+              const cellMonth = Number(cell.iso.slice(5, 7)) - 1;
+              const isDifferentMonth = cellMonth !== activeMonth;
+
+              if (isDifferentMonth) {
+                return (
+                  <div key={idx} className="bg-[#FAF8F5]/35 border-0 select-none pointer-events-none" />
+                );
+              }
+
               const dayClaims = claims.filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
               const isSelected = activeDateStr === cell.iso;
@@ -387,17 +397,17 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11px] font-mono font-bold px-1 rounded ${isToday ? "bg-[#C98A2B] text-white" : "text-[#23282E]"}`}>
+                    <span className={`text-[14px] font-mono font-bold px-1.5 py-0.5 rounded ${isToday ? "bg-[#C98A2B] text-white" : "text-[#23282E]"}`}>
                       {cell.iso.slice(8, 10)}/{cell.iso.slice(5, 7)}
                     </span>
                     {total > 0 && (
-                      <span className={`text-[10px] font-bold px-1 rounded-full ${badgeColor}`}>
+                      <span className={`text-[12.5px] font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>
                         {total}
                       </span>
                     )}
                   </div>
                   {/* Micro list of cars */}
-                  <div className="mt-1 space-y-0.5 text-[9.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
+                  <div className="mt-1.5 space-y-1 text-[12px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
                     {dayClaims.slice(0, total > 5 ? 4 : 5).map(c => (
                       <div
                         key={c.id}
@@ -414,7 +424,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                       </div>
                     ))}
                     {total > 5 && (
-                      <div className="text-[8.5px] text-[#8A8375] font-normal italic pl-3">
+                      <div className="text-[11px] text-[#8A8375] font-normal italic pl-3">
                         +{total - 4} altele
                       </div>
                     )}
@@ -429,8 +439,8 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
         <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 flex flex-col h-full min-h-0">
           <div className="border-b border-[#EFEAE1] pb-2 flex items-center justify-between shrink-0">
             <div>
-              <div className="text-[12.5px] font-bold text-[#23282E]">Programări: {activeDayFormatted}</div>
-              <div className="text-[10.5px] text-[#8A8375]">{activeDayClaims.length}/{capacitate} programate</div>
+              <div className="text-[15px] font-bold text-[#23282E]">Programări: {activeDayFormatted}</div>
+              <div className="text-[12.5px] text-[#8A8375]">{activeDayClaims.length}/{capacitate} programate</div>
             </div>
             
             {/* Quick Share / Print tools */}
@@ -463,7 +473,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
 
               return (
                 <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between text-[10.5px] font-mono text-[#8A8375] mb-1 font-bold">
+                  <div className="flex items-center justify-between text-[12.5px] font-mono text-[#8A8375] mb-1 font-bold">
                     <span>{slot}</span>
                     {!isSchedulingThisSlot && (
                       <button
@@ -492,7 +502,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                               e.dataTransfer.setData("text/plain", c.id);
                               e.dataTransfer.effectAllowed = "move";
                             }}
-                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[11px] flex flex-col hover:shadow-2xs active:opacity-60"
+                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[13px] flex flex-col hover:shadow-2xs active:opacity-60"
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
@@ -500,16 +510,16 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                                 <span className="text-[#8A8375] shrink-0">·</span>
                                 <span className="font-bold text-[#23282E] truncate">{c.client || "—"}</span>
                               </div>
-                              <span className="text-[10px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[150px]">{c.marcaModel || "—"}</span>
+                              <span className="text-[11.5px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[150px]">{c.marcaModel || "—"}</span>
                             </div>
                             {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
-                              <div className="text-[9.5px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1 mt-1 truncate flex items-center gap-1">
+                              <div className="text-[11.5px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1.5 mt-1.5 truncate flex items-center gap-1">
                                 <span className="text-[#8A8375]">⚙️</span>
                                 <span className="truncate">{c.ceEsteDeReparat}</span>
                               </div>
                             )}
                             {c.masinaSchimb && (
-                              <div className={`text-[8px] font-bold px-1.5 py-0.5 rounded mt-1 w-max flex items-center gap-1 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1.5 w-max flex items-center gap-1 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
                                 🚗 Auto Schimb: {c.masinaSchimb}
                                 {conflict && <span>⚠️ Conflict!</span>}
                               </div>
@@ -591,7 +601,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                       )}
                     </div>
                   ) : (
-                    <div className="text-[10.5px] text-[#C2BCB0] italic py-0.5 pl-1.5 select-none">Liber</div>
+                    <div className="text-[12.5px] text-[#C2BCB0] italic py-0.5 pl-1.5 select-none">Liber</div>
                   )}
                 </div>
               );
