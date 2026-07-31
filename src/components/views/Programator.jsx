@@ -469,77 +469,62 @@ const MONTHS_RO = [
   "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"
 ];
 
+const WEEKDAYS_RO = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
+
 function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-11
   
   // Selected day for the popover/details panel
   const [activeDateStr, setActiveDateStr] = useState(() => today.toISOString().slice(0, 10));
 
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [selectingFromArrived, setSelectingFromArrived] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
 
-  const prevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(prev => prev - 1);
-    } else {
-      setCurrentMonth(prev => prev - 1);
-    }
+  const prevWeek = () => {
+    setWeekOffset(prev => Math.max(0, prev - 1));
   };
 
-  const nextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(prev => prev + 1);
-    } else {
-      setCurrentMonth(prev => prev + 1);
-    }
+  const nextWeek = () => {
+    setWeekOffset(prev => prev + 1);
   };
 
-  const setToday = () => {
-    setCurrentYear(today.getFullYear());
-    setCurrentMonth(today.getMonth());
+  const handleSetToday = () => {
+    setWeekOffset(0);
     setActiveDateStr(today.toISOString().slice(0, 10));
   };
 
-  // Generate calendar days
+  // Generate calendar cells (rolling 35 days starting from today + weekOffset)
   const calendarCells = useMemo(() => {
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
-    const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const prevMonthDays = new Date(currentYear, currentMonth, 0).getDate();
-
     const cells = [];
-    
-    // Trail from previous month
-    for (let i = startWeekday - 1; i >= 0; i--) {
-      const d = prevMonthDays - i;
-      const m = currentMonth === 0 ? 11 : currentMonth - 1;
-      const y = currentMonth === 0 ? currentYear - 1 : currentYear;
-      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      cells.push({ dayNum: d, isCurrentMonth: false, iso });
-    }
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + weekOffset * 7);
 
-    // Current month days
-    for (let i = 1; i <= totalDays; i++) {
-      const iso = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      cells.push({ dayNum: i, isCurrentMonth: true, iso });
+    for (let i = 0; i < 35; i++) {
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      cells.push({
+        dayNum: d.getDate(),
+        monthNum: d.getMonth() + 1,
+        iso,
+        isCurrentMonth: true // all days in rolling view are active
+      });
     }
-
-    // Lead from next month
-    const totalCells = cells.length;
-    const remaining = (7 - (totalCells % 7)) % 7;
-    for (let i = 1; i <= remaining; i++) {
-      const m = currentMonth === 11 ? 0 : currentMonth + 1;
-      const y = currentMonth === 11 ? currentYear + 1 : currentYear;
-      const iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-      cells.push({ dayNum: i, isCurrentMonth: false, iso });
-    }
-
     return cells;
-  }, [currentYear, currentMonth]);
+  }, [weekOffset]);
+
+  // Rolling weekday headers starting from today's weekday
+  const headers = useMemo(() => {
+    const list = [];
+    const todayDay = new Date().getDay(); // 0 (Sunday) to 6 (Saturday)
+    for (let i = 0; i < 7; i++) {
+      const idx = (todayDay + i) % 7;
+      const name = WEEKDAYS_RO[idx];
+      list.push(i === 0 ? `${name} (Azi)` : name);
+    }
+    return list;
+  }, []);
 
   // Claims on the active date for the detail panel
   const activeDayClaims = useMemo(() => {
@@ -558,6 +543,13 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
   const arrivedClaims = useMemo(() => {
     return claims.filter(c => c.status === "piese_sosite" && !c.dataProgramare);
   }, [claims]);
+
+  const dateRangeLabel = useMemo(() => {
+    if (calendarCells.length === 0) return "";
+    const start = calendarCells[0].iso.split("-").reverse().slice(0, 2).join("/");
+    const end = calendarCells[calendarCells.length - 1].iso.split("-").reverse().slice(0, 2).join("/");
+    return `${start} — ${end}`;
+  }, [calendarCells]);
 
   const handleCopyList = () => {
     if (activeDayClaims.length === 0) return;
@@ -626,17 +618,22 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
       {/* Month nav header */}
       <div className="bg-white border border-[#DAD4C6] rounded-lg px-3.5 py-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors">
+          <button
+            onClick={prevWeek}
+            disabled={weekOffset === 0}
+            className={`p-1.5 rounded border border-[#DAD4C6] text-[#3B5166] transition-colors ${weekOffset === 0 ? "opacity-40 cursor-not-allowed" : "hover:bg-[#EFEAE1]"}`}
+            title="Săptămâna anterioară"
+          >
             <ChevronLeft size={15} />
           </button>
-          <button onClick={setToday} className="px-3 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160] transition-colors">
-            Luna curentă
+          <button onClick={handleSetToday} className="px-3 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160] transition-colors">
+            Mergi la azi
           </button>
-          <button onClick={nextMonth} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors">
+          <button onClick={nextWeek} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors" title="Săptămâna următoare">
             <ChevronRight size={15} />
           </button>
           <span className="font-bold text-[#23282E] text-[13px] ml-1">
-            {MONTHS_RO[currentMonth]} {currentYear}
+            Interval afișat: {dateRangeLabel}
           </span>
         </div>
         <div className="text-[11px] text-[#6B6558] font-medium">
@@ -649,8 +646,8 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
         <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
           {/* Days names */}
           <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
-            {["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"].map(d => (
-              <span key={d} className="text-[10px] font-bold text-[#8A8375] py-2">{d}</span>
+            {headers.map(d => (
+              <span key={d} className="text-[10.5px] font-bold text-[#8A8375] py-2">{d}</span>
             ))}
           </div>
 
