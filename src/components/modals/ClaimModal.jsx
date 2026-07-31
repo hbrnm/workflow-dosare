@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2
+  FolderOpen, PackageCheck, CheckCircle2, CalendarClock
 } from "lucide-react";
 import {
   STATUSES, INSURERS, getStatusDefinition,
@@ -20,7 +20,6 @@ import { supabase } from "../../supabaseClient";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
-import { SLOTURI_ORARE, getSlotForIso, makeIsoFromSlot } from "../views/Programator";
 
 function Field({ label, children, full }) {
   return (
@@ -401,7 +400,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     ));
   }, [allClaims, form.telefonClient, form.vin, claim?.id]);
 
-  const handleSave = () => {
+  const handleSave = (openProgramator = false) => {
     const numarDosar = (form.numarDosar || "").trim();
     const numarInmatriculare = (form.numarInmatriculare || "").trim().toUpperCase();
     const vin = (form.vin || "").trim().toUpperCase();
@@ -478,7 +477,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       telefonClient,
       dataUltimeiActualizari: nowISO(),
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
-    });
+    }, { openProgramator });
   };
 
   const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
@@ -899,35 +898,22 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       </Field>
 
                       <Field label="Programare service (Intrare)" full>
-                        <div className="flex gap-2 items-start">
-                          {/* Scrollable slot list */}
-                          <div className="flex flex-col gap-px h-[130px] overflow-y-auto border border-[#DAD4C6] rounded-md p-0.5 bg-[#FAF8F5] shrink-0 w-[112px] scrollbar-thin">
-                            {SLOTURI_ORARE.map((slot) => {
-                              const active = getSlotForIso(form.dataProgramare) === slot;
-                              return (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => {
-                                    const newIso = makeIsoFromSlot(form.dataProgramare, slot);
-                                    set("dataProgramare", newIso);
-                                  }}
-                                  className={`w-full px-1 py-px rounded text-[9.5px] font-semibold border text-left transition-colors ${
-                                    active ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-white text-[#23282E] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                                  }`}
-                                >
-                                  {slot}
-                                </button>
-                              );
-                            })}
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#DAD4C6] bg-white px-2.5 py-2">
+                          <div>
+                            <div className={`text-[12px] font-semibold ${form.dataProgramare ? "text-[#23282E]" : "text-[#8A8375]"}`}>
+                              {form.dataProgramare ? fmtProgramare(form.dataProgramare) : "Neprogramată"}
+                            </div>
+                            <p className="mt-0.5 text-[10px] text-[#8A8375]">Alegerea sau modificarea intervalului se face din Programator.</p>
                           </div>
-
-                          {/* Inline mini calendar */}
-                          <InlineMiniCalendar
-                            value={form.dataProgramare}
-                            onChange={(v) => set("dataProgramare", v)}
-                            status={form.status}
-                          />
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() => handleSave(true)}
+                              className="flex items-center gap-1 rounded bg-[#3B5166] px-2 py-1 text-[10.5px] font-bold text-white hover:bg-[#2C4160] transition-colors"
+                            >
+                              <CalendarClock size={12} /> Salvează și deschide Programatorul
+                            </button>
+                          )}
                         </div>
                       </Field>
                     </div>

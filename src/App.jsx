@@ -87,7 +87,7 @@ export default function App() {
     if (error) showNotice(error.message, "error");
   };
 
-  const handleSave = async (claim) => {
+  const handleSave = async (claim, { openProgramator = false } = {}) => {
     setSaving(true);
     const isNewClaim = !claims.some((c) => c.id === claim.id);
     const payload = toDb({
@@ -101,6 +101,7 @@ export default function App() {
     if (error) { showNotice(error.message, "error"); return; }
     setModalClaim(null);
     showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.");
+    if (openProgramator) setView("programator");
     loadAll();
   };
 
