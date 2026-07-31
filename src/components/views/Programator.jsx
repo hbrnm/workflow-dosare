@@ -693,25 +693,25 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[9.5px] font-mono font-bold px-1 rounded ${isToday ? "bg-[#C98A2B] text-white" : cell.isCurrentMonth ? "text-[#23282E]" : "text-[#C2BCB0]"}`}>
+                    <span className={`text-[11px] font-mono font-bold px-1 rounded ${isToday ? "bg-[#C98A2B] text-white" : cell.isCurrentMonth ? "text-[#23282E]" : "text-[#C2BCB0]"}`}>
                       {cell.iso.slice(8, 10)}/{cell.iso.slice(5, 7)}
                     </span>
                     {total > 0 && (
-                      <span className={`text-[9px] font-bold px-1 rounded-full ${badgeColor}`}>
+                      <span className={`text-[10px] font-bold px-1 rounded-full ${badgeColor}`}>
                         {total}
                       </span>
                     )}
                   </div>
                   {/* Micro list of cars */}
-                  <div className="mt-1 space-y-0.5 text-[8.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
-                    {dayClaims.slice(0, 2).map(c => (
+                  <div className="mt-1 space-y-0.5 text-[9.5px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
+                    {dayClaims.slice(0, total > 5 ? 4 : 5).map(c => (
                       <div key={c.id} className="truncate">
                         🚗 {c.numarInmatriculare || "—"}
                       </div>
                     ))}
-                    {total > 2 && (
-                      <div className="text-[8px] text-[#8A8375] font-normal italic pl-3">
-                        +{total - 2} altele
+                    {total > 5 && (
+                      <div className="text-[8.5px] text-[#8A8375] font-normal italic pl-3">
+                        +{total - 4} altele
                       </div>
                     )}
                   </div>
