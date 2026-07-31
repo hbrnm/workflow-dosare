@@ -423,8 +423,15 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                           e.dataTransfer.setData("text/plain", c.id);
                           e.dataTransfer.effectAllowed = "move";
                         }}
-                        className="truncate cursor-grab active:cursor-grabbing hover:text-[#C98A2B] transition-colors"
-                        title="Trage mașina pentru a o muta în altă zi"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDateStr(cell.iso);
+                          setActiveSlotForScheduling(null);
+                          setSelectingFromArrived(false);
+                          if (onOpen) onOpen(c);
+                        }}
+                        className="truncate cursor-pointer hover:text-[#C98A2B] hover:underline active:opacity-60 transition-colors"
+                        title="Click pentru a deschide dosarul · Trage pentru a muta în altă zi"
                       >
                         🚗 {c.numarInmatriculare || "—"}
                       </div>
