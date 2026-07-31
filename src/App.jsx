@@ -357,7 +357,7 @@ export default function App() {
         </select>
       </div>
 
-      <div className={`flex-1 min-h-0 p-3 md:p-4 ${view === "flux" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+      <div className={`flex-1 min-h-0 p-3 md:p-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
         ) : view === "flux" ? (

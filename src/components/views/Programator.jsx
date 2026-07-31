@@ -622,7 +622,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex-1 min-h-0 flex flex-col space-y-3">
       {/* Month nav header */}
       <div className="bg-white border border-[#DAD4C6] rounded-lg px-3.5 py-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -644,9 +644,9 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-start">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-stretch">
         {/* Calendar Grid */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
           {/* Days names */}
           <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
             {["Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă", "Duminică"].map(d => (
@@ -655,7 +655,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
           </div>
 
           {/* Days cells */}
-          <div className="grid grid-cols-7 gap-px bg-[#DAD4C6]">
+          <div className="grid grid-cols-7 auto-rows-fr gap-px bg-[#DAD4C6] flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
               const dayClaims = claims.filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
@@ -686,7 +686,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                     setShowAddOptions(false);
                     setSelectingFromArrived(false);
                   }}
-                  className={`min-h-[62px] p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
                   } ${
                     cell.isCurrentMonth ? capClass : "bg-[#FAF8F5] text-[#C2BCB0]"
@@ -722,7 +722,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
         </div>
 
         {/* Sidebar Details Panel */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 min-h-[300px]">
+        <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 flex flex-col h-full min-h-0">
           {activeDateStr ? (
             <>
               <div className="border-b border-[#EFEAE1] pb-2 flex items-center justify-between">
@@ -805,7 +805,7 @@ function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
                 <div className="text-[11.5px] text-[#8A8375] italic text-center py-12">Nicio programare pentru această zi.</div>
               ) : (
                 <>
-                  <div className="space-y-1.5 max-h-[350px] overflow-y-auto scrollbar-thin pr-1">
+                  <div className="space-y-1.5 flex-grow flex-1 overflow-y-auto scrollbar-thin pr-1">
                     {activeDayClaims.map(c => (
                       <div
                         key={c.id}
@@ -865,9 +865,9 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   const [capInput, setCapInput] = useState(capacitate || 5);
 
   return (
-    <div className="space-y-3">
+    <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-hidden">
       {/* Header */}
-      <div className="bg-white rounded-xl border border-[#DAD4C6] px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white rounded-xl border border-[#DAD4C6] px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="text-[15px] font-bold text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             <CalendarClock size={16} className="inline mr-1.5 text-[#3B5166] mb-0.5" />
@@ -916,13 +916,19 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       </div>
 
       {/* Pending dosare banner */}
-      <PendingBanner claims={claims} onOpen={onOpen} />
+      <div className="shrink-0">
+        <PendingBanner claims={claims} onOpen={onOpen} />
+      </div>
 
       {/* View */}
       {view === "agenda" ? (
-        <AgendaSaptamanala claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+          <AgendaSaptamanala claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+        </div>
       ) : view === "masa" ? (
-        <MasaZilnica claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1">
+          <MasaZilnica claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+        </div>
       ) : (
         <AgendaLunara claims={claims} capacitate={capacitate || 5} onOpen={onOpen} onAddInStatus={onAddInStatus} onPatch={onPatch} />
       )}
