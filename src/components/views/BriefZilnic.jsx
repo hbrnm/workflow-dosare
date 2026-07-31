@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { todayISO, daysBetween, telLink } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
+import { getStatusDefinition } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
@@ -27,7 +28,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
   // Finished today (Ready to deliver)
   const gataAzi = useMemo(() =>
-    claims.filter((c) => c.gataDeRidicare && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
+    claims.filter((c) => c.gataDeRidicare && !c.ridicata && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
     [claims, todayStr]);
 
   // Clients to call (vehicles finished but not picked up past the threshold)
@@ -71,15 +72,8 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
   const phaseStats = useMemo(() => {
     const stats = { start: 0, eval: 0, lucru: 0, final: 0 };
     claims.forEach(c => {
-      if (c.status === "facturat") {
-        stats.final++;
-      } else if (["primit", "cerere_reparatie"].includes(c.status)) {
-        stats.start++;
-      } else if (["reconstatare", "accept_plata"].includes(c.status)) {
-        stats.eval++;
-      } else if (["piese_comandate", "piese_sosite", "programat", "in_lucru"].includes(c.status)) {
-        stats.lucru++;
-      }
+      const phase = getStatusDefinition(c.status).phase;
+      if (stats[phase] !== undefined) stats[phase]++;
     });
     return stats;
   }, [claims]);
@@ -144,10 +138,10 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
         
         {/* KPI 1 */}
         <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 shadow-xs flex flex-col justify-between hover:shadow-sm transition-shadow">
-          <span className="text-[11px] text-[#6B6558] font-semibold uppercase tracking-wider">Dosare Active</span>
+          <span className="text-[11px] text-[#6B6558] font-semibold uppercase tracking-wider">Dosare Deschise</span>
           <div className="flex items-baseline justify-between mt-1">
             <span className="text-2xl font-bold font-mono">{activeClaimsCount}</span>
-            <span className="text-[10px] text-[#8A8375] font-medium">în atelier</span>
+            <span className="text-[10px] text-[#8A8375] font-medium">nefacturate</span>
           </div>
         </div>
 

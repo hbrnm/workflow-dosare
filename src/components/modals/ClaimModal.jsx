@@ -365,10 +365,16 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     ...f,
     gataDeRidicare: checked,
     dataGataRidicare: checked ? nowISO() : null,
-    ridicata: checked ? f.ridicata : false,
-    dataRidicare: checked ? f.dataRidicare : null,
+    ridicata: false,
+    dataRidicare: null,
+    status: checked && f.status !== "facturat" ? "gata_de_ridicare" : (!checked && ["gata_de_ridicare", "predat_client"].includes(f.status) ? "in_lucru" : f.status),
   }));
-  const toggleRidicata = (checked) => setForm((f) => ({ ...f, ridicata: checked, dataRidicare: checked && !f.dataRidicare ? nowISO() : f.dataRidicare }));
+  const toggleRidicata = (checked) => setForm((f) => ({
+    ...f,
+    ridicata: checked,
+    dataRidicare: checked ? nowISO() : null,
+    status: checked && f.status !== "facturat" ? "predat_client" : (!checked && f.status === "predat_client" ? "gata_de_ridicare" : f.status),
+  }));
 
   const handleDuplicate = () => {
     const dup = {
@@ -427,15 +433,33 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       }
     }
 
-    // Predarea către client închide automat fluxul operațional: dosarul
-    // ajunge în coloana „Finalizare & Predare” (statusul facturat).
-    const autoFinalizeOnDelivery = form.ridicata && form.status !== "facturat";
-    let effectiveStatus = autoFinalizeOnDelivery ? "facturat" : form.status;
-    if (!autoFinalizeOnDelivery && form.dataProgramare && form.status === "piese_sosite") {
+    // Predarea și facturarea sunt operațiuni diferite: predarea mută dosarul
+    // în etapa finală, iar facturarea îl închide financiar.
+    let effectiveStatus = form.status;
+    if (form.ridicata && form.status !== "facturat") {
+      effectiveStatus = "predat_client";
+    } else if (form.gataDeRidicare && form.status !== "facturat" && form.status !== "predat_client") {
+      effectiveStatus = "gata_de_ridicare";
+    } else if (form.dataProgramare && form.status === "piese_sosite") {
       effectiveStatus = "programat";
     }
+    const deliveryState = effectiveStatus === "predat_client"
+      ? {
+          gataDeRidicare: true,
+          dataGataRidicare: form.dataGataRidicare || nowISO(),
+          ridicata: true,
+          dataRidicare: form.dataRidicare || nowISO(),
+        }
+      : effectiveStatus === "gata_de_ridicare"
+      ? {
+          gataDeRidicare: true,
+          dataGataRidicare: form.dataGataRidicare || nowISO(),
+          ridicata: false,
+          dataRidicare: null,
+        }
+      : {};
     const statusChanged = effectiveStatus !== claim.status;
-    if (statusChanged && effectiveStatus === "facturat" && !autoFinalizeOnDelivery) {
+    if (statusChanged && effectiveStatus === "facturat") {
       const faraValori = !form.manopera.tinichigerie.facturat && !form.manopera.vopsitorie.facturat &&
         !form.valoarePieseAudatex && !form.valoareAchizitiePiese;
       if (faraValori) {
@@ -446,6 +470,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
     onSave({
       ...form,
+      ...deliveryState,
       status: effectiveStatus,
       numarDosar,
       numarInmatriculare,

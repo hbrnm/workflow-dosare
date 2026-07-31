@@ -119,7 +119,15 @@ export default function App() {
   const handleMoveToStatus = async (claim, newStatusKey) => {
     if (!canEdit(claim)) { showNotice("Poți muta doar dosarele create de tine.", "error"); return; }
     if (claim.status === newStatusKey) return;
-    const updated = { ...claim, status: newStatusKey, dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
+    const changedAt = nowISO();
+    const deliveryPatch = newStatusKey === "gata_de_ridicare"
+      ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: false, dataRidicare: null }
+      : newStatusKey === "predat_client"
+      ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: true, dataRidicare: claim.dataRidicare || changedAt }
+      : ["gata_de_ridicare", "predat_client"].includes(claim.status) && newStatusKey !== "facturat"
+      ? { gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null }
+      : {};
+    const updated = { ...claim, ...deliveryPatch, status: newStatusKey, dataSchimbareStatus: changedAt, dataUltimeiActualizari: changedAt, updatedByEmail: myEmail };
     setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
     const { error } = await supabase.from("dosare").upsert(toDb(updated));
     if (error) { showNotice(error.message, "error"); loadAll(); }

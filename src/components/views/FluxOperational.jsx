@@ -261,10 +261,9 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
 
   const alertClaims = useMemo(() => claims.filter(isStageOverdue), [claims]);
   const blockedClaims = useMemo(() => claims.filter((c) => c.blocat), [claims]);
-  const inLucruClaims = useMemo(() => claims.filter((c) => c.adusaFizic), [claims]);
+  const inLucruClaims = useMemo(() => claims.filter((c) => c.adusaFizic && !c.gataDeRidicare && !c.ridicata && c.status !== "facturat"), [claims]);
   const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
   const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
-  const gataRidicareClaims = useMemo(() => claims.filter((c) => c.gataDeRidicare && !c.ridicata), [claims]);
   const gataRidicareIntarziateClaims = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare || 3)), [claims, pragRidicare]);
 
   // Unique list of active insurers with claim counts
@@ -285,14 +284,13 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
     else if (quickFilter === "in_lucru") list = inLucruClaims;
     else if (quickFilter === "piese_sosite") list = pieseSositeClaims;
     else if (quickFilter === "programate") list = programateClaims;
-    else if (quickFilter === "gata_ridicare") list = gataRidicareClaims;
     else if (quickFilter === "gata_ridicare_intarziate") list = gataRidicareIntarziateClaims;
 
     if (selectedInsurer !== "toti") {
       list = list.filter((c) => c.asigurator === selectedInsurer);
     }
     return list;
-  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, inLucruClaims, pieseSositeClaims, programateClaims, gataRidicareClaims, gataRidicareIntarziateClaims]);
+  }, [claims, quickFilter, selectedInsurer, alertClaims, blockedClaims, inLucruClaims, pieseSositeClaims, programateClaims, gataRidicareIntarziateClaims]);
 
   const displayClaims = useMemo(() => {
     let list = claimsForCounts;

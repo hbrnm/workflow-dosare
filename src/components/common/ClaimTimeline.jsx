@@ -1,11 +1,12 @@
 import React from "react";
 import { CheckCircle2, History, User } from "lucide-react";
-import { STATUSES, getStatusDefinition } from "../../constants/config";
+import { PIPELINE_PHASES, getStatusDefinition } from "../../constants/config";
 import { fmtDateTime, daysBetween } from "../../utils/dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "../../utils/claimUtils";
 
 export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, istoric = [], loading = false }) {
-  const currentIdx = STATUSES.findIndex((s) => s.key === currentStatus);
+  const currentPhase = getStatusDefinition(currentStatus).phase;
+  const currentIdx = PIPELINE_PHASES.findIndex((phase) => phase.key === currentPhase);
   const daysInCurrent = daysBetween(dataSchimbareStatus);
 
   return (
@@ -15,11 +16,11 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
         {/* Background line */}
         <div className="absolute left-3 right-3 top-[11px] h-px bg-[#DAD4C6] z-0" />
 
-        {STATUSES.map((s, idx) => {
+        {PIPELINE_PHASES.map((phase, idx) => {
           const isPast = idx < currentIdx;
           const isCurrent = idx === currentIdx;
           return (
-            <div key={s.key} className="relative z-10 flex flex-col items-center flex-1 group" title={`${String(s.num).padStart(2,"0")}. ${s.label}`}>
+            <div key={phase.key} className="relative z-10 flex flex-col items-center flex-1 group" title={phase.label}>
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[8px] transition-all ${
                   isCurrent
@@ -29,14 +30,14 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
                     : "bg-[#EFEAE1] text-[#8A8375] border border-[#DAD4C6]"
                 }`}
               >
-                {isPast ? <CheckCircle2 size={10} /> : String(s.num).padStart(2, "0")}
+                {isPast ? <CheckCircle2 size={10} /> : String(idx + 1).padStart(2, "0")}
               </div>
               <span
                 className={`text-[8px] mt-0.5 text-center font-semibold leading-tight max-w-[52px] truncate ${
                   isCurrent ? "text-[#23282E] font-bold" : isPast ? "text-[#3E6B45]" : "text-[#C2BCB0]"
                 }`}
               >
-                {s.label}
+                {phase.label.replace(/^\d+\.\s*/, "")}
               </span>
             </div>
           );

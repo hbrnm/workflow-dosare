@@ -11,10 +11,12 @@ export const STATUSES = [
   { key: "piese_sosite",     num: 6, label: "Piese sosite",              phase: "lucru" },
   { key: "programat",        num: 7, label: "Programat",                 phase: "lucru" },
   { key: "in_lucru",         num: 8, label: "În lucru",                  phase: "lucru" },
-  { key: "facturat",         num: 9, label: "Facturat",                  phase: "final" },
+  { key: "gata_de_ridicare", num: 9, label: "Gata de ridicare",          phase: "final" },
+  { key: "predat_client",    num: 10, label: "Predat client",            phase: "final" },
+  { key: "facturat",         num: 11, label: "Facturat",                 phase: "final" },
 ];
 
-export const STATUS_MIGRATION = { chemat_lucru: "programat", finalizat: "in_lucru" };
+export const STATUS_MIGRATION = { chemat_lucru: "programat", finalizat: "gata_de_ridicare" };
 export const STADII_PROGRAMABILE = ["piese_sosite", "programat", "in_lucru"];
 
 export const PHASE_COLORS = {
@@ -80,6 +82,6 @@ export const PIPELINE_PHASES = [
     description: "Facturare dosar și eliberare mașină",
     barColor: "#3E6B45",
     bgColor: "#EEF5EE",
-    statuses: ["facturat"]
+    statuses: ["gata_de_ridicare", "predat_client", "facturat"]
   }
 ];
