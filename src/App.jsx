@@ -141,7 +141,13 @@ export default function App() {
     if (error) { showNotice(error.message, "error"); loadAll(); }
   };
 
-  const openNew = (status = "primit") => setModalClaim(emptyClaim(status));
+  const openNew = (status = "primit", dateProgramare = null) => {
+    const claim = emptyClaim(status);
+    if (dateProgramare) {
+      claim.dataProgramare = dateProgramare.includes("T") ? dateProgramare : `${dateProgramare}T08:00:00`;
+    }
+    setModalClaim(claim);
+  };
   const openExisting = (claim) => setModalClaim(claim);
 
   const duplicateClaim = (source) => {
@@ -373,7 +379,7 @@ export default function App() {
         ) : view === "dashboard" ? (
           <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
         ) : view === "programator" ? (
-          <Programator claims={filtered} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} />
+          <Programator claims={claims} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
         ) : (
           <Rapoarte claims={filtered} onPatch={patchClaim} canEditFn={canEdit} />
         )}

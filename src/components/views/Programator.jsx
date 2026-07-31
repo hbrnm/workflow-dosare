@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import {
-  CalendarClock, PackageCheck, Search, ChevronLeft, ChevronRight, Car, Clock
+  CalendarClock, PackageCheck, Search, ChevronLeft, ChevronRight, Car, Clock, Plus
 } from "lucide-react";
 import {
   todayISO, daysBetween, getMondayOfISOWeek, getDaysOfWeek
@@ -469,13 +469,16 @@ const MONTHS_RO = [
   "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"
 ];
 
-function AgendaLunara({ claims, capacitate, onOpen }) {
+function AgendaLunara({ claims, capacitate, onOpen, onAddInStatus, onPatch }) {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-11
   
   // Selected day for the popover/details panel
   const [activeDateStr, setActiveDateStr] = useState(() => today.toISOString().slice(0, 10));
+
+  const [showAddOptions, setShowAddOptions] = useState(false);
+  const [selectingFromArrived, setSelectingFromArrived] = useState(false);
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -550,6 +553,11 @@ function AgendaLunara({ claims, capacitate, onOpen }) {
     if (!activeDateStr) return "";
     return activeDateStr.split("-").reverse().join(".");
   }, [activeDateStr]);
+
+  // Arrived claims that do not have dateProgramare yet
+  const arrivedClaims = useMemo(() => {
+    return claims.filter(c => c.status === "piese_sosite" && !c.dataProgramare);
+  }, [claims]);
 
   const handleCopyList = () => {
     if (activeDayClaims.length === 0) return;
@@ -673,7 +681,11 @@ function AgendaLunara({ claims, capacitate, onOpen }) {
               return (
                 <div
                   key={idx}
-                  onClick={() => setActiveDateStr(cell.iso)}
+                  onClick={() => {
+                    setActiveDateStr(cell.iso);
+                    setShowAddOptions(false);
+                    setSelectingFromArrived(false);
+                  }}
                   className={`min-h-[75px] p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
                   } ${
@@ -713,10 +725,81 @@ function AgendaLunara({ claims, capacitate, onOpen }) {
         <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 min-h-[300px]">
           {activeDateStr ? (
             <>
-              <div className="border-b border-[#EFEAE1] pb-2">
-                <div className="text-[12.5px] font-bold text-[#23282E]">Programări {activeDayFormatted}</div>
-                <div className="text-[10.5px] text-[#8A8375]">{activeDayClaims.length} programate</div>
+              <div className="border-b border-[#EFEAE1] pb-2 flex items-center justify-between">
+                <div>
+                  <div className="text-[12.5px] font-bold text-[#23282E]">Programări {activeDayFormatted}</div>
+                  <div className="text-[10.5px] text-[#8A8375]">{activeDayClaims.length} programate</div>
+                </div>
+                {/* Add appointment button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddOptions(prev => !prev);
+                    setSelectingFromArrived(false);
+                  }}
+                  className="px-2 py-0.5 rounded bg-[#C98A2B]/15 hover:bg-[#C98A2B]/25 text-[#7A5316] text-[10px] font-bold transition-all flex items-center gap-1 shadow-2xs"
+                  title="Adaugă o programare nouă în această zi"
+                >
+                  <Plus size={11} /> Programează
+                </button>
               </div>
+
+              {/* Add options panel */}
+              {showAddOptions && (
+                <div className="bg-[#FDFCF9] border border-[#DAD4C6] rounded-lg p-2.5 space-y-2 text-[11px] shadow-xs">
+                  <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-1">
+                    <span className="font-bold text-[#3B5166]">Programează pe {activeDayFormatted}</span>
+                    <button type="button" onClick={() => setShowAddOptions(false)} className="text-[#8A8375] hover:text-[#23282E] font-bold">✕</button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddOptions(false);
+                        if (onAddInStatus) onAddInStatus("programat", activeDateStr);
+                      }}
+                      className="py-1.5 rounded border border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-center font-bold text-[#23282E] shadow-2xs transition-colors"
+                    >
+                      📄 Dosar Nou
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectingFromArrived(prev => !prev)}
+                      className={`py-1.5 rounded border text-center font-bold shadow-2xs transition-colors ${selectingFromArrived ? "bg-[#3B5166] text-white border-[#3B5166]" : "border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-[#23282E]"}`}
+                    >
+                      📦 Piese Sosite
+                    </button>
+                  </div>
+
+                  {/* Selecting list from arrived claims */}
+                  {selectingFromArrived && (
+                    <div className="space-y-1 mt-2 max-h-[150px] overflow-y-auto border border-[#DAD4C6] rounded-md p-1 bg-white scrollbar-thin">
+                      {arrivedClaims.length === 0 ? (
+                        <div className="text-[10px] text-[#8A8375] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
+                      ) : (
+                        arrivedClaims.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => {
+                              if (onPatch) {
+                                onPatch(c.id, { dataProgramare: `${activeDateStr}T08:00:00` });
+                                setShowAddOptions(false);
+                                setSelectingFromArrived(false);
+                              }
+                            }}
+                            className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold"
+                          >
+                            <span className="font-mono text-[#3B5166] font-bold">{c.numarInmatriculare || c.numarDosar}</span>
+                            <span className="text-[#8A8375] truncate max-w-[120px]">{c.client || "—"}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {activeDayClaims.length === 0 ? (
                 <div className="text-[11.5px] text-[#8A8375] italic text-center py-12">Nicio programare pentru această zi.</div>
@@ -777,7 +860,7 @@ function AgendaLunara({ claims, capacitate, onOpen }) {
 /* ───────────────────────────────────────────────────────────────────────── */
 /* Main export                                                               */
 /* ───────────────────────────────────────────────────────────────────────── */
-export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate }) {
+export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate, onAddInStatus }) {
   const [view, setView] = useState("agenda"); // 'agenda' | 'masa' | 'luna'
   const [capInput, setCapInput] = useState(capacitate || 5);
 
@@ -841,7 +924,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       ) : view === "masa" ? (
         <MasaZilnica claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
       ) : (
-        <AgendaLunara claims={claims} capacitate={capacitate || 5} onOpen={onOpen} />
+        <AgendaLunara claims={claims} capacitate={capacitate || 5} onOpen={onOpen} onAddInStatus={onAddInStatus} onPatch={onPatch} />
       )}
     </div>
   );
