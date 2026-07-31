@@ -226,9 +226,9 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           <table>
             <thead>
               <tr>
-                <th style="width: 80px;">Ora</th>
-                <th style="width: 130px;">Nr. Înmatriculare</th>
-                <th style="width: 180px;">Autoturism</th>
+                <th style="width: 55px; white-space: nowrap;">Ora</th>
+                <th style="width: 100px; white-space: nowrap;">Nr. Înmatriculare</th>
+                <th style="width: 110px;">Autoturism</th>
                 <th>Operațiuni de efectuat</th>
               </tr>
             </thead>
