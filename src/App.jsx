@@ -164,14 +164,18 @@ export default function App() {
       throw new Error("Acest utilizator există deja în lista echipei.");
     }
 
-    // Register user in Supabase Auth so they can log in
+    // Încercăm înregistrarea în Supabase Auth, fără a bloca salvarea în echipă
     if (password && password.trim()) {
-      const { error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password: password.trim(),
-      });
-      if (authError && !authError.message.toLowerCase().includes("already registered")) {
-        throw new Error("Eroare înregistrare Supabase Auth: " + authError.message);
+      try {
+        const { error: authError } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password: password.trim(),
+        });
+        if (authError && !authError.message.toLowerCase().includes("already registered")) {
+          console.warn("Supabase Auth notice:", authError.message);
+        }
+      } catch (err) {
+        console.warn("Supabase Auth error:", err);
       }
     }
 

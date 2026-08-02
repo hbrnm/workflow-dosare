@@ -12,11 +12,28 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      setError(error.message === "Invalid login credentials" ? "Email sau parolă greșite." : error.message);
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Încercăm conectarea cu parola
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+
+    if (!signInErr) {
+      setLoading(false);
+      return;
     }
+
+    // 2. În caz că contul nu este încă inițializat în Supabase Auth, încercăm auto-crearea
+    const { error: signUpErr } = await supabase.auth.signUp({ email: cleanEmail, password });
+    if (!signUpErr) {
+      const { error: retryErr } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+      if (!retryErr) {
+        setLoading(false);
+        return;
+      }
+    }
+
+    setLoading(false);
+    setError("Email sau parolă incorectă.");
   };
 
   return (
