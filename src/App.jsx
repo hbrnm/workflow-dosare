@@ -116,6 +116,14 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     (async () => {
+      // Initial load from localStorage fallback
+      try {
+        const localUsers = JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]");
+        const localAdmins = JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]");
+        if (localUsers.length > 0) setUsersList(localUsers);
+        if (localAdmins.length > 0) setAdminEmails(localAdmins);
+      } catch (e) {}
+
       const { data } = await supabase
         .from("setari")
         .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori")
@@ -126,8 +134,13 @@ export default function App() {
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
       if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
 
-      let loadedAdmins = Array.isArray(data?.admin_emails) ? data.admin_emails : [];
-      let loadedUsers = Array.isArray(data?.utilizatori) ? data.utilizatori : [];
+      let loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
+        ? data.admin_emails
+        : (JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]"));
+
+      let loadedUsers = Array.isArray(data?.utilizatori) && data.utilizatori.length > 0
+        ? data.utilizatori
+        : (JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]"));
 
       const currentEmail = session.user?.email || "";
       if (currentEmail) {
@@ -144,18 +157,31 @@ export default function App() {
 
       setAdminEmails(loadedAdmins);
       setUsersList(loadedUsers);
+      try {
+        localStorage.setItem("workflow_dosare_users", JSON.stringify(loadedUsers));
+        localStorage.setItem("workflow_dosare_admins", JSON.stringify(loadedAdmins));
+      } catch (e) {}
     })();
   }, [session]);
 
   const saveUsersAndAdmins = async (newUsers, newAdmins) => {
     setUsersList(newUsers);
     setAdminEmails(newAdmins);
+
+    try {
+      localStorage.setItem("workflow_dosare_users", JSON.stringify(newUsers));
+      localStorage.setItem("workflow_dosare_admins", JSON.stringify(newAdmins));
+    } catch (e) {}
+
     const { error } = await supabase.from("setari").upsert({
       id: 1,
       utilizatori: newUsers,
       admin_emails: newAdmins,
     });
-    if (error) showNotice(error.message, "error");
+    if (error) {
+      console.error("Setari upsert error:", error);
+      showNotice("Salvat local. Eroare salvare Supabase setări: " + error.message, "warning");
+    }
   };
 
   const handleAddUser = async ({ email, role, password }) => {
