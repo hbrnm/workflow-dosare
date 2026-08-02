@@ -2,10 +2,11 @@ import { STATUS_MIGRATION, STATUSES } from "../constants/config";
 import { todayISO, nowISO, fmtDate, fmtDateTime, uid } from "./dateUtils";
 
 export function emptyClaim(status = "primit") {
+  const validStatus = typeof status === "string" ? status : "primit";
   return {
     id: uid(),
     numarDosar: "", tipAsigurare: "CASCO", asigurator: "", client: "", telefonClient: "",
-    numarInmatriculare: "", vin: "", marcaModel: "", status,
+    numarInmatriculare: "", vin: "", marcaModel: "", status: validStatus,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
     termenAlertaZile: 3, dataProgramare: "", note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",

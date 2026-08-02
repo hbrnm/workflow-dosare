@@ -364,8 +364,11 @@ export default function App() {
   };
 
   const openNew = (status = "primit", dateProgramare = null) => {
-    const claim = emptyClaim(status);
-    if (dateProgramare) {
+    const validStatus = typeof status === "string" ? status : "primit";
+    const claim = emptyClaim(validStatus);
+    claim.createdBy = myId;
+    claim.createdByEmail = myEmail;
+    if (dateProgramare && typeof dateProgramare === "string") {
       claim.dataProgramare = dateProgramare.includes("T") ? dateProgramare : `${dateProgramare}T08:00:00`;
     }
     setModalClaim(claim);
