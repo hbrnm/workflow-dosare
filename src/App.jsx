@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -19,6 +19,7 @@ import Programator from "./components/views/Programator";
 import Rapoarte from "./components/views/Rapoarte";
 import QuickCapture from "./components/views/QuickCapture";
 import ClaimModal from "./components/modals/ClaimModal";
+import SetariModal from "./components/modals/SetariModal";
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 
@@ -38,6 +39,7 @@ export default function App() {
   const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
+  const [setariOpen, setSetariOpen] = useState(false);
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -242,7 +244,7 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1] relative">
       <Notification notice={notice} onClose={() => setNotice(null)} />
 
-      {/* --- DESKTOP & MOBILE HEADER (Decathlon Design Accent) --- */}
+      {/* --- DESKTOP & MOBILE HEADER --- */}
       <div className="bg-[#1C2127] shrink-0 z-30 shadow-md">
         {/* Top Header Row */}
         <div className="px-3 md:px-4 py-2 flex items-center justify-between gap-2">
@@ -292,7 +294,7 @@ export default function App() {
             })}
           </div>
 
-          {/* Right Side: Quick Search, Alerts & User Controls */}
+          {/* Right Side: Quick Search, Alerts, Settings & User Controls */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -339,6 +341,16 @@ export default function App() {
                 <PackageCheck size={13} /> {gataNeridicateCount}
               </button>
             )}
+
+            {/* Setări Centralizate Button */}
+            <button
+              onClick={() => setSetariOpen(true)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white/90 hover:text-white hover:bg-white/15 text-[12.5px] font-semibold transition-all"
+              title="Centru Setări & Alerte"
+            >
+              <Settings size={15} className="text-[#C98A2B]" />
+              <span className="hidden md:inline">Setări</span>
+            </button>
 
             <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
             <span className="hidden md:inline text-[11px] text-white/50">{myEmail}</span>
@@ -505,7 +517,6 @@ export default function App() {
       {mobileFilterSheetOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center md:hidden">
           <div className="bg-[#FCFAF5] w-full rounded-t-2xl border-t border-[#DAD4C6] p-4 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            {/* Sheet Handle */}
             <div className="w-12 h-1.5 bg-[#DAD4C6] rounded-full mx-auto" />
 
             <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
@@ -517,7 +528,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Căutare text */}
             <div>
               <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Căutare text</label>
               <div className="relative">
@@ -531,7 +541,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Filter controls */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Tip asigurare</label>
@@ -570,7 +579,6 @@ export default function App() {
               </select>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-2 pt-2 border-t border-[#DAD4C6]">
               {activeFilterCount > 0 && (
                 <button
@@ -605,6 +613,20 @@ export default function App() {
             onNotify={showNotice}
           />
         </ErrorBoundary>
+      )}
+
+      {setariOpen && (
+        <SetariModal
+          claims={claims}
+          capacitateZilnica={capacitateZilnica}
+          pragRidicare={pragRidicare}
+          onSaveCapacitate={saveCapacitate}
+          onSavePrag={savePragRidicare}
+          onClose={() => setSetariOpen(false)}
+          onOpenClaim={openExisting}
+          onNotify={showNotice}
+          userEmail={myEmail}
+        />
       )}
 
       {quickCaptureOpen && (
