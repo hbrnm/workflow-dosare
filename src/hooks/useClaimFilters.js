@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from "react";
-import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts, isInactiveClaim } from "../utils/alertUtils";
 
 export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, pragInactivitate }) {
   const [search, setSearch] = useState("");
@@ -71,22 +70,7 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     setFluxFilter("toate");
   }, []);
 
-  const alertCount = useMemo(() => userClaims.filter(isStageOverdue).length, [userClaims]);
-  const blockedCount = useMemo(() => userClaims.filter((c) => c.blocat).length, [userClaims]);
-  const gataNeridicateCount = useMemo(
-    () => userClaims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length,
-    [userClaims, pragRidicare]
-  );
-  const acceptPlataNoPartsCount = useMemo(
-    () => userClaims.filter(isAcceptPlataWithoutParts).length,
-    [userClaims]
-  );
-  const inactiveCount = useMemo(
-    () => userClaims.filter((c) => isInactiveClaim(c, pragInactivitate)).length,
-    [userClaims, pragInactivitate]
-  );
-
-  const totalAlertsCount = alertCount + blockedCount + gataNeridicateCount + acceptPlataNoPartsCount + inactiveCount;
+  const totalAlertsCount = 0;
 
   return {
     search,
@@ -110,11 +94,6 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     userClaims,
     filteredClaims,
     activeFilterCount,
-    alertCount,
-    blockedCount,
-    gataNeridicateCount,
-    acceptPlataNoPartsCount,
-    inactiveCount,
     totalAlertsCount,
   };
 }

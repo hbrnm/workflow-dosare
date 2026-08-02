@@ -26,6 +26,8 @@ import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
+import { useExportExcel } from "./hooks/useExportExcel";
+import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 
 export default function App() {
@@ -101,11 +103,6 @@ export default function App() {
     userClaims,
     filteredClaims,
     activeFilterCount,
-    alertCount,
-    blockedCount,
-    gataNeridicateCount,
-    acceptPlataNoPartsCount,
-    inactiveCount,
     totalAlertsCount,
   } = useClaimFilters({
     claims,
@@ -115,6 +112,14 @@ export default function App() {
     pragRidicare,
     pragInactivitate,
   });
+
+  const {
+    alertCount,
+    blockedCount,
+    gataNeridicateCount,
+    acceptPlataNoPartsCount,
+    inactiveCount,
+  } = useAlerts(userClaims, pragRidicare, pragInactivitate);
 
   const {
     modalClaim,
