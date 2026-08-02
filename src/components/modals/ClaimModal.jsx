@@ -246,7 +246,7 @@ export default function ClaimModal({
     }
   };
 
-  const isNew = !!claim?.isNewClaim;
+  const isNew = !safeClaim.numarDosar && (safeClaim.note || []).length === 0 && (safeClaim.documente || []).length === 0;
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
@@ -782,7 +782,7 @@ export default function ClaimModal({
                         onChange={(e) => set("asigurator", e.target.value)}
                       >
                         <option value="" disabled>-- Societate Asigurare --</option>
-                        {(insurersList || INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
+                        {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
                       </select>
                     </div>
                   </div>
