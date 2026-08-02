@@ -408,18 +408,19 @@ export default function App() {
     if (error) { showNotice(error.message, "error"); loadAll(); }
   };
 
-  // Dosarele din flux specifice fiecărui utilizator (doar cele create de el)
+  // Dosarele din flux specifice fiecărui utilizator (Administratorul le vede pe toate)
   const userClaims = useMemo(() => {
-    if (!myId && !myEmail) return claims;
+    if (isAdmin || (!myId && !myEmail)) return claims;
     return claims.filter((c) => {
+      if (!c) return false;
       if (!c.createdBy && !c.createdByEmail) return true; // Dosare vechi fără creator asociat
       return (
         (c.createdBy && c.createdBy === myId) ||
         (c.createdBy && c.createdBy === myEmail) ||
-        (c.createdByEmail && c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
+        (c.createdByEmail && typeof c.createdByEmail === "string" && c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
       );
     });
-  }, [claims, myId, myEmail]);
+  }, [claims, myId, myEmail, isAdmin]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
