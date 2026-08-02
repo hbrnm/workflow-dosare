@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -31,7 +31,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
-  const [view, setView] = useState("flux");
+  const [view, setView] = useState("brief");
   const [search, setSearch] = useState("");
   const [filterTip, setFilterTip] = useState("toate");
   const [filterStatus, setFilterStatus] = useState("toate");
@@ -41,13 +41,13 @@ export default function App() {
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [setariOpen, setSetariOpen] = useState(false);
-  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "toate" | "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
+  const [alerteModalTab, setAlerteModalTab] = useState(null);
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [pragInactivitate, setPragInactivitate] = useState(7);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
-  const [mobileSort, setMobileSort] = useState("recent"); // "recent" | "numar" | "status" | "client"
+  const [mobileSort, setMobileSort] = useState("recent");
   const [mobileFilterSheetOpen, setMobileFilterSheetOpen] = useState(false);
 
   useEffect(() => {
@@ -247,109 +247,219 @@ export default function App() {
     XLSX.writeFile(wb, `dosare-dauna-${todayISO()}.xlsx`);
   };
 
+  const viewLabels = {
+    brief: "Brief Zilnic",
+    flux: "Flux Operațional",
+    list: "Listă Dosare",
+    programator: "Programări Atelier",
+    dashboard: "Statistici & KPI",
+    rapoarte: "Raport Financiar",
+  };
+
   if (authLoading) {
-    return <div className="min-h-screen bg-[#EFEAE1] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
+    return <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (!session) {
     return <Login />;
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[#EFEAE1] relative">
+    <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
       <Notification notice={notice} onClose={() => setNotice(null)} />
 
-      {/* --- DESKTOP & MOBILE HEADER --- */}
-      <div className="bg-[#1C2127] shrink-0 z-30 shadow-md">
-        {/* Top Header Row */}
-        <div className="px-3 md:px-4 py-2 flex items-center justify-between gap-2">
+      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK (Linear / Miro Style) --- */}
+      <aside className="hidden md:flex flex-col w-[68px] hover:w-[220px] transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 group overflow-hidden">
 
-          {/* Left Brand Badge + Actions */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13px] shadow-sm tracking-tighter">
-              WD
-            </div>
-            <div className="hidden sm:block text-[12px] text-white/80 font-bold border-r border-white/15 pr-3">
-              Workflow Dosare <span className="text-[11px] font-normal text-white/50">({claims.length})</span>
-            </div>
-
-            <button
-              onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
-            >
-              <Plus size={16} /> <span>Dosar nou</span>
-            </button>
+        {/* Top Brand Logo */}
+        <div className="h-14 flex items-center px-4 gap-3 border-b border-white/10 shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0">
+            WD
           </div>
+          <span className="font-extrabold text-[15px] tracking-tight opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Workflow Dosare
+          </span>
+        </div>
 
-          {/* Center Side: Desktop Navigation Tabs */}
-          <div className="hidden md:flex items-center gap-1 rounded-lg border border-white/10 bg-black/30 p-1">
-            {[
-              { id: "flux", label: "Flux Operațional", icon: Layers },
-              { id: "brief", label: "Brief", icon: Sunrise },
-              { id: "list", label: "Listă", icon: List },
-              { id: "programator", label: "Programări", icon: CalendarClock },
-              { id: "dashboard", label: "Statistici", icon: BarChart3 },
-              { id: "rapoarte", label: "Financiar", icon: Wallet },
-            ].map(({ id, label, icon: Icon }) => {
-              const active = view === id;
+        {/* Main Navigation Items */}
+        <div className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto">
+          {[
+            { id: "brief", label: "Brief Zilnic", icon: Sunrise },
+            { id: "flux", label: "Flux Operațional", icon: Layers, badge: claims.length },
+            { id: "list", label: "Listă Dosare", icon: List },
+            { id: "programator", label: "Programări", icon: CalendarClock },
+            { id: "dashboard", label: "Statistici", icon: BarChart3 },
+            { id: "rapoarte", label: "Financiar", icon: Wallet },
+            { id: "quickCapture", label: "Scan / Foto", icon: Camera, isAction: true },
+          ].map(({ id, label, icon: Icon, badge, isAction }) => {
+            const active = view === id;
+            if (isAction) {
               return (
                 <button
                   key={id}
-                  onClick={() => setView(id)}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-semibold transition-all whitespace-nowrap ${
-                    active
-                      ? "bg-[#C98A2B] text-white shadow-sm font-bold"
-                      : "text-white/80 hover:text-white hover:bg-white/10"
-                  }`}
+                  onClick={() => setQuickCaptureOpen(true)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#C98A2B]/20 text-[#F3D9A8] hover:bg-[#C98A2B] hover:text-white font-bold text-[13px] transition-all"
+                  title={label}
                 >
-                  <Icon size={14} strokeWidth={2.2} />
-                  <span>{label}</span>
+                  <Icon size={20} className="shrink-0 text-[#C98A2B] group-hover:text-white" />
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {label}
+                  </span>
                 </button>
               );
-            })}
+            }
+            return (
+              <button
+                key={id}
+                onClick={() => setView(id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
+                  active
+                    ? "bg-[#C98A2B] text-white font-bold shadow-md"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
+                }`}
+                title={label}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={20} className="shrink-0" />
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {label}
+                  </span>
+                </div>
+                {badge !== undefined && (
+                  <span className="opacity-0 group-hover:opacity-100 text-[10px] font-black bg-white/20 px-1.5 py-0.2 rounded-full">
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Bottom Profile & Settings Dock */}
+        <div className="p-2 border-t border-white/10 shrink-0 space-y-1">
+          <button
+            onClick={() => setSetariOpen(true)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
+            title="Centru Setări"
+          >
+            <div className="w-6 h-6 rounded-full bg-[#C98A2B] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+              {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
+            </div>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity truncate max-w-[120px]">
+              {myEmail}
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      {/* --- RIGHT MAIN WORKSPACE CANVAS --- */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Top Breadcrumb & Action Header */}
+        <header className="h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
+
+          {/* Left Breadcrumb & Context */}
+          <div className="flex items-center gap-2 text-[13px]">
+            <span className="font-extrabold text-[#23282E]">Workflow Dosare</span>
+            <ChevronRight size={14} className="text-[#8A8375]" />
+            <span className="font-bold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-2.5 py-1 rounded-lg">
+              {viewLabels[view] || "Aplicație"}
+            </span>
           </div>
 
-          {/* Right Side: Quick Search, Super Centru Alerte & User Profile / Settings */}
-          <div className="flex items-center gap-1.5 shrink-0">
+          {/* Center Search Trigger (Ctrl+K) */}
+          <div className="hidden lg:flex items-center">
             <button
-              type="button"
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 border border-white/15 transition-all md:hidden"
-              title="Căutare rapidă"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#8A8375] hover:bg-white hover:border-[#C98A2B] text-[12.5px] transition-all w-64 justify-between shadow-2xs"
             >
-              <Search size={16} />
+              <div className="flex items-center gap-2">
+                <Search size={14} />
+                <span>Căutare rapidă...</span>
+              </div>
+              <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166]">
+                Ctrl+K
+              </span>
+            </button>
+          </div>
+
+          {/* Right Header Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => openNew()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
+            >
+              <Plus size={16} /> <span>Dosar nou</span>
             </button>
 
             {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
             {totalAlertsCount > 0 && (
               <button
-                onClick={() => setAlerteModalTab("toate")}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12.5px] font-extrabold bg-gradient-to-r from-[#B23A2E] via-[#C98A2B] to-[#2C4160] text-white shadow-md hover:brightness-110 active:scale-95 transition-all animate-pulse"
-                title="Deschide Super Centrul de Alerte"
+                onClick={() => setAlerteModalTab("depasite")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold bg-[#B23A2E] text-white shadow-sm hover:bg-[#922D24] active:scale-95 transition-all animate-pulse"
+                title="Deschide Centrul de Alerte"
               >
                 <Bell size={14} className="fill-white" />
                 <span>{totalAlertsCount} Alerte</span>
-                {alertCount > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                )}
               </button>
             )}
 
-            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
+            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] text-[#3B5166] text-[12.5px] font-semibold hover:bg-[#FAF8F5]"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
 
-            {/* User Profile & Interactive Settings Pill Button */}
+            {/* Quick Settings Icon Button */}
             <button
               onClick={() => setSetariOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 text-white text-[12px] font-semibold transition-all ml-1 cursor-pointer"
-              title="Profil utilizator & Centru Setări"
+              className="p-2 rounded-xl border border-[#DAD4C6] text-[#3B5166] hover:bg-[#FAF8F5] transition-all"
+              title="Setări"
             >
-              <div className="w-4 h-4 rounded-full bg-[#C98A2B] text-white font-bold text-[9.5px] flex items-center justify-center shrink-0">
-                {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
-              </div>
-              <span className="hidden md:inline truncate max-w-[130px]">{myEmail}</span>
-              <Settings size={14} className="text-[#C98A2B] shrink-0" />
+              <Settings size={16} />
             </button>
           </div>
-        </div>
+        </header>
+
+        {/* DESKTOP FILTER BAR (Search + Dropdowns) */}
+        {!["brief", "programator"].includes(view) && (
+          <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full sm:w-[280px]">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+                <input className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid dosare..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFilterPanel((open) => !open)}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
+              >
+                <SlidersHorizontal size={14} /> Filtre
+                {activeFilterCount > 0 && <span className="rounded-full bg-[#3B5166] px-1.5 text-[10px] text-white">{activeFilterCount}</span>}
+              </button>
+            </div>
+            {showFilterPanel && (
+              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[#DAD4C6] bg-[#FAF8F5] p-2.5">
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Tip asigurare</span>
+                  <select className="in min-w-[130px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
+                    <option value="toate">Toate</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Asigurător</span>
+                  <select className="in min-w-[190px]" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
+                    <option value="toti">Toți asigurătorii</option>
+                    {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Status</span>
+                  <select className="in min-w-[190px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                    <option value="toate">Toate statusurile</option>
+                    {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
+                  </select>
+                </label>
+                {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[#B23A2E] hover:underline"><X size={13} /> Resetează</button>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* DECATHLON STYLE SUB-HEADER ON MOBILE: Sticky Filter & Sort Buttons */}
         <div className="grid grid-cols-2 gap-px bg-white/10 border-t border-white/10 text-white md:hidden text-[12px] font-bold">
@@ -378,88 +488,35 @@ export default function App() {
             </span>
           </button>
         </div>
-      </div>
 
-      {/* --- DESKTOP FILTER BAR (Search + Dropdowns) --- */}
-      {!["brief", "programator"].includes(view) && (
-        <div className="hidden md:block px-4 py-2.5 bg-white border-b border-[#DAD4C6] shrink-0 z-20">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-full sm:w-[280px]">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-              <input className="w-full pl-8 pr-16 py-1.5 rounded border border-[#DAD4C6] text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid..." value={search} onChange={(e) => setSearch(e.target.value)} />
-              <button
-                type="button"
-                onClick={() => setIsCommandPaletteOpen(true)}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold bg-[#EFEAE1] hover:bg-[#DAD4C6] text-[#3B5166] px-1.5 py-0.5 rounded border border-[#DAD4C6]"
-                title="Căutare inteligentă (Ctrl + K)"
-              >
-                Ctrl+K
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowFilterPanel((open) => !open)}
-              className={`flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
-            >
-              <SlidersHorizontal size={14} /> Filtre
-              {activeFilterCount > 0 && <span className="rounded-full bg-[#3B5166] px-1.5 text-[10px] text-white">{activeFilterCount}</span>}
-            </button>
-          </div>
-          {showFilterPanel && (
-            <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[#DAD4C6] bg-[#FAF8F5] p-2.5">
-              <label className="block">
-                <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Tip asigurare</span>
-                <select className="in min-w-[130px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
-                  <option value="toate">Toate</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Asigurător</span>
-                <select className="in min-w-[190px]" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
-                  <option value="toti">Toți asigurătorii</option>
-                  {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Status</span>
-                <select className="in min-w-[190px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                  <option value="toate">Toate statusurile</option>
-                  {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-                </select>
-              </label>
-              {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[#B23A2E] hover:underline"><X size={13} /> Resetează</button>}
-            </div>
+        {/* MAIN WORKSPACE CANVAS VIEW AREA */}
+        <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+          {loading ? (
+            <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+          ) : view === "flux" ? (
+            <TablouPeFaze
+              claims={filtered}
+              onOpen={openExisting}
+              onMoveToStatus={handleMoveToStatus}
+              onAddInStatus={openNew}
+              onDuplicate={duplicateClaim}
+              canEditFn={canEdit}
+              pragRidicare={pragRidicare}
+              quickFilter={fluxFilter}
+              setQuickFilter={setFluxFilter}
+            />
+          ) : view === "brief" ? (
+            <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
+          ) : view === "list" ? (
+            <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
+          ) : view === "dashboard" ? (
+            <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
+          ) : view === "programator" ? (
+            <Programator claims={claims} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+          ) : (
+            <Rapoarte claims={filtered} onPatch={patchClaim} canEditFn={canEdit} />
           )}
-        </div>
-      )}
-
-      {/* --- MAIN CONTENT VIEW AREA --- */}
-      <div className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
-        ) : view === "flux" ? (
-          <TablouPeFaze
-            claims={filtered}
-            onOpen={openExisting}
-            onMoveToStatus={handleMoveToStatus}
-            onAddInStatus={openNew}
-            onDuplicate={duplicateClaim}
-            canEditFn={canEdit}
-            pragRidicare={pragRidicare}
-            quickFilter={fluxFilter}
-            setQuickFilter={setFluxFilter}
-          />
-        ) : view === "brief" ? (
-          <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
-        ) : view === "list" ? (
-          <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
-        ) : view === "dashboard" ? (
-          <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
-        ) : view === "programator" ? (
-          <Programator claims={claims} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
-        ) : (
-          <Rapoarte claims={filtered} onPatch={patchClaim} canEditFn={canEdit} />
-        )}
+        </main>
       </div>
 
       {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
