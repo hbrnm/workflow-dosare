@@ -743,22 +743,32 @@ export default function ClaimModal({
             {/* ========================================================================= */}
             {/* SECTION 1: NOTION PROPERTIES GRID (SUS / TOP PROPERTIES SECTION)          */}
             {/* ========================================================================= */}
-            <div className="bg-white border-b border-[#DAD4C6] p-4 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-2 mb-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8A8375] flex items-center gap-1.5">
-                  <Tag size={13} className="text-[#C98A2B]" /> Proprietăți Pagina Dosar (Notion Grid)
+            <div className="bg-white border-b border-[#DAD4C6] p-4 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-2">
+                <span className="text-[11.5px] font-extrabold uppercase tracking-wider text-[#8A8375] flex items-center gap-1.5">
+                  <Tag size={14} className="text-[#C98A2B]" /> Proprietăți Pagina Dosar (Notion Grid)
                 </span>
-                <span className="text-[10.5px] font-semibold text-[#8A8375]">
-                  ID: <code className="font-mono text-[#23282E]">{form.id?.slice(0, 8) || "Nou"}</code>
+                <span className="text-[11px] font-semibold text-[#8A8375]">
+                  ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-1 text-[12.5px]">
-                {/* 1. Status Dosar */}
-                <NotionPropertyRow icon={Layers} label="Status & Etapă">
-                  <div className="flex items-center gap-1.5">
+              {/* Grid cu 2 Coloane Spațioase (Fără suprapuneri) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12.5px]">
+
+                {/* COLOANA 1: STATUS & ASIGURARE */}
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3.5 space-y-3">
+                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                    <ShieldCheck size={13} className="text-[#C98A2B]" /> 1. Status &amp; Asigurare
+                  </div>
+
+                  {/* 1. Status & Etapă */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Layers size={13} className="text-[#8A8375]" /> Status &amp; Etapă Flux
+                    </label>
                     <select
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
                       value={form.status}
                       onChange={(e) => set("status", e.target.value)}
                     >
@@ -769,138 +779,181 @@ export default function ClaimModal({
                       ))}
                     </select>
                   </div>
-                </NotionPropertyRow>
 
-                {/* 2. Nr. Dosar Daună */}
-                <NotionPropertyRow icon={FileText} label="Nr. Dosar Daună">
-                  <input
-                    className="w-full font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
-                    value={form.numarDosar}
-                    onChange={(e) => set("numarDosar", e.target.value)}
-                    placeholder="ex: 2026-00451"
-                    required
-                  />
-                </NotionPropertyRow>
-
-                {/* 3. Asigurător & Tip */}
-                <NotionPropertyRow icon={ShieldCheck} label="Asigurător / Tip">
-                  <div className="flex gap-1">
-                    <select
-                      className="w-24 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]"
-                      value={form.tipAsigurare}
-                      onChange={(e) => set("tipAsigurare", e.target.value)}
-                    >
-                      <option value="CASCO">CASCO</option>
-                      <option value="RCA">RCA</option>
-                    </select>
-                    <select
-                      className="flex-1 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] font-semibold"
-                      value={form.asigurator}
-                      onChange={(e) => set("asigurator", e.target.value)}
-                    >
-                      <option value="" disabled>-- Societate --</option>
-                      {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
-                    </select>
-                  </div>
-                </NotionPropertyRow>
-
-                {/* 4. Nr. Înmatriculare */}
-                <NotionPropertyRow icon={Car} label="Nr. Înmatriculare">
-                  <input
-                    className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] uppercase text-[#23282E] focus:border-[#C98A2B]"
-                    value={form.numarInmatriculare}
-                    onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
-                    placeholder="ex: B111AAA"
-                    required
-                  />
-                </NotionPropertyRow>
-
-                {/* 5. Serie Șasiu (VIN) */}
-                <NotionPropertyRow icon={Tag} label="Serie Șasiu (VIN)">
-                  <input
-                    className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] uppercase text-[#23282E] focus:border-[#C98A2B]"
-                    value={form.vin}
-                    onChange={(e) => set("vin", e.target.value.toUpperCase())}
-                    maxLength={17}
-                    placeholder="17 caractere VIN"
-                  />
-                </NotionPropertyRow>
-
-                {/* 6. Marcă & Model */}
-                <NotionPropertyRow icon={Car} label="Marcă & Model">
-                  <input
-                    className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
-                    value={form.marcaModel}
-                    onChange={(e) => set("marcaModel", e.target.value)}
-                    placeholder="ex: Volkswagen Passat 2.0 TDI"
-                  />
-                </NotionPropertyRow>
-
-                {/* 7. Nume Client */}
-                <NotionPropertyRow icon={UserIcon} label="Nume Asigurat">
-                  <input
-                    className="w-full font-semibold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
-                    value={form.client}
-                    onChange={(e) => set("client", e.target.value)}
-                    placeholder="Nume complet client"
-                  />
-                </NotionPropertyRow>
-
-                {/* 8. Telefon Client */}
-                <NotionPropertyRow icon={Phone} label="Telefon Contact">
-                  <div className="flex items-center gap-1">
+                  {/* 2. Nr. Dosar Daună */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <FileText size={13} className="text-[#8A8375]" /> Nr. Dosar Daună
+                    </label>
                     <input
-                      className="flex-1 font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]"
-                      type="tel"
-                      placeholder="07xx xxx xxx"
-                      value={form.telefonClient}
-                      onChange={(e) => set("telefonClient", e.target.value)}
+                      className="w-full font-bold text-[13px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      value={form.numarDosar}
+                      onChange={(e) => set("numarDosar", e.target.value)}
+                      placeholder="ex: 2026-00451"
+                      required
                     />
-                    {form.telefonClient && (
-                      <>
-                        <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={13} /></a>
-                        <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={13} /></a>
-                      </>
-                    )}
                   </div>
-                </NotionPropertyRow>
 
-                {/* 9. Dată Deschidere & Alertă */}
-                <NotionPropertyRow icon={Clock} label="Dată & Alertă Zile">
-                  <div className="flex items-center gap-1.5">
-                    <DatePickerInput value={form.dataDeschiderii} onChange={(v) => set("dataDeschiderii", v)} withTime={false} placeholder="zi/luna/an" />
-                    <span className="text-[10px] text-[#8A8375] font-bold shrink-0">Alertă:</span>
-                    <input type="number" min={1} className="w-12 p-1 text-center font-bold text-[11.5px] border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} />
+                  {/* 3. Asigurător & Tip */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <ShieldCheck size={13} className="text-[#8A8375]" /> Asigurător &amp; Tip Asigurare
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <select
+                        className="col-span-1 font-bold text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
+                        value={form.tipAsigurare}
+                        onChange={(e) => set("tipAsigurare", e.target.value)}
+                      >
+                        <option value="CASCO">CASCO</option>
+                        <option value="RCA">RCA</option>
+                      </select>
+                      <select
+                        className="col-span-2 text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E]"
+                        value={form.asigurator}
+                        onChange={(e) => set("asigurator", e.target.value)}
+                      >
+                        <option value="" disabled>-- Societate Asigurare --</option>
+                        {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
+                      </select>
+                    </div>
                   </div>
-                </NotionPropertyRow>
+
+                  {/* 4. Dată Deschidere & Alertă */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Clock size={13} className="text-[#8A8375]" /> Dată Deschidere &amp; Prag Alertă
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <DatePickerInput value={form.dataDeschiderii} onChange={(v) => set("dataDeschiderii", v)} withTime={false} placeholder="zi/luna/an" />
+                      </div>
+                      <div className="flex items-center gap-1 bg-white border border-[#DAD4C6] rounded-lg px-2.5 py-1.5 shrink-0">
+                        <span className="text-[10.5px] text-[#8A8375] font-bold">Alertă:</span>
+                        <input
+                          type="number"
+                          min={1}
+                          className="w-10 text-center font-bold text-[12px] focus:outline-hidden"
+                          value={form.termenAlertaZile}
+                          onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)}
+                        />
+                        <span className="text-[10.5px] text-[#8A8375] font-bold">zile</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* COLOANA 2: VEHICUL & ASIGURAT */}
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3.5 space-y-3">
+                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                    <Car size={13} className="text-[#C98A2B]" /> 2. Date Vehicul &amp; Client
+                  </div>
+
+                  {/* 5. Nr. Înmatriculare */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Car size={13} className="text-[#8A8375]" /> Nr. Înmatriculare
+                    </label>
+                    <input
+                      className="w-full font-mono font-bold text-[13px] p-2 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
+                      value={form.numarInmatriculare}
+                      onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
+                      placeholder="ex: B111AAA"
+                      required
+                    />
+                  </div>
+
+                  {/* 6. Serie Șasiu (VIN) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Tag size={13} className="text-[#8A8375]" /> Serie Șasiu (VIN 17 caractere)
+                    </label>
+                    <input
+                      className="w-full font-mono text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
+                      value={form.vin}
+                      onChange={(e) => set("vin", e.target.value.toUpperCase())}
+                      maxLength={17}
+                      placeholder="Cod VIN 17 caractere"
+                    />
+                  </div>
+
+                  {/* 7. Marcă & Model */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Car size={13} className="text-[#8A8375]" /> Marcă &amp; Model Vehicul
+                    </label>
+                    <input
+                      className="w-full text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      value={form.marcaModel}
+                      onChange={(e) => set("marcaModel", e.target.value)}
+                      placeholder="ex: Volkswagen Passat 2.0 TDI"
+                    />
+                  </div>
+
+                  {/* 8. Nume Client & Contact */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                        <UserIcon size={13} className="text-[#8A8375]" /> Nume Asigurat
+                      </label>
+                      <input
+                        className="w-full font-semibold text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                        value={form.client}
+                        onChange={(e) => set("client", e.target.value)}
+                        placeholder="Nume complet client"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                        <Phone size={13} className="text-[#8A8375]" /> Telefon Contact
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <input
+                          className="flex-1 font-mono text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white"
+                          type="tel"
+                          placeholder="07xx xxx xxx"
+                          value={form.telefonClient}
+                          onChange={(e) => set("telefonClient", e.target.value)}
+                        />
+                        {form.telefonClient && (
+                          <>
+                            <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-2 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={13} /></a>
+                            <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-2 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={13} /></a>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Status Blocat & Motiv Callout Box (Stil Notion Callout) */}
-              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/40">
-                <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-3 py-1.5 rounded-lg border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558]"}`}>
+              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/60">
+                <label className={`flex items-center gap-2 text-[12px] cursor-pointer px-3 py-2 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
                   <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> 
-                  <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
+                  <AlertOctagon size={15} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
                   <span>Marchează Dosar Blocat în Etapă</span>
                 </label>
 
                 {form.blocat && (
-                  <div className="flex-1 w-full sm:w-auto px-3 py-1.5 bg-[#B23A2E] text-white rounded-lg text-[11.5px] flex items-center gap-2 shadow-xs">
+                  <div className="flex-1 w-full sm:w-auto px-3.5 py-2 bg-[#B23A2E] text-white rounded-xl text-[12px] flex items-center gap-2 shadow-xs">
                     <span className="font-extrabold shrink-0">Motiv blocare:</span>
-                    <input className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-0.5 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                    <input className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2.5 py-1 text-white text-[12.5px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
                   </div>
                 )}
 
                 {/* Dosare Anterioare Client / VIN */}
                 {istoricClientVehicul.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
-                      <History size={11} /> {istoricClientVehicul.length} anterioare:
+                    <span className="text-[11px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
+                      <History size={12} /> {istoricClientVehicul.length} anterioare:
                     </span>
                     {istoricClientVehicul.slice(0, 3).map((c) => {
                       const s = getStatusDefinition(c.status);
                       return (
                         <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
-                          className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded px-2 py-0.5 truncate max-w-[140px]">
+                          className="text-[10.5px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-1 truncate max-w-[140px]">
                           {c.numarDosar || "—"} · {s.label}
                         </button>
                       );
