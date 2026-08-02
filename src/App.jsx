@@ -56,6 +56,18 @@ export default function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
   const canEdit = (c) => Boolean(myId) && c.createdBy === myId;
@@ -289,7 +301,6 @@ export default function App() {
             { id: "programator", label: "Programări", icon: CalendarClock },
             { id: "dashboard", label: "Statistici", icon: BarChart3 },
             { id: "rapoarte", label: "Financiar", icon: Wallet },
-            { id: "quickCapture", label: "Scan / Foto", icon: Camera, isAction: true },
           ].map(({ id, label, icon: Icon, badge, isAction }) => {
             const active = view === id;
             if (isAction) {
@@ -335,7 +346,7 @@ export default function App() {
         </div>
 
         {/* Bottom Profile & Settings Dock */}
-        <div className="p-2 border-t border-white/10 shrink-0 space-y-1">
+        <div className="p-2 shrink-0 space-y-1">
           <button
             onClick={() => setSetariOpen(true)}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
@@ -403,16 +414,6 @@ export default function App() {
               </button>
             )}
 
-            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] text-[#3B5166] text-[12.5px] font-semibold hover:bg-[#FAF8F5]"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
-
-            {/* Quick Settings Icon Button */}
-            <button
-              onClick={() => setSetariOpen(true)}
-              className="p-2 rounded-xl border border-[#DAD4C6] text-[#3B5166] hover:bg-[#FAF8F5] transition-all"
-              title="Setări"
-            >
-              <Settings size={16} />
-            </button>
           </div>
         </header>
 
@@ -707,7 +708,7 @@ export default function App() {
         onOpenClaim={openExisting}
         onSwitchView={setView}
         onOpenNewClaim={openNew}
-        onExportExcel={exportExcel}
+        onExportExcel={() => setView("dashboard")}
       />
     </div>
   );

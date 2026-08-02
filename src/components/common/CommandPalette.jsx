@@ -28,13 +28,13 @@ export default function CommandPalette({
     }
   }, [isOpen]);
 
-  // Global Ctrl+K / Cmd+K listener
+  // Global Ctrl+K / Cmd+K listener when palette is open
   useEffect(() => {
+    if (!isOpen) return;
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        if (isOpen) onClose();
-        else setQuery("");
+        onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);

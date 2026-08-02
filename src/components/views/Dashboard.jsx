@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, ShieldCheck } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Boxes, TrendingUp, AlertTriangle, Car, ShieldCheck, Download, FileSpreadsheet } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
@@ -8,8 +8,10 @@ import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition } from "../../c
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import StatCard from "../common/StatCard";
+import ExportExcelModal from "../modals/ExportExcelModal";
 
 export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
+  const [showExportModal, setShowExportModal] = useState(false);
   const total = claims.length;
   const rca = claims.filter((c) => c.tipAsigurare === "RCA").length;
   const casco = claims.filter((c) => c.tipAsigurare === "CASCO").length;
@@ -48,6 +50,24 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
 
   return (
     <div className="space-y-4 pb-4">
+      {/* Header Bar with Export Button */}
+      <div className="bg-white rounded-xl border border-[#DAD4C6] p-3.5 flex items-center justify-between shadow-2xs">
+        <div>
+          <h2 className="font-extrabold text-[15px] text-[#23282E] flex items-center gap-2">
+            <BarChart3 size={18} className="text-[#C98A2B]" /> Statistici & Tablou de Bord
+          </h2>
+          <p className="text-[11.5px] text-[#6B6558]">Centralizator indicatori, etape dosare și exporturi pe module</p>
+        </div>
+
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95 shrink-0"
+        >
+          <FileSpreadsheet size={16} />
+          <span>Exportă Date în Excel</span>
+        </button>
+      </div>
+
       {/* Responsive Grid for Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
         <StatCard label="Total dosare" value={total} tone="steel" />
@@ -155,6 +175,14 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
           </div>
         )}
       </div>
+
+      {showExportModal && (
+        <ExportExcelModal
+          claims={claims}
+          pragRidicare={pragRidicare}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
     </div>
   );
 }
