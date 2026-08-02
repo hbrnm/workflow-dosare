@@ -18,3 +18,7 @@ export function isStageOverdue(claim) {
     daysBetween(claim.dataSchimbareStatus) >= (claim.termenAlertaZile || 3)
   );
 }
+
+export function getDaysInStage(claim) {
+  return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
+}
