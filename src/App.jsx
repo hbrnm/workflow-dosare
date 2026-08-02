@@ -522,50 +522,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* NOTION-STYLE DATABASE VIEWS SWITCHER BAR (DESKTOP & TABLET) */}
-        <div className="hidden md:flex bg-[#FAF8F5] border-b border-[#E0D9CC] px-4 py-1.5 items-center justify-between overflow-x-auto whitespace-nowrap scrollbar-none shrink-0 z-10 shadow-2xs">
-          <div className="flex items-center gap-1.5">
-            {[
-              { id: "flux", label: "Board Kanban", icon: Layers, count: filtered.length },
-              { id: "list", label: "Tabel Detaliat", icon: List, count: filtered.length },
-              { id: "programator", label: "Calendar Atelier", icon: CalendarClock, count: claims.filter((c) => c.dataProgramare).length },
-              { id: "brief", label: "Brief Zilnic", icon: Sunrise, count: claims.filter((c) => c.gataDeRidicare || c.blocat).length },
-              { id: "dashboard", label: "Statistici", icon: BarChart3 },
-              { id: "rapoarte", label: "Rapoarte & Audit", icon: FileText },
-            ].map((item) => {
-              const active = view === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setView(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${
-                    active
-                      ? "bg-white text-[#23282E] shadow-2xs border-[#DAD4C6]"
-                      : "border-transparent text-[#6B6558] hover:bg-[#EFEAE1] hover:text-[#23282E]"
-                  }`}
-                >
-                  <Icon size={14} className={active ? "text-[#C98A2B]" : "text-[#8A8375]"} />
-                  <span>{item.label}</span>
-                  {item.count !== undefined && (
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-extrabold ${
-                      active ? "bg-[#3B5166] text-white" : "bg-[#EFEAE1] text-[#6B6558]"
-                    }`}>
-                      {item.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="hidden xl:flex items-center gap-2 text-[11.5px] text-[#8A8375] font-semibold">
-            <Sparkles size={13} className="text-[#C98A2B]" />
-            <span>Bază date Notion: <strong className="text-[#23282E]">{claims.length} dosare</strong></span>
-          </div>
-        </div>
-
         {/* DESKTOP FILTER BAR (Search + Dropdowns) */}
         {!["brief", "programator"].includes(view) && (
           <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
