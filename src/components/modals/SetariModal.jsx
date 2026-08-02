@@ -18,7 +18,12 @@ export default function SetariModal({
   onClose,
   onNotify,
   userEmail,
-  onSignOut
+  onSignOut,
+  isAdmin = false,
+  usersList = [],
+  onAddUser,
+  onDeleteUser,
+  onToggleAdminRole,
 }) {
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
 
@@ -32,6 +37,12 @@ export default function SetariModal({
   const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
   const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // New user management states
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("operator"); // "operator" | "admin"
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
 
   // Statistics
   const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);
@@ -87,6 +98,28 @@ export default function SetariModal({
     onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
   };
 
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault();
+    const email = newUserEmail.trim().toLowerCase();
+    if (!email || !email.includes("@")) {
+      onNotify("Introdu o adresă de e-mail validă.", "error");
+      return;
+    }
+    setCreatingUser(true);
+    try {
+      if (onAddUser) {
+        await onAddUser({ email, role: newUserRole, password: newUserPassword });
+      }
+      setNewUserEmail("");
+      setNewUserPassword("");
+      onNotify(`Utilizatorul „${email}" a fost adăugat cu succes!`, "success");
+    } catch (err) {
+      onNotify("Eroare la adăugarea utilizatorului: " + err.message, "error");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
@@ -102,8 +135,8 @@ export default function SetariModal({
                 <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                   Centrul de Administrare &amp; Setări
                 </h2>
-                <span className="bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/40 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Admin
+                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/50" : "bg-white/10 text-white/80 border border-white/20"}`}>
+                  {isAdmin ? "★ Administrator" : "Operator"}
                 </span>
               </div>
               <p className="text-[11px] text-white/60">Conectat ca: <span className="text-white font-semibold">{userEmail || "Neautentificat"}</span></p>
@@ -347,12 +380,18 @@ export default function SetariModal({
             </div>
           )}
 
-          {/* TAB 4: PROFIL UTILIZATOR & SECURITATE */}
+          {/* TAB 4: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
           {activeTab === "profil" && (
             <div className="space-y-4">
+              {/* Informații Cont Curent */}
               <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <User size={16} className="text-[#C98A2B]" /> Detalii Cont &amp; Securitate
+                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <User size={16} className="text-[#C98A2B]" /> Detalii Cont &amp; Securitate
+                  </span>
+                  <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${isAdmin ? "bg-[#C98A2B] text-white" : "bg-[#3B5166] text-white"}`}>
+                    {isAdmin ? "Rol: ADMINISTRATOR (Acces Total)" : "Rol: OPERATOR (Dosare Proprii)"}
+                  </span>
                 </h3>
 
                 <div className="space-y-3">
@@ -360,6 +399,9 @@ export default function SetariModal({
                     <div>
                       <span className="text-[11px] text-[#8A8375] font-bold uppercase block">Adresă de e-mail conectată</span>
                       <span className="font-mono font-bold text-[14px] text-[#23282E]">{userEmail || "—"}</span>
+                      <span className="text-[11.5px] text-[#6B6558] block mt-0.5">
+                        {isAdmin ? "🔑 Poți edita, modifica și șterge orice dosar din sistem." : "🔒 Poți edita și șterge doar dosarele create de tine."}
+                      </span>
                     </div>
                     <span className="px-2.5 py-1 bg-[#3E6B45]/15 text-[#3E6B45] font-bold text-[11px] rounded-md">
                       ✓ Cont Activ
@@ -382,6 +424,143 @@ export default function SetariModal({
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă pentru Administrare) */}
+              <div className="bg-white border border-[#C98A2B]/40 rounded-xl p-4 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                  <div>
+                    <h3 className="font-extrabold text-[14.5px] text-[#23282E] flex items-center gap-2">
+                      <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
+                    </h3>
+                    <p className="text-[11px] text-[#6B6558]">
+                      Adaugă membri noi, oferă drepturi de Administrator sau elimină conturi din organizație
+                    </p>
+                  </div>
+                  {!isAdmin && (
+                    <span className="text-[10.5px] font-bold text-[#B23A2E] bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg">
+                      Doar Administratorii pot efectua modificări
+                    </span>
+                  )}
+                </div>
+
+                {/* Formular Adăugare Utilizator Nou */}
+                <form onSubmit={handleAddUserSubmit} className="bg-[#FBF3E6] border border-[#C98A2B]/30 rounded-xl p-3.5 space-y-3">
+                  <h4 className="font-bold text-[13px] text-[#7A5316] flex items-center gap-1.5">
+                    <Plus size={15} /> Adaugă Utilizator Nou
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="email"
+                      required
+                      placeholder="E-mail utilizator (ex: coleg@service.ro)..."
+                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
+                      value={newUserEmail}
+                      onChange={(e) => setNewUserEmail(e.target.value)}
+                    />
+
+                    <select
+                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-bold text-[#23282E] focus:border-[#C98A2B]"
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                    >
+                      <option value="operator">Operator (Doar dosare proprii)</option>
+                      <option value="admin">★ Administrator (Acces total)</option>
+                    </select>
+
+                    <input
+                      type="password"
+                      placeholder="Parolă inițială (opțional)..."
+                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
+                      value={newUserPassword}
+                      onChange={(e) => setNewUserPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={creatingUser}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <Plus size={15} /> {creatingUser ? "Se adaugă..." : "Adaugă Utilizator"}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Lista Utilizatori Existenți */}
+                <div className="space-y-2 pt-1">
+                  <h4 className="font-bold text-[12.5px] text-[#23282E]">Membri Înregistrați ({usersList.length}):</h4>
+                  {usersList.length === 0 ? (
+                    <div className="p-4 text-center text-[12px] text-[#8A8375] bg-[#FAF8F5] rounded-xl border border-[#DAD4C6]">
+                      Niciun utilizator suplimentar configurat încă.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#EFEAE1] border border-[#DAD4C6] rounded-xl overflow-hidden bg-white">
+                      {usersList.map((u) => {
+                        const isCurrent = u.email?.toLowerCase() === userEmail?.toLowerCase();
+                        const isUserAdmin = u.role === "admin";
+
+                        return (
+                          <div key={u.email} className="p-3 flex items-center justify-between gap-2 hover:bg-[#FCFAF5]">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] text-white ${isUserAdmin ? "bg-[#C98A2B]" : "bg-[#3B5166]"}`}>
+                                {u.email ? u.email.charAt(0).toUpperCase() : "U"}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-[13px] text-[#23282E]">{u.email}</span>
+                                  {isCurrent && (
+                                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#EFEAE1] text-[#3B5166]">
+                                      Tu (Cont Curent)
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[11px] text-[#8A8375] block">
+                                  Rol: <strong className={isUserAdmin ? "text-[#C98A2B]" : "text-[#3B5166]"}>{isUserAdmin ? "Administrator (Editare toate dosarele)" : "Operator (Editează doar propriile dosare)"}</strong>
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Schimbare rol Admin / Operator */}
+                              {onToggleAdminRole && (
+                                <button
+                                  type="button"
+                                  onClick={() => onToggleAdminRole(u.email)}
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
+                                    isUserAdmin
+                                      ? "bg-[#EEF1F3] text-[#3B5166] border-[#DAD4C6] hover:bg-gray-200"
+                                      : "bg-[#FBF3E6] text-[#7A5316] border-[#C98A2B]/40 hover:bg-[#F3D9A8]"
+                                  }`}
+                                  title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
+                                >
+                                  <Key size={13} />
+                                  <span>{isUserAdmin ? "Devino Operator" : "★ Fă Administrator"}</span>
+                                </button>
+                              )}
+
+                              {/* Ștergere utilizator */}
+                              {onDeleteUser && (
+                                <button
+                                  type="button"
+                                  disabled={isCurrent}
+                                  onClick={() => onDeleteUser(u.email)}
+                                  className="p-1.5 text-[#8A8375] hover:text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                  title={isCurrent ? "Nu te poți șterge pe tine însuți" : "Șterge utilizator"}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}

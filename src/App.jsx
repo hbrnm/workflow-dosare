@@ -50,6 +50,10 @@ export default function App() {
   const [mobileSort, setMobileSort] = useState("recent");
   const [mobileFilterSheetOpen, setMobileFilterSheetOpen] = useState(false);
 
+  // Admin & User Management States
+  const [adminEmails, setAdminEmails] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
@@ -70,7 +74,27 @@ export default function App() {
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
-  const canEdit = (c) => Boolean(myId) && c.createdBy === myId;
+
+  // Evaluate if current user is an Administrator
+  const isAdmin = useMemo(() => {
+    if (!myEmail) return false;
+    if (adminEmails.length === 0) return true; // Default admin mode for single-user/initial setup
+    return (
+      adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase()) ||
+      usersList.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin")
+    );
+  }, [myEmail, adminEmails, usersList]);
+
+  // Administrator can edit ALL claims in the system; Operators can only edit their own
+  const canEdit = useCallback(
+    (c) => {
+      if (!myId) return false;
+      if (isAdmin) return true;
+      return c.createdBy === myId;
+    },
+    [myId, isAdmin]
+  );
+
   const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
 
   useEffect(() => {
@@ -92,12 +116,91 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     (async () => {
-      const { data } = await supabase.from("setari").select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile").eq("id", 1).maybeSingle();
+      const { data } = await supabase
+        .from("setari")
+        .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori")
+        .eq("id", 1)
+        .maybeSingle();
+
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
       if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
+
+      let loadedAdmins = Array.isArray(data?.admin_emails) ? data.admin_emails : [];
+      let loadedUsers = Array.isArray(data?.utilizatori) ? data.utilizatori : [];
+
+      const currentEmail = session.user?.email || "";
+      if (currentEmail) {
+        if (!loadedUsers.some((u) => u.email?.toLowerCase() === currentEmail.toLowerCase())) {
+          const isFirst = loadedUsers.length === 0 || loadedAdmins.length === 0;
+          loadedUsers.push({ email: currentEmail, role: isFirst ? "admin" : "operator" });
+        }
+        if (loadedAdmins.length === 0 || loadedUsers.some(u => u.email?.toLowerCase() === currentEmail.toLowerCase() && u.role === "admin")) {
+          if (!loadedAdmins.some((e) => e.toLowerCase() === currentEmail.toLowerCase())) {
+            loadedAdmins.push(currentEmail);
+          }
+        }
+      }
+
+      setAdminEmails(loadedAdmins);
+      setUsersList(loadedUsers);
     })();
   }, [session]);
+
+  const saveUsersAndAdmins = async (newUsers, newAdmins) => {
+    setUsersList(newUsers);
+    setAdminEmails(newAdmins);
+    const { error } = await supabase.from("setari").upsert({
+      id: 1,
+      utilizatori: newUsers,
+      admin_emails: newAdmins,
+    });
+    if (error) showNotice(error.message, "error");
+  };
+
+  const handleAddUser = async ({ email, role }) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (usersList.some((u) => u.email?.toLowerCase() === cleanEmail)) {
+      throw new Error("Acest utilizator există deja în listă.");
+    }
+    const updatedUsers = [...usersList, { email: cleanEmail, role: role || "operator" }];
+    const updatedAdmins = role === "admin"
+      ? [...new Set([...adminEmails, cleanEmail])]
+      : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
+
+    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+  };
+
+  const handleDeleteUser = async (emailToDelete) => {
+    const cleanEmail = emailToDelete.trim().toLowerCase();
+    if (cleanEmail === myEmail.toLowerCase()) {
+      showNotice("Nu te poți șterge pe tine însuți din sistem.", "error");
+      return;
+    }
+    const updatedUsers = usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail);
+    const updatedAdmins = adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
+    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+    showNotice(`Utilizatorul „${cleanEmail}” a fost eliminat.`, "info");
+  };
+
+  const handleToggleAdminRole = async (targetEmail) => {
+    const cleanEmail = targetEmail.trim().toLowerCase();
+    const currentObj = usersList.find((u) => u.email?.toLowerCase() === cleanEmail);
+    const willBeAdmin = currentObj?.role !== "admin";
+
+    const updatedUsers = usersList.map((u) =>
+      u.email?.toLowerCase() === cleanEmail ? { ...u, role: willBeAdmin ? "admin" : "operator" } : u
+    );
+    const updatedAdmins = willBeAdmin
+      ? [...new Set([...adminEmails, cleanEmail])]
+      : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
+
+    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+    showNotice(
+      willBeAdmin ? `Utilizatorul „${cleanEmail}” este acum Administrator.` : `Utilizatorul „${cleanEmail}” este acum Operator.`,
+      "success"
+    );
+  };
 
   const saveCapacitate = async (n) => {
     setCapacitateZilnica(n);
@@ -673,6 +776,11 @@ export default function App() {
           onNotify={showNotice}
           userEmail={myEmail}
           onSignOut={() => supabase.auth.signOut()}
+          isAdmin={isAdmin}
+          usersList={usersList}
+          onAddUser={handleAddUser}
+          onDeleteUser={handleDeleteUser}
+          onToggleAdminRole={handleToggleAdminRole}
         />
       )}
 
