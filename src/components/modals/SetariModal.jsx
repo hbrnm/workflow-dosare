@@ -15,6 +15,8 @@ export default function SetariModal({
   onSaveCapacitate,
   onSavePrag,
   onSavePragInactivitate,
+  insurersList: initialInsurersList = INSURERS,
+  onSaveInsurers,
   onClose,
   onNotify,
   userEmail,
@@ -33,11 +35,17 @@ export default function SetariModal({
   const [prag, setPrag] = useState(pragRidicare || 3);
   const [inactivitateDays, setInactivitateDays] = useState(pragInactivitate || 7);
   const [tvaDefault, setTvaDefault] = useState(21);
-  const [insurersList, setInsurersList] = useState(INSURERS);
+  const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
   const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
   const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialInsurersList && initialInsurersList.length > 0) {
+      setInsurersList(initialInsurersList);
+    }
+  }, [initialInsurersList]);
 
   // New user management states
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -67,6 +75,9 @@ export default function SetariModal({
       if (inactivitateDays !== pragInactivitate && onSavePragInactivitate) {
         await onSavePragInactivitate(Number(inactivitateDays));
       }
+      if (onSaveInsurers) {
+        await onSaveInsurers(insurersList);
+      }
       onNotify("Setările și pragurile au fost salvate cu succes!", "success");
       onClose();
     } catch (err) {
@@ -76,20 +87,28 @@ export default function SetariModal({
     }
   };
 
-  const handleAddInsurer = () => {
+  const handleAddInsurer = async () => {
     const val = newInsurer.trim();
     if (!val) return;
     if (insurersList.includes(val)) {
       onNotify("Acest asigurător există deja în listă.", "error");
       return;
     }
-    setInsurersList((prev) => [...prev, val].sort());
+    const nextList = [...insurersList, val].sort();
+    setInsurersList(nextList);
     setNewInsurer("");
+    if (onSaveInsurers) {
+      await onSaveInsurers(nextList);
+    }
     onNotify(`Asigurătorul „${val}" a fost adăugat.`, "success");
   };
 
-  const handleRemoveInsurer = (name) => {
-    setInsurersList((prev) => prev.filter((i) => i !== name));
+  const handleRemoveInsurer = async (name) => {
+    const nextList = insurersList.filter((i) => i !== name);
+    setInsurersList(nextList);
+    if (onSaveInsurers) {
+      await onSaveInsurers(nextList);
+    }
     onNotify(`Asigurătorul „${name}" a fost eliminat.`, "info");
   };
 

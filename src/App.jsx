@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
-import { STATUSES, getStatusDefinition } from "./constants/config";
+import { STATUSES, INSURERS, getStatusDefinition } from "./constants/config";
 import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts, isInactiveClaim } from "./utils/alertUtils";
 import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
@@ -150,13 +150,17 @@ export default function App() {
 
       const { data } = await supabase
         .from("setari")
-        .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori")
+        .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori, asiguratori")
         .eq("id", 1)
         .maybeSingle();
 
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
       if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
+      if (Array.isArray(data?.asiguratori) && data.asiguratori.length > 0) {
+        setCustomInsurers(data.asiguratori);
+        try { localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(data.asiguratori)); } catch (e) {}
+      }
 
       let loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
         ? data.admin_emails
@@ -205,6 +209,20 @@ export default function App() {
     if (error) {
       console.error("Setari upsert error:", error);
       showNotice("Salvat local. Eroare salvare Supabase setări: " + error.message, "warning");
+    }
+  };
+
+  const saveInsurers = async (newList) => {
+    setCustomInsurers(newList);
+    try {
+      localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(newList));
+    } catch (e) {}
+    const { error } = await supabase.from("setari").upsert({
+      id: 1,
+      asiguratori: newList,
+    });
+    if (error) {
+      console.error("Setari asiguratori error:", error);
     }
   };
 
@@ -843,6 +861,7 @@ export default function App() {
             onDelete={handleDelete}
             readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)}
             allClaims={claims}
+            insurersList={customInsurers}
             onJumpTo={(c) => setModalClaim(c)}
             onNotify={showNotice}
           />
@@ -866,6 +885,8 @@ export default function App() {
           capacitateZilnica={capacitateZilnica}
           pragRidicare={pragRidicare}
           pragInactivitate={pragInactivitate}
+          insurersList={customInsurers}
+          onSaveInsurers={saveInsurers}
           onSaveCapacitate={saveCapacitate}
           onSavePrag={savePragRidicare}
           onSavePragInactivitate={savePragInactivitate}

@@ -140,6 +140,7 @@ export default function ClaimModal({
   claim,
   allClaims,
   readOnly = false,
+  insurersList = INSURERS,
   onClose,
   onSave,
   onDelete,
@@ -656,18 +657,18 @@ export default function ClaimModal({
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
-        className="relative bg-[#FAF8F5] w-full max-w-4xl rounded-2xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[94vh] overflow-hidden"
+        className="relative bg-[#FAF8F5] w-full max-w-6xl rounded-2xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[94vh] overflow-hidden"
       >
         
         {/* Notion Top Bar Navigation & Actions */}
         <div 
           onMouseDown={handleMouseDown}
-          className="flex items-center justify-between px-4 py-2.5 bg-[#1C2127] text-white shrink-0 select-none cursor-move border-b border-white/10"
+          className="flex items-center justify-between px-4 py-2 bg-[#1C2127] text-white shrink-0 select-none cursor-move border-b border-white/10"
         >
           <div className="flex items-center gap-2.5">
             <span className="text-[18px]">📄</span>
             <div>
-              <span className="font-extrabold text-[14px] tracking-tight block text-white">
+              <span className="font-extrabold text-[13.5px] tracking-tight block text-white">
                 {isNew ? "Dosar Nou de Daună" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
               </span>
               <span className="text-[10.5px] text-[#A69F91] font-mono block">
@@ -682,7 +683,7 @@ export default function ClaimModal({
                 <button
                   type="button"
                   onClick={() => generateazaPDF(form, istoric)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
                 >
                   <FileDown size={12} /><span className="hidden sm:inline"> PDF Dosar</span>
@@ -690,7 +691,7 @@ export default function ClaimModal({
                 <button
                   type="button"
                   onClick={() => generateazaFisaIntrareService(form)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
                 >
                   <FileDown size={12} /><span className="hidden sm:inline"> Fișă Service</span>
@@ -699,7 +700,7 @@ export default function ClaimModal({
                   <button
                     type="button"
                     onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-lg px-2.5 py-1.5 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
+                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-lg px-2.5 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
                     title="Descarcă Proces-Verbal Auto la Schimb"
                   >
                     <Car size={12} /><span className="hidden sm:inline"> PV Auto Schimb</span>
@@ -708,11 +709,11 @@ export default function ClaimModal({
               </div>
             )}
             {!isNew && (
-              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2 py-1.5 hover:bg-white/10 transition-colors">
+              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors">
                 <Copy size={12} /><span className="hidden sm:inline"> Duplică</span>
               </button>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={onClose} className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
               <X size={18} />
             </button>
           </div>
@@ -731,7 +732,7 @@ export default function ClaimModal({
             {/* ========================================================================= */}
             {/* SECTION 1: PROPERTIES SECTION                                              */}
             {/* ========================================================================= */}
-            <div className="bg-white border-b border-[#DAD4C6] p-3 shadow-2xs space-y-2.5">
+            <div className="bg-white border-b border-[#DAD4C6] p-2.5 shadow-2xs space-y-2">
               <div className="flex items-center justify-end">
                 <span className="text-[10.5px] font-semibold text-[#8A8375]">
                   ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
@@ -742,48 +743,18 @@ export default function ClaimModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
 
                 {/* COLOANA 1: DATE DOSAR */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-2.5 space-y-2">
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
                     <FileText size={13} className="text-[#C98A2B]" /> 1. Date Dosar
                   </div>
 
-                  {/* 1. Status & Etapă */}
+                  {/* 1. Nr. Dosar Daună */}
                   <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Layers size={13} className="text-[#8A8375]" /> Status &amp; Etapă Flux
-                    </label>
-                    <select
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
-                      value={form.status}
-                      onChange={(e) => set("status", e.target.value)}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {String(s.num).padStart(2, "0")}. {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Stepper Statusuri Scrolabil mutat în locul fostului câmp de Dată */}
-                  {!isNew && (
-                    <div className="pt-1">
-                      <ClaimTimeline
-                        currentStatus={form.status}
-                        dataSchimbareStatus={form.dataSchimbareStatus}
-                        istoric={istoric}
-                        loading={loadingIstoric}
-                      />
-                    </div>
-                  )}
-
-                  {/* 2. Nr. Dosar Daună */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <FileText size={13} className="text-[#8A8375]" /> Nr. Dosar Daună
+                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                      <FileText size={12} className="text-[#8A8375]" /> Nr. Dosar Daună
                     </label>
                     <input
-                      className="w-full font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
                       value={form.numarDosar}
                       onChange={(e) => set("numarDosar", e.target.value)}
                       placeholder="ex: 2026-00451"
@@ -791,10 +762,10 @@ export default function ClaimModal({
                     />
                   </div>
 
-                  {/* 3. Asigurător & Tip */}
+                  {/* 2. Asigurător & Tip */}
                   <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <ShieldCheck size={13} className="text-[#8A8375]" /> Asigurător &amp; Tip Asigurare
+                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                      <ShieldCheck size={12} className="text-[#8A8375]" /> Asigurător &amp; Tip Asigurare
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       <select
@@ -811,10 +782,40 @@ export default function ClaimModal({
                         onChange={(e) => set("asigurator", e.target.value)}
                       >
                         <option value="" disabled>-- Societate Asigurare --</option>
-                        {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
+                        {(insurersList || INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
                       </select>
                     </div>
                   </div>
+
+                  {/* 3. Status & Etapă Flux (Mutat SUB Asigurător & Tip Asigurare) */}
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                      <Layers size={12} className="text-[#8A8375]" /> Status &amp; Etapă Flux
+                    </label>
+                    <select
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
+                      value={form.status}
+                      onChange={(e) => set("status", e.target.value)}
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {String(s.num).padStart(2, "0")}. {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Stepper Statusuri Scrolabil (Timeline) */}
+                  {!isNew && (
+                    <div className="pt-0.5">
+                      <ClaimTimeline
+                        currentStatus={form.status}
+                        dataSchimbareStatus={form.dataSchimbareStatus}
+                        istoric={istoric}
+                        loading={loadingIstoric}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* COLOANA 2: VEHICUL & ASIGURAT */}
