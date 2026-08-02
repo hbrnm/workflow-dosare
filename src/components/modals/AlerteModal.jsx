@@ -1,29 +1,35 @@
 import React, { useState, useMemo } from "react";
 import {
-  X, AlertTriangle, PackageCheck, ShieldAlert, ShoppingCart, ChevronRight, Car, Bell
+  X, AlertTriangle, PackageCheck, ShieldAlert, ShoppingCart, ChevronRight, Car, Bell, Clock
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
-import { isReadyForPickupOverdue, isStageOverdue, getDaysInStage, isAcceptPlataWithoutParts } from "../../utils/alertUtils";
+import {
+  isReadyForPickupOverdue, isStageOverdue, getDaysInStage,
+  isAcceptPlataWithoutParts, isInactiveClaim, getDaysSinceLastActivity
+} from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 
 export default function AlerteModal({
   claims = [],
   initialTab = "depasite",
   pragRidicare = 3,
+  pragInactivitate = 7,
   onClose,
   onOpenClaim
 }) {
-  const [activeTab, setActiveTab] = useState(initialTab); // "depasite" | "neridicate" | "accept_plata" | "blocate"
+  const [activeTab, setActiveTab] = useState(initialTab); // "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
 
   const overdues = useMemo(() => claims.filter(isStageOverdue), [claims]);
   const unpicked = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)), [claims, pragRidicare]);
   const acceptPlataNoParts = useMemo(() => claims.filter(isAcceptPlataWithoutParts), [claims]);
+  const inactives = useMemo(() => claims.filter((c) => isInactiveClaim(c, pragInactivitate)), [claims, pragInactivitate]);
   const blocked = useMemo(() => claims.filter((c) => c.blocat), [claims]);
 
   const tabs = [
     { id: "depasite", label: "Termene Depășite", icon: AlertTriangle, count: overdues.length, color: "text-[#B23A2E]", bg: "bg-[#B23A2E]" },
     { id: "neridicate", label: "Mașini Neridicate", icon: PackageCheck, count: unpicked.length, color: "text-[#C98A2B]", bg: "bg-[#C98A2B]" },
     { id: "accept_plata", label: "Accept Fără Piese", icon: ShoppingCart, count: acceptPlataNoParts.length, color: "text-[#2C4160]", bg: "bg-[#2C4160]" },
+    { id: "inactivitate", label: "Fără Activitate", icon: Clock, count: inactives.length, color: "text-[#7A5316]", bg: "bg-[#7A5316]" },
     { id: "blocate", label: "Dosare Blocate", icon: ShieldAlert, count: blocked.length, color: "text-[#4A5568]", bg: "bg-[#4A5568]" },
   ];
 
@@ -215,7 +221,55 @@ export default function AlerteModal({
             </div>
           )}
 
-          {/* TAB 4: DOSARE BLOCATE */}
+          {/* TAB 4: DOSARE FĂRĂ ACTIVITATE (INACTIVITATE) */}
+          {activeTab === "inactivitate" && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-[12px] font-semibold text-[#8A8375] px-1 pb-1">
+                <span>Dosare în lucru / deschise fără nicio activitate de peste {pragInactivitate} zile</span>
+                <span>{inactives.length} dosare</span>
+              </div>
+
+              {inactives.length === 0 ? (
+                <div className="text-[13px] text-[#8A8375] italic py-8 text-center bg-white rounded-xl border border-[#DAD4C6]">
+                  🎉 Nu există dosare inactive (fără nicio modificare în ultimele {pragInactivitate} zile).
+                </div>
+              ) : (
+                inactives.map((c) => {
+                  const st = getStatusDefinition(c.status);
+                  const daysInactive = getDaysSinceLastActivity(c);
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => { onClose(); onOpenClaim(c); }}
+                      className="flex items-center justify-between bg-white border border-[#E8DCC4] rounded-xl p-3 hover:border-[#7A5316] hover:shadow-sm cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-[#7A5316]/10 text-[#7A5316] flex flex-col items-center justify-center shrink-0">
+                          <span className="font-mono font-black text-[14px] leading-none">{daysInactive}</span>
+                          <span className="text-[9px] font-bold uppercase">zile</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[14px] text-[#23282E] group-hover:text-[#7A5316]">{c.numarDosar || "(fără nr.)"}</span>
+                            <span className="text-[11px] font-mono font-bold text-[#7A5316] bg-[#F7EAD3] px-2 py-0.5 rounded-md">
+                              {st.label}
+                            </span>
+                          </div>
+                          <div className="text-[12px] text-[#6B6558] truncate">{c.client} · {c.numarInmatriculare} · Fără modificări de {daysInactive} zile</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <ChevronRight size={18} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: DOSARE BLOCATE */}
           {activeTab === "blocate" && (
             <div className="space-y-2.5">
               <div className="flex items-center justify-between text-[12px] font-semibold text-[#8A8375] px-1 pb-1">

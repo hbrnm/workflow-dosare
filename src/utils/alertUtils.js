@@ -30,3 +30,15 @@ export function isAcceptPlataWithoutParts(claim) {
     claim.status === "accept_plata"
   );
 }
+
+// Detectează dosarele care nu au avut nicio modificare/activitate de mai mult de X zile
+export function isInactiveClaim(claim, inactivityThresholdDays = 7) {
+  if (["predat_client", "facturat"].includes(claim.status)) return false;
+  const lastUpdate = claim.dataUltimeiActualizari || claim.dataSchimbareStatus || claim.dataDeschiderii;
+  return daysBetween(lastUpdate) >= inactivityThresholdDays;
+}
+
+export function getDaysSinceLastActivity(claim) {
+  const lastUpdate = claim?.dataUltimeiActualizari || claim?.dataSchimbareStatus || claim?.dataDeschiderii;
+  return lastUpdate ? daysBetween(lastUpdate) : 0;
+}

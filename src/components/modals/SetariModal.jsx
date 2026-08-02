@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   X, Settings, User, Building, Database, Bell, Wrench, Download,
-  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight
+  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock
 } from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
 import * as XLSX from "xlsx";
@@ -11,8 +11,10 @@ export default function SetariModal({
   claims = [],
   capacitateZilnica,
   pragRidicare,
+  pragInactivitate = 7,
   onSaveCapacitate,
   onSavePrag,
+  onSavePragInactivitate,
   onClose,
   onNotify,
   userEmail,
@@ -23,8 +25,8 @@ export default function SetariModal({
   // Form states
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
   const [prag, setPrag] = useState(pragRidicare || 3);
+  const [inactivitateDays, setInactivitateDays] = useState(pragInactivitate || 7);
   const [tvaDefault, setTvaDefault] = useState(19);
-  const [viewDefault, setViewDefault] = useState("flux");
   const [insurersList, setInsurersList] = useState(INSURERS);
   const [newInsurer, setNewInsurer] = useState("");
   const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
@@ -34,7 +36,6 @@ export default function SetariModal({
   // Statistics
   const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);
   const totalDocumente = useMemo(() => claims.reduce((acc, c) => acc + (c.documente?.length || 0), 0), [claims]);
-  const totalBlocate = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
@@ -46,7 +47,10 @@ export default function SetariModal({
       if (prag !== pragRidicare) {
         await onSavePrag(Number(prag));
       }
-      onNotify("Setările au fost salvate cu succes!", "success");
+      if (inactivitateDays !== pragInactivitate && onSavePragInactivitate) {
+        await onSavePragInactivitate(Number(inactivitateDays));
+      }
+      onNotify("Setările și pragurile au fost salvate cu succes!", "success");
       onClose();
     } catch (err) {
       onNotify("Eroare la salvarea setărilor: " + err.message, "error");
@@ -175,6 +179,30 @@ export default function SetariModal({
                     </div>
                   </div>
 
+                  {/* NOUL PRAG: Alertă dosare fără activitate (inactivitate) */}
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[#23282E] flex items-center gap-1.5">
+                      <Clock size={15} className="text-[#C98A2B]" /> Prag alertă dosare fără activitate (inactivitate)
+                    </label>
+                    <p className="text-[11px] text-[#8A8375]">
+                      Semnalează dosarele deschise în care NU a existat nicio modificare, schimbare de status sau notă nouă timp de X zile.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <select
+                        className="p-2 border border-[#DAD4C6] rounded-lg font-bold text-[13.5px] bg-white focus:border-[#C98A2B]"
+                        value={inactivitateDays}
+                        onChange={(e) => setInactivitateDays(Number(e.target.value))}
+                      >
+                        <option value={3}>3 zile fără activitate</option>
+                        <option value={5}>5 zile fără activitate</option>
+                        <option value={7}>7 zile fără activitate (implicit)</option>
+                        <option value={10}>10 zile fără activitate</option>
+                        <option value={14}>14 zile (2 săptămâni)</option>
+                        <option value={30}>30 zile (1 lună)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   {/* Capacitate zilnică programator */}
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
                     <label className="block text-[12.5px] font-bold text-[#23282E]">
@@ -195,26 +223,26 @@ export default function SetariModal({
                       <span className="text-[12.5px] font-bold text-[#6B6558]">mașini / zi</span>
                     </div>
                   </div>
-                </div>
 
-                {/* TVA Implicit */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                  <label className="block text-[12.5px] font-bold text-[#23282E]">
-                    Cotă TVA implicită (%)
-                  </label>
-                  <p className="text-[11px] text-[#8A8375]">
-                    Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
-                      value={tvaDefault}
-                      onChange={(e) => setTvaDefault(e.target.value)}
-                    />
-                    <span className="text-[12.5px] font-bold text-[#6B6558]">% TVA</span>
+                  {/* TVA Implicit */}
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[#23282E]">
+                      Cotă TVA implicită (%)
+                    </label>
+                    <p className="text-[11px] text-[#8A8375]">
+                      Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
+                    </p>
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
+                        value={tvaDefault}
+                        onChange={(e) => setTvaDefault(e.target.value)}
+                      />
+                      <span className="text-[12.5px] font-bold text-[#6B6558]">% TVA</span>
+                    </div>
                   </div>
                 </div>
               </div>

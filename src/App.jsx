@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import { STATUSES, getStatusDefinition } from "./constants/config";
 import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts } from "./utils/alertUtils";
+import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts, isInactiveClaim } from "./utils/alertUtils";
 import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
@@ -41,9 +41,10 @@ export default function App() {
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [setariOpen, setSetariOpen] = useState(false);
-  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "depasite" | "neridicate" | "accept_plata" | "blocate"
+  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
+  const [pragInactivitate, setPragInactivitate] = useState(7);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [mobileSort, setMobileSort] = useState("recent"); // "recent" | "numar" | "status" | "client"
@@ -79,9 +80,10 @@ export default function App() {
   useEffect(() => {
     if (!session) return;
     (async () => {
-      const { data } = await supabase.from("setari").select("capacitate_zilnica, prag_ridicare_zile").eq("id", 1).maybeSingle();
+      const { data } = await supabase.from("setari").select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile").eq("id", 1).maybeSingle();
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
+      if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
     })();
   }, [session]);
 
@@ -94,6 +96,12 @@ export default function App() {
   const savePragRidicare = async (n) => {
     setPragRidicare(n);
     const { error } = await supabase.from("setari").upsert({ id: 1, prag_ridicare_zile: n });
+    if (error) showNotice(error.message, "error");
+  };
+
+  const savePragInactivitate = async (n) => {
+    setPragInactivitate(n);
+    const { error } = await supabase.from("setari").upsert({ id: 1, prag_inactivitate_zile: n });
     if (error) showNotice(error.message, "error");
   };
 
@@ -222,6 +230,7 @@ export default function App() {
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
   const gataNeridicateCount = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [claims, pragRidicare]);
   const acceptPlataNoPartsCount = useMemo(() => claims.filter(isAcceptPlataWithoutParts).length, [claims]);
+  const inactiveCount = useMemo(() => claims.filter((c) => isInactiveClaim(c, pragInactivitate)).length, [claims, pragInactivitate]);
 
   const exportExcel = () => {
     const rows = claims.map((c) => ({
@@ -344,7 +353,19 @@ export default function App() {
               </button>
             )}
 
-            {/* Alert 4: Dosare Blocate */}
+            {/* Alert 4: Dosare Inactive (fără activitate) */}
+            {inactiveCount > 0 && (
+              <button
+                onClick={() => setAlerteModalTab("inactivitate")}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#7A5316] text-white hover:bg-[#5E3F10] transition-all"
+                title={`Dosare deschise fără nicio activitate de cel puțin ${pragInactivitate} zile`}
+              >
+                <Clock size={13} />
+                <span>{inactiveCount}</span>
+              </button>
+            )}
+
+            {/* Alert 5: Dosare Blocate */}
             {blockedCount > 0 && (
               <button
                 onClick={() => setAlerteModalTab("blocate")}
@@ -633,6 +654,7 @@ export default function App() {
           claims={claims}
           initialTab={alerteModalTab}
           pragRidicare={pragRidicare}
+          pragInactivitate={pragInactivitate}
           onClose={() => setAlerteModalTab(null)}
           onOpenClaim={openExisting}
         />
@@ -643,8 +665,10 @@ export default function App() {
           claims={claims}
           capacitateZilnica={capacitateZilnica}
           pragRidicare={pragRidicare}
+          pragInactivitate={pragInactivitate}
           onSaveCapacitate={saveCapacitate}
           onSavePrag={savePragRidicare}
+          onSavePragInactivitate={savePragInactivitate}
           onClose={() => setSetariOpen(false)}
           onNotify={showNotice}
           userEmail={myEmail}
