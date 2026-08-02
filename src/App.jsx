@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -41,7 +41,7 @@ export default function App() {
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [setariOpen, setSetariOpen] = useState(false);
-  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
+  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "toate" | "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [pragInactivitate, setPragInactivitate] = useState(7);
@@ -232,6 +232,8 @@ export default function App() {
   const acceptPlataNoPartsCount = useMemo(() => claims.filter(isAcceptPlataWithoutParts).length, [claims]);
   const inactiveCount = useMemo(() => claims.filter((c) => isInactiveClaim(c, pragInactivitate)).length, [claims, pragInactivitate]);
 
+  const totalAlertsCount = alertCount + blockedCount + gataNeridicateCount + acceptPlataNoPartsCount + inactiveCount;
+
   const exportExcel = () => {
     const rows = claims.map((c) => ({
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
@@ -306,7 +308,7 @@ export default function App() {
             })}
           </div>
 
-          {/* Right Side: Quick Search, Operational Alerts & User Profile / Settings */}
+          {/* Right Side: Quick Search, Super Centru Alerte & User Profile / Settings */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -317,63 +319,18 @@ export default function App() {
               <Search size={16} />
             </button>
 
-            {/* Alert 1: Termene Depășite */}
-            {alertCount > 0 && (
+            {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
+            {totalAlertsCount > 0 && (
               <button
-                onClick={() => setAlerteModalTab("depasite")}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold bg-[#B23A2E] text-white shadow-md hover:bg-[#922D24] animate-pulse transition-all"
-                title="Dosare cu termene depășite pe etapă"
+                onClick={() => setAlerteModalTab("toate")}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[12.5px] font-extrabold bg-gradient-to-r from-[#B23A2E] via-[#C98A2B] to-[#2C4160] text-white shadow-md hover:brightness-110 active:scale-95 transition-all animate-pulse"
+                title="Deschide Super Centrul de Alerte"
               >
-                <AlertTriangle size={13} className="fill-white" />
-                <span>{alertCount}</span>
-              </button>
-            )}
-
-            {/* Alert 2: Accept de plată fără piese comandate */}
-            {acceptPlataNoPartsCount > 0 && (
-              <button
-                onClick={() => setAlerteModalTab("accept_plata")}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#2C4160] text-white hover:bg-[#1E2D44] transition-all"
-                title="Dosare cu Accept de Plată fără piese comandate"
-              >
-                <ShoppingCart size={13} />
-                <span>{acceptPlataNoPartsCount}</span>
-              </button>
-            )}
-
-            {/* Alert 3: Mașini Gata Neridicate */}
-            {gataNeridicateCount > 0 && (
-              <button
-                onClick={() => setAlerteModalTab("neridicate")}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#C98A2B] text-white hover:bg-[#B37A22] transition-all"
-                title={`Mașini gata de ridicare de cel puțin ${pragRidicare} zile`}
-              >
-                <PackageCheck size={13} />
-                <span>{gataNeridicateCount}</span>
-              </button>
-            )}
-
-            {/* Alert 4: Dosare Inactive (fără activitate) */}
-            {inactiveCount > 0 && (
-              <button
-                onClick={() => setAlerteModalTab("inactivitate")}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#7A5316] text-white hover:bg-[#5E3F10] transition-all"
-                title={`Dosare deschise fără nicio activitate de cel puțin ${pragInactivitate} zile`}
-              >
-                <Clock size={13} />
-                <span>{inactiveCount}</span>
-              </button>
-            )}
-
-            {/* Alert 5: Dosare Blocate */}
-            {blockedCount > 0 && (
-              <button
-                onClick={() => setAlerteModalTab("blocate")}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-semibold bg-white/20 text-white hover:bg-white/30 transition-all"
-                title="Dosare blocate / litigiu"
-              >
-                <AlertTriangle size={13} />
-                <span>{blockedCount}</span>
+                <Bell size={14} className="fill-white" />
+                <span>{totalAlertsCount} Alerte</span>
+                {alertCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                )}
               </button>
             )}
 
