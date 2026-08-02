@@ -1009,7 +1009,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
             {/* TAB 2: SERVICE & REPARAȚIE */}
             {activeTab === "service" && (
               <div className="grid md:grid-cols-2 gap-5">
-                <div className="hidden">
+                <div className="space-y-4">
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
                     <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
@@ -1167,6 +1167,216 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                           <input type="number" min={0} className="in font-mono font-bold text-[#23282E]" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
                           <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: FINANCIAR */}
+            {activeTab === "financial" && (
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Facturare & Venituri */}
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
+                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <span className="flex items-center gap-1.5"><Wallet size={14} /> Facturare (Venituri Dosar)</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label="Manoperă fără TVA (lei)">
+                          <input
+                            type="number"
+                            disabled
+                            className="in bg-[#EFEAE1] font-mono font-bold text-[#23282E]"
+                            value={manoperaFaraTva}
+                            title="Suma manoperei facturate de la Tinichigerie + Vopsitorie"
+                          />
+                        </Field>
+
+                        <Field label="Piese fără TVA (Audatex/Deviz)">
+                          <input
+                            type="number"
+                            min={0}
+                            className="in font-mono font-bold text-[#23282E]"
+                            value={pieseFacturateFaraTva}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              setFinancial("pieseFacturateFaraTva", val);
+                              set("valoarePieseAudatex", val);
+                            }}
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <Field label="Subtotal fără TVA">
+                          <input
+                            disabled
+                            className="in bg-[#EFEAE1] font-mono font-bold text-[#2C4160]"
+                            value={`${venitFaraTva.toLocaleString("ro-RO")} lei`}
+                          />
+                        </Field>
+
+                        <Field label="Cota TVA (%)">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            className="in font-mono font-bold text-center"
+                            value={tvaProc}
+                            onChange={(e) => setFinancial("tvaProc", Number(e.target.value) || 0)}
+                          />
+                        </Field>
+
+                        <Field label="Total cu TVA">
+                          <input
+                            disabled
+                            className="in bg-[#3E6B45]/10 font-mono font-bold text-[#3E6B45]"
+                            value={`${totalCuTva.toLocaleString("ro-RO")} lei`}
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#DAD4C6]">
+                        <Field label="Număr Factură">
+                          <input
+                            className="in font-semibold"
+                            placeholder="ex: FF-1042"
+                            value={financial.numarFactura || ""}
+                            onChange={(e) => setFinancial("numarFactura", e.target.value)}
+                          />
+                        </Field>
+
+                        <Field label="Data Factură">
+                          <DatePickerInput
+                            value={financial.dataFactura}
+                            onChange={(v) => setFinancial("dataFactura", v)}
+                            withTime={false}
+                            placeholder="zi/luna/an"
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 text-[11.5px] border-t border-[#DAD4C6]">
+                        <label className="flex items-center gap-2 cursor-pointer select-none font-semibold text-[#23282E]">
+                          <input
+                            type="checkbox"
+                            checked={form.incasat}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              set("incasat", checked);
+                              set("dataIncasarii", checked ? todayISO() : null);
+                            }}
+                            className="rounded border-[#DAD4C6] text-[#3E6B45] focus:ring-0"
+                          />
+                          <span>Factură încasată integral</span>
+                        </label>
+                        {form.incasat && (
+                          <span className="text-[11px] font-bold text-[#3E6B45] bg-[#3E6B45]/10 px-2 py-0.5 rounded">
+                            Încasat la {fmtDate(form.dataIncasarii)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Costuri Reale Service */}
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
+                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <span className="flex items-center gap-1.5">💸 Costuri Directe Service</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label="Achiziție Piese service (lei)">
+                          <input
+                            type="number"
+                            min={0}
+                            className="in font-mono font-bold text-[#23282E]"
+                            value={form.valoareAchizitiePiese}
+                            onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
+                          />
+                        </Field>
+
+                        <Field label="Cost Manoperă Internă (salarii)">
+                          <input
+                            type="number"
+                            min={0}
+                            className="in font-mono font-bold text-[#23282E]"
+                            value={financial.costManoperaInterna || 0}
+                            onChange={(e) => setFinancial("costManoperaInterna", Number(e.target.value) || 0)}
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label="Costuri Externe (subcontractare)">
+                          <input
+                            type="number"
+                            min={0}
+                            className="in font-mono font-bold text-[#23282E]"
+                            value={financial.costuriExterne || 0}
+                            onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)}
+                          />
+                        </Field>
+
+                        <Field label="Cost Auto la Schimb (chirie/depreciere)">
+                          <input
+                            type="number"
+                            min={0}
+                            className="in font-mono font-bold text-[#23282E]"
+                            value={financial.costMasinaSchimb || 0}
+                            onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="p-2.5 rounded-lg border border-[#DAD4C6] bg-white flex items-center justify-between text-[12px]">
+                        <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
+                        <span className="font-mono font-bold text-[13px] text-[#B23A2E]">
+                          {costTotal.toLocaleString("ro-RO")} lei
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary / Profitability KPi Card */}
+                <div className="p-3.5 rounded-xl border border-[#DAD4C6] bg-white shadow-2xs">
+                  <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-3 flex items-center justify-between">
+                    <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
+                    <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]">
+                      <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
+                      <div className="text-[14px] font-mono font-bold text-[#2C4160] mt-0.5">
+                        {venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]">
+                      <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
+                      <div className="text-[14px] font-mono font-bold text-[#B23A2E] mt-0.5">
+                        {costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                      </div>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                      <div className="text-[10px] font-bold uppercase">Profit Brut</div>
+                      <div className="text-[14px] font-mono font-bold mt-0.5">
+                        {profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                      </div>
+                    </div>
+
+                    <div className={`p-2 rounded-lg border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                      <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
+                      <div className="text-[14px] font-mono font-bold mt-0.5">
+                        {venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%
                       </div>
                     </div>
                   </div>
