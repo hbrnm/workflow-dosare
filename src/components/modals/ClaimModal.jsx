@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet
+  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, Layers, AlertCircle, Sparkles, User as UserIcon
 } from "lucide-react";
 import {
   STATUSES, INSURERS, getStatusDefinition,
@@ -21,153 +21,14 @@ import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
 
-function Field({ label, children, full }) {
+function NotionPropertyRow({ icon: Icon, label, children, full }) {
   return (
-    <label className={`block ${full ? "col-span-2" : ""}`}>
-      <span className="block text-[10px] font-semibold text-[#6B6558] mb-0">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-const MONTH_NAMES_RO = ["Ian", "Feb", "Mar", "Apr", "Mai", "Iun", "Iul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const DAY_NAMES_RO = ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"];
-
-function InlineMiniCalendar({ value, onChange, status }) {
-  const parseVal = (v) => {
-    if (!v) return { dateStr: "", timeStr: "08:00" };
-    const s = String(v);
-    if (s.includes("T")) {
-      const [d, t] = s.split("T");
-      return { dateStr: d, timeStr: t ? t.slice(0, 5) : "08:00" };
-    }
-    return { dateStr: s, timeStr: "08:00" };
-  };
-
-  const { dateStr: selectedDateStr, timeStr: selectedTime } = parseVal(value);
-  const today = new Date();
-  const todayStr = todayISO();
-
-  const initDate = selectedDateStr ? new Date(selectedDateStr) : today;
-  const [viewYear, setViewYear] = React.useState(isNaN(initDate.getTime()) ? today.getFullYear() : initDate.getFullYear());
-  const [viewMonth, setViewMonth] = React.useState(isNaN(initDate.getTime()) ? today.getMonth() : initDate.getMonth());
-
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
-    else setViewMonth(viewMonth - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
-    else setViewMonth(viewMonth + 1);
-  };
-
-  const firstDay = new Date(viewYear, viewMonth, 1);
-  const startWeekday = (firstDay.getDay() + 6) % 7; // Monday = 0
-  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
-
-  const days = [];
-  for (let i = startWeekday - 1; i >= 0; i--) {
-    days.push({ day: prevMonthDays - i, current: false, year: viewMonth === 0 ? viewYear - 1 : viewYear, month: viewMonth === 0 ? 11 : viewMonth - 1 });
-  }
-  for (let i = 1; i <= totalDays; i++) {
-    days.push({ day: i, current: true, year: viewYear, month: viewMonth });
-  }
-  const remaining = (7 - (days.length % 7)) % 7;
-  for (let i = 1; i <= remaining; i++) {
-    days.push({ day: i, current: false, year: viewMonth === 11 ? viewYear + 1 : viewYear, month: viewMonth === 11 ? 0 : viewMonth + 1 });
-  }
-
-  const handleSelectDay = (year, month, day) => {
-    const dateS = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    onChange(`${dateS}T${selectedTime || "08:00"}`);
-  };
-
-  const handleTimeChange = (newTime) => {
-    const d = selectedDateStr || todayStr;
-    onChange(`${d}T${newTime}`);
-  };
-
-  return (
-    <div className="flex-1 min-w-0 border border-[#DAD4C6] rounded-md bg-white overflow-hidden">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between bg-[#3B5166] text-white px-2 py-0.5">
-        <button type="button" onClick={prevMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-        </button>
-        <span className="text-[10.5px] font-bold">{MONTH_NAMES_RO[viewMonth]} {viewYear}</span>
-        <button type="button" onClick={nextMonth} className="p-0.5 rounded hover:bg-white/20 transition-colors">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-        </button>
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 p-1.5 rounded-lg hover:bg-[#F4F1EA] transition-colors border border-transparent hover:border-[#DAD4C6]/40 ${full ? "col-span-1 sm:col-span-2" : ""}`}>
+      <div className="flex items-center gap-1.5 min-w-[130px] shrink-0 text-[11px] font-semibold text-[#6B6558]">
+        {Icon && <Icon size={13} className="text-[#8A8375] shrink-0" />}
+        <span>{label}</span>
       </div>
-
-      {/* Day names */}
-      <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
-        {DAY_NAMES_RO.map((d) => (
-          <span key={d} className="text-[8px] font-bold text-[#8A8375] py-0.5">{d}</span>
-        ))}
-      </div>
-
-      {/* Days grid */}
-      <div className="grid grid-cols-7 text-center px-0.5 pt-0.5 pb-0.5 gap-y-0">
-        {days.map((item, idx) => {
-          const itemStr = `${item.year}-${String(item.month + 1).padStart(2, "0")}-${String(item.day).padStart(2, "0")}`;
-          const isSelected = selectedDateStr === itemStr;
-          const isToday = itemStr === todayStr;
-          return (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSelectDay(item.year, item.month, item.day)}
-              className={`h-[15px] w-full rounded text-[9px] font-medium transition-colors mx-auto ${
-                isSelected
-                  ? "bg-[#3B5166] text-white font-bold"
-                  : isToday
-                  ? "border border-[#C98A2B] text-[#C98A2B] font-bold"
-                  : item.current
-                  ? "hover:bg-[#EFEAE1] text-[#23282E]"
-                  : "text-[#C2BCB0] hover:bg-[#F5F2EA]"
-              }`}
-            >
-              {item.day}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Time selector */}
-      <div className="border-t border-[#EFEAE1] px-1.5 py-0.5 flex items-center gap-1">
-        <Clock size={10} className="text-[#6B6558] shrink-0" />
-        <select
-          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0 text-[9.5px] bg-[#FAF8F5] font-mono"
-          value={selectedTime.split(":")[0] || "08"}
-          onChange={(e) => handleTimeChange(`${e.target.value}:${selectedTime.split(":")[1] || "00"}`)}
-        >
-          {Array.from({ length: 24 }).map((_, h) => {
-            const hh = String(h).padStart(2, "0");
-            return <option key={hh} value={hh}>{hh}</option>;
-          })}
-        </select>
-        <span className="text-[10px] font-bold text-[#8A8375]">:</span>
-        <select
-          className="flex-1 border border-[#DAD4C6] rounded px-1 py-0 text-[9.5px] bg-[#FAF8F5] font-mono"
-          value={["00", "30"].includes(selectedTime.split(":")[1]) ? selectedTime.split(":")[1] : "00"}
-          onChange={(e) => handleTimeChange(`${selectedTime.split(":")[0] || "08"}:${e.target.value}`)}
-        >
-          <option value="00">:00</option>
-          <option value="30">:30</option>
-        </select>
-        {selectedDateStr && (
-          <span className="text-[9px] text-[#3B5166] font-bold truncate ml-0.5">
-            {String(selectedDateStr.split("-")[2]).padStart(2, "0")}/{String(selectedDateStr.split("-")[1]).padStart(2, "0")}
-          </span>
-        )}
-      </div>
-
-      {/* Status note */}
-      {value && status === "piese_sosite" && (
-        <div className="px-1.5 pb-0.5 text-[9px] text-[#C98A2B] font-semibold">→ va fi mutat în „Programat"</div>
-      )}
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }
@@ -182,7 +43,6 @@ export function compressColorImage(file) {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          // Resize image to max 1500px on the longest edge
           const MAX_DIM = 1500;
           let w = img.width;
           let h = img.height;
@@ -200,7 +60,6 @@ export function compressColorImage(file) {
           canvas.height = h;
           ctx.drawImage(img, 0, 0, w, h);
 
-          // Export as JPEG at 0.75 quality for color photos
           canvas.toBlob((blob) => {
             if (!blob) {
               reject(new Error("Eroare la comprimarea imaginii."));
@@ -232,7 +91,6 @@ export function processScanImage(file) {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          // Resize image to max 1500px on the longest edge to optimize file size
           const MAX_DIM = 1500;
           let w = img.width;
           let h = img.height;
@@ -250,52 +108,47 @@ export function processScanImage(file) {
           canvas.height = h;
           ctx.drawImage(img, 0, 0, w, h);
 
-          // Apply high-contrast grayscale filter for B&W "scan" look
-          const imgData = ctx.getImageData(0, 0, w, h);
-          const data = imgData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i+1];
-            const b = data[i+2];
-            let v = (0.2126 * r + 0.7152 * g + 0.0722 * b);
-            // Increase contrast dynamically to make background white and text dark
-            v = v > 130 ? Math.min(255, v * 1.2) : Math.max(0, v * 0.8);
-            data[i] = v;
-            data[i+1] = v;
-            data[i+2] = v;
-          }
-          ctx.putImageData(imgData, 0, 0);
-
-          // Using 0.7 JPEG quality gives excellent legibility and very small file size (~100-200 KB)
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.70);
-          resolve(dataUrl);
+          canvas.toBlob((blob) => {
+            if (!blob) {
+              reject(new Error("Eroare la procesarea documentului scanat."));
+              return;
+            }
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
+          }, "image/jpeg", 0.85);
         } catch (err) {
-          reject(new Error("Eroare la procesarea imaginii."));
+          reject(new Error("Eroare la procesarea documentului."));
         }
       };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
+      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii pentru scanare."));
       img.src = e.target.result;
     };
-    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
+    reader.onerror = () => reject(new Error("Eroare la citirea fișierului."));
     reader.readAsDataURL(file);
   });
 }
 
-export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly, allClaims, onJumpTo, onNotify }) {
+export default function ClaimModal({
+  claim,
+  allClaims,
+  readOnly = false,
+  onClose,
+  onSave,
+  onDelete,
+  onNotify,
+  onJumpTo,
+}) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = React.useRef({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("select") || e.target.closest("textarea") || e.target.closest("a") || e.target.closest("label")) return;
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("select")) return;
     setIsDragging(true);
     dragStartPos.current = {
       x: e.clientX - dragOffset.x,
       y: e.clientY - dragOffset.y
     };
-    e.preventDefault();
   };
 
   useEffect(() => {
@@ -316,34 +169,32 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging]);
+
   const [form, setForm] = useState(safeClaim);
-  const [activeTab, setActiveTab] = useState("date"); // "date", "service", "financial", "media", "note"
+  const [activeTab, setActiveTab] = useState("note");
   const [noteText, setNoteText] = useState("");
   const [scanSession, setScanSession] = useState(null);
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
+
   const isNew = !safeClaim.numarDosar && (safeClaim.note || []).length === 0 && (safeClaim.documente || []).length === 0;
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
   useEffect(() => {
     let cancelled = false;
-
     const loadStorageUrls = async () => {
       if (!claim?.id) return;
-
       const [poze, documente] = await Promise.all([
         refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
         refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
       ]);
-
       if (!cancelled) {
         setForm((current) => ({ ...current, poze, documente }));
       }
     };
-
     loadStorageUrls();
     return () => { cancelled = true; };
   }, [claim]);
@@ -359,6 +210,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
   const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
+
   const financial = form.financiar || {};
   const manoperaFaraTva = (Number(form.manopera?.tinichigerie?.facturat) || 0) + (Number(form.manopera?.vopsitorie?.facturat) || 0);
   const pieseFacturateFaraTva = Number(financial.pieseFacturateFaraTva ?? form.valoarePieseAudatex) || 0;
@@ -368,8 +220,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   const totalCuTva = venitFaraTva + tvaValoare;
   const costTotal = (Number(form.valoareAchizitiePiese) || 0) + (Number(financial.costManoperaInterna) || 0) + (Number(financial.costuriExterne) || 0) + (Number(financial.costMasinaSchimb) || 0);
   const profitBrut = venitFaraTva - costTotal;
-  // Repornește termenul de neridicare de fiecare dată când mașina este
-  // marcată din nou ca gata de ridicare.
+
   const toggleGata = (checked) => setForm((f) => ({
     ...f,
     gataDeRidicare: checked,
@@ -378,6 +229,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     dataRidicare: null,
     status: checked && f.status !== "facturat" ? "gata_de_ridicare" : (!checked && ["gata_de_ridicare", "predat_client"].includes(f.status) ? "in_lucru" : f.status),
   }));
+
   const toggleRidicata = (checked) => setForm((f) => ({
     ...f,
     ridicata: checked,
@@ -442,8 +294,6 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
       }
     }
 
-    // Predarea și facturarea sunt operațiuni diferite: predarea mută dosarul
-    // în etapa finală, iar facturarea îl închide financiar.
     let effectiveStatus = form.status;
     if (form.ridicata && form.status !== "facturat") {
       effectiveStatus = "predat_client";
@@ -452,6 +302,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     } else if (form.dataProgramare && form.status === "piese_sosite") {
       effectiveStatus = "programat";
     }
+
     const deliveryState = effectiveStatus === "predat_client"
       ? {
           gataDeRidicare: true,
@@ -467,6 +318,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           dataRidicare: null,
         }
       : {};
+
     const statusChanged = effectiveStatus !== claim.status;
     if (statusChanged && effectiveStatus === "facturat") {
       const faraValori = !form.manopera.tinichigerie.facturat && !form.manopera.vopsitorie.facturat &&
@@ -490,8 +342,19 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     }, { openProgramator });
   };
 
-  const addNote = () => { if (!noteText.trim()) return; setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: noteText.trim() }, ...f.note] })); setNoteText(""); };
+  const addNote = (customPrefix = "") => {
+    const textToAdd = (customPrefix + noteText).trim();
+    if (!textToAdd) return;
+    setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: textToAdd }, ...f.note] }));
+    setNoteText("");
+  };
+
+  const insertSlashCommand = (prefix) => {
+    setNoteText((prev) => (prev.startsWith("/") ? prefix : prefix + prev));
+  };
+
   const removeNote = (id) => setForm((f) => ({ ...f, note: f.note.filter((n) => n.id !== id) }));
+
   const removeDoc = async (id) => {
     const doc = form.documente.find((d) => d.id === id);
     if (doc?.path) {
@@ -598,9 +461,9 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
-      const path = storagePath(claimId, file, "documente");
+      const path = storagePath(claimId, file);
       const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
-      if (error) { onNotify(`Eroare la încărcarea documentului „${file.name}”: ${error.message}`, "error"); continue; }
+      if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60);
       if (signedError) {
         await supabase.storage.from("documente-dosare").remove([path]);
@@ -615,29 +478,44 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   };
 
   const handleStartScanSession = async (fileList) => {
-    const file = fileList?.[0];
-    if (!file) return;
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+
+    setUploadingDocumente(true);
     try {
-      const processedPageDataUrl = await processScanImage(file);
+      const pageDataUrls = [];
+      for (const file of files) {
+        const dataUrl = await processScanImage(file);
+        pageDataUrls.push(dataUrl);
+      }
+
+      const defaultName = `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`;
       setScanSession({
-        pages: [processedPageDataUrl],
-        fileName: `Document_${form.numarDosar || "Nou"}_${uid().slice(0, 4)}`,
+        fileName: defaultName,
+        pages: pageDataUrls,
         saveAsPdf: true,
-        saveAsPhotos: false
+        saveAsPhotos: false,
       });
     } catch (err) {
       onNotify(err.message, "error");
+    } finally {
+      setUploadingDocumente(false);
     }
   };
 
   const handleAddPageToScan = async (fileList) => {
-    const file = fileList?.[0];
-    if (!file) return;
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+
     try {
-      const processedPageDataUrl = await processScanImage(file);
-      setScanSession((prev) => ({
+      const newPages = [];
+      for (const file of files) {
+        const dataUrl = await processScanImage(file);
+        newPages.push(dataUrl);
+      }
+      setScanSession(prev => ({
         ...prev,
-        pages: [...prev.pages, processedPageDataUrl]
+        pages: [...prev.pages, ...newPages]
       }));
     } catch (err) {
       onNotify(err.message, "error");
@@ -654,15 +532,8 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     setUploadingDocumente(true);
     setUploadingPoze(true);
     try {
-      const claimId = form.id || claim?.id || uid();
-
-      // 1. Save as PDF
       if (scanSession.saveAsPdf) {
-        const pdf = new jsPDF({
-          unit: "pt",
-          format: "a4"
-        });
-
+        const pdf = new jsPDF({ unit: "pt", format: "a4" });
         for (let i = 0; i < scanSession.pages.length; i++) {
           const pageDataUrl = scanSession.pages[i];
           const img = await new Promise((resolve, reject) => {
@@ -685,15 +556,12 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
         const blob = pdf.output("blob");
         const name = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
         const pdfFile = new File([blob], `${name}.pdf`, { type: "application/pdf" });
-
         await handleUploadDocumente([pdfFile]);
       }
 
-      // 2. Save as individual Photos in claim's gallery
       if (scanSession.saveAsPhotos) {
         const photoFiles = [];
         const baseName = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
-        
         for (let i = 0; i < scanSession.pages.length; i++) {
           const pageDataUrl = scanSession.pages[i];
           const res = await fetch(pageDataUrl);
@@ -701,7 +569,6 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           const photoFile = new File([blob], `${baseName}_pagina_${i + 1}.jpg`, { type: "image/jpeg" });
           photoFiles.push(photoFile);
         }
-        
         await handleUploadPoze(photoFiles);
       }
 
@@ -726,32 +593,37 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
-        className="relative bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden"
+        className="relative bg-[#FAF8F5] w-full max-w-4xl rounded-2xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[94vh] overflow-hidden"
       >
         
-        {/* Header Modal Bar */}
+        {/* Notion Top Bar Navigation & Actions */}
         <div 
           onMouseDown={handleMouseDown}
-          className="flex items-center justify-between px-3 py-1.5 bg-[#23282E] text-white shrink-0 select-none cursor-move"
+          className="flex items-center justify-between px-4 py-2.5 bg-[#1C2127] text-white shrink-0 select-none cursor-move border-b border-white/10"
         >
-          <div className="flex items-center gap-2">
-            <FileText size={15} className="text-[#C98A2B]" />
-            <span className="font-bold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {isNew ? "Creare dosar nouă daună" : `Dosar ${form.numarDosar || "(fără nr.)"}`}
-            </span>
+          <div className="flex items-center gap-2.5">
+            <span className="text-[18px]">📄</span>
+            <div>
+              <span className="font-extrabold text-[14px] tracking-tight block text-white">
+                {isNew ? "Dosar Nou de Daună" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
+              </span>
+              <span className="text-[10.5px] text-[#A69F91] font-mono block">
+                {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr. înmatriculare"} · {form.marcaModel || "Model neprecizat"}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {!isNew && (
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => generateazaPDF(form, istoric)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
                 >
                   <FileDown size={12} /><span className="hidden sm:inline"> PDF Dosar</span>
@@ -759,7 +631,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                 <button
                   type="button"
                   onClick={() => generateazaFisaIntrareService(form)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
                   title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
                 >
                   <FileDown size={12} /><span className="hidden sm:inline"> Fișă Service</span>
@@ -768,8 +640,8 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                   <button
                     type="button"
                     onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-md px-2.5 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
-                    title="Descarcă Proces-Verbal Predare/Primire Mașină la Schimb"
+                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-lg px-2.5 py-1.5 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
+                    title="Descarcă Proces-Verbal Auto la Schimb"
                   >
                     <Car size={12} /><span className="hidden sm:inline"> PV Auto Schimb</span>
                   </button>
@@ -777,25 +649,25 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               </div>
             )}
             {!isNew && (
-              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-md px-2 py-1 hover:bg-white/10">
+              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2 py-1.5 hover:bg-white/10 transition-colors">
                 <Copy size={12} /><span className="hidden sm:inline"> Duplică</span>
               </button>
             )}
-            <button onClick={onClose} className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
               <X size={18} />
             </button>
           </div>
         </div>
 
         {readOnly && (
-          <div className="px-3 py-1 bg-[#EFEAE1] text-[#6B6558] text-[11px] flex items-center gap-1 shrink-0 border-b border-[#DAD4C6]">
-            <ShieldCheck size={12} /> Doar vizualizare — creat de {form.createdByEmail || "alt coleg"}.
+          <div className="px-4 py-1.5 bg-[#EFEAE1] text-[#6B6558] text-[11px] flex items-center gap-1.5 shrink-0 border-b border-[#DAD4C6] font-medium">
+            <ShieldCheck size={13} className="text-[#C98A2B]" /> Vizualizare restricționată — Dosar creat de {form.createdByEmail || "alt operator"}.
           </div>
         )}
 
-        {/* Compact Stepper Row */}
+        {/* Notion Timeline / Stepper Header Bar */}
         {!isNew && (
-          <div className="px-3 py-1 border-b border-[#DAD4C6] bg-white shrink-0">
+          <div className="px-4 py-1.5 border-b border-[#DAD4C6] bg-white shrink-0">
             <ClaimTimeline
               currentStatus={form.status}
               dataSchimbareStatus={form.dataSchimbareStatus}
@@ -805,698 +677,740 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </div>
         )}
 
-        {/* Modal Internal Sub-Tabs Navigation Bar */}
-        <div className="flex items-center gap-0.5 px-3 py-1 bg-[#FAF8F5] border-b border-[#DAD4C6] shrink-0 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setActiveTab("date")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
-              activeTab === "date" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            <ShieldCheck size={12} /> Date Principale
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("service")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
-              activeTab === "service" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            <Wrench size={12} /> Service &amp; Reparație
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("financial")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
-              activeTab === "financial" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            <Wallet size={12} /> Financiar
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("media")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
-              activeTab === "media" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            <ImageIcon size={12} /> Poze &amp; Documente
-            {(form.poze.length > 0 || form.documente.length > 0) && (
-              <span className="ml-0.5 px-1 text-[9.5px] rounded-full bg-white/20 font-bold">
-                {form.poze.length + form.documente.length}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("note")}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
-              activeTab === "note" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
-            }`}
-          >
-            <MessageSquare size={12} /> Note &amp; Istoric
-            {form.note.length > 0 && (
-              <span className="ml-0.5 px-1 text-[9.5px] rounded-full bg-white/20 font-bold">
-                {form.note.length}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* Modal Tab Content Body — no scroll needed */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 bg-white">
+        {/* MAIN BODY CONTAINER */}
+        <div className="flex-1 min-h-0 overflow-y-auto bg-[#FAF8F5]">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
-            
-            {/* TAB 1: DATE PRINCIPALE */}
-            {activeTab === "date" && (
-              <div className="grid md:grid-cols-2 gap-3">
-                {/* Stânga: Identificare & Status */}
-                <div className="space-y-2">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
-                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
-                      <ShieldCheck size={12} /> Identificare &amp; Asigurare
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Field label="Nr. dosar daună">
-                        <input className="in font-bold text-[#23282E]" value={form.numarDosar} onChange={(e) => set("numarDosar", e.target.value)} placeholder="ex: 2026-00451" required />
-                      </Field>
-                      <Field label="Tip asigurare">
-                        <select className="in font-bold" value={form.tipAsigurare} onChange={(e) => set("tipAsigurare", e.target.value)}>
-                          <option value="CASCO">CASCO</option>
-                          <option value="RCA">RCA</option>
-                        </select>
-                      </Field>
-                      <Field label="Societate de asigurări" full>
-                        <select className="in" value={form.asigurator} onChange={(e) => set("asigurator", e.target.value)}>
-                          <option value="" disabled>-- Alege societatea --</option>
-                          {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
-                        </select>
-                      </Field>
-                    </div>
+
+            {/* ========================================================================= */}
+            {/* SECTION 1: NOTION PROPERTIES GRID (SUS / TOP PROPERTIES SECTION)          */}
+            {/* ========================================================================= */}
+            <div className="bg-white border-b border-[#DAD4C6] p-4 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-2 mb-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#8A8375] flex items-center gap-1.5">
+                  <Tag size={13} className="text-[#C98A2B]" /> Proprietăți Pagina Dosar (Notion Grid)
+                </span>
+                <span className="text-[10.5px] font-semibold text-[#8A8375]">
+                  ID: <code className="font-mono text-[#23282E]">{form.id?.slice(0, 8) || "Nou"}</code>
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-1 text-[12.5px]">
+                {/* 1. Status Dosar */}
+                <NotionPropertyRow icon={Layers} label="Status & Etapă">
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] focus:border-[#C98A2B]"
+                      value={form.status}
+                      onChange={(e) => set("status", e.target.value)}
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {String(s.num).padStart(2, "0")}. {s.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+                </NotionPropertyRow>
 
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
-                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
-                      <Clock size={12} /> Tracking Status &amp; Programare
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Field label="Status dosar">
-                        <select className="in font-bold text-[#23282E]" value={form.status} onChange={(e) => set("status", e.target.value)}>
-                          {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Alertă după (zile în etapă)">
-                        <input type="number" min={1} className="in font-bold text-center" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} />
-                      </Field>
-                      <Field label="Data deschiderii">
-                        <DatePickerInput value={form.dataDeschiderii} onChange={(v) => set("dataDeschiderii", v)} withTime={false} placeholder="zi/luna/an" />
-                      </Field>
-                      <Field label="Ultima actualizare">
-                        <div className="in bg-[#EFEAE1] text-[#6B6558] font-mono text-[11px] flex items-center">{fmtDateTime(form.dataUltimeiActualizari)}</div>
-                      </Field>
+                {/* 2. Nr. Dosar Daună */}
+                <NotionPropertyRow icon={FileText} label="Nr. Dosar Daună">
+                  <input
+                    className="w-full font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
+                    value={form.numarDosar}
+                    onChange={(e) => set("numarDosar", e.target.value)}
+                    placeholder="ex: 2026-00451"
+                    required
+                  />
+                </NotionPropertyRow>
 
-                      <Field label="Programare service (Intrare)" full>
-                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#DAD4C6] bg-white px-2.5 py-2">
-                          <div>
-                            <div className={`text-[12px] font-semibold ${form.dataProgramare ? "text-[#23282E]" : "text-[#8A8375]"}`}>
-                              {form.dataProgramare ? fmtProgramare(form.dataProgramare) : "Neprogramată"}
-                            </div>
-                            <p className="mt-0.5 text-[10px] text-[#8A8375]">Alegerea sau modificarea intervalului se face din Programator.</p>
-                          </div>
-                          {!readOnly && (
-                            <button
-                              type="button"
-                              onClick={() => handleSave(true)}
-                              className="flex items-center gap-1 rounded bg-[#3B5166] px-2 py-1 text-[10.5px] font-bold text-white hover:bg-[#2C4160] transition-colors"
-                            >
-                              <CalendarClock size={12} /> Salvează și deschide Programatorul
-                            </button>
-                          )}
-                        </div>
-                      </Field>
-                    </div>
+                {/* 3. Asigurător & Tip */}
+                <NotionPropertyRow icon={ShieldCheck} label="Asigurător / Tip">
+                  <div className="flex gap-1">
+                    <select
+                      className="w-24 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]"
+                      value={form.tipAsigurare}
+                      onChange={(e) => set("tipAsigurare", e.target.value)}
+                    >
+                      <option value="CASCO">CASCO</option>
+                      <option value="RCA">RCA</option>
+                    </select>
+                    <select
+                      className="flex-1 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] font-semibold"
+                      value={form.asigurator}
+                      onChange={(e) => set("asigurator", e.target.value)}
+                    >
+                      <option value="" disabled>-- Societate --</option>
+                      {INSURERS.map((i) => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                  </div>
+                </NotionPropertyRow>
 
-                    <label className={`flex items-center gap-1.5 text-[11px] cursor-pointer px-2 py-1 rounded border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "border-[#DAD4C6] text-[#23282E]"}`}>
-                      <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> Dosar blocat
+                {/* 4. Nr. Înmatriculare */}
+                <NotionPropertyRow icon={Car} label="Nr. Înmatriculare">
+                  <input
+                    className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] uppercase text-[#23282E] focus:border-[#C98A2B]"
+                    value={form.numarInmatriculare}
+                    onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
+                    placeholder="ex: B111AAA"
+                    required
+                  />
+                </NotionPropertyRow>
+
+                {/* 5. Serie Șasiu (VIN) */}
+                <NotionPropertyRow icon={Tag} label="Serie Șasiu (VIN)">
+                  <input
+                    className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] uppercase text-[#23282E] focus:border-[#C98A2B]"
+                    value={form.vin}
+                    onChange={(e) => set("vin", e.target.value.toUpperCase())}
+                    maxLength={17}
+                    placeholder="17 caractere VIN"
+                  />
+                </NotionPropertyRow>
+
+                {/* 6. Marcă & Model */}
+                <NotionPropertyRow icon={Car} label="Marcă & Model">
+                  <input
+                    className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
+                    value={form.marcaModel}
+                    onChange={(e) => set("marcaModel", e.target.value)}
+                    placeholder="ex: Volkswagen Passat 2.0 TDI"
+                  />
+                </NotionPropertyRow>
+
+                {/* 7. Nume Client */}
+                <NotionPropertyRow icon={UserIcon} label="Nume Asigurat">
+                  <input
+                    className="w-full font-semibold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#C98A2B]"
+                    value={form.client}
+                    onChange={(e) => set("client", e.target.value)}
+                    placeholder="Nume complet client"
+                  />
+                </NotionPropertyRow>
+
+                {/* 8. Telefon Client */}
+                <NotionPropertyRow icon={Phone} label="Telefon Contact">
+                  <div className="flex items-center gap-1">
+                    <input
+                      className="flex-1 font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]"
+                      type="tel"
+                      placeholder="07xx xxx xxx"
+                      value={form.telefonClient}
+                      onChange={(e) => set("telefonClient", e.target.value)}
+                    />
+                    {form.telefonClient && (
+                      <>
+                        <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={13} /></a>
+                        <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={13} /></a>
+                      </>
+                    )}
+                  </div>
+                </NotionPropertyRow>
+
+                {/* 9. Dată Deschidere & Alertă */}
+                <NotionPropertyRow icon={Clock} label="Dată & Alertă Zile">
+                  <div className="flex items-center gap-1.5">
+                    <DatePickerInput value={form.dataDeschiderii} onChange={(v) => set("dataDeschiderii", v)} withTime={false} placeholder="zi/luna/an" />
+                    <span className="text-[10px] text-[#8A8375] font-bold shrink-0">Alertă:</span>
+                    <input type="number" min={1} className="w-12 p-1 text-center font-bold text-[11.5px] border border-[#DAD4C6] rounded-lg bg-[#FAF8F5]" value={form.termenAlertaZile} onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)} />
+                  </div>
+                </NotionPropertyRow>
+              </div>
+
+              {/* Status Blocat & Motiv Callout Box (Stil Notion Callout) */}
+              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/40">
+                <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-3 py-1.5 rounded-lg border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558]"}`}>
+                  <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> 
+                  <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
+                  <span>Marchează Dosar Blocat în Etapă</span>
+                </label>
+
+                {form.blocat && (
+                  <div className="flex-1 w-full sm:w-auto px-3 py-1.5 bg-[#B23A2E] text-white rounded-lg text-[11.5px] flex items-center gap-2 shadow-xs">
+                    <span className="font-extrabold shrink-0">Motiv blocare:</span>
+                    <input className="flex-1 bg-white/10 border border-white/20 rounded px-2 py-0.5 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                  </div>
+                )}
+
+                {/* Dosare Anterioare Client / VIN */}
+                {istoricClientVehicul.length > 0 && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
+                      <History size={11} /> {istoricClientVehicul.length} anterioare:
+                    </span>
+                    {istoricClientVehicul.slice(0, 3).map((c) => {
+                      const s = getStatusDefinition(c.status);
+                      return (
+                        <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
+                          className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded px-2 py-0.5 truncate max-w-[140px]">
+                          {c.numarDosar || "—"} · {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* SECTION 2: NOTION CONTENT BLOCKS & TABS (JOS / BOTTOM CONTENT SECTION)   */}
+            {/* ========================================================================= */}
+            <div className="p-4 space-y-4">
+
+              {/* Notion Tab Switcher Bar */}
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#DAD4C6] shadow-2xs overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("note")}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === "note" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
+                  }`}
+                >
+                  <MessageSquare size={13} /> 📝 Note &amp; Blocuri Conținut
+                  {form.note.length > 0 && (
+                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
+                      {form.note.length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("service")}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === "service" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
+                  }`}
+                >
+                  <Wrench size={13} /> 🔧 Service, Lucrări &amp; Auto Schimb
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("financial")}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === "financial" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
+                  }`}
+                >
+                  <Wallet size={13} /> 💰 Decontare &amp; Financiar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("media")}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === "media" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
+                  }`}
+                >
+                  <ImageIcon size={13} /> 📷 Poze &amp; Documente
+                  {(form.poze.length > 0 || form.documente.length > 0) && (
+                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
+                      {form.poze.length + form.documente.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT (NOTION CONTENT EDITING) */}
+              {activeTab === "note" && (
+                <div className="space-y-4">
+                  {/* Descriere Operațiuni (Notion Text Block) */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-2 shadow-2xs">
+                    <label className="block text-[12px] font-bold text-[#23282E] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
+                      <FileText size={14} className="text-[#C98A2B]" /> Descriere Operațiuni &amp; Ce este de reparat
                     </label>
-                    {form.blocat && (
-                      <div className="px-2 py-1 bg-[#B23A2E] text-white rounded text-[11px] flex items-center gap-1.5">
-                        <AlertOctagon size={12} />
-                        <span className="font-semibold">Motiv:</span>
-                        <input className="flex-1 bg-white/10 border border-white/20 rounded px-1.5 py-px text-white text-[16px] md:text-[11px] placeholder:text-white/60 focus:outline-hidden" placeholder="Motiv blocare..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
-                      </div>
-                    )}
+                    <textarea
+                      className="w-full p-3 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B] min-h-[85px]"
+                      placeholder="Ex: Aripă dreapta față + ușă — îndreptat și vopsit; sau doar înlocuit parbriz..."
+                      value={form.ceEsteDeReparat}
+                      onChange={(e) => set("ceEsteDeReparat", e.target.value)}
+                    />
                   </div>
-                </div>
 
-                {/* Dreapta: Client & Vehicul */}
-                <div className="space-y-2">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-2 space-y-1.5">
-                    <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1 border-b border-[#DAD4C6] pb-1">
-                      <Car size={12} /> Informații Client &amp; Vehicul
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Field label="Nume / Denumire asigurat" full>
-                        <input className="in font-semibold text-[#23282E]" value={form.client} onChange={(e) => set("client", e.target.value)} placeholder="Nume complet client" />
-                      </Field>
-                      <Field label="Telefon client" full>
-                        <div className="flex items-center gap-1">
-                          <input className="in font-mono" type="tel" inputMode="tel" placeholder="07xx xxx xxx" value={form.telefonClient} onChange={(e) => set("telefonClient", e.target.value)} />
-                          {form.telefonClient && (
-                            <>
-                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="Mesaj WhatsApp" className="shrink-0 p-1.5 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
-                            </>
-                          )}
-                        </div>
-                      </Field>
-                      <Field label="Nr. înmatriculare">
-                        <input className="in font-mono font-bold text-[#23282E] uppercase" value={form.numarInmatriculare} onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())} placeholder="ex: B111AAA" required />
-                      </Field>
-                      <Field label="Serie șasiu (VIN)">
-                        <input className="in font-mono text-[16px] md:text-[11.5px] uppercase" value={form.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} maxLength={17} placeholder="17 caractere VIN" />
-                      </Field>
-                      <Field label="Marcă / Model autovehicul" full>
-                        <input className="in" value={form.marcaModel} onChange={(e) => set("marcaModel", e.target.value)} placeholder="ex: Volkswagen Passat 2.0 TDI" />
-                      </Field>
-                      <Field label="Ce este de reparat (Descriere operațiuni)" full>
-                        <textarea className="in min-h-[75px]" placeholder="Ex: aripă dreapta față + ușă — îndreptat și vopsit; sau: doar înlocuit parbriz" value={form.ceEsteDeReparat} onChange={(e) => set("ceEsteDeReparat", e.target.value)} />
-                      </Field>
+                  {/* Note Interne & Slash Commands Bar */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                      <h3 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5">
+                        <Sparkles size={15} className="text-[#C98A2B]" /> Notițe Interne Echipa ({form.note.length})
+                      </h3>
+                      <span className="text-[11px] text-[#8A8375]">Apasă <kbd className="bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-[#23282E] border border-[#DAD4C6]">/</kbd> sau folosește variantele rapide</span>
                     </div>
 
-                    {istoricClientVehicul.length > 0 && (
-                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-[#DAD4C6]/60">
-                        <span className="text-[9.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
-                          <History size={10} /> {istoricClientVehicul.length} dosar(e) anterioare:
-                        </span>
-                        {istoricClientVehicul.slice(0, 4).map((c) => {
-                          const s = getStatusDefinition(c.status);
-                          return (
-                            <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
-                              className="text-[9.5px] text-[#2C4160] hover:underline font-semibold bg-[#ECF1F7] border border-[#3B5166]/20 rounded px-1.5 py-px truncate max-w-[160px]">
-                              {c.numarDosar || "—"} · {String(s.num).padStart(2,"0")}. {s.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: SERVICE & REPARAȚIE */}
-            {activeTab === "service" && (
-              <div className="grid md:grid-cols-2 gap-5">
-                <div className="space-y-4">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
-                      {!isNew && (
-                        <button
-                          type="button"
-                          onClick={() => generateazaFisaIntrareService(form)}
-                          className="text-[11px] font-semibold text-[#3B5166] hover:underline flex items-center gap-1"
-                        >
-                          <FileDown size={12} /> Fișă service
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Interactive 3-Step Physical Status Stepper */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-1 text-[11.5px] shadow-2xs">
-                      {/* Step 1: Adusă fizic */}
-                      <button
-                        type="button"
-                        onClick={() => set("adusaFizic", !form.adusaFizic)}
-                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                          form.adusaFizic
-                            ? "bg-[#3B5166] text-white border-[#3B5166] font-bold shadow-xs"
-                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                        }`}
-                      >
-                        <span className="flex items-center gap-1 font-bold">
-                          <Car size={13} /> 1. Adusă în service
-                        </span>
-                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
-                          {form.adusaFizic ? "Fizic în curte" : "Neintrată încă"}
-                        </span>
+                    {/* Quick Slash Commands Presets */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10.5px] text-[#8A8375] font-bold uppercase mr-1">Meniu Rapid /:</span>
+                      <button type="button" onClick={() => insertSlashCommand("[ALERTĂ]: ")} className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-[#B23A2E] text-[11px] font-bold rounded-lg border border-red-200 transition-colors">
+                        🚨 /alerta
                       </button>
-
-                      <span className="text-[#8A8375] font-bold text-[11px] rotate-90 sm:rotate-0">➔</span>
-
-                      {/* Step 2: Gata de ridicare */}
-                      <button
-                        type="button"
-                        onClick={() => toggleGata(!form.gataDeRidicare)}
-                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                          form.gataDeRidicare
-                            ? "bg-[#C98A2B] text-white border-[#C98A2B] font-bold shadow-xs"
-                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                        }`}
-                      >
-                        <span className="flex items-center gap-1 font-bold">
-                          <PackageCheck size={13} /> 2. Gata de ridicare
-                        </span>
-                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
-                          {form.gataDeRidicare ? `${form.dataGataRidicare ? daysBetween(form.dataGataRidicare) : 0}z în curte` : "În reparație"}
-                        </span>
+                      <button type="button" onClick={() => insertSlashCommand("[PIESE]: ")} className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-[#7A5316] text-[11px] font-bold rounded-lg border border-amber-200 transition-colors">
+                        📦 /piese
                       </button>
-
-                      <span className="text-[#8A8375] font-bold text-[11px] rotate-90 sm:rotate-0">➔</span>
-
-                      {/* Step 3: Ridicată de client */}
-                      <button
-                        type="button"
-                        onClick={() => toggleRidicata(!form.ridicata)}
-                        disabled={!form.gataDeRidicare && !form.ridicata}
-                        className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                          form.ridicata
-                            ? "bg-[#3E6B45] text-white border-[#3E6B45] font-bold shadow-xs"
-                            : !form.gataDeRidicare
-                            ? "opacity-50 cursor-not-allowed bg-[#FAF8F5] text-[#8A8375] border-[#DAD4C6]"
-                            : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                        }`}
-                      >
-                        <span className="flex items-center gap-1 font-bold">
-                          <CheckCircle2 size={13} /> 3. Predată client
-                        </span>
-                        <span className="text-[10px] opacity-85 mt-0.5 font-medium">
-                          {form.ridicata && form.dataRidicare ? fmtDate(form.dataRidicare) : "Nepredată"}
-                        </span>
+                      <button type="button" onClick={() => insertSlashCommand("[AUTO SCHIMB]: ")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#2C4160] text-[11px] font-bold rounded-lg border border-blue-200 transition-colors">
+                        🚗 /schimb
+                      </button>
+                      <button type="button" onClick={() => insertSlashCommand("[APEL CLIENT]: ")} className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#3E6B45] text-[11px] font-bold rounded-lg border border-emerald-200 transition-colors">
+                        📞 /apel
+                      </button>
+                      <button type="button" onClick={() => insertSlashCommand("[DEVIZ]: ")} className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#6B21A8] text-[11px] font-bold rounded-lg border border-purple-200 transition-colors">
+                        📋 /deviz
                       </button>
                     </div>
-                  </div>
 
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
-                      {!isNew && form.masinaSchimb && (
-                        <button
-                          type="button"
-                          onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                          className="text-[11px] font-semibold text-[#7A5316] hover:underline flex items-center gap-1"
-                        >
-                          <FileDown size={12} /> PV Auto Schimb
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <Field label="Mașină la schimb (nr.)">
-                        <input className="in font-semibold" placeholder="lasă gol dacă nu" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} />
-                      </Field>
-                      <Field label="Data dării la schimb">
-                        <DatePickerInput value={form.dataDariiLaSchimb} onChange={(v) => set("dataDariiLaSchimb", v)} withTime={false} placeholder="zi/luna/an" />
-                      </Field>
-                      <Field label="Zile chirie Audatex">
-                        <input type="number" min={0} className="in font-bold text-center" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} />
-                      </Field>
+                    {/* Textarea adăugare notă */}
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 p-2.5 border border-[#DAD4C6] rounded-xl text-[13px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
+                        placeholder="Adaugă o notă sau folosește comenzile de mai sus..."
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addNote()}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addNote()}
+                        className="px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[12.5px] rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                      >
+                        <Plus size={15} /> Adaugă
+                      </button>
                     </div>
 
-                    {form.masinaSchimb && form.dataDariiLaSchimb && (
-                      <div className="mt-2 text-[11.5px] font-semibold flex items-center justify-between px-3 py-1.5 bg-white border border-[#DAD4C6] rounded-lg">
-                        <span className="text-[#6B6558]">Zile utilizate mașină la schimb:</span>
-                        <span className={`font-bold font-mono px-2 py-0.5 rounded ${
-                          form.zileChirieAudatex > 0 && daysBetween(form.dataDariiLaSchimb) > form.zileChirieAudatex
-                            ? "bg-[#B23A2E] text-white"
-                            : "bg-[#3E6B45]/10 text-[#3E6B45]"
-                        }`}>
-                          {daysBetween(form.dataDariiLaSchimb)}z {form.zileChirieAudatex > 0 ? `/ ${form.zileChirieAudatex}z Audatex` : ""}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                    {/* Lista Notițelor (Stilizate ca Notion Callout Blocks) */}
+                    <div className="space-y-2 pt-2 max-h-80 overflow-y-auto pr-1">
+                      {form.note.map((n) => {
+                        const isAlert = n.text.includes("[ALERTĂ]");
+                        const isParts = n.text.includes("[PIESE]");
+                        const isCar = n.text.includes("[AUTO SCHIMB]");
+                        const isCall = n.text.includes("[APEL CLIENT]");
 
-                <div className="space-y-4">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <Paintbrush size={14} /> Manoperă Facturată pe Etape
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("tinichigerie", v)} />
-                      <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("vopsitorie", v)} />
-                    </div>
-                  </div>
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-3 rounded-xl border transition-all ${
+                              isAlert
+                                ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
+                                : isParts
+                                ? "bg-amber-50/70 border-amber-200 text-[#7A5316]"
+                                : isCar
+                                ? "bg-blue-50/70 border-blue-200 text-[#2C4160]"
+                                : isCall
+                                ? "bg-emerald-50/70 border-emerald-200 text-[#294A2E]"
+                                : "bg-[#FAF8F5] border-[#DAD4C6] text-[#23282E]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[11px] font-mono text-[#8A8375] border-b border-black/5 pb-1 mb-1.5">
+                              <span>📅 {fmtDateTime(n.data)}</span>
+                              <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-80 p-0.5">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <div className="text-[13px] whitespace-pre-wrap font-medium leading-relaxed">
+                              {n.text}
+                            </div>
+                          </div>
+                        );
+                      })}
 
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5">💰 Decontare Piese &amp; Marjă Estimată</span>
-                      {((Number(form.valoarePieseAudatex) || 0) > 0 || (Number(form.valoareAchizitiePiese) || 0) > 0) && (
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                          ((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)) >= 0
-                            ? "bg-[#3E6B45]/15 text-[#3E6B45]"
-                            : "bg-[#B23A2E]/15 text-[#B23A2E]"
-                        }`}>
-                          Marjă: {((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)).toLocaleString("ro-RO")} lei
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white space-y-1">
-                        <div className="text-[11.5px] font-bold text-[#23282E]">Valoare piese Audatex</div>
-                        <div className="flex items-center gap-1.5">
-                          <input type="number" min={0} className="in font-mono font-bold text-[#23282E]" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
-                          <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
+                      {form.note.length === 0 && (
+                        <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                          Nicio notă înregistrată. Adaugă o prima notă folosind comenzile de mai sus.
                         </div>
-                      </div>
-                      <div className="border border-[#DAD4C6] rounded-lg p-3 bg-white space-y-1">
-                        <div className="text-[11.5px] font-bold text-[#23282E]">Achiziție piese service</div>
-                        <div className="flex items-center gap-1.5">
-                          <input type="number" min={0} className="in font-mono font-bold text-[#23282E]" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
-                          <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* TAB 3: FINANCIAR */}
-            {activeTab === "financial" && (
-              <div className="space-y-4">
+              {/* TAB CONTENT 2: SERVICE & REPARAȚIE */}
+              {activeTab === "service" && (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {/* Facturare & Venituri */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5"><Wallet size={14} /> Facturare (Venituri Dosar)</span>
+                  <div className="space-y-4">
+                    {/* Stepper Stare Fizică */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                        <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
+                        {!isNew && (
+                          <button type="button" onClick={() => generateazaFisaIntrareService(form)} className="text-[11px] font-semibold text-[#3B5166] hover:underline flex items-center gap-1">
+                            <FileDown size={12} /> Fișă service
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[11.5px]">
+                        <button
+                          type="button"
+                          onClick={() => set("adusaFizic", !form.adusaFizic)}
+                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                            form.adusaFizic ? "bg-[#3B5166] text-white border-[#3B5166] font-bold shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-1 font-bold"><Car size={13} /> 1. Adusă în service</span>
+                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.adusaFizic ? "Fizic în curte" : "Neintrată încă"}</span>
+                        </button>
+
+                        <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleGata(!form.gataDeRidicare)}
+                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                            form.gataDeRidicare ? "bg-[#C98A2B] text-white border-[#C98A2B] font-bold shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-1 font-bold"><PackageCheck size={13} /> 2. Gata de ridicare</span>
+                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.gataDeRidicare ? `${form.dataGataRidicare ? daysBetween(form.dataGataRidicare) : 0}z în curte` : "În reparație"}</span>
+                        </button>
+
+                        <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleRidicata(!form.ridicata)}
+                          disabled={!form.gataDeRidicare && !form.ridicata}
+                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
+                            form.ridicata ? "bg-[#3E6B45] text-white border-[#3E6B45] font-bold shadow-xs" : !form.gataDeRidicare ? "opacity-50 cursor-not-allowed bg-white text-[#8A8375] border-[#DAD4C6]" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-1 font-bold"><CheckCircle2 size={13} /> 3. Predată client</span>
+                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.ridicata && form.dataRidicare ? fmtDate(form.dataRidicare) : "Nepredată"}</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="Manoperă fără TVA (lei)">
-                          <input
-                            type="number"
-                            disabled
-                            className="in bg-[#EFEAE1] font-mono font-bold text-[#23282E]"
-                            value={manoperaFaraTva}
-                            title="Suma manoperei facturate de la Tinichigerie + Vopsitorie"
-                          />
-                        </Field>
-
-                        <Field label="Piese fără TVA (Audatex/Deviz)">
-                          <input
-                            type="number"
-                            min={0}
-                            className="in font-mono font-bold text-[#23282E]"
-                            value={pieseFacturateFaraTva}
-                            onChange={(e) => {
-                              const val = Number(e.target.value) || 0;
-                              setFinancial("pieseFacturateFaraTva", val);
-                              set("valoarePieseAudatex", val);
-                            }}
-                          />
-                        </Field>
+                    {/* Mașină la Schimb */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                        <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
+                        {!isNew && form.masinaSchimb && (
+                          <button type="button" onClick={() => generateazaProcesVerbalMasinaSchimb(form)} className="text-[11px] font-semibold text-[#7A5316] hover:underline flex items-center gap-1">
+                            <FileDown size={12} /> PV Auto Schimb
+                          </button>
+                        )}
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                        <Field label="Subtotal fără TVA">
-                          <input
-                            disabled
-                            className="in bg-[#EFEAE1] font-mono font-bold text-[#2C4160]"
-                            value={`${venitFaraTva.toLocaleString("ro-RO")} lei`}
-                          />
-                        </Field>
-
-                        <Field label="Cota TVA (%)">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            className="in font-mono font-bold text-center"
-                            value={tvaProc}
-                            onChange={(e) => setFinancial("tvaProc", Number(e.target.value) || 0)}
-                          />
-                        </Field>
-
-                        <Field label="Total cu TVA">
-                          <input
-                            disabled
-                            className="in bg-[#3E6B45]/10 font-mono font-bold text-[#3E6B45]"
-                            value={`${totalCuTva.toLocaleString("ro-RO")} lei`}
-                          />
-                        </Field>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Nr. Mașină la schimb</label>
+                          <input className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[12.5px] font-semibold bg-[#FAF8F5]" placeholder="lasă gol dacă nu" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Dată predare auto</label>
+                          <DatePickerInput value={form.dataDariiLaSchimb} onChange={(v) => set("dataDariiLaSchimb", v)} withTime={false} placeholder="zi/luna/an" />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Zile chirie Audatex</label>
+                          <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[12.5px] font-bold text-center bg-[#FAF8F5]" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} />
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#DAD4C6]">
-                        <Field label="Număr Factură">
-                          <input
-                            className="in font-semibold"
-                            placeholder="ex: FF-1042"
-                            value={financial.numarFactura || ""}
-                            onChange={(e) => setFinancial("numarFactura", e.target.value)}
-                          />
-                        </Field>
+                      {form.masinaSchimb && form.dataDariiLaSchimb && (
+                        <div className="mt-2 text-[11.5px] font-semibold flex items-center justify-between px-3 py-2 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
+                          <span className="text-[#6B6558]">Zile utilizate mașină la schimb:</span>
+                          <span className={`font-bold font-mono px-2 py-0.5 rounded ${
+                            form.zileChirieAudatex > 0 && daysBetween(form.dataDariiLaSchimb) > form.zileChirieAudatex
+                              ? "bg-[#B23A2E] text-white"
+                              : "bg-[#3E6B45]/15 text-[#3E6B45]"
+                          }`}>
+                            {daysBetween(form.dataDariiLaSchimb)}z {form.zileChirieAudatex > 0 ? `/ ${form.zileChirieAudatex}z Audatex` : ""}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                        <Field label="Data Factură">
-                          <DatePickerInput
-                            value={financial.dataFactura}
-                            onChange={(v) => setFinancial("dataFactura", v)}
-                            withTime={false}
-                            placeholder="zi/luna/an"
-                          />
-                        </Field>
+                  <div className="space-y-4">
+                    {/* Manoperă pe etape */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
+                        <Paintbrush size={14} /> Manoperă Facturată pe Etape
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("tinichigerie", v)} />
+                        <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("vopsitorie", v)} />
+                      </div>
+                    </div>
 
-                      <div className="flex items-center justify-between pt-1 text-[11.5px] border-t border-[#DAD4C6]">
-                        <label className="flex items-center gap-2 cursor-pointer select-none font-semibold text-[#23282E]">
-                          <input
-                            type="checkbox"
-                            checked={form.incasat}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              set("incasat", checked);
-                              set("dataIncasarii", checked ? todayISO() : null);
-                            }}
-                            className="rounded border-[#DAD4C6] text-[#3E6B45] focus:ring-0"
-                          />
-                          <span>Factură încasată integral</span>
-                        </label>
-                        {form.incasat && (
-                          <span className="text-[11px] font-bold text-[#3E6B45] bg-[#3E6B45]/10 px-2 py-0.5 rounded">
-                            Încasat la {fmtDate(form.dataIncasarii)}
+                    {/* Decontare Piese & Marjă */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                        <span className="flex items-center gap-1.5">💰 Decontare Piese &amp; Marjă Estimată</span>
+                        {((Number(form.valoarePieseAudatex) || 0) > 0 || (Number(form.valoareAchizitiePiese) || 0) > 0) && (
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            ((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)) >= 0
+                              ? "bg-[#3E6B45]/15 text-[#3E6B45]"
+                              : "bg-[#B23A2E]/15 text-[#B23A2E]"
+                          }`}>
+                            Marjă: {((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)).toLocaleString("ro-RO")} lei
                           </span>
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Costuri Reale Service */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                    <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5">💸 Costuri Directe Service</span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="Achiziție Piese service (lei)">
-                          <input
-                            type="number"
-                            min={0}
-                            className="in font-mono font-bold text-[#23282E]"
-                            value={form.valoareAchizitiePiese}
-                            onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
-                          />
-                        </Field>
-
-                        <Field label="Cost Manoperă Internă (salarii)">
-                          <input
-                            type="number"
-                            min={0}
-                            className="in font-mono font-bold text-[#23282E]"
-                            value={financial.costManoperaInterna || 0}
-                            onChange={(e) => setFinancial("costManoperaInterna", Number(e.target.value) || 0)}
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <Field label="Costuri Externe (subcontractare)">
-                          <input
-                            type="number"
-                            min={0}
-                            className="in font-mono font-bold text-[#23282E]"
-                            value={financial.costuriExterne || 0}
-                            onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)}
-                          />
-                        </Field>
-
-                        <Field label="Cost Auto la Schimb (chirie/depreciere)">
-                          <input
-                            type="number"
-                            min={0}
-                            className="in font-mono font-bold text-[#23282E]"
-                            value={financial.costMasinaSchimb || 0}
-                            onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg border border-[#DAD4C6] bg-white flex items-center justify-between text-[12px]">
-                        <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
-                        <span className="font-mono font-bold text-[13px] text-[#B23A2E]">
-                          {costTotal.toLocaleString("ro-RO")} lei
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Summary / Profitability KPi Card */}
-                <div className="p-3.5 rounded-xl border border-[#DAD4C6] bg-white shadow-2xs">
-                  <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-3 flex items-center justify-between">
-                    <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
-                    <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                    <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]">
-                      <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
-                      <div className="text-[14px] font-mono font-bold text-[#2C4160] mt-0.5">
-                        {venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                      </div>
-                    </div>
-
-                    <div className="p-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]">
-                      <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
-                      <div className="text-[14px] font-mono font-bold text-[#B23A2E] mt-0.5">
-                        {costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                      </div>
-                    </div>
-
-                    <div className={`p-2 rounded-lg border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                      <div className="text-[10px] font-bold uppercase">Profit Brut</div>
-                      <div className="text-[14px] font-mono font-bold mt-0.5">
-                        {profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                      </div>
-                    </div>
-
-                    <div className={`p-2 rounded-lg border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                      <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
-                      <div className="text-[14px] font-mono font-bold mt-0.5">
-                        {venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: POZE & DOCUMENTE */}
-            {activeTab === "media" && (
-              <div className="grid md:grid-cols-2 gap-5">
-                {/* Poze */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3 flex flex-col">
-                  <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                    <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze Dosar ({form.poze.length})</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
-                      {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă din galerie</>}
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
-                    </label>
-                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#3E6B45]/40 text-[#294A2E] font-semibold"}`}>
-                      {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Deschidere cameră...</> : <><Car size={13} /> Fă poză (Cameră)</>}
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
-                    </label>
-                  </div>
-
-                  {form.poze.length > 0 ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1">
-                      {form.poze.map((p) => (
-                        <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                          <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
-                            <img src={p.url} alt={p.nume} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                          </a>
-                          <button type="button" onClick={() => removePoza(p)} className="absolute top-1 right-1 bg-black/70 hover:bg-[#B23A2E] text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 size={12} />
-                          </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="border border-[#DAD4C6] rounded-xl p-3 bg-[#FAF8F5] space-y-1">
+                          <div className="text-[11.5px] font-bold text-[#23282E]">Valoare piese Audatex</div>
+                          <div className="flex items-center gap-1.5">
+                            <input type="number" min={0} className="w-full p-1.5 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] bg-white" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
+                            <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-lg">
-                      Nicio fotografie adăugată pentru acest dosar.
-                    </div>
-                  )}
-                </div>
-
-                {/* Documente */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3 flex flex-col">
-                  <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                    <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente &amp; Fișiere PDF ({form.documente.length})</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#3B5166]/40 text-[#3B5166] font-semibold"}`}>
-                      {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
-                      <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
-                    </label>
-                    <label className={`flex items-center justify-center gap-2 border border-dashed rounded-lg py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-white border-[#C98A2B]/40 text-[#7A5316] font-semibold"}`}>
-                      {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Deschidere cameră...</> : <><FileText size={13} /> Scanează (Cameră)</>}
-                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleStartScanSession(e.target.files)} />
-                    </label>
-                  </div>
-
-                  <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
-                    {form.documente.map((d) => (
-                      <div key={d.id} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <FileText size={14} className="text-[#3B5166] shrink-0" />
-                          <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] font-semibold hover:underline truncate flex-1">{d.nume}</a>
+                        <div className="border border-[#DAD4C6] rounded-xl p-3 bg-[#FAF8F5] space-y-1">
+                          <div className="text-[11.5px] font-bold text-[#23282E]">Achiziție piese service</div>
+                          <div className="flex items-center gap-1.5">
+                            <input type="number" min={0} className="w-full p-1.5 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] bg-white" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
+                            <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
+                          </div>
                         </div>
-                        <button type="button" onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
                       </div>
-                    ))}
-                    {form.documente.length === 0 && (
-                      <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-lg">
-                        Niciun document atașat.
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB CONTENT 3: FINANCIAR */}
+              {activeTab === "financial" && (
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Venituri & Facturare */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                        <span className="flex items-center gap-1.5"><Wallet size={14} /> Facturare (Venituri Dosar)</span>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Manoperă fără TVA</label>
+                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#EFEAE1] font-mono font-bold text-[#23282E] text-[12.5px]" value={manoperaFaraTva} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Piese fără TVA</label>
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]"
+                              value={pieseFacturateFaraTva}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 0;
+                                setFinancial("pieseFacturateFaraTva", val);
+                                set("valoarePieseAudatex", val);
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Subtotal fără TVA</label>
+                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#EFEAE1] font-mono font-bold text-[#2C4160] text-[12px]" value={`${venitFaraTva.toLocaleString("ro-RO")} lei`} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cota TVA (%)</label>
+                            <input type="number" min={0} max={100} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-center text-[12.5px] bg-[#FAF8F5]" value={tvaProc} onChange={(e) => setFinancial("tvaProc", Number(e.target.value) || 0)} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Total cu TVA</label>
+                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#3E6B45]/10 font-mono font-bold text-[#3E6B45] text-[12px]" value={`${totalCuTva.toLocaleString("ro-RO")} lei`} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#DAD4C6]">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Număr Factură</label>
+                            <input className="w-full p-2 border border-[#DAD4C6] rounded-lg font-semibold text-[12.5px] bg-[#FAF8F5]" placeholder="ex: FF-1042" value={financial.numarFactura || ""} onChange={(e) => setFinancial("numarFactura", e.target.value)} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Data Factură</label>
+                            <DatePickerInput value={financial.dataFactura} onChange={(v) => setFinancial("dataFactura", v)} withTime={false} placeholder="zi/luna/an" />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-[#DAD4C6]">
+                          <label className="flex items-center gap-2 cursor-pointer font-semibold text-[#23282E] text-[12px]">
+                            <input
+                              type="checkbox"
+                              checked={form.incasat}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                set("incasat", checked);
+                                set("dataIncasarii", checked ? todayISO() : null);
+                              }}
+                              className="rounded border-[#DAD4C6] text-[#3E6B45] focus:ring-0"
+                            />
+                            <span>Factură încasată integral</span>
+                          </label>
+                          {form.incasat && (
+                            <span className="text-[11px] font-bold text-[#3E6B45] bg-[#3E6B45]/10 px-2 py-0.5 rounded-md">
+                              Încasat la {fmtDate(form.dataIncasarii)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Costuri Reale */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                        <span className="flex items-center gap-1.5">💸 Costuri Directe Service</span>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Achiziție Piese service</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Manoperă Internă</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costManoperaInterna || 0} onChange={(e) => setFinancial("costManoperaInterna", Number(e.target.value) || 0)} />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Costuri Externe</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costuriExterne || 0} onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)} />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Auto la Schimb</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costMasinaSchimb || 0} onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)} />
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] flex items-center justify-between text-[12px]">
+                          <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
+                          <span className="font-mono font-bold text-[14px] text-[#B23A2E]">
+                            {costTotal.toLocaleString("ro-RO")} lei
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Summary KPI Card */}
+                  <div className="p-4 rounded-xl border border-[#DAD4C6] bg-white shadow-2xs">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-2 mb-3 flex items-center justify-between">
+                      <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
+                      <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                      <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6]">
+                        <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
+                        <div className="text-[15px] font-mono font-bold text-[#2C4160] mt-0.5">
+                          {venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6]">
+                        <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
+                        <div className="text-[15px] font-mono font-bold text-[#B23A2E] mt-0.5">
+                          {costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                        </div>
+                      </div>
+
+                      <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                        <div className="text-[10px] font-bold uppercase">Profit Brut</div>
+                        <div className="text-[15px] font-mono font-bold mt-0.5">
+                          {profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
+                        </div>
+                      </div>
+
+                      <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                        <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
+                        <div className="text-[15px] font-mono font-bold mt-0.5">
+                          {venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB CONTENT 4: POZE & DOCUMENTE */}
+              {activeTab === "media" && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Poze */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze ({form.poze.length})</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
+                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă din galerie</>}
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                      </label>
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#3E6B45]/40 text-[#294A2E] font-bold"}`}>
+                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Fă poză (Cameră)</>}
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                      </label>
+                    </div>
+
+                    {form.poze.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1">
+                        {form.poze.map((p) => (
+                          <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
+                            <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
+                              <img src={p.url} alt={p.nume} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                            </a>
+                            <button type="button" onClick={() => removePoza(p)} className="absolute top-1 right-1 bg-black/70 hover:bg-[#B23A2E] text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                        Nicio fotografie adăugată.
                       </div>
                     )}
                   </div>
-                </div>
-              </div>
-            )}
 
-            {/* TAB 4: NOTE & ISTORIC */}
-            {activeTab === "note" && (
-              <div className="space-y-4">
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                  <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                    <MessageSquare size={14} /> Note Interne Echipa ({form.note.length})
-                  </div>
+                  {/* Documente */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente PDF ({form.documente.length})</span>
+                    </div>
 
-                  <div className="flex gap-2">
-                    <input className="in flex-1" placeholder="Scrie o notă internă despre dosar..." value={noteText} onChange={(e) => setNoteText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addNote()} />
-                    <button type="button" onClick={addNote} className="px-3.5 py-1.5 rounded-lg bg-[#3B5166] text-white font-semibold hover:bg-[#2C4160] transition-colors flex items-center gap-1 text-[12px]">
-                      <Plus size={15} /> Adaugă Notă
-                    </button>
-                  </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#3B5166]/40 text-[#3B5166] font-bold"}`}>
+                        {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
+                        <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
+                      </label>
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
+                        {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează (Cameră)</>}
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleStartScanSession(e.target.files)} />
+                      </label>
+                    </div>
 
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {form.note.map((n) => (
-                      <div key={n.id} className="bg-white border border-[#DAD4C6] rounded-lg p-2.5 text-[12px]">
-                        <div className="flex items-center justify-between text-[10.5px] text-[#8A8375] font-mono border-b border-[#EFEAE1] pb-1 mb-1">
-                          <span>{fmtDateTime(n.data)}</span>
-                          <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-70"><Trash2 size={12} /></button>
+                    <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                      {form.documente.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText size={14} className="text-[#3B5166] shrink-0" />
+                            <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] font-semibold hover:underline truncate flex-1">{d.nume}</a>
+                          </div>
+                          <button type="button" onClick={() => removeDoc(d.id)} className="text-[#B23A2E] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
                         </div>
-                        <div className="text-[#23282E] whitespace-pre-wrap font-sans">{n.text}</div>
-                      </div>
-                    ))}
-                    {form.note.length === 0 && <div className="text-[12px] text-[#8A8375] italic p-4 text-center">Nicio notă înregistrată încă.</div>}
+                      ))}
+                      {form.documente.length === 0 && (
+                        <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                          Niciun document atașat.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
+            </div>
           </fieldset>
         </div>
 
-        {/* Footer Actions Docked Bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-[#DAD4C6] bg-white shrink-0">
+        {/* NOTION FOOTER DOCKED BAR */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#DAD4C6] bg-white shrink-0 shadow-sm">
           {readOnly ? (
             <span />
           ) : (
@@ -1505,17 +1419,17 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               onClick={() => {
                 if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id);
               }}
-              className="flex items-center gap-1 text-[#B23A2E] text-[11.5px] font-semibold hover:opacity-70 px-2 py-1 rounded hover:bg-[#B23A2E]/5 transition-colors"
+              className="flex items-center gap-1 text-[#B23A2E] text-[12px] font-bold hover:bg-[#B23A2E]/10 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <Trash2 size={12} /> Șterge dosar
+              <Trash2 size={13} /> Șterge dosar
             </button>
           )}
 
-          <div className="flex gap-1.5">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1 rounded border border-[#C7C0B0] text-[12px] font-semibold text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
+              className="px-4 py-1.5 rounded-lg border border-[#C7C0B0] text-[12.5px] font-bold text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
             >
               {readOnly ? "Închide" : "Anulează"}
             </button>
@@ -1523,24 +1437,22 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex items-center gap-1 px-4 py-1 rounded bg-[#C98A2B] text-white text-[12px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors"
+                className="flex items-center gap-1.5 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-extrabold hover:bg-[#B37A22] shadow-sm transition-colors"
               >
-                <Save size={13} /> Salvează modificările
+                <Save size={14} /> Salvează modificările
               </button>
             )}
           </div>
         </div>
 
-        {/* Scanner Session Overlay */}
+        {/* SCANNER OVERLAY */}
         {scanSession && (
-          <div className="absolute inset-0 bg-[#23282E]/95 z-50 flex flex-col p-4 text-white">
-            {/* Header */}
+          <div className="absolute inset-0 bg-[#1C2127]/95 z-50 flex flex-col p-4 text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
-              <h3 className="font-bold text-[13px] flex items-center gap-1.5 text-[#C98A2B]"><FileText size={16} /> Scanare document cu pagini multiple</h3>
+              <h3 className="font-bold text-[13.5px] flex items-center gap-1.5 text-[#C98A2B]"><FileText size={16} /> Scanare document pagini multiple</h3>
               <button type="button" onClick={() => setScanSession(null)} className="text-white/70 hover:text-white"><X size={18} /></button>
             </div>
 
-            {/* Pages list / preview */}
             <div className="flex-1 overflow-y-auto py-4 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {scanSession.pages.map((pageDataUrl, idx) => (
@@ -1561,7 +1473,6 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                     </button>
                   </div>
                 ))}
-                {/* Add Page Button */}
                 <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
                   <Plus size={20} className="text-[#C98A2B]" />
                   <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
@@ -1570,7 +1481,6 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
               </div>
             </div>
 
-            {/* Footer controls */}
             <div className="border-t border-white/10 pt-3 space-y-3 shrink-0">
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex-1 w-full">
@@ -1593,7 +1503,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                       onChange={(e) => setScanSession(prev => ({ ...prev, saveAsPdf: e.target.checked }))}
                       className="rounded border-white/20 bg-white/5 text-[#C98A2B] focus:ring-0 focus:ring-offset-0"
                     />
-                    <span>Salvează ca document PDF unic</span>
+                    <span>Salvează ca PDF unic</span>
                   </label>
                   <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
                     <input 
@@ -1621,12 +1531,13 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
                   disabled={scanSession.pages.length === 0}
                   className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {(uploadingDocumente || uploadingPoze) ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><Save size={13} /> Finalizează &amp; Încarcă ({scanSession.pages.length} pag.)</>}
+                  {(uploadingDocumente || uploadingPoze) ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><Save size={13} /> Finalizează ({scanSession.pages.length} pag.)</>}
                 </button>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
