@@ -41,50 +41,6 @@ export default function Login({ onLoginSuccess }) {
       return;
     }
 
-    // 3. Fallback: Verificăm lista de utilizatori autorizați din echipa salvată în Supabase / localStorage
-    try {
-      let teamUsers = [];
-      const localStr = localStorage.getItem("workflow_dosare_users");
-      if (localStr) {
-        teamUsers = JSON.parse(localStr);
-      }
-
-      if (!teamUsers || teamUsers.length === 0) {
-        const { data: setariData } = await supabase
-          .from("setari")
-          .select("utilizatori")
-          .eq("id", 1)
-          .maybeSingle();
-        if (setariData?.utilizatori) {
-          teamUsers = setariData.utilizatori;
-        }
-      }
-
-      const matchUser = (teamUsers || []).find((u) => u.email?.toLowerCase() === cleanEmail);
-
-      if (matchUser) {
-        // Dacă utilizatorul există în echipa autorizată și parola coincide cu cea alocată de admin
-        if (!matchUser.password || matchUser.password === cleanPassword) {
-          const customSession = {
-            user: {
-              id: cleanEmail,
-              email: cleanEmail,
-            },
-          };
-          localStorage.setItem("workflow_dosare_custom_session", JSON.stringify(customSession));
-          setLoading(false);
-          if (onLoginSuccess) {
-            onLoginSuccess(customSession);
-          } else {
-            window.location.reload();
-          }
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("Auth fallback error:", err);
-    }
-
     setLoading(false);
     setError("Email sau parolă incorectă.");
   };
