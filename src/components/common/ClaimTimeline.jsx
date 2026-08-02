@@ -5,6 +5,7 @@ import { fmtDateTime, daysBetween } from "../../utils/dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "../../utils/claimUtils";
 
 export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, istoric = [], loading = false }) {
+  const safeIstoric = Array.isArray(istoric) ? istoric : [];
   const currentPhase = getStatusDefinition(currentStatus).phase;
   const currentIdx = PIPELINE_PHASES.findIndex((phase) => phase.key === currentPhase);
   const daysInCurrent = daysBetween(dataSchimbareStatus);
@@ -52,16 +53,16 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
       {/* Collapsible journal */}
       <details className="border-t border-[#DAD4C6]/60 pt-1">
         <summary className="text-[10px] font-bold text-[#3B5166] cursor-pointer flex items-center gap-1 select-none hover:text-[#23282E]">
-          <History size={10} /> Jurnal activitate &amp; modificări ({loading ? "…" : istoric.length})
+          <History size={10} /> Jurnal activitate &amp; modificări ({loading ? "…" : safeIstoric.length})
         </summary>
 
         <div className="mt-1.5 pl-2 max-h-36 overflow-y-auto space-y-1.5 pr-1">
           {loading ? (
             <div className="text-[10px] text-[#8A8375] italic">Se încarcă...</div>
-          ) : istoric.length === 0 ? (
+          ) : safeIstoric.length === 0 ? (
             <div className="text-[10px] text-[#8A8375] italic">Nicio modificare înregistrată.</div>
           ) : (
-            istoric.map((h, i) => (
+            safeIstoric.map((h, i) => (
               <div key={h.id || i} className="relative pl-3 border-l-2 border-[#DAD4C6]">
                 <div className="absolute -left-[5px] top-0.5 w-2 h-2 rounded-full bg-[#3B5166]" />
                 <div className="flex items-center justify-between text-[9.5px] text-[#6B6558] font-mono">
