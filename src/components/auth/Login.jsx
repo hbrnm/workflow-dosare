@@ -22,22 +22,8 @@ export default function Login({ onLoginSuccess }) {
     });
 
     if (!signInErr && authData?.session) {
-      localStorage.removeItem("workflow_dosare_custom_session");
       setLoading(false);
       if (onLoginSuccess) onLoginSuccess(authData.session);
-      return;
-    }
-
-    // 2. Încercăm crearea / conectarea dacă contul nu e inițializat în Supabase Auth
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password: cleanPassword,
-    });
-
-    if (!signUpErr && signUpData?.session) {
-      localStorage.removeItem("workflow_dosare_custom_session");
-      setLoading(false);
-      if (onLoginSuccess) onLoginSuccess(signUpData.session);
       return;
     }
 
