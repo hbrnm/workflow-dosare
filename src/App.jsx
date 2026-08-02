@@ -371,8 +371,8 @@ export default function App() {
                 onClick={() => setShowFilterPanel((open) => !open)}
                 className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
               >
-                <SlidersHorizontal size={14} /> Filtre
-                {activeFilterCount > 0 && <span className="rounded-full bg-[#3B5166] px-1.5 text-[10px] text-white">{activeFilterCount}</span>}
+                <SlidersHorizontal size={14} />
+                <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre"}</span>
               </button>
             </div>
             {showFilterPanel && (
@@ -407,15 +407,10 @@ export default function App() {
         <div className="grid grid-cols-2 gap-px bg-white/10 border-t border-white/10 text-white md:hidden text-[12px] font-bold">
           <button
             onClick={() => setMobileFilterSheetOpen(true)}
-            className="flex items-center justify-center gap-2 py-2.5 bg-[#1C2127] active:bg-[#2C333D] transition-colors"
+            className={`flex items-center justify-center gap-2 py-2.5 transition-colors ${activeFilterCount > 0 ? "bg-[#C98A2B] text-white" : "bg-[#1C2127] text-white"}`}
           >
-            <Filter size={14} className="text-[#C98A2B]" />
-            <span>Filtrează</span>
-            {activeFilterCount > 0 && (
-              <span className="bg-[#C98A2B] text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
-                {activeFilterCount}
-              </span>
-            )}
+            <Filter size={14} className="text-white" />
+            <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtrează"}</span>
           </button>
 
           <button
