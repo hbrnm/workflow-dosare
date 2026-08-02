@@ -472,21 +472,23 @@ export default function App() {
     <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
       <Notification notice={notice} onClose={() => setNotice(null)} />
 
-      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK (Linear / Miro Style) --- */}
-      <aside className="hidden md:flex flex-col w-[68px] hover:w-[220px] transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 group overflow-hidden">
+      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK (Compact Fixed Icon Dock) --- */}
+      <aside className="hidden md:flex flex-col w-[68px] bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden">
 
-        {/* Top Brand Logo */}
-        <div className="h-14 flex items-center px-4 gap-3 border-b border-white/10 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0">
+        {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
+        <button
+          type="button"
+          onClick={() => setView("brief")}
+          className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
+          title="Revenire la ecranul principal (Brief Zilnic)"
+        >
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform">
             WD
           </div>
-          <span className="font-extrabold text-[15px] tracking-tight opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-            Workflow Dosare
-          </span>
-        </div>
+        </button>
 
         {/* Main Navigation Items */}
-        <div className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none">
+        <div className="flex-1 py-4 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-none">
           {[
             { id: "brief", label: "Brief Zilnic", icon: Sunrise },
             { id: "flux", label: "Flux Operațional", icon: Layers, badge: userClaims.length },
@@ -500,21 +502,16 @@ export default function App() {
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
+                className={`w-full flex items-center justify-center p-2.5 rounded-xl text-[13px] font-semibold transition-all relative ${
                   active
                     ? "bg-[#C98A2B] text-white font-bold shadow-md"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
                 title={label}
               >
-                <div className="flex items-center gap-3">
-                  <Icon size={20} className="shrink-0" />
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {label}
-                  </span>
-                </div>
+                <Icon size={20} className="shrink-0" />
                 {badge !== undefined && (
-                  <span className="opacity-0 group-hover:opacity-100 text-[10px] font-black bg-white/20 px-1.5 py-0.2 rounded-full">
+                  <span className="absolute -top-1 -right-1 text-[9px] font-black bg-[#C98A2B] text-white px-1.5 py-0.2 rounded-full border border-[#1C2127]">
                     {badge}
                   </span>
                 )}
