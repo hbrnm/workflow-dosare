@@ -151,8 +151,24 @@ export default function App() {
         setIsCommandPaletteOpen((prev) => !prev);
       }
     };
+    const handleGlobalError = (event) => {
+      if (event?.error?.message) {
+        setNotice({ message: `Eroare runtime: ${event.error.message}`, type: "error" });
+      }
+    };
+    const handlePromiseRejection = (event) => {
+      const message = event?.reason?.message || String(event?.reason || "Unknown rejection");
+      setNotice({ message: `Promise rejectat: ${message}`, type: "error" });
+    };
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("error", handleGlobalError);
+    window.addEventListener("unhandledrejection", handlePromiseRejection);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("error", handleGlobalError);
+      window.removeEventListener("unhandledrejection", handlePromiseRejection);
+    };
   }, []);
 
 
@@ -427,33 +443,35 @@ export default function App() {
         </div>
 
         {/* MAIN WORKSPACE CANVAS VIEW AREA */}
-        <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
-          {loading ? (
-            <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
-          ) : view === "flux" ? (
-            <TablouPeFaze
-              claims={filteredClaims}
-              onOpen={openExisting}
-              onMoveToStatus={handleMoveToStatus}
-              onAddInStatus={openNew}
-              onDuplicate={duplicateClaim}
-              canEditFn={canEdit}
-              pragRidicare={pragRidicare}
-              quickFilter={fluxFilter}
-              setQuickFilter={setFluxFilter}
-            />
-          ) : view === "brief" ? (
-            <BriefZilnic claims={filteredClaims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
-          ) : view === "list" ? (
-            <ClaimTable claims={filteredClaims} onOpen={openExisting} canEditFn={canEdit} />
-          ) : view === "dashboard" ? (
-            <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
-          ) : view === "programator" ? (
-            <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
-          ) : (
-            <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
-          )}
-        </main>
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
+          <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+            ) : view === "flux" ? (
+              <TablouPeFaze
+                claims={filteredClaims}
+                onOpen={openExisting}
+                onMoveToStatus={handleMoveToStatus}
+                onAddInStatus={openNew}
+                onDuplicate={duplicateClaim}
+                canEditFn={canEdit}
+                pragRidicare={pragRidicare}
+                quickFilter={fluxFilter}
+                setQuickFilter={setFluxFilter}
+              />
+            ) : view === "brief" ? (
+              <BriefZilnic claims={filteredClaims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
+            ) : view === "list" ? (
+              <ClaimTable claims={filteredClaims} onOpen={openExisting} canEditFn={canEdit} />
+            ) : view === "dashboard" ? (
+              <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
+            ) : view === "programator" ? (
+              <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+            ) : (
+              <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
+            )}
+          </main>
+        </Suspense>
       </div>
 
       {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
