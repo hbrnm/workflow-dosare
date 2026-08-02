@@ -1012,36 +1012,19 @@ export default function ClaimModal({
                     />
                   </div>
 
-                  {/* Note Interne & Slash Commands Bar */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
+                  {/* Note Interne */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-3 shadow-sm">
                     <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
-                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe Interne Echipa ({form.note.length})
+                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe interne echipă ({form.note.length})
                       </h3>
-                      <span className="text-[10px] text-[#8A8375]">Apasă <kbd className="bg-[#EFEAE1] px-1 py-0.5 rounded text-[9px] font-mono font-bold text-[#23282E] border border-[#DAD4C6]">/</kbd> sau variante rapide</span>
                     </div>
 
-                    {/* Quick Slash Commands Presets */}
-                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                      <span className="text-[10.5px] text-[#8A8375] font-bold uppercase mr-1">Comenzi /:</span>
-                      {SLASH_COMMANDS.map((item) => (
-                        <button
-                          key={item.cmd}
-                          type="button"
-                          onClick={() => applySlashCommand(item.prefix)}
-                          className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border transition-all ${item.color} hover:opacity-80`}
-                        >
-                          {item.icon} {item.cmd}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Input adăugare notă cu meniu popup interactiv pentru / */}
-                    <div className="relative flex gap-2">
+                    <div className="flex gap-2">
                       <input
                         ref={noteInputRef}
                         className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
-                        placeholder="Adaugă o notă (tastează / pentru meniul rapid de comenzi Notion)..."
+                        placeholder="Adaugă o notă internă..."
                         value={noteText}
                         onChange={(e) => {
                           setNoteText(e.target.value);
@@ -1052,43 +1035,12 @@ export default function ClaimModal({
                       <button
                         type="button"
                         onClick={() => addNote()}
-                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11.5px] rounded-lg shadow-xs transition-colors flex items-center gap-1 shrink-0"
+                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0"
                       >
                         <Plus size={15} /> Adaugă
                       </button>
-
-                      {/* Dropdown Meniu Flotant Comenzi Slash (Notion Style) */}
-                      {filteredSlashCommands.length > 0 && (
-                        <div className="absolute left-0 bottom-full mb-1.5 w-80 bg-white border border-[#DAD4C6] rounded-xl shadow-2xl z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
-                          <div className="px-2.5 py-1 text-[10px] font-extrabold text-[#8A8375] uppercase border-b border-[#DAD4C6]/40 flex items-center justify-between">
-                            <span className="flex items-center gap-1"><Sparkles size={11} className="text-[#C98A2B]" /> Comenzi Notion Slash /</span>
-                            <span className="font-mono text-[#3B5166]">Enter ↵</span>
-                          </div>
-                          {filteredSlashCommands.map((item, idx) => (
-                            <button
-                              key={item.cmd}
-                              type="button"
-                              onClick={() => applySlashCommand(item.prefix)}
-                              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left text-[12px] font-semibold transition-all ${
-                                idx === slashIndex
-                                  ? "bg-[#F3D9A8]/40 border border-[#C98A2B]/40 text-[#23282E] shadow-xs"
-                                  : "hover:bg-[#FAF8F5] text-[#23282E]"
-                              }`}
-                            >
-                              <span className="text-[16px] shrink-0">{item.icon}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-bold flex items-center gap-1.5">
-                                  <span className="font-mono text-[#C98A2B] text-[12px]">{item.cmd}</span>
-                                  <span className="text-[11px] font-medium text-[#6B6558] truncate">{item.label}</span>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Lista Notițelor (Stilizate ca Notion Callout Blocks) */}
                     <div className="space-y-1.5 pt-0.5 max-h-44 overflow-y-auto pr-1">
                       {form.note.map((n) => {
                         const isAlert = n.text.includes("[ALERTĂ]");
@@ -1099,7 +1051,7 @@ export default function ClaimModal({
                         return (
                           <div
                             key={n.id}
-                            className={`p-2.5 rounded-lg border transition-all ${
+                            className={`p-2 rounded-lg border transition-all ${
                               isAlert
                                 ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
                                 : isParts
@@ -1126,7 +1078,7 @@ export default function ClaimModal({
 
                       {form.note.length === 0 && (
                         <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
-                          Nicio notă înregistrată. Adaugă o prima notă folosind comenzile de mai sus.
+                          Nicio notă înregistrată.
                         </div>
                       )}
                     </div>
