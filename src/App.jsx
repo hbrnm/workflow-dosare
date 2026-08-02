@@ -338,10 +338,10 @@ export default function App() {
     setModalClaim(dup);
   };
 
-  const patchClaim = async (id, patch) => {
+  const patchClaim = async (id, patch, skipOwnershipCheck = false) => {
     const current = claims.find((c) => c.id === id);
     if (!current) return;
-    if (!canEdit(current)) { showNotice("Poți edita programarea doar la dosarele create de tine.", "error"); return; }
+    if (!skipOwnershipCheck && !canEdit(current)) { showNotice("Poți edita doar dosarele create de tine.", "error"); return; }
     let effectivePatch = { ...patch };
     if (patch.dataProgramare && current.status === "piese_sosite") {
       effectivePatch = { ...effectivePatch, status: "programat", dataSchimbareStatus: nowISO() };
@@ -353,9 +353,22 @@ export default function App() {
     if (error) { showNotice(error.message, "error"); loadAll(); }
   };
 
+  // Dosarele din flux specifice fiecărui utilizator (doar cele create de el)
+  const userClaims = useMemo(() => {
+    if (!myId && !myEmail) return claims;
+    return claims.filter((c) => {
+      if (!c.createdBy && !c.createdByEmail) return true; // Dosare vechi fără creator asociat
+      return (
+        (c.createdBy && c.createdBy === myId) ||
+        (c.createdBy && c.createdBy === myEmail) ||
+        (c.createdByEmail && c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
+      );
+    });
+  }, [claims, myId, myEmail]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    let res = claims.filter((c) => {
+    let res = userClaims.filter((c) => {
       if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
       if (filterStatus !== "toate" && c.status !== filterStatus) return false;
       if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
@@ -376,7 +389,7 @@ export default function App() {
     }
 
     return res;
-  }, [claims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]);
+  }, [userClaims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]);
 
   const insurers = useMemo(() => [...new Set(claims.map((c) => c.asigurator).filter(Boolean))].sort(), [claims]);
   const activeFilterCount = [filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti", onlyBlocked].filter(Boolean).length;
@@ -388,16 +401,16 @@ export default function App() {
     setFluxFilter("toate");
   };
 
-  const alertCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
-  const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
-  const gataNeridicateCount = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [claims, pragRidicare]);
-  const acceptPlataNoPartsCount = useMemo(() => claims.filter(isAcceptPlataWithoutParts).length, [claims]);
-  const inactiveCount = useMemo(() => claims.filter((c) => isInactiveClaim(c, pragInactivitate)).length, [claims, pragInactivitate]);
+  const alertCount = useMemo(() => userClaims.filter(isStageOverdue).length, [userClaims]);
+  const blockedCount = useMemo(() => userClaims.filter((c) => c.blocat).length, [userClaims]);
+  const gataNeridicateCount = useMemo(() => userClaims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [userClaims, pragRidicare]);
+  const acceptPlataNoPartsCount = useMemo(() => userClaims.filter(isAcceptPlataWithoutParts).length, [userClaims]);
+  const inactiveCount = useMemo(() => userClaims.filter((c) => isInactiveClaim(c, pragInactivitate)).length, [userClaims, pragInactivitate]);
 
   const totalAlertsCount = alertCount + blockedCount + gataNeridicateCount + acceptPlataNoPartsCount + inactiveCount;
 
   const exportExcel = () => {
-    const rows = claims.map((c) => ({
+    const rows = userClaims.map((c) => ({
       "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
       "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
       "Status": getStatusDefinition(c.status).label, "Data deschiderii": fmtDate(c.dataDeschiderii),
@@ -446,7 +459,7 @@ export default function App() {
         <div className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none">
           {[
             { id: "brief", label: "Brief Zilnic", icon: Sunrise },
-            { id: "flux", label: "Flux Operațional", icon: Layers, badge: claims.length },
+            { id: "flux", label: "Flux Operațional", icon: Layers, badge: userClaims.length },
             { id: "list", label: "Listă Dosare", icon: List },
             { id: "programator", label: "Programări", icon: CalendarClock },
             { id: "dashboard", label: "Statistici", icon: BarChart3 },
@@ -642,13 +655,13 @@ export default function App() {
               setQuickFilter={setFluxFilter}
             />
           ) : view === "brief" ? (
-            <BriefZilnic claims={claims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
+            <BriefZilnic claims={filtered} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
           ) : view === "list" ? (
             <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
           ) : view === "dashboard" ? (
             <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
           ) : view === "programator" ? (
-            <Programator claims={claims} onOpen={openExisting} onPatch={patchClaim} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+            <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => patchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
           ) : (
             <Rapoarte claims={filtered} onPatch={patchClaim} canEditFn={canEdit} />
           )}
