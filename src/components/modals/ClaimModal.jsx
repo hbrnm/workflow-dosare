@@ -355,8 +355,6 @@ export default function ClaimModal({
         c && (c.numarInmatriculare || "").trim().toUpperCase() === numarInmatriculare &&
         c.status !== "facturat"
       );
-        c.status !== "facturat"
-      );
       if (duplicat) {
         const ok = confirm(`Există deja un dosar activ pentru ${form.numarInmatriculare} (dosarul ${duplicat.numarDosar || "—"}, status „${getStatusDefinition(duplicat.status).label}"). Continui oricum?`);
         if (!ok) return;
