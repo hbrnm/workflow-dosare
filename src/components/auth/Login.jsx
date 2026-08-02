@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 
-export default function Login() {
+export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -13,23 +13,76 @@ export default function Login() {
     setLoading(true);
     setError("");
     const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
-    // 1. Încercăm conectarea cu parola
-    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+    // 1. Încercăm mai întâi conectarea cu Supabase Auth
+    const { data: authData, error: signInErr } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
 
-    if (!signInErr) {
+    if (!signInErr && authData?.session) {
+      localStorage.removeItem("workflow_dosare_custom_session");
       setLoading(false);
+      if (onLoginSuccess) onLoginSuccess(authData.session);
       return;
     }
 
-    // 2. În caz că contul nu este încă inițializat în Supabase Auth, încercăm auto-crearea
-    const { error: signUpErr } = await supabase.auth.signUp({ email: cleanEmail, password });
-    if (!signUpErr) {
-      const { error: retryErr } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-      if (!retryErr) {
-        setLoading(false);
-        return;
+    // 2. Încercăm crearea / conectarea dacă contul nu e inițializat în Supabase Auth
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password: cleanPassword,
+    });
+
+    if (!signUpErr && signUpData?.session) {
+      localStorage.removeItem("workflow_dosare_custom_session");
+      setLoading(false);
+      if (onLoginSuccess) onLoginSuccess(signUpData.session);
+      return;
+    }
+
+    // 3. Fallback: Verificăm lista de utilizatori autorizați din echipa salvată în Supabase / localStorage
+    try {
+      let teamUsers = [];
+      const localStr = localStorage.getItem("workflow_dosare_users");
+      if (localStr) {
+        teamUsers = JSON.parse(localStr);
       }
+
+      if (!teamUsers || teamUsers.length === 0) {
+        const { data: setariData } = await supabase
+          .from("setari")
+          .select("utilizatori")
+          .eq("id", 1)
+          .maybeSingle();
+        if (setariData?.utilizatori) {
+          teamUsers = setariData.utilizatori;
+        }
+      }
+
+      const matchUser = (teamUsers || []).find((u) => u.email?.toLowerCase() === cleanEmail);
+
+      if (matchUser) {
+        // Dacă utilizatorul există în echipa autorizată și parola coincide cu cea alocată de admin
+        if (!matchUser.password || matchUser.password === cleanPassword) {
+          const customSession = {
+            user: {
+              id: cleanEmail,
+              email: cleanEmail,
+            },
+          };
+          localStorage.setItem("workflow_dosare_custom_session", JSON.stringify(customSession));
+          setLoading(false);
+          if (onLoginSuccess) {
+            onLoginSuccess(customSession);
+          } else {
+            window.location.reload();
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Auth fallback error:", err);
     }
 
     setLoading(false);

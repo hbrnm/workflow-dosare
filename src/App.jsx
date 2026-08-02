@@ -55,8 +55,31 @@ export default function App() {
   const [usersList, setUsersList] = useState([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    // 1. Verificăm mai întâi dacă există sesiune de echipă salvată local
+    const storedCustom = localStorage.getItem("workflow_dosare_custom_session");
+    if (storedCustom) {
+      try {
+        const parsed = JSON.parse(storedCustom);
+        if (parsed?.user?.email) {
+          setSession(parsed);
+          setAuthLoading(false);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Verificăm sesiunea Supabase Auth
+    supabase.auth.getSession().then(({ data }) => {
+      if (data?.session && !localStorage.getItem("workflow_dosare_custom_session")) {
+        setSession(data.session);
+      }
+      setAuthLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (s && !localStorage.getItem("workflow_dosare_custom_session")) {
+        setSession(s);
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -205,12 +228,19 @@ export default function App() {
       }
     }
 
-    const updatedUsers = [...usersList, { email: cleanEmail, role: role || "operator" }];
+    const newUserObj = { email: cleanEmail, role: role || "operator", password: (password || "").trim() };
+    const updatedUsers = [...usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail), newUserObj];
     const updatedAdmins = role === "admin"
       ? [...new Set([...adminEmails, cleanEmail])]
       : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
 
     await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+  };
+
+  const handleLogout = async () => {
+    localStorage.removeItem("workflow_dosare_custom_session");
+    await supabase.auth.signOut();
+    setSession(null);
   };
 
   const handleChangePassword = async (newPassword) => {
@@ -435,7 +465,7 @@ export default function App() {
     return <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (!session) {
-    return <Login />;
+    return <Login onLoginSuccess={(s) => setSession(s)} />;
   }
 
   return (
@@ -835,7 +865,7 @@ export default function App() {
           onClose={() => setSetariOpen(false)}
           onNotify={showNotice}
           userEmail={myEmail}
-          onSignOut={() => supabase.auth.signOut()}
+          onSignOut={handleLogout}
           isAdmin={isAdmin}
           usersList={usersList}
           onAddUser={handleAddUser}
