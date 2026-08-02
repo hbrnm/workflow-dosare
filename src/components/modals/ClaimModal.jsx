@@ -724,42 +724,27 @@ export default function ClaimModal({
           </div>
         )}
 
-        {/* Notion Timeline / Stepper Header Bar */}
-        {!isNew && (
-          <div className="px-4 py-1.5 border-b border-[#DAD4C6] bg-white shrink-0">
-            <ClaimTimeline
-              currentStatus={form.status}
-              dataSchimbareStatus={form.dataSchimbareStatus}
-              istoric={istoric}
-              loading={loadingIstoric}
-            />
-          </div>
-        )}
-
         {/* MAIN BODY CONTAINER */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-[#FAF8F5]">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
 
             {/* ========================================================================= */}
-            {/* SECTION 1: NOTION PROPERTIES GRID (SUS / TOP PROPERTIES SECTION)          */}
+            {/* SECTION 1: PROPERTIES SECTION                                              */}
             {/* ========================================================================= */}
-            <div className="bg-white border-b border-[#DAD4C6] p-4 shadow-2xs space-y-4">
-              <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-2">
-                <span className="text-[11.5px] font-extrabold uppercase tracking-wider text-[#8A8375] flex items-center gap-1.5">
-                  <Tag size={14} className="text-[#C98A2B]" /> Proprietăți Pagina Dosar (Notion Grid)
-                </span>
-                <span className="text-[11px] font-semibold text-[#8A8375]">
+            <div className="bg-white border-b border-[#DAD4C6] p-3 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-end">
+                <span className="text-[10.5px] font-semibold text-[#8A8375]">
                   ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
                 </span>
               </div>
 
-              {/* Grid cu 2 Coloane Spațioase (Fără suprapuneri) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12.5px]">
+              {/* Grid cu 2 Coloane Spațioase și Compacte */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[12px]">
 
-                {/* COLOANA 1: STATUS & ASIGURARE */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3.5 space-y-3">
+                {/* COLOANA 1: DATE DOSAR */}
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
-                    <ShieldCheck size={13} className="text-[#C98A2B]" /> 1. Status &amp; Asigurare
+                    <FileText size={13} className="text-[#C98A2B]" /> 1. Date Dosar
                   </div>
 
                   {/* 1. Status & Etapă */}
@@ -768,7 +753,7 @@ export default function ClaimModal({
                       <Layers size={13} className="text-[#8A8375]" /> Status &amp; Etapă Flux
                     </label>
                     <select
-                      className="w-full font-bold text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
                       value={form.status}
                       onChange={(e) => set("status", e.target.value)}
                     >
@@ -780,13 +765,25 @@ export default function ClaimModal({
                     </select>
                   </div>
 
+                  {/* Stepper Statusuri Scrolabil mutat în locul fostului câmp de Dată */}
+                  {!isNew && (
+                    <div className="pt-1">
+                      <ClaimTimeline
+                        currentStatus={form.status}
+                        dataSchimbareStatus={form.dataSchimbareStatus}
+                        istoric={istoric}
+                        loading={loadingIstoric}
+                      />
+                    </div>
+                  )}
+
                   {/* 2. Nr. Dosar Daună */}
                   <div>
                     <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
                       <FileText size={13} className="text-[#8A8375]" /> Nr. Dosar Daună
                     </label>
                     <input
-                      className="w-full font-bold text-[13px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
                       value={form.numarDosar}
                       onChange={(e) => set("numarDosar", e.target.value)}
                       placeholder="ex: 2026-00451"
@@ -801,7 +798,7 @@ export default function ClaimModal({
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       <select
-                        className="col-span-1 font-bold text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
+                        className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
                         value={form.tipAsigurare}
                         onChange={(e) => set("tipAsigurare", e.target.value)}
                       >
@@ -809,7 +806,7 @@ export default function ClaimModal({
                         <option value="RCA">RCA</option>
                       </select>
                       <select
-                        className="col-span-2 text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E]"
+                        className="col-span-2 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E]"
                         value={form.asigurator}
                         onChange={(e) => set("asigurator", e.target.value)}
                       >
@@ -818,33 +815,10 @@ export default function ClaimModal({
                       </select>
                     </div>
                   </div>
-
-                  {/* 4. Dată Deschidere & Alertă */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Clock size={13} className="text-[#8A8375]" /> Dată Deschidere &amp; Prag Alertă
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <DatePickerInput value={form.dataDeschiderii} onChange={(v) => set("dataDeschiderii", v)} withTime={false} placeholder="zi/luna/an" />
-                      </div>
-                      <div className="flex items-center gap-1 bg-white border border-[#DAD4C6] rounded-lg px-2.5 py-1.5 shrink-0">
-                        <span className="text-[10.5px] text-[#8A8375] font-bold">Alertă:</span>
-                        <input
-                          type="number"
-                          min={1}
-                          className="w-10 text-center font-bold text-[12px] focus:outline-hidden"
-                          value={form.termenAlertaZile}
-                          onChange={(e) => set("termenAlertaZile", Number(e.target.value) || 1)}
-                        />
-                        <span className="text-[10.5px] text-[#8A8375] font-bold">zile</span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* COLOANA 2: VEHICUL & ASIGURAT */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3.5 space-y-3">
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
                     <Car size={13} className="text-[#C98A2B]" /> 2. Date Vehicul &amp; Client
                   </div>
@@ -855,7 +829,7 @@ export default function ClaimModal({
                       <Car size={13} className="text-[#8A8375]" /> Nr. Înmatriculare
                     </label>
                     <input
-                      className="w-full font-mono font-bold text-[13px] p-2 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
                       value={form.numarInmatriculare}
                       onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
                       placeholder="ex: B111AAA"
@@ -869,7 +843,7 @@ export default function ClaimModal({
                       <Tag size={13} className="text-[#8A8375]" /> Serie Șasiu (VIN 17 caractere)
                     </label>
                     <input
-                      className="w-full font-mono text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
                       value={form.vin}
                       onChange={(e) => set("vin", e.target.value.toUpperCase())}
                       maxLength={17}
@@ -883,7 +857,7 @@ export default function ClaimModal({
                       <Car size={13} className="text-[#8A8375]" /> Marcă &amp; Model Vehicul
                     </label>
                     <input
-                      className="w-full text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
                       value={form.marcaModel}
                       onChange={(e) => set("marcaModel", e.target.value)}
                       placeholder="ex: Volkswagen Passat 2.0 TDI"
@@ -897,7 +871,7 @@ export default function ClaimModal({
                         <UserIcon size={13} className="text-[#8A8375]" /> Nume Asigurat
                       </label>
                       <input
-                        className="w-full font-semibold text-[12.5px] p-2 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                        className="w-full font-semibold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
                         value={form.client}
                         onChange={(e) => set("client", e.target.value)}
                         placeholder="Nume complet client"
@@ -909,7 +883,7 @@ export default function ClaimModal({
                       </label>
                       <div className="flex items-center gap-1">
                         <input
-                          className="flex-1 font-mono text-[12px] p-2 border border-[#DAD4C6] rounded-lg bg-white"
+                          className="flex-1 font-mono text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white"
                           type="tel"
                           placeholder="07xx xxx xxx"
                           value={form.telefonClient}
@@ -917,8 +891,8 @@ export default function ClaimModal({
                         />
                         {form.telefonClient && (
                           <>
-                            <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-2 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={13} /></a>
-                            <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-2 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={13} /></a>
+                            <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
+                            <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
                           </>
                         )}
                       </div>
@@ -928,32 +902,32 @@ export default function ClaimModal({
 
               </div>
 
-              {/* Status Blocat & Motiv Callout Box (Stil Notion Callout) */}
-              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/60">
-                <label className={`flex items-center gap-2 text-[12px] cursor-pointer px-3 py-2 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
+              {/* Status Blocat & Motiv Callout Box */}
+              <div className="pt-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/60">
+                <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
                   <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> 
-                  <AlertOctagon size={15} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
+                  <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
                   <span>Marchează Dosar Blocat în Etapă</span>
                 </label>
 
                 {form.blocat && (
-                  <div className="flex-1 w-full sm:w-auto px-3.5 py-2 bg-[#B23A2E] text-white rounded-xl text-[12px] flex items-center gap-2 shadow-xs">
+                  <div className="flex-1 w-full sm:w-auto px-3 py-1.5 bg-[#B23A2E] text-white rounded-xl text-[11.5px] flex items-center gap-2 shadow-xs">
                     <span className="font-extrabold shrink-0">Motiv blocare:</span>
-                    <input className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2.5 py-1 text-white text-[12.5px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                    <input className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-0.5 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
                   </div>
                 )}
 
                 {/* Dosare Anterioare Client / VIN */}
                 {istoricClientVehicul.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
-                      <History size={12} /> {istoricClientVehicul.length} anterioare:
+                    <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
+                      <History size={11} /> {istoricClientVehicul.length} anterioare:
                     </span>
                     {istoricClientVehicul.slice(0, 3).map((c) => {
                       const s = getStatusDefinition(c.status);
                       return (
                         <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
-                          className="text-[10.5px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-1 truncate max-w-[140px]">
+                          className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-0.5 truncate max-w-[130px]">
                           {c.numarDosar || "—"} · {s.label}
                         </button>
                       );
@@ -964,20 +938,20 @@ export default function ClaimModal({
             </div>
 
             {/* ========================================================================= */}
-            {/* SECTION 2: NOTION CONTENT BLOCKS & TABS (JOS / BOTTOM CONTENT SECTION)   */}
+            {/* SECTION 2: TABS REORDERED & RENAMED                                      */}
             {/* ========================================================================= */}
-            <div className="p-4 space-y-4">
+            <div className="p-3 space-y-3">
 
               {/* Notion Tab Switcher Bar */}
-              <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#DAD4C6] shadow-2xs overflow-x-auto scrollbar-none">
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-xl border border-[#DAD4C6] shadow-2xs overflow-x-auto scrollbar-none text-[11.5px]">
                 <button
                   type="button"
                   onClick={() => setActiveTab("note")}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
                     activeTab === "note" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
                   }`}
                 >
-                  <MessageSquare size={13} /> 📝 Note &amp; Blocuri Conținut
+                  <MessageSquare size={13} /> 📝 Date Dosar
                   {form.note.length > 0 && (
                     <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
                       {form.note.length}
@@ -988,27 +962,17 @@ export default function ClaimModal({
                 <button
                   type="button"
                   onClick={() => setActiveTab("service")}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
                     activeTab === "service" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
                   }`}
                 >
-                  <Wrench size={13} /> 🔧 Service, Lucrări &amp; Auto Schimb
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("financial")}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === "financial" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
-                  }`}
-                >
-                  <Wallet size={13} /> 💰 Decontare &amp; Financiar
+                  <Wrench size={13} /> 🔧 Service &amp; Auto Schimb
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveTab("media")}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
                     activeTab === "media" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
                   }`}
                 >
@@ -1018,6 +982,16 @@ export default function ClaimModal({
                       {form.poze.length + form.documente.length}
                     </span>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("financial")}
+                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                    activeTab === "financial" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
+                  }`}
+                >
+                  <Wallet size={13} /> 💰 Financiar
                 </button>
               </div>
 
