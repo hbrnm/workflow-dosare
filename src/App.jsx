@@ -49,6 +49,7 @@ export default function App() {
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [mobileSort, setMobileSort] = useState("recent");
   const [mobileFilterSheetOpen, setMobileFilterSheetOpen] = useState(false);
+  const [navHovered, setNavHovered] = useState(false);
 
   // Admin & User Management States
   const [adminEmails, setAdminEmails] = useState([]);
@@ -472,8 +473,8 @@ export default function App() {
     <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
       <Notification notice={notice} onClose={() => setNotice(null)} />
 
-      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK (Compact Fixed Icon Dock) --- */}
-      <aside className="hidden md:flex flex-col w-[68px] bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden">
+      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
+      <aside className={`hidden md:flex flex-col ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>
 
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
@@ -487,8 +488,12 @@ export default function App() {
           </div>
         </button>
 
-        {/* Main Navigation Items */}
-        <div className="flex-1 py-4 px-2 space-y-2 overflow-y-auto overflow-x-hidden scrollbar-none">
+        {/* Main Navigation Items (Extindere automată doar la trecerea mouse-ului pe această porțiune) */}
+        <div
+          onMouseEnter={() => setNavHovered(true)}
+          onMouseLeave={() => setNavHovered(false)}
+          className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none"
+        >
           {[
             { id: "brief", label: "Brief Zilnic", icon: Sunrise },
             { id: "flux", label: "Flux Operațional", icon: Layers, badge: userClaims.length },
@@ -502,16 +507,21 @@ export default function App() {
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className={`w-full flex items-center justify-center p-2.5 rounded-xl text-[13px] font-semibold transition-all relative ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
                   active
                     ? "bg-[#C98A2B] text-white font-bold shadow-md"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
                 title={label}
               >
-                <Icon size={20} className="shrink-0" />
+                <div className="flex items-center gap-3">
+                  <Icon size={20} className="shrink-0" />
+                  <span className={`transition-all duration-200 whitespace-nowrap ${navHovered ? "opacity-100 max-w-[120px]" : "opacity-0 max-w-0 overflow-hidden"}`}>
+                    {label}
+                  </span>
+                </div>
                 {badge !== undefined && (
-                  <span className="absolute -top-1 -right-1 text-[9px] font-black bg-[#C98A2B] text-white px-1.5 py-0.2 rounded-full border border-[#1C2127]">
+                  <span className={`text-[10px] font-black bg-white/20 px-1.5 py-0.2 rounded-full transition-opacity duration-200 ${navHovered ? "opacity-100" : "opacity-0"}`}>
                     {badge}
                   </span>
                 )}
@@ -521,7 +531,7 @@ export default function App() {
         </div>
 
         {/* Bottom Profile & Settings Dock */}
-        <div className="p-2 shrink-0 space-y-1">
+        <div className="p-2 shrink-0 space-y-1 border-t border-white/10">
           <button
             onClick={() => setSetariOpen(true)}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
@@ -530,7 +540,7 @@ export default function App() {
             <div className="w-6 h-6 rounded-full bg-[#C98A2B] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
               {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
             </div>
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity truncate max-w-[120px]">
+            <span className={`transition-all duration-200 truncate max-w-[120px] ${navHovered ? "opacity-100" : "opacity-0"}`}>
               {myEmail}
             </span>
           </button>
