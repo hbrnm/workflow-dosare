@@ -1136,8 +1136,8 @@ export default function ClaimModal({
 
               {/* TAB CONTENT 2: SERVICE & REPARAȚIE */}
               {activeTab === "service" && (
-                <div className="grid md:grid-cols-2 gap-2.5">
-                  <div className="space-y-2.5">
+                <div className="grid md:grid-cols-2 gap-2">
+                  <div className="space-y-2">
                     {/* Stepper Stare Fizică */}
                     <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
@@ -1231,7 +1231,7 @@ export default function ClaimModal({
                     </div>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {/* Manoperă pe etape */}
                     <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
@@ -1280,8 +1280,8 @@ export default function ClaimModal({
 
               {/* TAB CONTENT 3: FINANCIAR */}
               {activeTab === "financial" && (
-                <div className="space-y-2.5">
-                  <div className="grid md:grid-cols-2 gap-2.5">
+                <div className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-2">
                     {/* Venituri & Facturare */}
                     <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
@@ -1446,7 +1446,7 @@ export default function ClaimModal({
 
               {/* TAB CONTENT 4: POZE & DOCUMENTE */}
               {activeTab === "media" && (
-                <div className="grid md:grid-cols-2 gap-2.5">
+                <div className="grid md:grid-cols-2 gap-2">
                   {/* Poze */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
