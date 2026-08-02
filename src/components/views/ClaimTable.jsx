@@ -2,10 +2,11 @@ import React, { useState, useMemo } from "react";
 import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
+import { Trash2 } from "lucide-react";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 
-export default function ClaimTable({ claims, onOpen, canEditFn }) {
+export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
 
@@ -70,7 +71,22 @@ export default function ClaimTable({ claims, onOpen, canEditFn }) {
                   {overdue && <AlertBadge days={days} threshold={c.termenAlertaZile || 3} />}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">{fmtDate(c.dataDeschiderii)}</td>
-                <td className="px-3 py-2">{!canEditFn(c) && <Pill tone="ghost">doar vizualizare</Pill>}</td>
+                <td className="px-3 py-2 text-right">
+                  {canEditFn(c) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onDelete && confirm("Ștergi definitiv acest dosar?")) onDelete(c.id);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#B23A2E] bg-[#FFF2F0] px-2 py-1 text-[11px] font-semibold text-[#B23A2E] hover:bg-[#FCE3E0] transition-colors"
+                    >
+                      <Trash2 size={12} /> Șterge
+                    </button>
+                  ) : (
+                    <Pill tone="ghost">doar vizualizare</Pill>
+                  )}
+                </td>
               </tr>
             );
           })}

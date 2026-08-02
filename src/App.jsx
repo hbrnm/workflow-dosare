@@ -462,7 +462,7 @@ export default function App() {
             ) : view === "brief" ? (
               <BriefZilnic claims={filteredClaims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
             ) : view === "list" ? (
-              <ClaimTable claims={filteredClaims} onOpen={openExisting} canEditFn={canEdit} />
+              <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
             ) : view === "dashboard" ? (
               <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
             ) : view === "programator" ? (
