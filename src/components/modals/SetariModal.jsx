@@ -26,7 +26,7 @@ export default function SetariModal({
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
   const [prag, setPrag] = useState(pragRidicare || 3);
   const [inactivitateDays, setInactivitateDays] = useState(pragInactivitate || 7);
-  const [tvaDefault, setTvaDefault] = useState(19);
+  const [tvaDefault, setTvaDefault] = useState(21);
   const [insurersList, setInsurersList] = useState(INSURERS);
   const [newInsurer, setNewInsurer] = useState("");
   const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);

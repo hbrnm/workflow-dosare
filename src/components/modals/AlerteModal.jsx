@@ -18,7 +18,7 @@ export default function AlerteModal({
   onOpenClaim
 }) {
   const [activeTab, setActiveTab] = useState(initialTab); // "toate" | "depasite" | "neridicate" | "accept_plata" | "inactivitate" | "blocate"
-  const [filterSeverity, setFilterSeverity] = useState("all"); // "all" | "critical" | "warning"
+  const [filterSeverity, setFilterSeverity] = useState("all"); // "all" | "critical" | "important"
 
   const overdues = useMemo(() => claims.filter(isStageOverdue), [claims]);
   const unpicked = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)), [claims, pragRidicare]);
@@ -127,15 +127,6 @@ export default function AlerteModal({
     return stream;
   }, [overdues, acceptPlataNoParts, unpicked, inactives, blocked, pragRidicare, filterSeverity]);
 
-  const tabs = [
-    { id: "toate", label: "🌟 Stream Toate", icon: Sparkles, count: totalAlertsCount, bg: "bg-gradient-to-r from-[#B23A2E] to-[#C98A2B]" },
-    { id: "depasite", label: "Termene Depășite", icon: AlertTriangle, count: overdues.length, bg: "bg-[#B23A2E]" },
-    { id: "accept_plata", label: "Accept Fără Piese", icon: ShoppingCart, count: acceptPlataNoParts.length, bg: "bg-[#2C4160]" },
-    { id: "neridicate", label: "Mașini Neridicate", icon: PackageCheck, count: unpicked.length, bg: "bg-[#C98A2B]" },
-    { id: "inactivitate", label: "Fără Activitate", icon: Clock, count: inactives.length, bg: "bg-[#7A5316]" },
-    { id: "blocate", label: "Dosare Blocate", icon: ShieldAlert, count: blocked.length, bg: "bg-[#4A5568]" },
-  ];
-
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
@@ -155,7 +146,7 @@ export default function AlerteModal({
                   {totalAlertsCount} Alerte Active
                 </span>
               </div>
-              <p className="text-[11.5px] text-white/70">Flux centralizat al tuturor atenționărilor și dosarelor prioritare</p>
+              <p className="text-[11.5px] text-white/70">Apasă pe oricare din selecțiile de mai jos pentru filtrare rapidă</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
@@ -163,93 +154,122 @@ export default function AlerteModal({
           </button>
         </div>
 
-        {/* Executive Alert Summary Cards Header */}
-        <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-4 py-2.5 grid grid-cols-2 sm:grid-cols-5 gap-2 shrink-0 text-center">
+        {/* Executive Alert Summary Card Buttons Header (Categoriile de Sus) */}
+        <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-2.5 grid grid-cols-2 sm:grid-cols-6 gap-2 shrink-0 text-center">
+          {/* Card 1: Toate Alertele */}
+          <button
+            onClick={() => { setActiveTab("toate"); setFilterSeverity("all"); }}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "toate"
+                ? "bg-gradient-to-tr from-[#1C2127] to-[#3B5166] text-white border-[#1C2127] shadow-md ring-2 ring-[#C98A2B]"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
+          >
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "toate" ? "text-[#F3D9A8]" : "text-[#3B5166]"}`}>
+              🌟 Toate Alertele
+            </span>
+            <span className="font-extrabold text-[16px]">{totalAlertsCount}</span>
+          </button>
+
+          {/* Card 2: Depășite */}
           <button
             onClick={() => { setActiveTab("depasite"); setFilterSeverity("all"); }}
-            className={`p-2 rounded-lg border transition-all ${activeTab === "depasite" ? "bg-[#B23A2E]/10 border-[#B23A2E]" : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5]"}`}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "depasite"
+                ? "bg-[#B23A2E] text-white border-[#B23A2E] shadow-md ring-2 ring-[#B23A2E]/50"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
           >
-            <span className="text-[10px] font-bold uppercase text-[#B23A2E] block truncate">🚨 Depășite</span>
-            <span className="font-extrabold text-[16px] text-[#B23A2E]">{overdues.length}</span>
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "depasite" ? "text-white" : "text-[#B23A2E]"}`}>
+              🚨 Depășite
+            </span>
+            <span className="font-extrabold text-[16px]">{overdues.length}</span>
           </button>
 
+          {/* Card 3: Fără Piese */}
           <button
             onClick={() => { setActiveTab("accept_plata"); setFilterSeverity("all"); }}
-            className={`p-2 rounded-lg border transition-all ${activeTab === "accept_plata" ? "bg-[#2C4160]/10 border-[#2C4160]" : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5]"}`}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "accept_plata"
+                ? "bg-[#2C4160] text-white border-[#2C4160] shadow-md ring-2 ring-[#2C4160]/50"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
           >
-            <span className="text-[10px] font-bold uppercase text-[#2C4160] block truncate">🛒 Fără Piese</span>
-            <span className="font-extrabold text-[16px] text-[#2C4160]">{acceptPlataNoParts.length}</span>
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "accept_plata" ? "text-white" : "text-[#2C4160]"}`}>
+              🛒 Fără Piese
+            </span>
+            <span className="font-extrabold text-[16px]">{acceptPlataNoParts.length}</span>
           </button>
 
+          {/* Card 4: Neridicate */}
           <button
             onClick={() => { setActiveTab("neridicate"); setFilterSeverity("all"); }}
-            className={`p-2 rounded-lg border transition-all ${activeTab === "neridicate" ? "bg-[#C98A2B]/10 border-[#C98A2B]" : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5]"}`}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "neridicate"
+                ? "bg-[#C98A2B] text-white border-[#C98A2B] shadow-md ring-2 ring-[#C98A2B]/50"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
           >
-            <span className="text-[10px] font-bold uppercase text-[#C98A2B] block truncate">📦 Neridicate</span>
-            <span className="font-extrabold text-[16px] text-[#C98A2B]">{unpicked.length}</span>
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "neridicate" ? "text-white" : "text-[#C98A2B]"}`}>
+              📦 Neridicate
+            </span>
+            <span className="font-extrabold text-[16px]">{unpicked.length}</span>
           </button>
 
+          {/* Card 5: Inactive */}
           <button
             onClick={() => { setActiveTab("inactivitate"); setFilterSeverity("all"); }}
-            className={`p-2 rounded-lg border transition-all ${activeTab === "inactivitate" ? "bg-[#7A5316]/10 border-[#7A5316]" : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5]"}`}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "inactivitate"
+                ? "bg-[#7A5316] text-white border-[#7A5316] shadow-md ring-2 ring-[#7A5316]/50"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
           >
-            <span className="text-[10px] font-bold uppercase text-[#7A5316] block truncate">⏱️ Inactive</span>
-            <span className="font-extrabold text-[16px] text-[#7A5316]">{inactives.length}</span>
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "inactivitate" ? "text-white" : "text-[#7A5316]"}`}>
+              ⏱️ Inactive
+            </span>
+            <span className="font-extrabold text-[16px]">{inactives.length}</span>
           </button>
 
+          {/* Card 6: Blocate */}
           <button
             onClick={() => { setActiveTab("blocate"); setFilterSeverity("all"); }}
-            className={`p-2 rounded-lg border transition-all ${activeTab === "blocate" ? "bg-[#4A5568]/10 border-[#4A5568]" : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5]"}`}
+            className={`p-2 rounded-xl border transition-all ${
+              activeTab === "blocate"
+                ? "bg-[#4A5568] text-white border-[#4A5568] shadow-md ring-2 ring-[#4A5568]/50"
+                : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
+            }`}
           >
-            <span className="text-[10px] font-bold uppercase text-[#4A5568] block truncate">⚠️ Blocate</span>
-            <span className="font-extrabold text-[16px] text-[#4A5568]">{blocked.length}</span>
+            <span className={`text-[10px] font-bold uppercase block truncate ${activeTab === "blocate" ? "text-white" : "text-[#4A5568]"}`}>
+              ⚠️ Blocate
+            </span>
+            <span className="font-extrabold text-[16px]">{blocked.length}</span>
           </button>
         </div>
 
-        {/* Navigation Tabs Bar */}
-        <div className="flex items-center justify-between border-b border-[#DAD4C6] bg-white px-3 pt-2 shrink-0 overflow-x-auto">
-          <div className="flex gap-1 overflow-x-auto pb-0.5">
-            {tabs.map(({ id, label, icon: Icon, count, bg }) => {
-              const active = activeTab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap ${
-                    active
-                      ? "border-[#C98A2B] text-[#C98A2B] bg-[#FCFAF5] rounded-t-lg shadow-xs"
-                      : "border-transparent text-[#6B6558] hover:text-[#23282E]"
-                  }`}
-                >
-                  <Icon size={14} />
-                  <span>{label}</span>
-                  <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full text-white ${bg}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {activeTab === "toate" && (
-            <div className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-[#8A8375]">
-              <Filter size={12} />
-              <span>Filtrează urgența:</span>
+        {/* Sub-bar Opțional de Filtrare după Urgență pentru Stream Toate */}
+        {activeTab === "toate" && (
+          <div className="flex items-center justify-between border-b border-[#DAD4C6] bg-white px-4 py-2 text-[12px] font-semibold shrink-0">
+            <span className="text-[#8A8375] font-bold flex items-center gap-1.5">
+              <Sparkles size={14} className="text-[#C98A2B]" /> Flux Unificat ordonat după urgență
+            </span>
+            <div className="flex items-center gap-1">
+              <Filter size={12} className="text-[#8A8375]" />
               <button
                 onClick={() => setFilterSeverity("all")}
-                className={`px-2 py-0.5 rounded ${filterSeverity === "all" ? "bg-[#23282E] text-white font-bold" : "hover:bg-[#EFEAE1]"}`}
+                className={`px-2 py-0.5 rounded text-[11px] ${filterSeverity === "all" ? "bg-[#23282E] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"}`}
               >
                 Toate ({totalAlertsCount})
               </button>
               <button
                 onClick={() => setFilterSeverity("critical")}
-                className={`px-2 py-0.5 rounded ${filterSeverity === "critical" ? "bg-[#B23A2E] text-white font-bold" : "hover:bg-[#EFEAE1]"}`}
+                className={`px-2 py-0.5 rounded text-[11px] ${filterSeverity === "critical" ? "bg-[#B23A2E] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"}`}
               >
-                Critical ({overdues.length})
+                Critice ({overdues.length})
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content Stream Body */}
         <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2.5">

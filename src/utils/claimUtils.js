@@ -15,7 +15,7 @@ export function emptyClaim(status = "primit") {
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
-    financiar: { tvaProc: 19, pieseFacturateFaraTva: 0, costManoperaInterna: 0, costuriExterne: 0, costMasinaSchimb: 0, numarFactura: "", dataFactura: null },
+    financiar: { tvaProc: 21, pieseFacturateFaraTva: 0, costManoperaInterna: 0, costuriExterne: 0, costMasinaSchimb: 0, numarFactura: "", dataFactura: null },
     blocat: false, motivBlocare: "",
     createdBy: null, createdByEmail: "", updatedByEmail: "",
     poze: [],
@@ -51,7 +51,7 @@ export function sanitizeClaim(c) {
     valoarePieseAudatex: Number(c.valoarePieseAudatex) || 0,
     valoareAchizitiePiese: Number(c.valoareAchizitiePiese) || 0,
     financiar: {
-      tvaProc: Number(c.financiar?.tvaProc ?? 19),
+      tvaProc: Number(c.financiar?.tvaProc ?? 21),
       pieseFacturateFaraTva: Number(c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex) || 0,
       costManoperaInterna: Number(c.financiar?.costManoperaInterna) || 0,
       costuriExterne: Number(c.financiar?.costuriExterne) || 0,
