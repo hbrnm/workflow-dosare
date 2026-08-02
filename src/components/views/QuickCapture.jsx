@@ -3,7 +3,6 @@ import {
   X, ChevronLeft, Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
   Trash2, CheckCircle2, FolderOpen, Plus
 } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { supabase } from "../../supabaseClient";
 import { getStatusDefinition, MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR } from "../../constants/config";
 import { uid } from "../../utils/dateUtils";

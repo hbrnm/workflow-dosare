@@ -1,4 +1,8 @@
-import { jsPDF } from "jspdf";
+async function createPdf(options = {}) {
+  const { jsPDF } = await import("jspdf");
+  return new jsPDF(options);
+}
+
 import { getStatusDefinition } from "../constants/config";
 import { fmtDateTime, fmtDate } from "./dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "./claimUtils";
@@ -14,8 +18,8 @@ function stripDiacritics(str) {
 
 const sd = (t) => stripDiacritics(t || "—");
 
-export function generateazaPDF(claim, istoric = []) {
-  const doc = new jsPDF();
+export async function generateazaPDF(claim, istoric = []) {
+  const doc = await createPdf();
   const s = getStatusDefinition(claim.status);
   let y = 20;
 
@@ -98,8 +102,8 @@ export function generateazaPDF(claim, istoric = []) {
   doc.save(`dosar-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
 }
 
-export function generateazaProcesVerbalMasinaSchimb(claim) {
-  const doc = new jsPDF();
+export async function generateazaProcesVerbalMasinaSchimb(claim) {
+  const doc = await createPdf();
   let y = 20;
 
   // Header Title
@@ -201,8 +205,8 @@ export function generateazaProcesVerbalMasinaSchimb(claim) {
   doc.save(`proces-verbal-auto-schimb-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
 }
 
-export function generateazaFisaIntrareService(claim) {
-  const doc = new jsPDF();
+export async function generateazaFisaIntrareService(claim) {
+  const doc = await createPdf();
   let y = 20;
 
   // Header Title

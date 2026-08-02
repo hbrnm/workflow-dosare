@@ -15,7 +15,6 @@ import {
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
 } from "../../utils/pdfGenerator";
-import { jsPDF } from "jspdf";
 import { supabase } from "../../supabaseClient";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
@@ -593,6 +592,7 @@ export default function ClaimModal({
     setUploadingPoze(true);
     try {
       if (scanSession.saveAsPdf) {
+        const { jsPDF } = await import("jspdf");
         const pdf = new jsPDF({ unit: "pt", format: "a4" });
         for (let i = 0; i < scanSession.pages.length; i++) {
           const pageDataUrl = scanSession.pages[i];
@@ -682,7 +682,7 @@ export default function ClaimModal({
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => generateazaPDF(form, istoric)}
+                  onClick={async () => await generateazaPDF(form, istoric)}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
                 >
@@ -690,7 +690,7 @@ export default function ClaimModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => generateazaFisaIntrareService(form)}
+                  onClick={async () => await generateazaFisaIntrareService(form)}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
                 >

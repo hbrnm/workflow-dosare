@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import * as XLSX from "xlsx";
 import { todayISO, fmtDate } from "../utils/dateUtils";
 import { getStatusDefinition } from "../constants/config";
 
 export function useExportExcel(claims = []) {
-  const exportExcel = useCallback(() => {
+  const exportExcel = useCallback(async () => {
+    const XLSX = await import("xlsx");
     const rows = claims.map((c) => ({
       "Nr. dosar": c.numarDosar,
       Tip: c.tipAsigurare,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
   AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
@@ -10,16 +10,16 @@ import { useExportExcel } from "./hooks/useExportExcel";
 import { emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
-import TablouPeFaze from "./components/views/FluxOperational";
-import BriefZilnic from "./components/views/BriefZilnic";
-import ClaimTable from "./components/views/ClaimTable";
-import Dashboard from "./components/views/Dashboard";
-import Programator from "./components/views/Programator";
-import Rapoarte from "./components/views/Rapoarte";
-import QuickCapture from "./components/views/QuickCapture";
-import ClaimModal from "./components/modals/ClaimModal";
-import SetariModal from "./components/modals/SetariModal";
-import AlerteModal from "./components/modals/AlerteModal";
+const TablouPeFaze = lazy(() => import("./components/views/FluxOperational"));
+const BriefZilnic = lazy(() => import("./components/views/BriefZilnic"));
+const ClaimTable = lazy(() => import("./components/views/ClaimTable"));
+const Dashboard = lazy(() => import("./components/views/Dashboard"));
+const Programator = lazy(() => import("./components/views/Programator"));
+const Rapoarte = lazy(() => import("./components/views/Rapoarte"));
+const QuickCapture = lazy(() => import("./components/views/QuickCapture"));
+const ClaimModal = lazy(() => import("./components/modals/ClaimModal"));
+const SetariModal = lazy(() => import("./components/modals/SetariModal"));
+const AlerteModal = lazy(() => import("./components/modals/AlerteModal"));
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
@@ -584,66 +584,68 @@ export default function App() {
       )}
 
       {/* --- MODALS & OVERLAYS --- */}
-      {modalClaim && (
-        <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={closeClaimModal}>
-          <ClaimModal
-            claim={modalClaim}
-            onClose={closeClaimModal}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
-            allClaims={claims}
+      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
+        {modalClaim && (
+          <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={closeClaimModal}>
+            <ClaimModal
+              claim={modalClaim}
+              onClose={closeClaimModal}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
+              allClaims={claims}
+              insurersList={customInsurers}
+              onJumpTo={openExisting}
+              onNotify={showNotice}
+            />
+          </ErrorBoundary>
+        )}
+
+        {alerteModalTab && (
+          <AlerteModal
+            claims={claims}
+            initialTab={alerteModalTab}
+            pragRidicare={pragRidicare}
+            pragInactivitate={pragInactivitate}
+            onClose={closeAlerts}
+            onOpenClaim={openExisting}
+          />
+        )}
+
+        {setariOpen && (
+          <SetariModal
+            claims={claims}
+            capacitateZilnica={capacitateZilnica}
+            pragRidicare={pragRidicare}
+            pragInactivitate={pragInactivitate}
             insurersList={customInsurers}
-            onJumpTo={openExisting}
+            onSaveInsurers={saveInsurers}
+            onSaveCapacitate={saveCapacitate}
+            onSavePrag={savePragRidicare}
+            onSavePragInactivitate={savePragInactivitate}
+            onClose={closeSettings}
+            onNotify={showNotice}
+            userEmail={myEmail}
+            onSignOut={handleLogout}
+            isAdmin={isAdmin}
+            usersList={usersList}
+            onAddUser={handleAddUser}
+            onDeleteUser={handleDeleteUser}
+            onToggleAdminRole={handleToggleAdminRole}
+            onChangePassword={handleChangePassword}
+          />
+        )}
+
+        {quickCaptureOpen && (
+          <QuickCapture
+            claims={claims}
+            onClose={closeQuickCapture}
+            onPatch={handlePatchClaim}
+            canEditFn={canEdit}
             onNotify={showNotice}
           />
-        </ErrorBoundary>
-      )}
-
-      {alerteModalTab && (
-        <AlerteModal
-          claims={claims}
-          initialTab={alerteModalTab}
-          pragRidicare={pragRidicare}
-          pragInactivitate={pragInactivitate}
-          onClose={closeAlerts}
-          onOpenClaim={openExisting}
-        />
-      )}
-
-      {setariOpen && (
-        <SetariModal
-          claims={claims}
-          capacitateZilnica={capacitateZilnica}
-          pragRidicare={pragRidicare}
-          pragInactivitate={pragInactivitate}
-          insurersList={customInsurers}
-          onSaveInsurers={saveInsurers}
-          onSaveCapacitate={saveCapacitate}
-          onSavePrag={savePragRidicare}
-          onSavePragInactivitate={savePragInactivitate}
-          onClose={closeSettings}
-          onNotify={showNotice}
-          userEmail={myEmail}
-          onSignOut={handleLogout}
-          isAdmin={isAdmin}
-          usersList={usersList}
-          onAddUser={handleAddUser}
-          onDeleteUser={handleDeleteUser}
-          onToggleAdminRole={handleToggleAdminRole}
-          onChangePassword={handleChangePassword}
-        />
-      )}
-
-      {quickCaptureOpen && (
-        <QuickCapture
-          claims={claims}
-          onClose={closeQuickCapture}
-          onPatch={handlePatchClaim}
-          canEditFn={canEdit}
-          onNotify={showNotice}
-        />
-      )}
+        )}
+      </Suspense>
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
