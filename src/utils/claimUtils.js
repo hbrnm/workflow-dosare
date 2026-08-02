@@ -104,6 +104,18 @@ export async function refreshStorageUrls(items = [], bucketName, supabase) {
   );
 }
 
+export async function uploadStorageItem(supabase, bucketName, claimId, file, folder) {
+  const path = storagePath(claimId, file, folder);
+  const { error } = await supabase.storage.from(bucketName).upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data: signed, error: signedError } = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60);
+  if (signedError) {
+    await supabase.storage.from(bucketName).remove([path]);
+    throw signedError;
+  }
+  return { id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() };
+}
+
 export function toDb(c) {
   return {
     id: c.id,
