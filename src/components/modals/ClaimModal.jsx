@@ -941,10 +941,10 @@ export default function ClaimModal({
             {/* ========================================================================= */}
             {/* SECTION 2: TABS REORDERED & RENAMED                                      */}
             {/* ========================================================================= */}
-            <div className="p-2.5 space-y-2.5">
+            <div className="p-2 space-y-2">
 
               {/* Notion Tab Switcher Bar */}
-              <div className="flex items-center gap-1.5 bg-white p-1 rounded-lg border border-[#DAD4C6] shadow-sm overflow-x-auto scrollbar-none text-[10.5px]">
+              <div className="flex items-center gap-1.5 bg-white p-0.5 rounded-lg border border-[#DAD4C6] shadow-sm overflow-x-auto scrollbar-none text-[10.5px]">
                 <button
                   type="button"
                   onClick={() => setActiveTab("note")}
@@ -1005,7 +1005,7 @@ export default function ClaimModal({
                       <FileText size={14} className="text-[#C98A2B]" /> Descriere Operațiuni &amp; Ce este de reparat
                     </label>
                     <textarea
-                      className="w-full p-3 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B] min-h-[85px]"
+                      className="w-full p-2.5 border border-[#DAD4C6] rounded-lg text-[12.5px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B] min-h-[70px]"
                       placeholder="Ex: Aripă dreapta față + ușă — îndreptat și vopsit; sau doar înlocuit parbriz..."
                       value={form.ceEsteDeReparat}
                       onChange={(e) => set("ceEsteDeReparat", e.target.value)}
@@ -1013,7 +1013,7 @@ export default function ClaimModal({
                   </div>
 
                   {/* Note Interne & Slash Commands Bar */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                     <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
                         <Sparkles size={14} className="text-[#C98A2B]" /> Notițe Interne Echipa ({form.note.length})
@@ -1089,7 +1089,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* Lista Notițelor (Stilizate ca Notion Callout Blocks) */}
-                    <div className="space-y-1.5 pt-1 max-h-60 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 pt-0.5 max-h-44 overflow-y-auto pr-1">
                       {form.note.map((n) => {
                         const isAlert = n.text.includes("[ALERTĂ]");
                         const isParts = n.text.includes("[PIESE]");
@@ -1149,7 +1149,7 @@ export default function ClaimModal({
                         )}
                       </div>
 
-                      <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-2 flex flex-col sm:flex-row items-center justify-between gap-1.5 text-[11.5px]">
+                      <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-1.5 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
                         <button
                           type="button"
                           onClick={() => set("adusaFizic", !form.adusaFizic)}
@@ -1191,7 +1191,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* Mașină la Schimb */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                         <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
                         {!isNew && form.masinaSchimb && (
@@ -1201,7 +1201,7 @@ export default function ClaimModal({
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div>
                           <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Nr. Mașină la schimb</label>
                           <input className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[12.5px] font-semibold bg-[#FAF8F5]" placeholder="lasă gol dacă nu" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} />
@@ -1233,7 +1233,7 @@ export default function ClaimModal({
 
                   <div className="space-y-2">
                     {/* Manoperă pe etape */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
                         <Paintbrush size={14} /> Manoperă Facturată pe Etape
                       </div>
@@ -1283,7 +1283,7 @@ export default function ClaimModal({
                 <div className="space-y-2">
                   <div className="grid md:grid-cols-2 gap-2">
                     {/* Venituri & Facturare */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                         <span className="flex items-center gap-1.5"><Wallet size={14} /> Facturare (Venituri Dosar)</span>
                       </div>
@@ -1364,7 +1364,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* Costuri Reale */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                         <span className="flex items-center gap-1.5">💸 Costuri Directe Service</span>
                       </div>
@@ -1405,13 +1405,13 @@ export default function ClaimModal({
                   </div>
 
                   {/* Summary KPI Card */}
-                  <div className="p-2.5 rounded-xl border border-[#DAD4C6] bg-white shadow-sm">
-                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-2 mb-3 flex items-center justify-between">
+                  <div className="p-2 rounded-xl border border-[#DAD4C6] bg-white shadow-sm">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-2 flex items-center justify-between">
                       <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
                       <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                       <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6]">
                         <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
                         <div className="text-[15px] font-mono font-bold text-[#2C4160] mt-0.5">
@@ -1465,7 +1465,7 @@ export default function ClaimModal({
                     </div>
 
                     {form.poze.length > 0 ? (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-80 overflow-y-auto pr-1">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
                         {form.poze.map((p) => (
                           <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
                             <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
@@ -1501,7 +1501,7 @@ export default function ClaimModal({
                       </label>
                     </div>
 
-                    <div className="space-y-1.5 max-h-80 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
                       {form.documente.map((d) => (
                         <div key={d.id} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
