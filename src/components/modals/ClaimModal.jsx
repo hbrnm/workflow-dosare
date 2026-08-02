@@ -33,6 +33,15 @@ function NotionPropertyRow({ icon: Icon, label, children, full }) {
   );
 }
 
+const SLASH_COMMANDS = [
+  { cmd: "/alerta", label: "Alertă / Urgență", prefix: "[ALERTĂ]: ", icon: "🚨", color: "bg-red-50 text-[#B23A2E] border-red-200" },
+  { cmd: "/piese", label: "Comandă / Statut Piese", prefix: "[PIESE]: ", icon: "📦", color: "bg-amber-50 text-[#7A5316] border-amber-200" },
+  { cmd: "/schimb", label: "Auto la Schimb", prefix: "[AUTO SCHIMB]: ", icon: "🚗", color: "bg-blue-50 text-[#2C4160] border-blue-200" },
+  { cmd: "/apel", label: "Apel efectuat Client / Asigurător", prefix: "[APEL CLIENT]: ", icon: "📞", color: "bg-emerald-50 text-[#3E6B45] border-emerald-200" },
+  { cmd: "/deviz", label: "Deviz & Reconstatare", prefix: "[DEVIZ]: ", icon: "📋", color: "bg-purple-50 text-[#6B21A8] border-purple-200" },
+  { cmd: "/lucrare", label: "Stadiu Reparație Atelier", prefix: "[STADIU LUCRĂRI]: ", icon: "🔧", color: "bg-[#EEF1F3] text-[#3B5166] border-[#DAD4C6]" },
+];
+
 export function compressColorImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -173,11 +182,61 @@ export default function ClaimModal({
   const [form, setForm] = useState(safeClaim);
   const [activeTab, setActiveTab] = useState("note");
   const [noteText, setNoteText] = useState("");
+  const [slashIndex, setSlashIndex] = useState(0);
+  const noteInputRef = useRef(null);
   const [scanSession, setScanSession] = useState(null);
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
+
+  const filteredSlashCommands = useMemo(() => {
+    if (!noteText.includes("/")) return [];
+    const query = noteText.slice(noteText.lastIndexOf("/")).toLowerCase();
+    return SLASH_COMMANDS.filter(
+      (c) => c.cmd.startsWith(query) || c.label.toLowerCase().includes(query.slice(1)) || c.prefix.toLowerCase().includes(query.slice(1))
+    );
+  }, [noteText]);
+
+  const applySlashCommand = (prefix) => {
+    const lastSlashIndex = noteText.lastIndexOf("/");
+    const baseText = lastSlashIndex >= 0 ? noteText.slice(0, lastSlashIndex) : "";
+    setNoteText(baseText + prefix);
+    if (noteInputRef.current) {
+      noteInputRef.current.focus();
+    }
+  };
+
+  const handleNoteKeyDown = (e) => {
+    if (filteredSlashCommands.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex((prev) => (prev + 1) % filteredSlashCommands.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((prev) => (prev - 1 + filteredSlashCommands.length) % filteredSlashCommands.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        const selected = filteredSlashCommands[slashIndex] || filteredSlashCommands[0];
+        if (selected) {
+          applySlashCommand(selected.prefix);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        setNoteText((prev) => prev.replace(/\/[a-zA-Z]*$/, ""));
+        return;
+      }
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addNote();
+    }
+  };
 
   const isNew = !safeClaim.numarDosar && (safeClaim.note || []).length === 0 && (safeClaim.documente || []).length === 0;
 
@@ -936,40 +995,69 @@ export default function ClaimModal({
 
                     {/* Quick Slash Commands Presets */}
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
-                      <span className="text-[10.5px] text-[#8A8375] font-bold uppercase mr-1">Meniu Rapid /:</span>
-                      <button type="button" onClick={() => insertSlashCommand("[ALERTĂ]: ")} className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-[#B23A2E] text-[11px] font-bold rounded-lg border border-red-200 transition-colors">
-                        🚨 /alerta
-                      </button>
-                      <button type="button" onClick={() => insertSlashCommand("[PIESE]: ")} className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-[#7A5316] text-[11px] font-bold rounded-lg border border-amber-200 transition-colors">
-                        📦 /piese
-                      </button>
-                      <button type="button" onClick={() => insertSlashCommand("[AUTO SCHIMB]: ")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-[#2C4160] text-[11px] font-bold rounded-lg border border-blue-200 transition-colors">
-                        🚗 /schimb
-                      </button>
-                      <button type="button" onClick={() => insertSlashCommand("[APEL CLIENT]: ")} className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#3E6B45] text-[11px] font-bold rounded-lg border border-emerald-200 transition-colors">
-                        📞 /apel
-                      </button>
-                      <button type="button" onClick={() => insertSlashCommand("[DEVIZ]: ")} className="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-[#6B21A8] text-[11px] font-bold rounded-lg border border-purple-200 transition-colors">
-                        📋 /deviz
-                      </button>
+                      <span className="text-[10.5px] text-[#8A8375] font-bold uppercase mr-1">Comenzi /:</span>
+                      {SLASH_COMMANDS.map((item) => (
+                        <button
+                          key={item.cmd}
+                          type="button"
+                          onClick={() => applySlashCommand(item.prefix)}
+                          className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border transition-all ${item.color} hover:opacity-80`}
+                        >
+                          {item.icon} {item.cmd}
+                        </button>
+                      ))}
                     </div>
 
-                    {/* Textarea adăugare notă */}
-                    <div className="flex gap-2">
+                    {/* Input adăugare notă cu meniu popup interactiv pentru / */}
+                    <div className="relative flex gap-2">
                       <input
+                        ref={noteInputRef}
                         className="flex-1 p-2.5 border border-[#DAD4C6] rounded-xl text-[13px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
-                        placeholder="Adaugă o notă sau folosește comenzile de mai sus..."
+                        placeholder="Adaugă o notă (tastează / pentru meniul rapid de comenzi Notion)..."
                         value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addNote()}
+                        onChange={(e) => {
+                          setNoteText(e.target.value);
+                          setSlashIndex(0);
+                        }}
+                        onKeyDown={handleNoteKeyDown}
                       />
                       <button
                         type="button"
                         onClick={() => addNote()}
-                        className="px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[12.5px] rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                        className="px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[12.5px] rounded-xl shadow-xs transition-colors flex items-center gap-1.5 shrink-0"
                       >
                         <Plus size={15} /> Adaugă
                       </button>
+
+                      {/* Dropdown Meniu Flotant Comenzi Slash (Notion Style) */}
+                      {filteredSlashCommands.length > 0 && (
+                        <div className="absolute left-0 bottom-full mb-1.5 w-80 bg-white border border-[#DAD4C6] rounded-xl shadow-2xl z-30 p-1.5 space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                          <div className="px-2.5 py-1 text-[10px] font-extrabold text-[#8A8375] uppercase border-b border-[#DAD4C6]/40 flex items-center justify-between">
+                            <span className="flex items-center gap-1"><Sparkles size={11} className="text-[#C98A2B]" /> Comenzi Notion Slash /</span>
+                            <span className="font-mono text-[#3B5166]">Enter ↵</span>
+                          </div>
+                          {filteredSlashCommands.map((item, idx) => (
+                            <button
+                              key={item.cmd}
+                              type="button"
+                              onClick={() => applySlashCommand(item.prefix)}
+                              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left text-[12px] font-semibold transition-all ${
+                                idx === slashIndex
+                                  ? "bg-[#F3D9A8]/40 border border-[#C98A2B]/40 text-[#23282E] shadow-xs"
+                                  : "hover:bg-[#FAF8F5] text-[#23282E]"
+                              }`}
+                            >
+                              <span className="text-[16px] shrink-0">{item.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold flex items-center gap-1.5">
+                                  <span className="font-mono text-[#C98A2B] text-[12px]">{item.cmd}</span>
+                                  <span className="text-[11px] font-medium text-[#6B6558] truncate">{item.label}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Lista Notițelor (Stilizate ca Notion Callout Blocks) */}
