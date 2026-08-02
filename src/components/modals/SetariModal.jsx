@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  X, Settings, CheckCircle2, CalendarClock, Database, Wrench, Percent
+  X, Settings, User, Building, Database, Bell, Wrench, Download,
+  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight
 } from "lucide-react";
+import { INSURERS, STATUSES } from "../../constants/config";
+import * as XLSX from "xlsx";
+import { todayISO } from "../../utils/dateUtils";
 
 export default function SetariModal({
   claims = [],
@@ -11,16 +15,26 @@ export default function SetariModal({
   onSavePrag,
   onClose,
   onNotify,
-  userEmail
+  userEmail,
+  onSignOut
 }) {
-  const [activeTab, setActiveTab] = useState("config"); // "config" | "sistem"
+  const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
 
-  // Local state form for thresholds
+  // Form states
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
   const [prag, setPrag] = useState(pragRidicare || 3);
   const [tvaDefault, setTvaDefault] = useState(19);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [viewDefault, setViewDefault] = useState("flux");
+  const [insurersList, setInsurersList] = useState(INSURERS);
+  const [newInsurer, setNewInsurer] = useState("");
+  const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
+  const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Statistics
+  const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);
+  const totalDocumente = useMemo(() => claims.reduce((acc, c) => acc + (c.documente?.length || 0), 0), [claims]);
+  const totalBlocate = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
@@ -41,21 +55,54 @@ export default function SetariModal({
     }
   };
 
+  const handleAddInsurer = () => {
+    const val = newInsurer.trim();
+    if (!val) return;
+    if (insurersList.includes(val)) {
+      onNotify("Acest asigurător există deja în listă.", "error");
+      return;
+    }
+    setInsurersList((prev) => [...prev, val].sort());
+    setNewInsurer("");
+    onNotify(`Asigurătorul „${val}" a fost adăugat.`, "success");
+  };
+
+  const handleRemoveInsurer = (name) => {
+    setInsurersList((prev) => prev.filter((i) => i !== name));
+    onNotify(`Asigurătorul „${name}" a fost eliminat.`, "info");
+  };
+
+  const exportFullBackupJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(claims, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `backup-workflow-dosare-${todayISO()}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-[#FCFAF5] w-full max-w-2xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
 
-        {/* Header */}
+        {/* Header cu ecuson Utilizator */}
         <div className="flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#C98A2B] flex items-center justify-center text-white">
-              <Settings size={18} />
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center text-white font-bold text-[14px] shadow-sm">
+              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
             <div>
-              <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Setări Sistem &amp; Configurare
-              </h2>
-              <p className="text-[11px] text-white/60">Configurare parametri aplicație și diagnoză</p>
+              <div className="flex items-center gap-2">
+                <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Centrul de Administrare &amp; Setări
+                </h2>
+                <span className="bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/40 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  Admin
+                </span>
+              </div>
+              <p className="text-[11px] text-white/60">Conectat ca: <span className="text-white font-semibold">{userEmail || "Neautentificat"}</span></p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
@@ -64,119 +111,111 @@ export default function SetariModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-4 pt-2 gap-2 shrink-0">
+        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-3 pt-2 gap-1 shrink-0 overflow-x-auto">
           {[
-            { id: "config", label: "Parametri & Praguri", icon: Wrench },
-            { id: "sistem", label: "Sistem & Diagnoză", icon: Database },
-          ].map(({ id, label, icon: Icon }) => {
+            { id: "general", label: "Parametri Generali", icon: Wrench },
+            { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
+            { id: "notificari", label: "Afișare & Alerte", icon: Bell },
+            { id: "profil", label: "Profil Utilizator", icon: User },
+            { id: "diagnoza", label: "Diagnoză & Backup", icon: Database },
+          ].map(({ id, label, icon: Icon, badge }) => {
             const active = activeTab === id;
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 text-[12.5px] font-bold border-b-2 transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap ${
                   active
                     ? "border-[#C98A2B] text-[#C98A2B] bg-white rounded-t-lg shadow-xs"
                     : "border-transparent text-[#6B6558] hover:text-[#23282E]"
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 <span>{label}</span>
+                {badge !== undefined && (
+                  <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full ${active ? "bg-[#C98A2B] text-white" : "bg-[#DAD4C6] text-[#23282E]"}`}>
+                    {badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
 
-          {/* TAB 1: PARAMETRI & CONFIGURARE */}
-          {activeTab === "config" && (
+          {/* TAB 1: PARAMETRI GENERALI & ATELIER */}
+          {activeTab === "general" && (
             <form onSubmit={handleSaveConfig} className="space-y-4">
               <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <CalendarClock size={16} className="text-[#C98A2B]" /> Praguri Alerte &amp; Capacitate Atelier
+                  <Wrench size={16} className="text-[#C98A2B]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Prag mașini neridicate */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
-                    <label className="block text-[12px] font-bold text-[#23282E] mb-1">
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[#23282E]">
                       Prag alertă mașini neridicate (zile)
                     </label>
-                    <p className="text-[11px] text-[#8A8375] mb-2">
-                      După câte zile de la finalizare se declanșează alerta portocalie.
+                    <p className="text-[11px] text-[#8A8375]">
+                      După câte zile de la finalizarea reparației se declanșează alerta pentru mașinile neridicate.
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-1">
                       <input
                         type="number"
                         min="1"
                         max="30"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-md font-bold text-[14px] bg-white"
+                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
                         value={prag}
                         onChange={(e) => setPrag(e.target.value)}
                       />
-                      <span className="text-[12px] font-semibold text-[#6B6558]">zile</span>
+                      <span className="text-[12.5px] font-bold text-[#6B6558]">zile de la finalizare</span>
                     </div>
                   </div>
 
                   {/* Capacitate zilnică programator */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
-                    <label className="block text-[12px] font-bold text-[#23282E] mb-1">
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[#23282E]">
                       Capacitate maximă programări pe zi
                     </label>
-                    <p className="text-[11px] text-[#8A8375] mb-2">
-                      Numărul maxim de mașini ce pot fi programate pe o zi în atelier.
+                    <p className="text-[11px] text-[#8A8375]">
+                      Limita de dosare ce pot fi programate într-o singură zi în calendarul service-ului.
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pt-1">
                       <input
                         type="number"
                         min="1"
                         max="20"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-md font-bold text-[14px] bg-white"
+                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
                         value={capacitate}
                         onChange={(e) => setCapacitate(e.target.value)}
                       />
-                      <span className="text-[12px] font-semibold text-[#6B6558]">mașini / zi</span>
+                      <span className="text-[12.5px] font-bold text-[#6B6558]">mașini / zi</span>
                     </div>
                   </div>
                 </div>
 
                 {/* TVA Implicit */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
-                  <label className="block text-[12px] font-bold text-[#23282E] mb-1">
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
+                  <label className="block text-[12.5px] font-bold text-[#23282E]">
                     Cotă TVA implicită (%)
                   </label>
-                  <p className="text-[11px] text-[#8A8375] mb-2">
-                    Procentul de TVA aplicat automat la calculul veniturilor financiare.
+                  <p className="text-[11px] text-[#8A8375]">
+                    Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 pt-1">
                     <input
                       type="number"
                       min="0"
                       max="100"
-                      className="w-24 p-2 border border-[#DAD4C6] rounded-md font-bold text-[14px] bg-white"
+                      className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
                       value={tvaDefault}
                       onChange={(e) => setTvaDefault(e.target.value)}
                     />
-                    <span className="text-[12px] font-semibold text-[#6B6558]">%</span>
+                    <span className="text-[12.5px] font-bold text-[#6B6558]">% TVA</span>
                   </div>
-                </div>
-
-                {/* Notificări vizuale */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div>
-                      <span className="block text-[12px] font-bold text-[#23282E]">Semnalizare vizuală alerte în antet</span>
-                      <span className="block text-[11px] text-[#8A8375]">Bara superioară va evidenția dosarele cu întârziere sau fără piese</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={soundEnabled}
-                      onChange={(e) => setSoundEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C98A2B]"
-                    />
-                  </label>
                 </div>
               </div>
 
@@ -184,44 +223,178 @@ export default function SetariModal({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-5 py-2.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-6 py-2.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
                 >
-                  <CheckCircle2 size={16} /> Salvează Setările
+                  <CheckCircle2 size={16} /> Salvează Parametrii
                 </button>
               </div>
             </form>
           )}
 
-          {/* TAB 2: SISTEM & DIAGNOZĂ */}
-          {activeTab === "sistem" && (
+          {/* TAB 2: MANAGEMENT ASIGURĂTORI */}
+          {activeTab === "asiguratori" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                  <h3 className="font-bold text-[14px] text-[#23282E] flex items-center gap-2">
+                    <Building size={16} className="text-[#C98A2B]" /> Nomenclator Asigurători ({insurersList.length})
+                  </h3>
+                  <span className="text-[11px] text-[#8A8375] font-semibold">Lista societăților de asigurare</span>
+                </div>
+
+                {/* Adăugare Asigurător Nou */}
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 px-3 py-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white"
+                    placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
+                    value={newInsurer}
+                    onChange={(e) => setNewInsurer(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddInsurer(); } }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddInsurer}
+                    className="flex items-center gap-1 px-4 py-2 bg-[#3B5166] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#2C4160]"
+                  >
+                    <Plus size={15} /> Adaugă
+                  </button>
+                </div>
+
+                {/* Grilă Asigurători */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                  {insurersList.map((ins) => (
+                    <div key={ins} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12.5px]">
+                      <span className="font-semibold text-[#23282E] truncate">{ins}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveInsurer(ins)}
+                        className="text-[#8A8375] hover:text-[#B23A2E] p-1 transition-colors"
+                        title="Șterge din listă"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
+          {activeTab === "notificari" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Database size={16} className="text-[#3B5166]" /> Informații Conexiune &amp; Supabase
+                  <Bell size={16} className="text-[#C98A2B]" /> Preferințe Notificări &amp; Vizualizare
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12.5px]">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
-                    <span className="text-[#8A8375] block text-[10.5px] uppercase font-bold">Utilizator Logat</span>
-                    <span className="font-bold text-[#23282E]">{userEmail || "—"}</span>
+                <div className="space-y-3">
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <span className="block text-[13px] font-bold text-[#23282E]">Evidențiere pulsantă pentru alertele critice</span>
+                      <span className="block text-[11px] text-[#8A8375]">Butoanele din antet vor lumina pulsatoriu când există întârzieri pe etapă</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={visualPulseEnabled}
+                      onChange={(e) => setVisualPulseEnabled(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#C98A2B]"
+                    />
                   </div>
 
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
-                    <span className="text-[#8A8375] block text-[10.5px] uppercase font-bold">Status Conexiune DB</span>
-                    <span className="font-bold text-[#3E6B45] flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-[#3E6B45] inline-block animate-ping" /> Conectat Supabase Cloud
+                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
+                    <div>
+                      <span className="block text-[13px] font-bold text-[#23282E]">Mod afișare compact pe mobil</span>
+                      <span className="block text-[11px] text-[#8A8375]">Reduce spațierea pe ecran pentru a afișa mai multe dosare simultan</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={compactCards}
+                      onChange={(e) => setCompactCards(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#C98A2B]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: PROFIL UTILIZATOR & SECURITATE */}
+          {activeTab === "profil" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
+                  <User size={16} className="text-[#C98A2B]" /> Detalii Cont &amp; Securitate
+                </h3>
+
+                <div className="space-y-3">
+                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-[#8A8375] font-bold uppercase block">Adresă de e-mail conectată</span>
+                      <span className="font-mono font-bold text-[14px] text-[#23282E]">{userEmail || "—"}</span>
+                    </div>
+                    <span className="px-2.5 py-1 bg-[#3E6B45]/15 text-[#3E6B45] font-bold text-[11px] rounded-md">
+                      ✓ Cont Activ
                     </span>
                   </div>
 
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
-                    <span className="text-[#8A8375] block text-[10.5px] uppercase font-bold">Total Dosare Înregistrate</span>
-                    <span className="font-bold text-[#23282E]">{claims.length} dosare</span>
+                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[13px] font-bold text-[#23282E]">Deconectare din cont</span>
+                      <span className="text-[11px] text-[#8A8375] block">Închide sesiunea curentă în condiții de siguranță</span>
+                    </div>
+                    {onSignOut && (
+                      <button
+                        type="button"
+                        onClick={onSignOut}
+                        className="px-4 py-1.5 bg-[#B23A2E] text-white text-[12px] font-bold rounded-lg hover:bg-[#922D24] transition-colors"
+                      >
+                        Delogare
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 5: DIAGNOZĂ & BACKUP DATA */}
+          {activeTab === "diagnoza" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
+                  <Database size={16} className="text-[#3B5166]" /> Diagnostic Sistem &amp; Stocare Cloud
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Total Dosare</span>
+                    <span className="block font-extrabold text-[20px] text-[#23282E]">{claims.length}</span>
                   </div>
 
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
-                    <span className="text-[#8A8375] block text-[10.5px] uppercase font-bold">Versiune Aplicație</span>
-                    <span className="font-bold text-[#23282E]">v1.4.0 (Mobile Ready)</span>
+                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Fotografii Salvate</span>
+                    <span className="block font-extrabold text-[20px] text-[#C98A2B]">{totalPoze}</span>
                   </div>
+
+                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Documente Atașate</span>
+                    <span className="block font-extrabold text-[20px] text-[#3B5166]">{totalDocumente}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#DAD4C6]">
+                  <h4 className="font-bold text-[13px] text-[#23282E] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
+                  <p className="text-[11px] text-[#8A8375] mb-3">
+                    Descarcă o copie de siguranță completă a tuturor dosarelor și istoricului din aplicație în format JSON.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={exportFullBackupJSON}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2C4160] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors"
+                  >
+                    <Download size={15} /> Descarcă Backup Complet (.json)
+                  </button>
                 </div>
               </div>
             </div>
@@ -231,7 +404,7 @@ export default function SetariModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[#DAD4C6] shrink-0 text-[12px]">
-          <span className="text-[#8A8375]">Workflow Dosare Daună</span>
+          <span className="text-[#8A8375]">Workflow Dosare Daună v1.4</span>
           <button
             type="button"
             onClick={onClose}

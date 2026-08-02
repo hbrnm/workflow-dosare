@@ -297,7 +297,7 @@ export default function App() {
             })}
           </div>
 
-          {/* Right Side: Quick Search, Operational Alerts & User Controls */}
+          {/* Right Side: Quick Search, Operational Alerts & User Profile / Settings */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -356,20 +356,19 @@ export default function App() {
               </button>
             )}
 
-            {/* Setări Centralizate Button */}
+            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
+
+            {/* User Profile & Interactive Settings Pill Button */}
             <button
               onClick={() => setSetariOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white/90 hover:text-white hover:bg-white/15 text-[12.5px] font-semibold transition-all ml-1"
-              title="Centru Setări &amp; Configurare"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-white/20 bg-white/10 hover:bg-white/20 text-white text-[12px] font-semibold transition-all ml-1 cursor-pointer"
+              title="Profil utilizator & Centru Setări"
             >
-              <Settings size={15} className="text-[#C98A2B]" />
-              <span className="hidden md:inline">Setări</span>
-            </button>
-
-            <button onClick={exportExcel} className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white text-[12.5px] font-semibold hover:bg-white/10"><Download size={14} /><span className="hidden md:inline"> Excel</span></button>
-            <span className="hidden md:inline text-[11px] text-white/50">{myEmail}</span>
-            <button onClick={() => supabase.auth.signOut()} className="px-2 py-1 rounded-lg border border-white/20 text-white/70 text-[11.5px] font-semibold hover:bg-white/10 hover:text-white">
-              <span className="hidden sm:inline">Delogare</span><span className="sm:hidden text-[11px]">⏻</span>
+              <div className="w-4 h-4 rounded-full bg-[#C98A2B] text-white font-bold text-[9.5px] flex items-center justify-center shrink-0">
+                {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
+              </div>
+              <span className="hidden md:inline truncate max-w-[130px]">{myEmail}</span>
+              <Settings size={14} className="text-[#C98A2B] shrink-0" />
             </button>
           </div>
         </div>
@@ -515,7 +514,7 @@ export default function App() {
                 onClick={() => setView(id)}
                 className={`flex flex-col items-center justify-center px-2.5 py-1 rounded-full transition-all ${
                   active
-                    ? "bg-white/20 text-[#F3D9A8] font-bold"
+                    ? "bg-[#C98A2B] text-white font-bold"
                     : "text-white/70 hover:text-white"
                 }`}
               >
@@ -649,6 +648,7 @@ export default function App() {
           onClose={() => setSetariOpen(false)}
           onNotify={showNotice}
           userEmail={myEmail}
+          onSignOut={() => supabase.auth.signOut()}
         />
       )}
 
