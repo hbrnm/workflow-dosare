@@ -865,7 +865,7 @@ export default function App() {
             onClose={() => setModalClaim(null)}
             onSave={handleSave}
             onDelete={handleDelete}
-            readOnly={claims.some((c) => c.id === modalClaim.id) && !canEdit(modalClaim)}
+            readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
             allClaims={claims}
             insurersList={customInsurers}
             onJumpTo={(c) => setModalClaim(c)}

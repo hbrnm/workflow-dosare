@@ -246,7 +246,7 @@ export default function ClaimModal({
     }
   };
 
-  const isNew = useMemo(() => !allClaims || !allClaims.some((c) => c.id === claim?.id), [allClaims, claim?.id]);
+  const isNew = useMemo(() => !Array.isArray(allClaims) || !allClaims.some((c) => c && c.id === claim?.id), [allClaims, claim?.id]);
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
@@ -320,11 +320,11 @@ export default function ClaimModal({
   };
 
   const istoricClientVehicul = useMemo(() => {
-    if (!allClaims) return [];
+    if (!Array.isArray(allClaims)) return [];
     const tel = (form.telefonClient || "").trim();
     const vin = (form.vin || "").trim().toUpperCase();
     if (!tel && !vin) return [];
-    return allClaims.filter((c) => c.id !== claim.id && (
+    return allClaims.filter((c) => c && c.id && c.id !== claim?.id && (
       (tel && (c.telefonClient || "").trim() === tel) || (vin && (c.vin || "").trim().toUpperCase() === vin)
     ));
   }, [allClaims, form.telefonClient, form.vin, claim?.id]);
@@ -342,17 +342,19 @@ export default function ClaimModal({
       return;
     }
 
-    const duplicateDosar = allClaims?.find((c) =>
-      c.id !== claim.id && normalizedText(c.numarDosar) === normalizedText(numarDosar)
-    );
+    const duplicateDosar = Array.isArray(allClaims) ? allClaims.find((c) =>
+      c && c.id && c.id !== claim?.id && normalizedText(c.numarDosar) === normalizedText(numarDosar)
+    ) : null;
     if (duplicateDosar) {
       onNotify(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`, "error");
       return;
     }
 
-    if (isNew && allClaims) {
+    if (isNew && Array.isArray(allClaims)) {
       const duplicat = allClaims.find((c) =>
-        c.numarInmatriculare.trim().toUpperCase() === numarInmatriculare &&
+        c && (c.numarInmatriculare || "").trim().toUpperCase() === numarInmatriculare &&
+        c.status !== "facturat"
+      );
         c.status !== "facturat"
       );
       if (duplicat) {

@@ -383,7 +383,7 @@ export default function SetariModal({
 
                 {/* Grilă Asigurători */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
-                  {insurersList.map((ins) => (
+                  {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((ins) => (
                     <div key={ins} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12.5px]">
                       <span className="font-semibold text-[#23282E] truncate">{ins}</span>
                       {isAdmin && (
