@@ -25,6 +25,7 @@ import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
+import { useClaimModal } from "./hooks/useClaimModal";
 import { useSettings } from "./hooks/useSettings";
 
 export default function App() {
@@ -32,11 +33,7 @@ export default function App() {
   const [notice, setNotice] = useState(null);
   const [view, setView] = useState("brief");
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [modalClaim, setModalClaim] = useState(null);
-  const [setariOpen, setSetariOpen] = useState(false);
-  const [alerteModalTab, setAlerteModalTab] = useState(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
 
   const { session, authLoading, setSession, handleLogout } = useAuth();
@@ -119,6 +116,23 @@ export default function App() {
     pragInactivitate,
   });
 
+  const {
+    modalClaim,
+    openNew,
+    openExisting,
+    duplicateClaim,
+    closeClaimModal,
+    setariOpen,
+    openSettings,
+    closeSettings,
+    alerteModalTab,
+    openAlerts,
+    closeAlerts,
+    quickCaptureOpen,
+    openQuickCapture,
+    closeQuickCapture,
+  } = useClaimModal(showNotice);
+
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -163,7 +177,7 @@ export default function App() {
     const result = await saveClaim(claim, options);
     setSaving(false);
     if (!result.success) return;
-    setModalClaim(null);
+    closeClaimModal();
     if (result.openProgramator) setView("programator");
   };
 
@@ -172,38 +186,11 @@ export default function App() {
     const success = await deleteClaim(id, canEdit);
     setSaving(false);
     if (!success) return;
-    setModalClaim(null);
+    closeClaimModal();
   };
 
   const handleMoveToStatus = async (claim, newStatusKey) => {
     await moveToStatus(claim, newStatusKey, canEdit);
-  };
-
-  const openNew = (status = "primit", dateProgramare = null) => {
-    const validStatus = typeof status === "string" ? status : "primit";
-    const claim = emptyClaim(validStatus);
-    claim.createdBy = myId;
-    claim.createdByEmail = myEmail;
-    if (dateProgramare && typeof dateProgramare === "string") {
-      claim.dataProgramare = dateProgramare.includes("T") ? dateProgramare : `${dateProgramare}T08:00:00`;
-    }
-    setModalClaim(claim);
-  };
-  const openExisting = (claim) => setModalClaim(claim);
-
-  const duplicateClaim = (source) => {
-    const dup = {
-      ...emptyClaim("primit"),
-      numarInmatriculare: source.numarInmatriculare,
-      vin: source.vin,
-      marcaModel: source.marcaModel,
-      client: source.client,
-      telefonClient: source.telefonClient,
-      tipAsigurare: source.tipAsigurare,
-      asigurator: source.asigurator,
-    };
-    showNotice("Date duplicate — completează numărul de dosar nou și verifică restul.");
-    setModalClaim(dup);
   };
 
   const handlePatchClaim = async (id, patch, skipOwnershipCheck = false) => {
@@ -303,7 +290,7 @@ export default function App() {
         {/* Bottom Profile & Settings Dock */}
         <div className="p-2 shrink-0 space-y-1 border-t border-white/10">
           <button
-            onClick={() => setSetariOpen(true)}
+            onClick={() => openSettings()}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
             title="Centru Setări"
           >
@@ -360,7 +347,7 @@ export default function App() {
             {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
             {totalAlertsCount > 0 && (
               <button
-                onClick={() => setAlerteModalTab("depasite")}
+                onClick={() => openAlerts("depasite")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold bg-[#B23A2E] text-white shadow-sm hover:bg-[#922D24] active:scale-95 transition-all animate-pulse"
                 title="Deschide Centrul de Alerte"
               >
@@ -490,7 +477,7 @@ export default function App() {
               return (
                 <button
                   key={id}
-                  onClick={() => setQuickCaptureOpen(true)}
+                  onClick={() => openQuickCapture()}
                   className="flex flex-col items-center justify-center p-2.5 rounded-full bg-gradient-to-tr from-[#C98A2B] to-[#E5A84B] text-white shadow-lg -mt-5 border-3 border-[#1C2127] active:scale-95 transition-transform"
                   title="Captură rapidă foto & scanner cameră"
                 >
@@ -605,16 +592,16 @@ export default function App() {
 
       {/* --- MODALS & OVERLAYS --- */}
       {modalClaim && (
-        <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={() => setModalClaim(null)}>
+        <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={closeClaimModal}>
           <ClaimModal
             claim={modalClaim}
-            onClose={() => setModalClaim(null)}
+            onClose={closeClaimModal}
             onSave={handleSave}
             onDelete={handleDelete}
             readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
             allClaims={claims}
             insurersList={customInsurers}
-            onJumpTo={(c) => setModalClaim(c)}
+            onJumpTo={openExisting}
             onNotify={showNotice}
           />
         </ErrorBoundary>
@@ -626,7 +613,7 @@ export default function App() {
           initialTab={alerteModalTab}
           pragRidicare={pragRidicare}
           pragInactivitate={pragInactivitate}
-          onClose={() => setAlerteModalTab(null)}
+          onClose={closeAlerts}
           onOpenClaim={openExisting}
         />
       )}
@@ -642,7 +629,7 @@ export default function App() {
           onSaveCapacitate={saveCapacitate}
           onSavePrag={savePragRidicare}
           onSavePragInactivitate={savePragInactivitate}
-          onClose={() => setSetariOpen(false)}
+          onClose={closeSettings}
           onNotify={showNotice}
           userEmail={myEmail}
           onSignOut={handleLogout}
@@ -658,7 +645,7 @@ export default function App() {
       {quickCaptureOpen && (
         <QuickCapture
           claims={claims}
-          onClose={() => setQuickCaptureOpen(false)}
+          onClose={closeQuickCapture}
           onPatch={handlePatchClaim}
           canEditFn={canEdit}
           onNotify={showNotice}
