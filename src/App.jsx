@@ -458,7 +458,7 @@ export default function App() {
 
       {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 md:hidden w-[92%] max-w-sm">
-        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-3 py-2 grid grid-cols-5 gap-2 text-white items-center">
+        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-3 py-2 grid grid-cols-[1fr_1fr_auto_1fr_1fr] gap-2 text-white items-center">
           {[
             { id: "brief", label: "Acasă", icon: Sunrise },
             { id: "flux", label: "Dosare", icon: Layers },
@@ -471,6 +471,7 @@ export default function App() {
               return (
                 <button
                   key={id}
+                  type="button"
                   onClick={() => openQuickCapture()}
                   className="col-span-1 flex items-center justify-center p-3 rounded-full bg-gradient-to-tr from-[#C98A2B] to-[#E5A84B] text-white shadow-lg -mt-5 border-[3px] border-[#1C2127] active:scale-95 transition-transform"
                   title="Captură rapidă foto & scanner cameră"
@@ -483,8 +484,9 @@ export default function App() {
             return (
               <button
                 key={id}
+                type="button"
                 onClick={() => setView(id)}
-                className={`flex flex-col items-center justify-center px-2 py-1 rounded-full transition-all ${
+                className={`flex flex-col items-center justify-center px-2 py-1 rounded-full transition-all min-w-0 ${
                   active
                     ? "bg-[#C98A2B] text-white font-bold"
                     : "text-white/70 hover:text-white"
