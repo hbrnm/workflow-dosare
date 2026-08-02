@@ -7,8 +7,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import { STATUSES, INSURERS, getStatusDefinition } from "./constants/config";
 import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts, isInactiveClaim } from "./utils/alertUtils";
-import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
+import { emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
 import TablouPeFaze from "./components/views/FluxOperational";
@@ -23,67 +22,102 @@ import SetariModal from "./components/modals/SetariModal";
 import AlerteModal from "./components/modals/AlerteModal";
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import { useAuth } from "./hooks/useAuth";
+import { useClaims } from "./hooks/useClaims";
+import { useClaimFilters } from "./hooks/useClaimFilters";
+import { useSettings } from "./hooks/useSettings";
 
 export default function App() {
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [claims, setClaims] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
   const [view, setView] = useState("brief");
-  const [search, setSearch] = useState("");
-  const [filterTip, setFilterTip] = useState("toate");
-  const [filterStatus, setFilterStatus] = useState("toate");
-  const [filterAsigurator, setFilterAsigurator] = useState("toti");
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [onlyBlocked, setOnlyBlocked] = useState(false);
-  const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [setariOpen, setSetariOpen] = useState(false);
   const [alerteModalTab, setAlerteModalTab] = useState(null);
-  const [capacitateZilnica, setCapacitateZilnica] = useState(3);
-  const [pragRidicare, setPragRidicare] = useState(3);
-  const [pragInactivitate, setPragInactivitate] = useState(7);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
-  const [mobileSort, setMobileSort] = useState("recent");
-  const [mobileFilterSheetOpen, setMobileFilterSheetOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
 
-  // Admin & User Management States
-  const [adminEmails, setAdminEmails] = useState([]);
-  const [usersList, setUsersList] = useState([]);
-  const [customInsurers, setCustomInsurers] = useState(INSURERS);
+  const { session, authLoading, setSession, handleLogout } = useAuth();
 
-  useEffect(() => {
-    // 1. Verificăm mai întâi dacă există sesiune de echipă salvată local
-    const storedCustom = localStorage.getItem("workflow_dosare_custom_session");
-    if (storedCustom) {
-      try {
-        const parsed = JSON.parse(storedCustom);
-        if (parsed?.user?.email) {
-          setSession(parsed);
-          setAuthLoading(false);
-        }
-      } catch (e) {}
-    }
+  const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
 
-    // 2. Verificăm sesiunea Supabase Auth
-    supabase.auth.getSession().then(({ data }) => {
-      if (data?.session && !localStorage.getItem("workflow_dosare_custom_session")) {
-        setSession(data.session);
-      }
-      setAuthLoading(false);
-    });
+  const {
+    claims,
+    loading,
+    loadAll,
+    saveClaim,
+    deleteClaim,
+    patchClaim,
+    moveToStatus,
+  } = useClaims(session, showNotice);
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (s && !localStorage.getItem("workflow_dosare_custom_session")) {
-        setSession(s);
-      }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
+  const {
+    capacitateZilnica,
+    pragRidicare,
+    pragInactivitate,
+    adminEmails,
+    usersList,
+    customInsurers,
+    saveUsersAndAdmins,
+    saveInsurers,
+    saveCapacitate,
+    savePragRidicare,
+    savePragInactivitate,
+    handleAddUser,
+    handleDeleteUser,
+    handleToggleAdminRole,
+  } = useSettings(session, showNotice);
+
+  const myEmail = session?.user?.email || "";
+  const myId = session?.user?.id || null;
+
+  const isAdmin = useMemo(() => {
+    if (!myEmail) return false;
+    if (adminEmails.length === 0) return true; // Default admin mode for single-user/initial setup
+    return (
+      adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase()) ||
+      usersList.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin")
+    );
+  }, [myEmail, adminEmails, usersList]);
+
+  const {
+    search,
+    setSearch,
+    filterTip,
+    setFilterTip,
+    filterStatus,
+    setFilterStatus,
+    filterAsigurator,
+    setFilterAsigurator,
+    onlyBlocked,
+    setOnlyBlocked,
+    fluxFilter,
+    setFluxFilter,
+    mobileSort,
+    setMobileSort,
+    mobileFilterSheetOpen,
+    setMobileFilterSheetOpen,
+    resetFilters,
+    insurers,
+    userClaims,
+    filteredClaims,
+    activeFilterCount,
+    alertCount,
+    blockedCount,
+    gataNeridicateCount,
+    acceptPlataNoPartsCount,
+    inactiveCount,
+    totalAlertsCount,
+  } = useClaimFilters({
+    claims,
+    myId,
+    myEmail,
+    isAdmin,
+    pragRidicare,
+    pragInactivitate,
+  });
 
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
   useEffect(() => {
@@ -97,18 +131,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const myEmail = session?.user?.email || "";
-  const myId = session?.user?.id || null;
-
-  // Evaluate if current user is an Administrator
-  const isAdmin = useMemo(() => {
-    if (!myEmail) return false;
-    if (adminEmails.length === 0) return true; // Default admin mode for single-user/initial setup
-    return (
-      adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase()) ||
-      usersList.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin")
-    );
-  }, [myEmail, adminEmails, usersList]);
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -123,248 +145,38 @@ export default function App() {
     [myId, myEmail, isAdmin]
   );
 
-  const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
-
   useEffect(() => {
     if (!notice) return undefined;
     const timer = window.setTimeout(() => setNotice(null), 5000);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
-    if (error) showNotice(error.message, "error");
-    else setClaims((data || []).map(fromDb));
-    setLoading(false);
-  }, [showNotice]);
-
   useEffect(() => { if (session) loadAll(); }, [loadAll, session]);
-
-  useEffect(() => {
-    if (!session) return;
-    (async () => {
-      // Initial load from localStorage fallback
-      try {
-        const localUsers = JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]");
-        const localAdmins = JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]");
-        if (localUsers.length > 0) setUsersList(localUsers);
-        if (localAdmins.length > 0) setAdminEmails(localAdmins);
-      } catch (e) {}
-
-      const { data } = await supabase
-        .from("setari")
-        .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori, asiguratori")
-        .eq("id", 1)
-        .maybeSingle();
-
-      if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
-      if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
-      if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
-      if (Array.isArray(data?.asiguratori) && data.asiguratori.length > 0) {
-        setCustomInsurers(data.asiguratori);
-        try { localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(data.asiguratori)); } catch (e) {}
-      }
-
-      let loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
-        ? data.admin_emails
-        : (JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]"));
-
-      let loadedUsers = Array.isArray(data?.utilizatori) && data.utilizatori.length > 0
-        ? data.utilizatori
-        : (JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]"));
-
-      const currentEmail = session.user?.email || "";
-      if (currentEmail) {
-        if (!loadedUsers.some((u) => u.email?.toLowerCase() === currentEmail.toLowerCase())) {
-          const isFirst = loadedUsers.length === 0 || loadedAdmins.length === 0;
-          loadedUsers.push({ email: currentEmail, role: isFirst ? "admin" : "operator" });
-        }
-        if (loadedAdmins.length === 0 || loadedUsers.some(u => u.email?.toLowerCase() === currentEmail.toLowerCase() && u.role === "admin")) {
-          if (!loadedAdmins.some((e) => e.toLowerCase() === currentEmail.toLowerCase())) {
-            loadedAdmins.push(currentEmail);
-          }
-        }
-      }
-
-      setAdminEmails(loadedAdmins);
-      setUsersList(loadedUsers);
-      try {
-        localStorage.setItem("workflow_dosare_users", JSON.stringify(loadedUsers));
-        localStorage.setItem("workflow_dosare_admins", JSON.stringify(loadedAdmins));
-      } catch (e) {}
-    })();
-  }, [session]);
-
-  const saveUsersAndAdmins = async (newUsers, newAdmins) => {
-    setUsersList(newUsers);
-    setAdminEmails(newAdmins);
-
-    try {
-      localStorage.setItem("workflow_dosare_users", JSON.stringify(newUsers));
-      localStorage.setItem("workflow_dosare_admins", JSON.stringify(newAdmins));
-    } catch (e) {}
-
-    const { error } = await supabase.from("setari").upsert({
-      id: 1,
-      utilizatori: newUsers,
-      admin_emails: newAdmins,
-    });
-    if (error) {
-      console.error("Setari upsert error:", error);
-      showNotice("Salvat local. Eroare salvare Supabase setări: " + error.message, "warning");
-    }
-  };
-
-  const saveInsurers = async (newList) => {
-    setCustomInsurers(newList);
-    try {
-      localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(newList));
-    } catch (e) {}
-    const { error } = await supabase.from("setari").upsert({
-      id: 1,
-      asiguratori: newList,
-    });
-    if (error) {
-      console.error("Setari asiguratori error:", error);
-    }
-  };
-
-  const handleAddUser = async ({ email, role, password }) => {
-    const cleanEmail = email.trim().toLowerCase();
-    if (usersList.some((u) => u.email?.toLowerCase() === cleanEmail)) {
-      throw new Error("Acest utilizator există deja în lista echipei.");
-    }
-
-    // Încercăm înregistrarea în Supabase Auth, fără a bloca salvarea în echipă
-    if (password && password.trim()) {
-      try {
-        const { error: authError } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: password.trim(),
-        });
-        if (authError && !authError.message.toLowerCase().includes("already registered")) {
-          console.warn("Supabase Auth notice:", authError.message);
-        }
-      } catch (err) {
-        console.warn("Supabase Auth error:", err);
-      }
-    }
-
-    const newUserObj = { email: cleanEmail, role: role || "operator", password: (password || "").trim() };
-    const updatedUsers = [...usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail), newUserObj];
-    const updatedAdmins = role === "admin"
-      ? [...new Set([...adminEmails, cleanEmail])]
-      : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
-
-    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
-  };
-
-  const handleLogout = async () => {
-    localStorage.removeItem("workflow_dosare_custom_session");
-    await supabase.auth.signOut();
-    setSession(null);
-  };
 
   const handleChangePassword = async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
   };
 
-  const handleDeleteUser = async (emailToDelete) => {
-    const cleanEmail = emailToDelete.trim().toLowerCase();
-    if (cleanEmail === myEmail.toLowerCase()) {
-      showNotice("Nu te poți șterge pe tine însuți din sistem.", "error");
-      return;
-    }
-    const updatedUsers = usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail);
-    const updatedAdmins = adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
-    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
-    showNotice(`Utilizatorul „${cleanEmail}” a fost eliminat.`, "info");
-  };
-
-  const handleToggleAdminRole = async (targetEmail) => {
-    const cleanEmail = targetEmail.trim().toLowerCase();
-    const currentObj = usersList.find((u) => u.email?.toLowerCase() === cleanEmail);
-    const willBeAdmin = currentObj?.role !== "admin";
-
-    const updatedUsers = usersList.map((u) =>
-      u.email?.toLowerCase() === cleanEmail ? { ...u, role: willBeAdmin ? "admin" : "operator" } : u
-    );
-    const updatedAdmins = willBeAdmin
-      ? [...new Set([...adminEmails, cleanEmail])]
-      : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
-
-    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
-    showNotice(
-      willBeAdmin ? `Utilizatorul „${cleanEmail}” este acum Administrator.` : `Utilizatorul „${cleanEmail}” este acum Operator.`,
-      "success"
-    );
-  };
-
-  const saveCapacitate = async (n) => {
-    setCapacitateZilnica(n);
-    const { error } = await supabase.from("setari").upsert({ id: 1, capacitate_zilnica: n });
-    if (error) showNotice(error.message, "error");
-  };
-
-  const savePragRidicare = async (n) => {
-    setPragRidicare(n);
-    const { error } = await supabase.from("setari").upsert({ id: 1, prag_ridicare_zile: n });
-    if (error) showNotice(error.message, "error");
-  };
-
-  const savePragInactivitate = async (n) => {
-    setPragInactivitate(n);
-    const { error } = await supabase.from("setari").upsert({ id: 1, prag_inactivitate_zile: n });
-    if (error) showNotice(error.message, "error");
-  };
-
-  const handleSave = async (claim, { openProgramator = false } = {}) => {
+  const handleSave = async (claim, options = {}) => {
     setSaving(true);
-    const isNewClaim = !claims.some((c) => c.id === claim.id);
-    const payload = toDb({
-      ...claim,
-      createdBy: isNewClaim ? myId : (claim.createdBy || myId),
-      createdByEmail: isNewClaim ? myEmail : (claim.createdByEmail || myEmail),
-      updatedByEmail: myEmail,
-    });
-    const { error } = await supabase.from("dosare").upsert(payload);
+    const result = await saveClaim(claim, options);
     setSaving(false);
-    if (error) { showNotice(error.message, "error"); return; }
+    if (!result.success) return;
     setModalClaim(null);
-    showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.");
-    if (openProgramator) setView("programator");
-    loadAll();
+    if (result.openProgramator) setView("programator");
   };
 
   const handleDelete = async (id) => {
-    const target = claims.find((c) => c.id === id);
-    if (target && !canEdit(target)) { showNotice("Poți șterge doar dosarele create de tine.", "error"); return; }
     setSaving(true);
-    const { error } = await supabase.from("dosare").delete().eq("id", id);
+    const success = await deleteClaim(id, canEdit);
     setSaving(false);
-    if (error) { showNotice(error.message, "error"); return; }
+    if (!success) return;
     setModalClaim(null);
-    showNotice("Dosarul a fost șters.");
-    loadAll();
   };
 
   const handleMoveToStatus = async (claim, newStatusKey) => {
-    if (!canEdit(claim)) { showNotice("Poți muta doar dosarele create de tine.", "error"); return; }
-    if (claim.status === newStatusKey) return;
-    const changedAt = nowISO();
-    const deliveryPatch = newStatusKey === "gata_de_ridicare"
-      ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: false, dataRidicare: null }
-      : newStatusKey === "predat_client"
-      ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: true, dataRidicare: claim.dataRidicare || changedAt }
-      : ["gata_de_ridicare", "predat_client"].includes(claim.status) && newStatusKey !== "facturat"
-      ? { gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null }
-      : {};
-    const updated = { ...claim, ...deliveryPatch, status: newStatusKey, dataSchimbareStatus: changedAt, dataUltimeiActualizari: changedAt, updatedByEmail: myEmail };
-    setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
-    const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { showNotice(error.message, "error"); loadAll(); }
+    await moveToStatus(claim, newStatusKey, canEdit);
   };
 
   const openNew = (status = "primit", dateProgramare = null) => {
@@ -394,77 +206,9 @@ export default function App() {
     setModalClaim(dup);
   };
 
-  const patchClaim = async (id, patch, skipOwnershipCheck = false) => {
-    const current = claims.find((c) => c.id === id);
-    if (!current) return;
-    if (!skipOwnershipCheck && !canEdit(current)) { showNotice("Poți edita doar dosarele create de tine.", "error"); return; }
-    let effectivePatch = { ...patch };
-    if (patch.dataProgramare && current.status === "piese_sosite") {
-      effectivePatch = { ...effectivePatch, status: "programat", dataSchimbareStatus: nowISO() };
-      showNotice('Dosar mutat automat în „Programat".', "success");
-    }
-    const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-    setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    const { error } = await supabase.from("dosare").upsert(toDb(updated));
-    if (error) { showNotice(error.message, "error"); loadAll(); }
+  const handlePatchClaim = async (id, patch, skipOwnershipCheck = false) => {
+    await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck });
   };
-
-  // Dosarele din flux specifice fiecărui utilizator (Administratorul le vede pe toate)
-  const userClaims = useMemo(() => {
-    if (isAdmin || (!myId && !myEmail)) return claims;
-    return claims.filter((c) => {
-      if (!c) return false;
-      if (!c.createdBy && !c.createdByEmail) return true; // Dosare vechi fără creator asociat
-      return (
-        (c.createdBy && c.createdBy === myId) ||
-        (c.createdBy && c.createdBy === myEmail) ||
-        (c.createdByEmail && typeof c.createdByEmail === "string" && c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
-      );
-    });
-  }, [claims, myId, myEmail, isAdmin]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let res = userClaims.filter((c) => {
-      if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
-      if (filterStatus !== "toate" && c.status !== filterStatus) return false;
-      if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
-      if (onlyBlocked && !c.blocat) return false;
-      if (!q) return true;
-      return (c.numarInmatriculare || "").toLowerCase().includes(q) || (c.client || "").toLowerCase().includes(q) ||
-        (c.numarDosar || "").toLowerCase().includes(q) || (c.asigurator || "").toLowerCase().includes(q) || (c.vin || "").toLowerCase().includes(q);
-    });
-
-    if (mobileSort === "numar") {
-      res = [...res].sort((a, b) => (a.numarDosar || "").localeCompare(b.numarDosar || ""));
-    } else if (mobileSort === "status") {
-      res = [...res].sort((a, b) => (a.status || "").localeCompare(b.status || ""));
-    } else if (mobileSort === "client") {
-      res = [...res].sort((a, b) => (a.client || "").localeCompare(b.client || ""));
-    } else {
-      res = [...res].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || ""));
-    }
-
-    return res;
-  }, [userClaims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]);
-
-  const insurers = useMemo(() => [...new Set(claims.map((c) => c.asigurator).filter(Boolean))].sort(), [claims]);
-  const activeFilterCount = [filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti", onlyBlocked].filter(Boolean).length;
-  const resetFilters = () => {
-    setFilterTip("toate");
-    setFilterStatus("toate");
-    setFilterAsigurator("toti");
-    setOnlyBlocked(false);
-    setFluxFilter("toate");
-  };
-
-  const alertCount = useMemo(() => userClaims.filter(isStageOverdue).length, [userClaims]);
-  const blockedCount = useMemo(() => userClaims.filter((c) => c.blocat).length, [userClaims]);
-  const gataNeridicateCount = useMemo(() => userClaims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [userClaims, pragRidicare]);
-  const acceptPlataNoPartsCount = useMemo(() => userClaims.filter(isAcceptPlataWithoutParts).length, [userClaims]);
-  const inactiveCount = useMemo(() => userClaims.filter((c) => isInactiveClaim(c, pragInactivitate)).length, [userClaims, pragInactivitate]);
-
-  const totalAlertsCount = alertCount + blockedCount + gataNeridicateCount + acceptPlataNoPartsCount + inactiveCount;
 
   const exportExcel = () => {
     const rows = userClaims.map((c) => ({
@@ -707,7 +451,7 @@ export default function App() {
             <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
           ) : view === "flux" ? (
             <TablouPeFaze
-              claims={filtered}
+              claims={filteredClaims}
               onOpen={openExisting}
               onMoveToStatus={handleMoveToStatus}
               onAddInStatus={openNew}
@@ -718,15 +462,15 @@ export default function App() {
               setQuickFilter={setFluxFilter}
             />
           ) : view === "brief" ? (
-            <BriefZilnic claims={filtered} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
+            <BriefZilnic claims={filteredClaims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} onSetPrag={savePragRidicare} />
           ) : view === "list" ? (
-            <ClaimTable claims={filtered} onOpen={openExisting} canEditFn={canEdit} />
+            <ClaimTable claims={filteredClaims} onOpen={openExisting} canEditFn={canEdit} />
           ) : view === "dashboard" ? (
-            <Dashboard claims={filtered} onOpen={openExisting} pragRidicare={pragRidicare} />
+            <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
           ) : view === "programator" ? (
-            <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => patchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+            <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
           ) : (
-            <Rapoarte claims={filtered} onPatch={patchClaim} canEditFn={canEdit} />
+            <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
           )}
         </main>
       </div>
@@ -852,7 +596,7 @@ export default function App() {
                 onClick={() => setMobileFilterSheetOpen(false)}
                 className="flex-1 py-3 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] text-center shadow-md"
               >
-                Aplică Filtre ({filtered.length} dosare)
+                Aplică Filtre ({filteredClaims.length} dosare)
               </button>
             </div>
           </div>
@@ -915,7 +659,7 @@ export default function App() {
         <QuickCapture
           claims={claims}
           onClose={() => setQuickCaptureOpen(false)}
-          onPatch={patchClaim}
+          onPatch={handlePatchClaim}
           canEditFn={canEdit}
           onNotify={showNotice}
         />
