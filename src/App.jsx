@@ -3,10 +3,10 @@ import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
   AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
-import { STATUSES, INSURERS, getStatusDefinition } from "./constants/config";
-import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
+import { STATUSES, INSURERS } from "./constants/config";
+import { nowISO } from "./utils/dateUtils";
+import { useExportExcel } from "./hooks/useExportExcel";
 import { emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
@@ -197,18 +197,7 @@ export default function App() {
     await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck });
   };
 
-  const exportExcel = () => {
-    const rows = userClaims.map((c) => ({
-      "Nr. dosar": c.numarDosar, "Tip": c.tipAsigurare, "Asigurător": c.asigurator, "Client": c.client,
-      "Nr. înmatriculare": c.numarInmatriculare, "VIN": c.vin, "Marcă/Model": c.marcaModel,
-      "Status": getStatusDefinition(c.status).label, "Data deschiderii": fmtDate(c.dataDeschiderii),
-      "Facturat Tinichigerie": c.manopera.tinichigerie.facturat, "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Dosare");
-    XLSX.writeFile(wb, `dosare-dauna-${todayISO()}.xlsx`);
-  };
+  const { exportExcel } = useExportExcel(userClaims);
 
   const viewLabels = {
     brief: "Brief Zilnic",
@@ -659,7 +648,7 @@ export default function App() {
         onOpenClaim={openExisting}
         onSwitchView={setView}
         onOpenNewClaim={openNew}
-        onExportExcel={() => setView("dashboard")}
+        onExportExcel={exportExcel}
       />
     </div>
   );
