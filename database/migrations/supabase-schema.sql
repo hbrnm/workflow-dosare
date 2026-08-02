@@ -28,6 +28,7 @@ create table if not exists dosare (
   zile_chirie_audatex int default 0,
   valoare_piese_audatex numeric default 0,
   valoare_achizitie_piese numeric default 0,
+  financiar jsonb default '{"tvaProc":19,"pieseFacturateFaraTva":0,"costManoperaInterna":0,"costuriExterne":0,"costMasinaSchimb":0,"numarFactura":"","dataFactura":null}',
   blocat boolean default false,
   motiv_blocare text default '',
   created_at timestamptz default now()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, LayoutGrid, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, ShieldCheck, SlidersHorizontal, X
+  AlertTriangle, PackageCheck, Loader2, ShieldCheck, SlidersHorizontal, X, Camera
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
@@ -17,6 +17,8 @@ import ClaimTable from "./components/views/ClaimTable";
 import Dashboard from "./components/views/Dashboard";
 import Programator from "./components/views/Programator";
 import Rapoarte from "./components/views/Rapoarte";
+import KanbanBoard from "./components/views/KanbanBoard";
+import QuickCapture from "./components/views/QuickCapture";
 import ClaimModal from "./components/modals/ClaimModal";
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -40,6 +42,7 @@ export default function App() {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthLoading(false); });
@@ -251,6 +254,14 @@ export default function App() {
             >
               <Plus size={16} /> <span className="hidden sm:inline">Dosar</span> nou
             </button>
+            <button
+              type="button"
+              onClick={() => setQuickCaptureOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 text-[13px] font-semibold border border-white/20 transition-all"
+              title="Captură rapidă foto & documente"
+            >
+              <Camera size={16} className="text-[#C98A2B]" /> <span className="hidden sm:inline">Foto/Docs</span>
+            </button>
             <div className="text-[12px] text-white/70 font-semibold border-l border-white/20 pl-2">
               {claims.length} <span className="hidden sm:inline">dosare</span>{saving && <span className="inline-flex items-center gap-1 ml-1 text-white/50"><Loader2 size={11} className="animate-spin" /></span>}
             </div>
@@ -454,6 +465,16 @@ export default function App() {
             onNotify={showNotice}
           />
         </ErrorBoundary>
+      )}
+
+      {quickCaptureOpen && (
+        <QuickCapture
+          claims={claims}
+          onClose={() => setQuickCaptureOpen(false)}
+          onPatch={patchClaim}
+          canEditFn={canEdit}
+          onNotify={showNotice}
+        />
       )}
 
       <CommandPalette

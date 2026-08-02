@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock
+  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet
 } from "lucide-react";
 import {
   STATUSES, INSURERS, getStatusDefinition,
@@ -317,7 +317,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
     };
   }, [isDragging]);
   const [form, setForm] = useState(safeClaim);
-  const [activeTab, setActiveTab] = useState("date"); // "date", "service", "media", "note"
+  const [activeTab, setActiveTab] = useState("date"); // "date", "service", "financial", "media", "note"
   const [noteText, setNoteText] = useState("");
   const [scanSession, setScanSession] = useState(null);
   const [istoric, setIstoric] = useState([]);
@@ -358,6 +358,16 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
+  const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
+  const financial = form.financiar || {};
+  const manoperaFaraTva = (Number(form.manopera?.tinichigerie?.facturat) || 0) + (Number(form.manopera?.vopsitorie?.facturat) || 0);
+  const pieseFacturateFaraTva = Number(financial.pieseFacturateFaraTva ?? form.valoarePieseAudatex) || 0;
+  const venitFaraTva = manoperaFaraTva + pieseFacturateFaraTva;
+  const tvaProc = Number(financial.tvaProc) || 0;
+  const tvaValoare = venitFaraTva * tvaProc / 100;
+  const totalCuTva = venitFaraTva + tvaValoare;
+  const costTotal = (Number(form.valoareAchizitiePiese) || 0) + (Number(financial.costManoperaInterna) || 0) + (Number(financial.costuriExterne) || 0) + (Number(financial.costMasinaSchimb) || 0);
+  const profitBrut = venitFaraTva - costTotal;
   // Repornește termenul de neridicare de fiecare dată când mașina este
   // marcată din nou ca gata de ridicare.
   const toggleGata = (checked) => setForm((f) => ({
@@ -817,6 +827,15 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("financial")}
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
+              activeTab === "financial" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
+            }`}
+          >
+            <Wallet size={12} /> Financiar
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("media")}
             className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-all shrink-0 ${
               activeTab === "media" ? "bg-[#3B5166] text-white font-bold" : "text-[#6B6558] hover:bg-[#EFEAE1]"
@@ -990,7 +1009,7 @@ export default function ClaimModal({ claim, onClose, onSave, onDelete, readOnly,
             {/* TAB 2: SERVICE & REPARAȚIE */}
             {activeTab === "service" && (
               <div className="grid md:grid-cols-2 gap-5">
-                <div className="space-y-4">
+                <div className="hidden">
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
                     <div className="text-[11.5px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
