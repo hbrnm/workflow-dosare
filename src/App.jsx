@@ -39,6 +39,12 @@ export default function App() {
 
   const { session, authLoading, setSession, handleLogout } = useAuth();
 
+  useEffect(() => {
+    if (["brief", "programator"].includes(view)) {
+      setShowFilterPanel(false);
+    }
+  }, [view]);
+
   const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
 
   const {

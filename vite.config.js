@@ -19,8 +19,6 @@ export default defineConfig({
             { test: /\/node_modules\/(?:\.vite\/deps\/)?html2canvas(?:\/|$)/, name: "vendor_html2canvas" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?@supabase(?:\/|$)/, name: "vendor_supabase" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?supabase(?:\/|$)/, name: "vendor_supabase" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?react(?:\.js|\/|$)/, name: "vendor_react" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?react-dom(?:\.js|\/|$)/, name: "vendor_react" },
           ];
 
           for (const chunk of chunks) {

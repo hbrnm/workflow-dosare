@@ -58,11 +58,12 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
   );
 
   const activeFilterCount = useMemo(
-    () => [filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti", onlyBlocked].filter(Boolean).length,
-    [filterTip, filterStatus, filterAsigurator, onlyBlocked]
+    () => [search.trim() !== "", filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti", onlyBlocked].filter(Boolean).length,
+    [search, filterTip, filterStatus, filterAsigurator, onlyBlocked]
   );
 
   const resetFilters = useCallback(() => {
+    setSearch("");
     setFilterTip("toate");
     setFilterStatus("toate");
     setFilterAsigurator("toti");
