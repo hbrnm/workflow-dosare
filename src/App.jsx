@@ -54,6 +54,7 @@ export default function App() {
   // Admin & User Management States
   const [adminEmails, setAdminEmails] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [customInsurers, setCustomInsurers] = useState(INSURERS);
 
   useEffect(() => {
     // 1. Verificăm mai întâi dacă există sesiune de echipă salvată local
