@@ -1,14 +1,71 @@
 import React, { useState, useMemo } from "react";
 import {
   X, ChevronLeft, Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
-  Trash2, CheckCircle2, FolderOpen
+  Trash2, CheckCircle2, FolderOpen, Plus
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { supabase } from "../../supabaseClient";
 import { getStatusDefinition, MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR } from "../../constants/config";
 import { uid } from "../../utils/dateUtils";
 import { refreshStorageUrls, uploadStorageItem } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
 import Pill from "../common/Pill";
+
+// Procesează fotografia unei pagini de document pentru contrast sporit (aspect scanat alb-negru clar)
+function processScanImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+
+          const MAX_DIM = 1500;
+          let w = img.width;
+          let h = img.height;
+          if (w > MAX_DIM || h > MAX_DIM) {
+            if (w > h) {
+              h = Math.round((h * MAX_DIM) / w);
+              w = MAX_DIM;
+            } else {
+              w = Math.round((w * MAX_DIM) / h);
+              h = MAX_DIM;
+            }
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const imgData = ctx.getImageData(0, 0, w, h);
+          const data = imgData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            let v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            v = v > 130 ? Math.min(255, v * 1.2) : Math.max(0, v * 0.8);
+            data[i] = v;
+            data[i + 1] = v;
+            data[i + 2] = v;
+          }
+          ctx.putImageData(imgData, 0, 0);
+
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.70);
+          resolve(dataUrl);
+        } catch (err) {
+          reject(new Error("Eroare la procesarea imaginii."));
+        }
+      };
+      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNotify }) {
   const [step, setStep] = useState("pick"); // "pick" | "capture"
@@ -18,6 +75,8 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
   const [documente, setDocumente] = useState([]);
   const [pending, setPending] = useState([]); // { tempId, kind, name, previewUrl }
   const [loadingMedia, setLoadingMedia] = useState(false);
+  const [scanSession, setScanSession] = useState(null);
+  const [uploadingScan, setUploadingScan] = useState(false);
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
@@ -58,6 +117,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     setPoze([]);
     setDocumente([]);
     setPending([]);
+    setScanSession(null);
   };
 
   const handleFiles = async (fileList, kind) => {
@@ -111,6 +171,109 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     }
   };
 
+  // --- Handlers Scansare Documente Multiple ---
+  const handleStartScanSession = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file || !selected) return;
+    try {
+      const processedPageDataUrl = await processScanImage(file);
+      setScanSession({
+        pages: [processedPageDataUrl],
+        fileName: `Document_${selected.numarDosar || "Nou"}_${uid().slice(0, 4)}`,
+        saveAsPdf: true,
+        saveAsPhotos: false
+      });
+    } catch (err) {
+      onNotify(err.message, "error");
+    }
+  };
+
+  const handleAddPageToScan = async (fileList) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    try {
+      const processedPageDataUrl = await processScanImage(file);
+      setScanSession((prev) => ({
+        ...prev,
+        pages: [...prev.pages, processedPageDataUrl]
+      }));
+    } catch (err) {
+      onNotify(err.message, "error");
+    }
+  };
+
+  const handleSaveMultiPageScan = async () => {
+    if (!scanSession || scanSession.pages.length === 0 || !selected) return;
+    if (!scanSession.saveAsPdf && !scanSession.saveAsPhotos) {
+      onNotify("Te rog selectează cel puțin o opțiune de salvare (PDF sau Poze).", "error");
+      return;
+    }
+
+    setUploadingScan(true);
+    try {
+      let currentDocs = documente;
+      let currentPoze = poze;
+
+      // 1. Salvare ca PDF multipagină
+      if (scanSession.saveAsPdf) {
+        const pdf = new jsPDF({
+          unit: "pt",
+          format: "a4"
+        });
+
+        for (let i = 0; i < scanSession.pages.length; i++) {
+          const pageDataUrl = scanSession.pages[i];
+          const img = await new Promise((resolve, reject) => {
+            const o = new Image();
+            o.onload = () => resolve(o);
+            o.onerror = () => reject(new Error("Eroare la încărcarea paginii."));
+            o.src = pageDataUrl;
+          });
+
+          const orientation = img.width > img.height ? "l" : "p";
+          if (i > 0) {
+            pdf.addPage([img.width, img.height], orientation);
+          } else {
+            pdf.deletePage(1);
+            pdf.addPage([img.width, img.height], orientation);
+          }
+          pdf.addImage(pageDataUrl, "JPEG", 0, 0, img.width, img.height);
+        }
+
+        const blob = pdf.output("blob");
+        const name = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        const pdfFile = new File([blob], `${name}.pdf`, { type: "application/pdf" });
+
+        const uploaded = await uploadStorageItem(supabase, "documente-dosare", selected.id, pdfFile, "documente");
+        currentDocs = [uploaded, ...currentDocs];
+        setDocumente(currentDocs);
+        onPatch(selected.id, { documente: currentDocs });
+      }
+
+      // 2. Salvare ca poze individuale în galerie
+      if (scanSession.saveAsPhotos) {
+        const baseName = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        for (let i = 0; i < scanSession.pages.length; i++) {
+          const pageDataUrl = scanSession.pages[i];
+          const res = await fetch(pageDataUrl);
+          const blob = await res.blob();
+          const photoFile = new File([blob], `${baseName}_pagina_${i + 1}.jpg`, { type: "image/jpeg" });
+          const uploaded = await uploadStorageItem(supabase, "poze-dosare", selected.id, photoFile, "poze");
+          currentPoze = [uploaded, ...currentPoze];
+        }
+        setPoze(currentPoze);
+        onPatch(selected.id, { poze: currentPoze });
+      }
+
+      onNotify("Document scanat și atașat cu succes!", "success");
+      setScanSession(null);
+    } catch (err) {
+      onNotify(err.message, "error");
+    } finally {
+      setUploadingScan(false);
+    }
+  };
+
   const removePoza = async (poza) => {
     if (poza?.path) await supabase.storage.from("poze-dosare").remove([poza.path]);
     const next = poze.filter((p) => p.id !== poza.id);
@@ -130,7 +293,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-0 sm:p-5 overflow-y-auto">
-      <div className="bg-[#FCFAF5] w-full h-[100dvh] sm:h-auto max-w-lg rounded-none sm:rounded-xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col max-h-[100dvh] sm:max-h-[92vh] overflow-hidden">
+      <div className="bg-[#FCFAF5] w-full h-[100dvh] sm:h-auto max-w-lg rounded-none sm:rounded-xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col max-h-[100dvh] sm:max-h-[92vh] overflow-hidden relative">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[#23282E] text-white shrink-0">
@@ -213,22 +376,31 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           </>
         ) : (
           <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
-            {/* Camera action */}
-            <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#C98A2B]/50 rounded-xl py-6 bg-[#FBF3E6] hover:bg-[#F7EAD3] transition-colors cursor-pointer">
-              <Camera size={28} className="text-[#C98A2B]" />
-              <span className="text-[13.5px] font-bold text-[#7A5316]">Fotografiază</span>
-              <span className="text-[10.5px] text-[#8A8375]">se comprimă și se încarcă automat</span>
+            {/* Primary Camera Action (Photo) */}
+            <label className="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-[#C98A2B]/50 rounded-xl py-5 bg-[#FBF3E6] hover:bg-[#F7EAD3] transition-colors cursor-pointer">
+              <Camera size={26} className="text-[#C98A2B]" />
+              <span className="text-[13.5px] font-bold text-[#7A5316]">Fă poză (Cameră)</span>
+              <span className="text-[10.5px] text-[#8A8375]">fotografie color salvată direct în galerie</span>
               <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { handleFiles(e.target.files, "poza"); e.target.value = ""; }} />
             </label>
 
-            {/* Secondary actions */}
-            <div className="grid grid-cols-2 gap-2">
-              <label className="flex items-center justify-center gap-1.5 border border-[#DAD4C6] rounded-lg py-2.5 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-[12px] font-semibold text-[#3B5166]">
-                <Upload size={15} /> Din galerie
+            {/* Secondary Action Grid */}
+            <div className="grid grid-cols-3 gap-2">
+              <label className="flex flex-col items-center justify-center gap-1 border border-[#DAD4C6] rounded-lg py-2.5 px-1 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-center">
+                <Upload size={16} className="text-[#3B5166]" />
+                <span className="text-[11px] font-bold text-[#3B5166]">Din galerie</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files, "poza"); e.target.value = ""; }} />
               </label>
-              <label className="flex items-center justify-center gap-1.5 border border-[#DAD4C6] rounded-lg py-2.5 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-[12px] font-semibold text-[#3B5166]">
-                <FolderOpen size={15} /> Document
+
+              <label className="flex flex-col items-center justify-center gap-1 border border-[#C98A2B]/40 rounded-lg py-2.5 px-1 bg-[#FAF8F5] hover:bg-[#F7EAD3]/50 transition-colors cursor-pointer text-center">
+                <FileText size={16} className="text-[#C98A2B]" />
+                <span className="text-[11px] font-bold text-[#7A5316]">Scanează Doc</span>
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { handleStartScanSession(e.target.files); e.target.value = ""; }} />
+              </label>
+
+              <label className="flex flex-col items-center justify-center gap-1 border border-[#DAD4C6] rounded-lg py-2.5 px-1 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-center">
+                <FolderOpen size={16} className="text-[#3B5166]" />
+                <span className="text-[11px] font-bold text-[#3B5166]">Încarcă Doc</span>
                 <input type="file" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files, "document"); e.target.value = ""; }} />
               </label>
             </div>
@@ -241,7 +413,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
               </div>
               {poze.length === 0 && pendingPoze.length === 0 ? (
                 <div className="text-[11.5px] text-[#8A8375] italic py-4 text-center border border-dashed border-[#DAD4C6] rounded-lg">
-                  Nicio fotografie încă — apasă „Fotografiază” mai sus.
+                  Nicio fotografie încă — apasă „Fă poză” mai sus.
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-2">
@@ -298,8 +470,111 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           </div>
         )}
 
+        {/* Scanner Session Overlay */}
+        {scanSession && (
+          <div className="absolute inset-0 bg-[#23282E]/95 z-50 flex flex-col p-4 text-white">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
+              <h3 className="font-bold text-[13px] flex items-center gap-1.5 text-[#C98A2B]">
+                <FileText size={16} /> Scanare document (pagini multiple)
+              </h3>
+              <button type="button" onClick={() => setScanSession(null)} className="text-white/70 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Pages list / preview */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {scanSession.pages.map((pageDataUrl, idx) => (
+                  <div key={idx} className="relative group rounded-lg overflow-hidden border border-white/20 aspect-[3/4] bg-white/5">
+                    <img src={pageDataUrl} alt={`Pagina ${idx + 1}`} className="w-full h-full object-contain" />
+                    <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                      Pag. {idx + 1}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setScanSession((prev) => ({
+                          ...prev,
+                          pages: prev.pages.filter((_, i) => i !== idx),
+                        }));
+                      }}
+                      className="absolute top-1 right-1 bg-[#B23A2E] text-white rounded p-1 hover:opacity-80"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
+                {/* Add Page Button */}
+                <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
+                  <Plus size={20} className="text-[#C98A2B]" />
+                  <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { handleAddPageToScan(e.target.files); e.target.value = ""; }} />
+                </label>
+              </div>
+            </div>
+
+            {/* Footer controls */}
+            <div className="border-t border-white/10 pt-3 space-y-3 shrink-0">
+              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="flex-1 w-full">
+                  <label className="block text-[10.5px] text-white/60 font-semibold mb-1">Nume fișier (fără extensie)</label>
+                  <div className="flex items-center gap-1 bg-white/5 border border-white/20 rounded-lg px-2.5 py-1.5">
+                    <input
+                      className="bg-transparent border-0 text-[13px] text-white focus:outline-hidden w-full placeholder:text-white/30"
+                      placeholder="ex: Declaratie_accident"
+                      value={scanSession.fileName}
+                      onChange={(e) => setScanSession((prev) => ({ ...prev, fileName: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5 shrink-0 self-stretch sm:self-auto justify-center">
+                  <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scanSession.saveAsPdf}
+                      onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPdf: e.target.checked }))}
+                      className="rounded border-white/20 bg-white/5 text-[#C98A2B] focus:ring-0 focus:ring-offset-0"
+                    />
+                    <span>Salvează ca document PDF unic</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={scanSession.saveAsPhotos}
+                      onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPhotos: e.target.checked }))}
+                      className="rounded border-white/20 bg-white/5 text-[#C98A2B] focus:ring-0 focus:ring-offset-0"
+                    />
+                    <span>Salvează ca poze în Galerie</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setScanSession(null)}
+                  className="px-4 py-1.5 rounded-lg border border-white/20 hover:bg-white/5 text-[12.5px] font-semibold text-white/80 transition-colors"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveMultiPageScan}
+                  disabled={scanSession.pages.length === 0 || uploadingScan}
+                  className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-bold hover:bg-[#B37A22] shadow-sm transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {uploadingScan ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><CheckCircle2 size={13} /> Finalizează &amp; Încărcă ({scanSession.pages.length} pag.)</>}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        {step === "capture" && (
+        {step === "capture" && !scanSession && (
           <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-[#DAD4C6] bg-white shrink-0">
             <button type="button" onClick={backToPick} className="px-3 py-1.5 rounded border border-[#C7C0B0] text-[12px] font-semibold text-[#4A443A] hover:bg-[#EFEAE1]">
               Alt dosar
