@@ -109,14 +109,17 @@ export default function App() {
     );
   }, [myEmail, adminEmails, usersList]);
 
-  // Administrator can edit ALL claims in the system; Operators can only edit their own
+  // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
     (c) => {
-      if (!myId) return false;
+      if (!c) return false;
       if (isAdmin) return true;
-      return c.createdBy === myId;
+      if (myId && c.createdBy === myId) return true;
+      if (myEmail && c.createdByEmail && c.createdByEmail.toLowerCase() === myEmail.toLowerCase()) return true;
+      if (!c.createdBy && !c.createdByEmail) return true; // Legacy claims without owner
+      return false;
     },
-    [myId, isAdmin]
+    [myId, myEmail, isAdmin]
   );
 
   const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
@@ -862,7 +865,7 @@ export default function App() {
             onClose={() => setModalClaim(null)}
             onSave={handleSave}
             onDelete={handleDelete}
-            readOnly={claims.some((claim) => claim.id === modalClaim.id) && !canEdit(modalClaim)}
+            readOnly={claims.some((c) => c.id === modalClaim.id) && !canEdit(modalClaim)}
             allClaims={claims}
             insurersList={customInsurers}
             onJumpTo={(c) => setModalClaim(c)}

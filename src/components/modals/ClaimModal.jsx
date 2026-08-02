@@ -239,7 +239,7 @@ export default function ClaimModal({
     }
   };
 
-  const isNew = !safeClaim.numarDosar && (safeClaim.note || []).length === 0 && (safeClaim.documente || []).length === 0;
+  const isNew = useMemo(() => !allClaims || !allClaims.some((c) => c.id === claim?.id), [allClaims, claim?.id]);
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
