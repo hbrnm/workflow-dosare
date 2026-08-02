@@ -26,7 +26,6 @@ import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
-import { useExportExcel } from "./hooks/useExportExcel";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 

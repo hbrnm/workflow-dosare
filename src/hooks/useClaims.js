@@ -119,7 +119,6 @@ export function useClaims(session, showNotice) {
   return {
     claims,
     loading,
-    setClaims,
     loadAll,
     saveClaim,
     deleteClaim,
