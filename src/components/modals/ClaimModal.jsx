@@ -816,6 +816,22 @@ export default function ClaimModal({
                       />
                     </div>
                   )}
+
+                  {/* Status Blocat & Motiv Callout Box */}
+                  <div className="pt-1.5 border-t border-[#DAD4C6]/60">
+                    <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
+                      <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} />
+                      <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
+                      <span>Marchează Dosar Blocat în Etapă</span>
+                    </label>
+
+                    {form.blocat && (
+                      <div className="mt-2 px-3 py-1.5 bg-[#B23A2E] text-white rounded-xl text-[11.5px] flex flex-col gap-2 shadow-xs">
+                        <span className="font-extrabold">Motiv blocare:</span>
+                        <input className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* COLOANA 2: VEHICUL & ASIGURAT */}
@@ -903,39 +919,23 @@ export default function ClaimModal({
 
               </div>
 
-              {/* Status Blocat & Motiv Callout Box */}
-              <div className="pt-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-t border-[#DAD4C6]/60">
-                <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
-                  <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} /> 
-                  <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
-                  <span>Marchează Dosar Blocat în Etapă</span>
-                </label>
-
-                {form.blocat && (
-                  <div className="flex-1 w-full sm:w-auto px-3 py-1.5 bg-[#B23A2E] text-white rounded-xl text-[11.5px] flex items-center gap-2 shadow-xs">
-                    <span className="font-extrabold shrink-0">Motiv blocare:</span>
-                    <input className="flex-1 bg-white/10 border border-white/20 rounded-lg px-2 py-0.5 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
-                  </div>
-                )}
-
-                {/* Dosare Anterioare Client / VIN */}
-                {istoricClientVehicul.length > 0 && (
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
-                      <History size={11} /> {istoricClientVehicul.length} anterioare:
-                    </span>
-                    {istoricClientVehicul.slice(0, 3).map((c) => {
-                      const s = getStatusDefinition(c.status);
-                      return (
-                        <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
-                          className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-0.5 truncate max-w-[130px]">
-                          {c.numarDosar || "—"} · {s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              {/* Dosare Anterioare Client / VIN */}
+              {istoricClientVehicul.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
+                    <History size={11} /> {istoricClientVehicul.length} anterioare:
+                  </span>
+                  {istoricClientVehicul.slice(0, 3).map((c) => {
+                    const s = getStatusDefinition(c.status);
+                    return (
+                      <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
+                        className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-0.5 truncate max-w-[130px]">
+                        {c.numarDosar || "—"} · {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* ========================================================================= */}
