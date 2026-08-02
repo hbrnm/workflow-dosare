@@ -5,6 +5,7 @@ export function emptyClaim(status = "primit") {
   const validStatus = typeof status === "string" ? status : "primit";
   return {
     id: uid(),
+    isNewClaim: true,
     numarDosar: "", tipAsigurare: "CASCO", asigurator: "", client: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status: validStatus,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),

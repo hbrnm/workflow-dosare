@@ -208,6 +208,13 @@ export default function ClaimModal({
     }
   };
 
+  const addNote = (customPrefix = "") => {
+    const textToAdd = (customPrefix + noteText).trim();
+    if (!textToAdd) return;
+    setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: textToAdd }, ...(f.note || [])] }));
+    setNoteText("");
+  };
+
   const handleNoteKeyDown = (e) => {
     if (filteredSlashCommands.length > 0) {
       if (e.key === "ArrowDown") {
@@ -239,7 +246,7 @@ export default function ClaimModal({
     }
   };
 
-  const isNew = useMemo(() => !allClaims || !allClaims.some((c) => c.id === claim?.id), [allClaims, claim?.id]);
+  const isNew = !!claim?.isNewClaim;
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
@@ -400,13 +407,6 @@ export default function ClaimModal({
       dataUltimeiActualizari: nowISO(),
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
     }, { openProgramator });
-  };
-
-  const addNote = (customPrefix = "") => {
-    const textToAdd = (customPrefix + noteText).trim();
-    if (!textToAdd) return;
-    setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: textToAdd }, ...f.note] }));
-    setNoteText("");
   };
 
   const insertSlashCommand = (prefix) => {
