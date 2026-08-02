@@ -293,7 +293,7 @@ export default function App() {
         </div>
 
         {/* Main Navigation Items */}
-        <div className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto">
+        <div className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none">
           {[
             { id: "brief", label: "Brief Zilnic", icon: Sunrise },
             { id: "flux", label: "Flux Operațional", icon: Layers, badge: claims.length },
@@ -301,23 +301,8 @@ export default function App() {
             { id: "programator", label: "Programări", icon: CalendarClock },
             { id: "dashboard", label: "Statistici", icon: BarChart3 },
             { id: "rapoarte", label: "Financiar", icon: Wallet },
-          ].map(({ id, label, icon: Icon, badge, isAction }) => {
+          ].map(({ id, label, icon: Icon, badge }) => {
             const active = view === id;
-            if (isAction) {
-              return (
-                <button
-                  key={id}
-                  onClick={() => setQuickCaptureOpen(true)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#C98A2B]/20 text-[#F3D9A8] hover:bg-[#C98A2B] hover:text-white font-bold text-[13px] transition-all"
-                  title={label}
-                >
-                  <Icon size={20} className="shrink-0 text-[#C98A2B] group-hover:text-white" />
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    {label}
-                  </span>
-                </button>
-              );
-            }
             return (
               <button
                 key={id}
