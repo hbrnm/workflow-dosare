@@ -158,17 +158,34 @@ export default function App() {
     if (error) showNotice(error.message, "error");
   };
 
-  const handleAddUser = async ({ email, role }) => {
+  const handleAddUser = async ({ email, role, password }) => {
     const cleanEmail = email.trim().toLowerCase();
     if (usersList.some((u) => u.email?.toLowerCase() === cleanEmail)) {
-      throw new Error("Acest utilizator există deja în listă.");
+      throw new Error("Acest utilizator există deja în lista echipei.");
     }
+
+    // Register user in Supabase Auth so they can log in
+    if (password && password.trim()) {
+      const { error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: password.trim(),
+      });
+      if (authError && !authError.message.toLowerCase().includes("already registered")) {
+        throw new Error("Eroare înregistrare Supabase Auth: " + authError.message);
+      }
+    }
+
     const updatedUsers = [...usersList, { email: cleanEmail, role: role || "operator" }];
     const updatedAdmins = role === "admin"
       ? [...new Set([...adminEmails, cleanEmail])]
       : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
 
     await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+  };
+
+  const handleChangePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
   };
 
   const handleDeleteUser = async (emailToDelete) => {
@@ -781,6 +798,7 @@ export default function App() {
           onAddUser={handleAddUser}
           onDeleteUser={handleDeleteUser}
           onToggleAdminRole={handleToggleAdminRole}
+          onChangePassword={handleChangePassword}
         />
       )}
 

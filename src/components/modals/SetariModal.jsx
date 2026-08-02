@@ -24,6 +24,7 @@ export default function SetariModal({
   onAddUser,
   onDeleteUser,
   onToggleAdminRole,
+  onChangePassword,
 }) {
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
 
@@ -43,6 +44,11 @@ export default function SetariModal({
   const [newUserRole, setNewUserRole] = useState("operator"); // "operator" | "admin"
   const [newUserPassword, setNewUserPassword] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
+
+  // Password change states for current logged-in user
+  const [myNewPassword, setMyNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Statistics
   const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);
@@ -105,6 +111,10 @@ export default function SetariModal({
       onNotify("Introdu o adresă de e-mail validă.", "error");
       return;
     }
+    if (!newUserPassword || newUserPassword.trim().length < 6) {
+      onNotify("Setează o parolă inițială de cel puțin 6 caractere pentru utilizator.", "error");
+      return;
+    }
     setCreatingUser(true);
     try {
       if (onAddUser) {
@@ -112,11 +122,36 @@ export default function SetariModal({
       }
       setNewUserEmail("");
       setNewUserPassword("");
-      onNotify(`Utilizatorul „${email}" a fost adăugat cu succes!`, "success");
+      onNotify(`Utilizatorul „${email}" a fost adăugat cu succes în sistem și se poate conecta!`, "success");
     } catch (err) {
       onNotify("Eroare la adăugarea utilizatorului: " + err.message, "error");
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!myNewPassword || myNewPassword.trim().length < 6) {
+      onNotify("Noua parolă trebuie să aibă cel puțin 6 caractere.", "error");
+      return;
+    }
+    if (myNewPassword !== confirmNewPassword) {
+      onNotify("Parolele introduse nu coincid.", "error");
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      if (onChangePassword) {
+        await onChangePassword(myNewPassword.trim());
+      }
+      setMyNewPassword("");
+      setConfirmNewPassword("");
+      onNotify("Parola ta a fost actualizată cu succes!", "success");
+    } catch (err) {
+      onNotify("Eroare la schimbarea parolei: " + err.message, "error");
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -303,37 +338,45 @@ export default function SetariModal({
                   <span className="text-[11px] text-[#8A8375] font-semibold">Lista societăților de asigurare</span>
                 </div>
 
-                {/* Adăugare Asigurător Nou */}
-                <div className="flex gap-2">
-                  <input
-                    className="flex-1 px-3 py-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white"
-                    placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
-                    value={newInsurer}
-                    onChange={(e) => setNewInsurer(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddInsurer(); } }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddInsurer}
-                    className="flex items-center gap-1 px-4 py-2 bg-[#3B5166] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#2C4160]"
-                  >
-                    <Plus size={15} /> Adaugă
-                  </button>
-                </div>
+                {/* Adăugare Asigurător Nou (doar pentru Admins) */}
+                {isAdmin ? (
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 px-3 py-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white"
+                      placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
+                      value={newInsurer}
+                      onChange={(e) => setNewInsurer(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddInsurer(); } }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddInsurer}
+                      className="flex items-center gap-1 px-4 py-2 bg-[#3B5166] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#2C4160]"
+                    >
+                      <Plus size={15} /> Adaugă
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[11.5px] text-[#8A8375] bg-[#FAF8F5] p-2.5 rounded-lg border border-[#DAD4C6]">
+                    🔒 Lista societăților de asigurare este gestionată de Administrator.
+                  </p>
+                )}
 
                 {/* Grilă Asigurători */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
                   {insurersList.map((ins) => (
                     <div key={ins} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12.5px]">
                       <span className="font-semibold text-[#23282E] truncate">{ins}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveInsurer(ins)}
-                        className="text-[#8A8375] hover:text-[#B23A2E] p-1 transition-colors"
-                        title="Șterge din listă"
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveInsurer(ins)}
+                          className="text-[#8A8375] hover:text-[#B23A2E] p-1 transition-colors"
+                          title="Șterge din listă"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -424,25 +467,71 @@ export default function SetariModal({
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă pentru Administrare) */}
-              <div className="bg-white border border-[#C98A2B]/40 rounded-xl p-4 space-y-4 shadow-sm">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                {/* Formular Schimbare Parolă Cont (Disponibil pentru toți utilizatorii) */}
+                <form onSubmit={handleChangePasswordSubmit} className="p-4 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl space-y-3 pt-3">
                   <div>
-                    <h3 className="font-extrabold text-[14.5px] text-[#23282E] flex items-center gap-2">
-                      <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
-                    </h3>
-                    <p className="text-[11px] text-[#6B6558]">
-                      Adaugă membri noi, oferă drepturi de Administrator sau elimină conturi din organizație
+                    <h4 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5">
+                      <Key size={15} className="text-[#C98A2B]" /> Schimbă Parola Contului Tău
+                    </h4>
+                    <p className="text-[11px] text-[#8A8375]">
+                      Setează o parolă nouă confidențială după conectarea inițială.
                     </p>
                   </div>
-                  {!isAdmin && (
-                    <span className="text-[10.5px] font-bold text-[#B23A2E] bg-red-50 border border-red-200 px-2.5 py-1 rounded-lg">
-                      Doar Administratorii pot efectua modificări
-                    </span>
-                  )}
-                </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Parolă Nouă</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Parola nouă (min. 6 caractere)..."
+                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
+                        value={myNewPassword}
+                        onChange={(e) => setMyNewPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Confirmare Parolă Nouă</label>
+                      <input
+                        type="password"
+                        required
+                        minLength={6}
+                        placeholder="Reintroduceți parola nouă..."
+                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={updatingPassword || !myNewPassword}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all disabled:opacity-50"
+                    >
+                      <Key size={14} /> {updatingPassword ? "Se actualizează..." : "Actualizează Parola"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă Exclusiv pentru Administratori) */}
+              {isAdmin && (
+                <div className="bg-white border border-[#C98A2B]/40 rounded-xl p-4 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                    <div>
+                      <h3 className="font-extrabold text-[14.5px] text-[#23282E] flex items-center gap-2">
+                        <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
+                      </h3>
+                      <p className="text-[11px] text-[#6B6558]">
+                        Adaugă membri noi, setează parola inițială, oferă drepturi de Administrator sau elimină conturi din organizație
+                      </p>
+                    </div>
+                  </div>
 
                 {/* Formular Adăugare Utilizator Nou */}
                 <form onSubmit={handleAddUserSubmit} className="bg-[#FBF3E6] border border-[#C98A2B]/30 rounded-xl p-3.5 space-y-3">
@@ -562,6 +651,7 @@ export default function SetariModal({
                 </div>
 
               </div>
+              )}
             </div>
           )}
 
