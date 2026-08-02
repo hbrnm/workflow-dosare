@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, ShieldCheck, Download, FileSpreadsheet } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, ShieldCheck, Download, FileSpreadsheet, BarChart3 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
