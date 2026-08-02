@@ -22,3 +22,11 @@ export function isStageOverdue(claim) {
 export function getDaysInStage(claim) {
   return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
 }
+
+// Dosare cu accept de plată dar pentru care nu au fost comandate încă piesele
+export function isAcceptPlataWithoutParts(claim) {
+  return Boolean(
+    !claim.blocat &&
+    claim.status === "accept_plata"
+  );
+}

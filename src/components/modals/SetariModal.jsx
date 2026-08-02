@@ -1,24 +1,19 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
-  X, Settings, AlertTriangle, PackageCheck, ShieldAlert, CheckCircle2,
-  CalendarClock, Percent, Database, Bell, Wrench, ChevronRight, Car
+  X, Settings, CheckCircle2, CalendarClock, Database, Wrench, Percent
 } from "lucide-react";
-import { getStatusDefinition } from "../../constants/config";
-import { isReadyForPickupOverdue, isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
-import Pill from "../common/Pill";
 
 export default function SetariModal({
-  claims,
+  claims = [],
   capacitateZilnica,
   pragRidicare,
   onSaveCapacitate,
   onSavePrag,
   onClose,
-  onOpenClaim,
   onNotify,
   userEmail
 }) {
-  const [activeTab, setActiveTab] = useState("alerte"); // "alerte" | "config" | "sistem"
+  const [activeTab, setActiveTab] = useState("config"); // "config" | "sistem"
 
   // Local state form for thresholds
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
@@ -26,11 +21,6 @@ export default function SetariModal({
   const [tvaDefault, setTvaDefault] = useState(19);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Filtered Alert Lists
-  const overdues = useMemo(() => claims.filter(isStageOverdue), [claims]);
-  const unpicked = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, prag)), [claims, prag]);
-  const blocked = useMemo(() => claims.filter((c) => c.blocat), [claims]);
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
@@ -43,6 +33,7 @@ export default function SetariModal({
         await onSavePrag(Number(prag));
       }
       onNotify("Setările au fost salvate cu succes!", "success");
+      onClose();
     } catch (err) {
       onNotify("Eroare la salvarea setărilor: " + err.message, "error");
     } finally {
@@ -52,7 +43,7 @@ export default function SetariModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-[#FCFAF5] w-full max-w-3xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="bg-[#FCFAF5] w-full max-w-2xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0">
@@ -61,10 +52,10 @@ export default function SetariModal({
               <Settings size={18} />
             </div>
             <div>
-              <h2 className="font-bold text-[15px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Centru de Setări &amp; Alerte
+              <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                Setări Sistem &amp; Configurare
               </h2>
-              <p className="text-[11px] text-white/60">Configurare parametri sistem și gestionare alerte active</p>
+              <p className="text-[11px] text-white/60">Configurare parametri aplicație și diagnoză</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
@@ -73,12 +64,11 @@ export default function SetariModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-4 pt-2 gap-2 shrink-0 overflow-x-auto">
+        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-4 pt-2 gap-2 shrink-0">
           {[
-            { id: "alerte", label: "Alerte Active", icon: Bell, badge: overdues.length + unpicked.length + blocked.length },
             { id: "config", label: "Parametri & Praguri", icon: Wrench },
             { id: "sistem", label: "Sistem & Diagnoză", icon: Database },
-          ].map(({ id, label, icon: Icon, badge }) => {
+          ].map(({ id, label, icon: Icon }) => {
             const active = activeTab === id;
             return (
               <button
@@ -92,157 +82,15 @@ export default function SetariModal({
               >
                 <Icon size={16} />
                 <span>{label}</span>
-                {badge > 0 && (
-                  <span className={`px-1.5 py-0.2 text-[10.5px] font-black rounded-full ${active ? "bg-[#C98A2B] text-white" : "bg-[#B23A2E] text-white"}`}>
-                    {badge}
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
 
-          {/* TAB 1: ALERTE ACTIVE CENTRALIZATE */}
-          {activeTab === "alerte" && (
-            <div className="space-y-5">
-
-              {/* 1. Termene depășite */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                  <div className="flex items-center gap-2 text-[#B23A2E] font-bold text-[13.5px]">
-                    <AlertTriangle size={17} />
-                    <span>Dosare cu termene depășite pe etapă ({overdues.length})</span>
-                  </div>
-                  <span className="text-[11px] text-[#8A8375] font-semibold">Alertă Critică</span>
-                </div>
-
-                {overdues.length === 0 ? (
-                  <div className="text-[12px] text-[#8A8375] italic py-3 text-center">
-                    🎉 Felicitări! Nu există niciun dosar cu termen depășit.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {overdues.map((c) => {
-                      const st = getStatusDefinition(c.status);
-                      const daysInStage = getDaysInStage(c);
-                      return (
-                        <div
-                          key={c.id}
-                          onClick={() => { onClose(); onOpenClaim(c); }}
-                          className="flex items-center justify-between bg-[#FDF8F7] border border-[#F4D7D3] rounded-lg p-2.5 hover:border-[#B23A2E] cursor-pointer transition-all group"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-[#B23A2E]/10 text-[#B23A2E] flex items-center justify-center font-mono font-bold text-[11px] shrink-0">
-                              {daysInStage}z
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-[13px] text-[#23282E] group-hover:text-[#B23A2E]">{c.numarDosar || "(fără nr.)"}</span>
-                                <Pill tone="amber">{c.tipAsigurare}</Pill>
-                              </div>
-                              <div className="text-[11.5px] text-[#6B6558] truncate">{c.client || "Client neintrodus"} · {c.numarInmatriculare || "—"}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[11px] font-semibold text-[#8A8375]">Etapa: {st.label}</span>
-                            <ChevronRight size={16} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* 2. Mașini gata dar neridicate */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                  <div className="flex items-center gap-2 text-[#C98A2B] font-bold text-[13.5px]">
-                    <PackageCheck size={17} />
-                    <span>Mașini gata de ridicare neridicate &gt; {prag} zile ({unpicked.length})</span>
-                  </div>
-                  <span className="text-[11px] text-[#8A8375] font-semibold">Alertă Ridicare</span>
-                </div>
-
-                {unpicked.length === 0 ? (
-                  <div className="text-[12px] text-[#8A8375] italic py-3 text-center">
-                    Nu există mașini gata de ridicare care să depășească pragul de {prag} zile.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {unpicked.map((c) => (
-                      <div
-                        key={c.id}
-                        onClick={() => { onClose(); onOpenClaim(c); }}
-                        className="flex items-center justify-between bg-[#FBF7F0] border border-[#F3E5CD] rounded-lg p-2.5 hover:border-[#C98A2B] cursor-pointer transition-all group"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-[#C98A2B]/15 text-[#7A5316] flex items-center justify-center shrink-0">
-                            <Car size={16} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-[13px] text-[#23282E] group-hover:text-[#C98A2B]">{c.numarDosar || "(fără nr.)"}</span>
-                              <span className="text-[11px] font-mono font-bold text-[#7A5316] bg-[#F7EAD3] px-1.5 py-0.5 rounded">Gata de ridicare</span>
-                            </div>
-                            <div className="text-[11.5px] text-[#6B6558] truncate">{c.client} · {c.numarInmatriculare}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <ChevronRight size={16} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Dosare blocate */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                  <div className="flex items-center gap-2 text-[#3B5166] font-bold text-[13.5px]">
-                    <ShieldAlert size={17} />
-                    <span>Dosare Blocate / Litigiu ({blocked.length})</span>
-                  </div>
-                  <span className="text-[11px] text-[#8A8375] font-semibold">Status Special</span>
-                </div>
-
-                {blocked.length === 0 ? (
-                  <div className="text-[12px] text-[#8A8375] italic py-3 text-center">
-                    Nu există dosare blocate în acest moment.
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {blocked.map((c) => (
-                      <div
-                        key={c.id}
-                        onClick={() => { onClose(); onOpenClaim(c); }}
-                        className="flex items-center justify-between bg-[#F4F6F8] border border-[#D5DCB4] rounded-lg p-2.5 hover:border-[#3B5166] cursor-pointer transition-all group"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-[#3B5166]/10 text-[#3B5166] flex items-center justify-center shrink-0 font-bold">
-                            ⚠️
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-[13px] text-[#23282E] group-hover:text-[#3B5166]">{c.numarDosar || "(fără nr.)"} · {c.numarInmatriculare}</div>
-                            <div className="text-[11.5px] text-[#B23A2E] font-medium truncate">Motiv: {c.motivBlocare || "Nespecificat"}</div>
-                          </div>
-                        </div>
-                        <ChevronRight size={16} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: PARAMETRI & CONFIGURARE */}
+          {/* TAB 1: PARAMETRI & CONFIGURARE */}
           {activeTab === "config" && (
             <form onSubmit={handleSaveConfig} className="space-y-4">
               <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
@@ -254,10 +102,10 @@ export default function SetariModal({
                   {/* Prag mașini neridicate */}
                   <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
                     <label className="block text-[12px] font-bold text-[#23282E] mb-1">
-                      Prag alertă mașini gata de ridicare (zile)
+                      Prag alertă mașini neridicate (zile)
                     </label>
                     <p className="text-[11px] text-[#8A8375] mb-2">
-                      După câte zile de la finalizarea reparației este declanșată alerta portocalie pentru mașinile neridicate de client.
+                      După câte zile de la finalizare se declanșează alerta portocalie.
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -278,7 +126,7 @@ export default function SetariModal({
                       Capacitate maximă programări pe zi
                     </label>
                     <p className="text-[11px] text-[#8A8375] mb-2">
-                      Numărul maxim de mașini ce pot fi programate într-o singură zi în calendarul atelierului.
+                      Numărul maxim de mașini ce pot fi programate pe o zi în atelier.
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -300,7 +148,7 @@ export default function SetariModal({
                     Cotă TVA implicită (%)
                   </label>
                   <p className="text-[11px] text-[#8A8375] mb-2">
-                    Procentul de TVA aplicat automat la calculul veniturilor financiare și al devizelor.
+                    Procentul de TVA aplicat automat la calculul veniturilor financiare.
                   </p>
                   <div className="flex items-center gap-2">
                     <input
@@ -319,8 +167,8 @@ export default function SetariModal({
                 <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg p-3">
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
-                      <span className="block text-[12px] font-bold text-[#23282E]">Evidențiere automată dosare critice</span>
-                      <span className="block text-[11px] text-[#8A8375]">Bara superioară va semnaliza dosarele cu întârziere</span>
+                      <span className="block text-[12px] font-bold text-[#23282E]">Semnalizare vizuală alerte în antet</span>
+                      <span className="block text-[11px] text-[#8A8375]">Bara superioară va evidenția dosarele cu întârziere sau fără piese</span>
                     </div>
                     <input
                       type="checkbox"
@@ -344,7 +192,7 @@ export default function SetariModal({
             </form>
           )}
 
-          {/* TAB 3: SISTEM & DIAGNOZĂ */}
+          {/* TAB 2: SISTEM & DIAGNOZĂ */}
           {activeTab === "sistem" && (
             <div className="space-y-4">
               <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">

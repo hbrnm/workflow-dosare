@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { supabase } from "./supabaseClient";
 import { STATUSES, getStatusDefinition } from "./constants/config";
 import { todayISO, nowISO, fmtDate } from "./utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue } from "./utils/alertUtils";
+import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts } from "./utils/alertUtils";
 import { fromDb, toDb, emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
 import Login from "./components/auth/Login";
@@ -20,6 +20,7 @@ import Rapoarte from "./components/views/Rapoarte";
 import QuickCapture from "./components/views/QuickCapture";
 import ClaimModal from "./components/modals/ClaimModal";
 import SetariModal from "./components/modals/SetariModal";
+import AlerteModal from "./components/modals/AlerteModal";
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 
@@ -40,6 +41,7 @@ export default function App() {
   const [fluxFilter, setFluxFilter] = useState("toate");
   const [modalClaim, setModalClaim] = useState(null);
   const [setariOpen, setSetariOpen] = useState(false);
+  const [alerteModalTab, setAlerteModalTab] = useState(null); // null | "depasite" | "neridicate" | "accept_plata" | "blocate"
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -219,6 +221,7 @@ export default function App() {
   const alertCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
   const blockedCount = useMemo(() => claims.filter((c) => c.blocat).length, [claims]);
   const gataNeridicateCount = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length, [claims, pragRidicare]);
+  const acceptPlataNoPartsCount = useMemo(() => claims.filter(isAcceptPlataWithoutParts).length, [claims]);
 
   const exportExcel = () => {
     const rows = claims.map((c) => ({
@@ -294,7 +297,7 @@ export default function App() {
             })}
           </div>
 
-          {/* Right Side: Quick Search, Alerts, Settings & User Controls */}
+          {/* Right Side: Quick Search, Operational Alerts & User Controls */}
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
@@ -305,48 +308,59 @@ export default function App() {
               <Search size={16} />
             </button>
 
+            {/* Alert 1: Termene Depășite */}
             {alertCount > 0 && (
               <button
-                onClick={() => {
-                  setView("flux");
-                  setFluxFilter((prev) => prev === "intarziate" ? "toate" : "intarziate");
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold shadow-md transition-all ${
-                  view === "flux" && fluxFilter === "intarziate"
-                    ? "bg-[#B23A2E] text-white border border-[#B23A2E]"
-                    : "bg-[#B23A2E] text-white hover:bg-[#922D24] animate-pulse"
-                }`}
-                title="Dosare cu termene depășite"
+                onClick={() => setAlerteModalTab("depasite")}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-bold bg-[#B23A2E] text-white shadow-md hover:bg-[#922D24] animate-pulse transition-all"
+                title="Dosare cu termene depășite pe etapă"
               >
                 <AlertTriangle size={13} className="fill-white" />
                 <span>{alertCount}</span>
               </button>
             )}
 
-            {blockedCount > 0 && (
-              <button onClick={() => setOnlyBlocked((v) => !v)} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-semibold ${onlyBlocked ? "bg-white text-[#23282E]" : "bg-white/10 text-white/70"}`}>
-                <AlertTriangle size={13} /> {blockedCount}
+            {/* Alert 2: Accept de plată fără piese comandate */}
+            {acceptPlataNoPartsCount > 0 && (
+              <button
+                onClick={() => setAlerteModalTab("accept_plata")}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#2C4160] text-white hover:bg-[#1E2D44] transition-all"
+                title="Dosare cu Accept de Plată fără piese comandate"
+              >
+                <ShoppingCart size={13} />
+                <span>{acceptPlataNoPartsCount}</span>
               </button>
             )}
 
+            {/* Alert 3: Mașini Gata Neridicate */}
             {gataNeridicateCount > 0 && (
               <button
-                onClick={() => {
-                  setView("flux");
-                  setFluxFilter((prev) => prev === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate");
-                }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-semibold ${view === "flux" && fluxFilter === "gata_ridicare_intarziate" ? "bg-[#C98A2B] text-white" : "bg-[#C98A2B]/20 text-[#F3D9A8]"}`}
+                onClick={() => setAlerteModalTab("neridicate")}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-bold bg-[#C98A2B] text-white hover:bg-[#B37A22] transition-all"
                 title={`Mașini gata de ridicare de cel puțin ${pragRidicare} zile`}
               >
-                <PackageCheck size={13} /> {gataNeridicateCount}
+                <PackageCheck size={13} />
+                <span>{gataNeridicateCount}</span>
+              </button>
+            )}
+
+            {/* Alert 4: Dosare Blocate */}
+            {blockedCount > 0 && (
+              <button
+                onClick={() => setAlerteModalTab("blocate")}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[12px] font-semibold bg-white/20 text-white hover:bg-white/30 transition-all"
+                title="Dosare blocate / litigiu"
+              >
+                <AlertTriangle size={13} />
+                <span>{blockedCount}</span>
               </button>
             )}
 
             {/* Setări Centralizate Button */}
             <button
               onClick={() => setSetariOpen(true)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white/90 hover:text-white hover:bg-white/15 text-[12.5px] font-semibold transition-all"
-              title="Centru Setări & Alerte"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-white/20 text-white/90 hover:text-white hover:bg-white/15 text-[12.5px] font-semibold transition-all ml-1"
+              title="Centru Setări &amp; Configurare"
             >
               <Settings size={15} className="text-[#C98A2B]" />
               <span className="hidden md:inline">Setări</span>
@@ -615,6 +629,16 @@ export default function App() {
         </ErrorBoundary>
       )}
 
+      {alerteModalTab && (
+        <AlerteModal
+          claims={claims}
+          initialTab={alerteModalTab}
+          pragRidicare={pragRidicare}
+          onClose={() => setAlerteModalTab(null)}
+          onOpenClaim={openExisting}
+        />
+      )}
+
       {setariOpen && (
         <SetariModal
           claims={claims}
@@ -623,7 +647,6 @@ export default function App() {
           onSaveCapacitate={saveCapacitate}
           onSavePrag={savePragRidicare}
           onClose={() => setSetariOpen(false)}
-          onOpenClaim={openExisting}
           onNotify={showNotice}
           userEmail={myEmail}
         />
