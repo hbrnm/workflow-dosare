@@ -10,7 +10,7 @@ import {
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
-  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS
+  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber
 } from "../../utils/claimUtils";
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
