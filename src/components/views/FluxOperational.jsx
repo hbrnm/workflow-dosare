@@ -22,7 +22,7 @@ const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
 // ---------------------------------------------------------------------------
 // KANBAN CARD REDESIGN
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, canEdit, pragRidicare }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -37,7 +37,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
   if (days > 4 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const commentsCount = (claim.poze?.length || 0) + (claim.documente?.length || 0);
-  const isPartOverdue = claim.status === "piese_comandate" && days > PART_OVERDUE_DAYS;
+  const isPartOverdue = claim.status === "piese_comandate" && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
 
   return (
     <div
@@ -75,7 +75,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
         </span>
       </div>
 
-      {/* 2. VISUAL STEPPER (11 SEGMENTE) */}
+      {/* 2. VISUAL STEPPER (9 SEGMENTE) */}
       <div className="space-y-1">
         <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5">
           {STATUSES.map((s, idx) => {
@@ -101,15 +101,40 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
         </div>
       </div>
 
-      {/* 3. PART OVERDUE ALERT BANNER ON CARD */}
+      {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (Etapa Piese comandate) */}
+      {claim.status === "piese_comandate" && (
+        <label
+          onClick={(e) => e.stopPropagation()}
+          className={`flex items-center justify-between gap-1.5 text-[11px] font-bold cursor-pointer select-none py-1 px-2 rounded-lg border transition-all ${
+            claim.pieseSosite
+              ? "bg-[#E9F5EE] text-[#2F8F5B] border-[#B9D9C6]"
+              : "bg-[#F3F2EE] text-[#5B6572] border-[#E4E1D9] hover:border-[#1B2430]"
+          }`}
+        >
+          <div className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={!!claim.pieseSosite}
+              onChange={(e) => {
+                if (onTogglePieseSosite) onTogglePieseSosite(claim, e.target.checked);
+              }}
+              className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
+            />
+            <span>Piese sosite</span>
+          </div>
+          {claim.pieseSosite && <span className="text-[10px] font-extrabold bg-[#2F8F5B] text-white px-1.5 py-0.2 rounded">✓ SOSITE</span>}
+        </label>
+      )}
+
+      {/* 4. PART OVERDUE ALERT BANNER ON CARD */}
       {isPartOverdue && (
         <div className="flex items-center gap-1 bg-[#FBEAE9] text-[#8C2E28] text-[10.5px] font-extrabold px-2 py-1 rounded-lg border border-[#EFC3C0]">
           <Bell size={11} className="shrink-0 animate-bounce" />
-          <span>Fără confirmare sosire ({days} zile)</span>
+          <span>Piese comandate de {days} zile — fără confirmare sosire</span>
         </div>
       )}
 
-      {/* 4. CARD FOOTER: AGING + WHATSAPP/COMMENTS + ADVANCE BUTTON */}
+      {/* 5. CARD FOOTER: AGING + WHATSAPP/COMMENTS + ADVANCE BUTTON */}
       <div className="flex items-center gap-2 pt-1 border-t border-[#E4E1D9]/60 text-[10.5px]">
         {/* Aging Pill */}
         <span className={`font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${agingClass}`}>
@@ -155,6 +180,7 @@ export default function TablouPeFazeRedesign({
   claims,
   onOpen,
   onMoveToStatus,
+  onTogglePieseSosite,
   onAddInStatus,
   onDuplicate,
   canEditFn,
@@ -167,7 +193,7 @@ export default function TablouPeFazeRedesign({
 
   // Dosare cu piese întârziate (peste pragul de zile fără confirmare de sosire)
   const overduePartClaims = useMemo(() => {
-    return claims.filter((c) => c.status === "piese_comandate" && daysBetween(c.dataSchimbareStatus) > PART_OVERDUE_DAYS);
+    return claims.filter((c) => c.status === "piese_comandate" && !c.pieseSosite && daysBetween(c.dataSchimbareStatus) > PART_OVERDUE_DAYS);
   }, [claims]);
 
   // Alerte și grupări dosare
@@ -374,6 +400,7 @@ export default function TablouPeFazeRedesign({
                       claim={c}
                       onOpen={onOpen}
                       onMoveToStatus={onMoveToStatus}
+                      onTogglePieseSosite={onTogglePieseSosite}
                       canEdit={canEditFn(c)}
                       pragRidicare={pragRidicare}
                     />

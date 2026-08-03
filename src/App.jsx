@@ -628,6 +628,7 @@ export default function App() {
                 claims={filteredClaims}
                 onOpen={openExisting}
                 onMoveToStatus={handleMoveToStatus}
+                onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val }, true)}
                 onAddInStatus={openNew}
                 onDuplicate={duplicateClaim}
                 canEditFn={canEdit}
