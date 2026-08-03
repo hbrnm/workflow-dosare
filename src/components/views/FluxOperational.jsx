@@ -250,39 +250,6 @@ export default function TablouPeFazeRedesign({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-3.5 font-sans text-[#1B2430]">
-      
-      {/* 1. TOP BAR INTEGRAT */}
-      <div className="flex items-center justify-between gap-3 flex-wrap bg-white border border-[#E4E1D9] rounded-xl px-4 py-2.5 shadow-2xs">
-        <div className="flex items-center gap-2 font-extrabold text-[15px]">
-          <span>Workflow Dosare</span>
-          <span className="text-[#5B6572] font-normal">›</span>
-          <span className="bg-[#B8791E] text-white px-3.5 py-1 rounded-lg text-[13px] font-bold">
-            Flux Operațional
-          </span>
-        </div>
-
-        {/* Căutare rapidă */}
-        <div className="relative flex-1 max-w-md min-w-[200px]">
-          <Search size={15} className="absolute left-3 top-2.5 text-[#5B6572]" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Caută după nr. înmatriculare, client..."
-            className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[#E4E1D9] text-[13px] bg-white focus:outline-none focus:border-[#B8791E] font-medium"
-          />
-        </div>
-
-        {/* Clopoțel alerte piese întârziate */}
-        {overduePartClaims.length > 0 && (
-          <div className="relative bg-white border border-[#E4E1D9] p-2 rounded-xl text-[14px] flex items-center justify-center font-bold">
-            🔔
-            <span className="absolute -top-1.5 -right-1.5 bg-[#D6473F] text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center">
-              {overduePartClaims.length}
-            </span>
-          </div>
-        )}
-      </div>
 
       {/* 2. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (

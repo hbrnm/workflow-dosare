@@ -496,20 +496,38 @@ export default function App() {
             </span>
           </div>
 
-          {/* Center Search Trigger (Ctrl+K) - Strictly Centered in Header */}
+          {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <button
-              onClick={() => setIsCommandPaletteOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#8A8375] hover:bg-white hover:border-[#C98A2B] text-[12.5px] transition-all w-72 justify-between shadow-2xs"
-            >
-              <div className="flex items-center gap-2">
-                <Search size={14} />
-                <span>Căutare rapidă...</span>
+            <div className="relative w-80">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Caută după nr. auto, client, dosar..."
+                className="w-full pl-9 pr-16 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#23282E] placeholder-[#8A8375] focus:bg-white focus:border-[#C98A2B] text-[12.5px] transition-all shadow-2xs font-medium focus:outline-none"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="p-0.5 rounded-full hover:bg-gray-200 text-[#8A8375]"
+                    title="Șterge căutarea"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsCommandPaletteOpen(true)}
+                  className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166] hover:bg-[#E2DBCF]"
+                  title="Deschide Paleta de Comenzi (Ctrl+K)"
+                >
+                  Ctrl+K
+                </button>
               </div>
-              <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166]">
-                Ctrl+K
-              </span>
-            </button>
+            </div>
           </div>
 
           {/* Right Header Actions */}
@@ -536,21 +554,17 @@ export default function App() {
           </div>
         </header>
 
-        {/* DESKTOP FILTER BAR (Search + Dropdowns) */}
+        {/* DESKTOP FILTER DROPDOWNS BAR */}
         {!["brief", "programator"].includes(view) && (
           <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-full sm:w-[280px]">
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-                <input className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-[#FAF8F5] focus:bg-white" placeholder="Filtru rapid dosare..." value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
               <button
                 type="button"
                 onClick={() => setShowFilterPanel((open) => !open)}
-                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
               >
                 <SlidersHorizontal size={14} />
-                <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre"}</span>
+                <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre avansate"}</span>
               </button>
             </div>
             {showFilterPanel && (
