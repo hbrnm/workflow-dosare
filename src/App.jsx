@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText, Smartphone
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { STATUSES, INSURERS } from "./constants/config";
@@ -20,6 +20,7 @@ const QuickCapture = lazy(() => import("./components/views/QuickCapture"));
 const ClaimModal = lazy(() => import("./components/modals/ClaimModal"));
 const SetariModal = lazy(() => import("./components/modals/SetariModal"));
 const AlerteModal = lazy(() => import("./components/modals/AlerteModal"));
+const MobileAppLayout = lazy(() => import("./components/mobile/MobileAppLayout"));
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
@@ -39,6 +40,40 @@ export default function App() {
       return "brief";
     }
   });
+
+  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+    try {
+      return window.innerWidth < 768;
+    } catch (err) {
+      return false;
+    }
+  });
+
+  const [displayMode, setDisplayMode] = useState(() => {
+    try {
+      return localStorage.getItem("workflow_dosare_display_mode") || null;
+    } catch (err) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const activeMode = displayMode || (isMobileScreen ? "mobile" : "desktop");
+
+  const toggleDisplayMode = (mode) => {
+    setDisplayMode(mode);
+    try {
+      localStorage.setItem("workflow_dosare_display_mode", mode);
+    } catch (err) {
+      console.warn("Failed saving display mode to localStorage", err);
+    }
+  };
+
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
@@ -251,6 +286,75 @@ export default function App() {
     return <Login onLoginSuccess={(s) => setSession(s)} />;
   }
 
+  if (activeMode === "mobile") {
+    return (
+      <ErrorBoundary>
+        <Notification notice={notice} onClose={() => setNotice(null)} />
+        <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
+          <MobileAppLayout
+            claims={claims}
+            session={session}
+            userEmail={myEmail}
+            onOpenClaim={openExisting}
+            onNewClaim={openNew}
+            onPatchClaim={handlePatchClaim}
+            canEditFn={canEdit}
+            onNotify={showNotice}
+            onLogout={handleLogout}
+            onOpenSettings={openSettings}
+            pragRidicare={pragRidicare}
+            onSwitchToDesktop={() => toggleDisplayMode("desktop")}
+          />
+        </Suspense>
+
+        {modalClaim && (
+          <Suspense fallback={null}>
+            <ClaimModal
+              claim={modalClaim}
+              isNew={!modalClaim.numarDosar}
+              onSave={handleSave}
+              onDelete={handleDelete}
+              onClose={closeClaimModal}
+              onNotify={showNotice}
+              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openExisting(c), 150); }}
+              onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
+              insurersList={customInsurers}
+              canEdit={canEdit(modalClaim)}
+              allClaims={claims}
+              adminEmails={adminEmails}
+            />
+          </Suspense>
+        )}
+
+        {setariOpen && (
+          <Suspense fallback={null}>
+            <SetariModal
+              claims={claims}
+              capacitateZilnica={capacitateZilnica}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onSaveCapacitate={saveCapacitate}
+              onSavePrag={savePragRidicare}
+              onSavePragInactivitate={savePragInactivitate}
+              insurersList={customInsurers}
+              onSaveInsurers={saveInsurers}
+              onClose={closeSettings}
+              onNotify={showNotice}
+              userEmail={myEmail}
+              onSignOut={handleLogout}
+              isAdmin={isAdmin}
+              usersList={usersList}
+              onAddUser={handleAddUser}
+              onDeleteUser={handleDeleteUser}
+              onToggleAdminRole={handleToggleAdminRole}
+              onChangePassword={handleChangePassword}
+            />
+          </Suspense>
+        )}
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
       <Notification notice={notice} onClose={() => setNotice(null)} />
@@ -362,6 +466,14 @@ export default function App() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => toggleDisplayMode("mobile")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2C4160] text-white text-[12.5px] font-bold hover:bg-[#1E2D44] shadow-sm transition-all active:scale-95"
+              title="Comută pe versiunea dedicată de telefon mobil"
+            >
+              <Smartphone size={15} /> <span className="hidden sm:inline">Mod Mobil</span>
+            </button>
+
             <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
