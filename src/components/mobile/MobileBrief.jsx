@@ -31,7 +31,7 @@ export default function MobileBrief({ claims, onOpen, pragRidicare }) {
   const restante = useMemo(() => claims.filter(isStageOverdue), [claims]);
 
   // Piese neprogramate
-  const pieseSosite = useMemo(() => claims.filter((c) => c.status === "piese_sosite" && !c.dataProgramare), [claims]);
+  const pieseSosite = useMemo(() => claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare), [claims]);
 
   // Neridicate
   const neridicate = useMemo(() => claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)), [claims, pragRidicare]);

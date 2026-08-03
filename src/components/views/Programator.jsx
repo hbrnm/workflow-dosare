@@ -68,7 +68,7 @@ function checkMasinaSchimbConflict(claims, currentId, masinaSchimb, dateStr) {
 /* ───────────────────────────────────────────────────────────────────────── */
 function PendingBanner({ claims, onOpen }) {
   const pending = useMemo(() =>
-    claims.filter((c) => c.status === "piese_sosite" && !c.dataProgramare),
+    claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare),
     [claims]
   );
   if (pending.length === 0) return null;
@@ -181,7 +181,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
 
   // Arrived claims that do not have dateProgramare yet
   const arrivedClaims = useMemo(() => {
-    return claims.filter(c => c.status === "piese_sosite" && !c.dataProgramare);
+    return claims.filter(c => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare);
   }, [claims]);
 
   const dateRangeLabel = useMemo(() => {
@@ -590,7 +590,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                                 type="button"
                                 onClick={() => {
                                   if (onPatch) {
-                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
+                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot), status: "programat" });
                                     setActiveSlotForScheduling(null);
                                     setSelectingFromArrived(false);
                                   }

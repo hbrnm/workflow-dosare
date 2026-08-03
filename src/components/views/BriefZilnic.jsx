@@ -54,7 +54,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
   // 6. Piese sosite dar neprogramate la atelier
   const pieseSositeNeprogramate = useMemo(() =>
-    claims.filter((c) => c.status === "piese_sosite" && !c.dataProgramare),
+    claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare),
     [claims]);
 
   // 7. Clienți cu mașini gata de ridicare ce depășesc pragul de zile
