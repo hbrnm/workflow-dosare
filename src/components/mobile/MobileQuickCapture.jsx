@@ -352,27 +352,27 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                 <div
                   key={c.id}
                   onClick={() => setSelectedClaimId((prev) => (prev === c.id ? null : c.id))}
-                  className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
                     isSelected
                       ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
                       : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
                   }`}
                 >
-                  {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`font-mono text-[12.5px] px-2 py-0.5 rounded font-extrabold border ${
+                  {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL (O SINGURĂ LINIE FLUIDĂ) */}
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className={`shrink-0 whitespace-nowrap font-mono text-[11.5px] font-extrabold px-2 py-0.5 rounded-lg border ${
                       isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
                     }`}>
                       Dosar: {c.numarDosar || "Fără nr."}
                     </span>
                     <span className={`text-[11px] font-semibold truncate ${isSelected ? "text-white/80" : "text-[#6B6558]"}`}>
-                      {c.marcaModel || "—"}
+                      {c.marcaModel || ""}
                     </span>
                   </div>
 
-                  {/* DREAPTA: NUMĂR ÎNMATRICULARE */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`font-mono font-extrabold text-[13px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
+                  {/* DREAPTA: NUMĂR ÎNMATRICULARE (O SINGURĂ LINIE FLUIDĂ) */}
+                  <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                    <span className={`font-mono font-extrabold text-[12.5px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
                       {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
                     {isSelected && <CheckCircle2 size={16} className="text-[#F3D9A8]" />}
