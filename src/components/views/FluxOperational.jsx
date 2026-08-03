@@ -60,6 +60,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           <span className="font-mono font-bold text-[13px] text-[#1B2430] tracking-tight group-hover:text-[#B8791E] transition-colors truncate">
             {claim.numarInmatriculare || "FĂRĂ NR."}
           </span>
+          {claim.numarDosar && (
+            <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] border border-[#DAD4C6] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${claim.numarDosar}`}>
+              #{claim.numarDosar}
+            </span>
+          )}
           <span
             className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded ${
               claim.tipAsigurare === "CASCO"
