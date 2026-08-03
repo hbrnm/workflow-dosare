@@ -7,7 +7,7 @@ export default function Notification({ notice, onClose }) {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 z-[9999] flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl text-[13px] font-semibold text-white animate-in slide-in-from-bottom-2 ${
+      className={`fixed top-3 left-3 right-3 sm:top-auto sm:left-auto sm:right-4 sm:bottom-4 z-[100001] flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-2xl text-[13px] font-bold text-white animate-in fade-in slide-in-from-top-2 sm:slide-in-from-bottom-2 ${
         isErr ? "bg-[#B23A2E]" : "bg-[#3E6B45]"
       }`}
     >
