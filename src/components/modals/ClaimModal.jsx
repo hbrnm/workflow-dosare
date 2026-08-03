@@ -654,68 +654,63 @@ export default function ClaimModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3 overflow-hidden">
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
-        className="relative bg-[#FAF8F5] w-full max-w-5xl rounded-xl shadow-xl border border-[#DAD4C6] flex flex-col max-h-[96vh] overflow-hidden"
+        className="relative bg-[#FAF8F5] w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col overflow-hidden"
       >
         
         {/* Notion Top Bar Navigation & Actions */}
         <div 
           onMouseDown={handleMouseDown}
-          className="flex items-center justify-between px-3 py-1.5 bg-[#1C2127] text-white shrink-0 select-none cursor-move border-b border-white/10"
+          className="flex items-center justify-between px-3 py-2 bg-[#1C2127] text-white shrink-0 select-none border-b border-white/10"
         >
-          <div className="flex items-center gap-2.5">
-            <span className="text-[18px]">📄</span>
-            <div>
-              <span className="font-extrabold text-[13.5px] tracking-tight block text-white">
-                {isNew ? "Dosar Nou de Daună" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
+          <div className="flex items-center gap-2 min-w-0 pr-2">
+            <span className="text-[16px] shrink-0">📄</span>
+            <div className="min-w-0">
+              <span className="font-extrabold text-[13px] tracking-tight block text-white truncate">
+                {isNew ? "Dosar Nou" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
               </span>
-              <span className="text-[10.5px] text-[#A69F91] font-mono block">
-                {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr. înmatriculare"} · {form.marcaModel || "Model neprecizat"}
+              <span className="text-[10px] text-[#A69F91] font-mono block truncate">
+                {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr."} · {form.marcaModel || "Model neprecizat"}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 shrink-0">
             {!isNew && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={async () => await generateazaPDF(form, istoric)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
                 >
-                  <FileDown size={12} /><span className="hidden sm:inline"> PDF Dosar</span>
+                  <FileDown size={12} /><span className="hidden md:inline"> PDF</span>
                 </button>
                 <button
                   type="button"
                   onClick={async () => await generateazaFisaIntrareService(form)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2.5 py-1 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
                 >
-                  <FileDown size={12} /><span className="hidden sm:inline"> Fișă Service</span>
+                  <FileDown size={12} /><span className="hidden md:inline"> Fișă</span>
                 </button>
                 {form.masinaSchimb && (
                   <button
                     type="button"
                     onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[11px] font-bold border border-[#C98A2B]/40 rounded-lg px-2.5 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
+                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[10.5px] font-bold border border-[#C98A2B]/40 rounded-lg px-2 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
                     title="Descarcă Proces-Verbal Auto la Schimb"
                   >
-                    <Car size={12} /><span className="hidden sm:inline"> PV Auto Schimb</span>
+                    <Car size={12} /><span className="hidden md:inline"> PV Schimb</span>
                   </button>
                 )}
               </div>
             )}
-            {!isNew && (
-              <button onClick={handleDuplicate} className="flex items-center gap-1 text-white/70 hover:text-white text-[11px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors">
-                <Copy size={12} /><span className="hidden sm:inline"> Duplică</span>
-              </button>
-            )}
-            <button onClick={onClose} className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors">
-              <X size={18} />
+            <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1">
+              <X size={20} />
             </button>
           </div>
         </div>
