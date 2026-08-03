@@ -204,15 +204,11 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
           </div>
         </div>
 
-        {/* Quick KPI pills header */}
+        {/* Badge sumar dosare active */}
         <div className="flex items-center gap-2 text-[11.5px]">
           <div className="px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] flex items-center gap-2">
-            <span className="text-[#8A8375] font-semibold">Intrări Azi:</span>
-            <span className="font-bold text-[#3B5166] font-mono">{programariAzi.length}</span>
-          </div>
-          <div className="px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] flex items-center gap-2">
-            <span className="text-[#8A8375] font-semibold">Gata Predare:</span>
-            <span className="font-bold text-[#3E6B45] font-mono">{gataAzi.length}</span>
+            <span className="text-[#8A8375] font-semibold">Total Dosare Active:</span>
+            <span className="font-bold text-[#2C4160] font-mono text-[13px]">{activeClaimsCount}</span>
           </div>
         </div>
       </div>
