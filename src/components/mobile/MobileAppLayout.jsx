@@ -43,17 +43,6 @@ export default function MobileAppLayout({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Comutare pe versiunea completă Web */}
-          <button
-            type="button"
-            onClick={onSwitchToDesktop}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 text-[10.5px] font-bold transition-colors border border-white/10"
-            title="Comută pe versiunea Web completă"
-          >
-            <Monitor size={12} />
-            <span className="hidden sm:inline">Mod Web</span>
-          </button>
-
           {/* Delogare */}
           <button
             type="button"
@@ -104,7 +93,7 @@ export default function MobileAppLayout({
           }`}
         >
           <Camera size={20} />
-          <span className="text-[10px]">Captură &amp; Foto</span>
+          <span className="text-[10px]">Foto &amp; Doc</span>
         </button>
 
         {/* TAB 2: BRIEF MOBIL */}

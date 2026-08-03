@@ -467,14 +467,6 @@ export default function App() {
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => toggleDisplayMode("mobile")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2C4160] text-white text-[12.5px] font-bold hover:bg-[#1E2D44] shadow-sm transition-all active:scale-95"
-              title="Comută pe versiunea dedicată de telefon mobil"
-            >
-              <Smartphone size={15} /> <span className="hidden sm:inline">Mod Mobil</span>
-            </button>
-
-            <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
             >

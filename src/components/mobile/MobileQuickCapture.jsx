@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from "react";
 import {
   Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
-  CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2
+  CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
+  Eye, FileCheck, RefreshCw, Check
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
-import { todayISO, nowISO } from "../../utils/dateUtils";
+import { todayISO } from "../../utils/dateUtils";
 
-// Procesare imagine scanată pentru contrast sporit (aspect scanat clar)
+// Function to process scanned document page for enhanced contrast
 function processScanImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -20,7 +21,7 @@ function processScanImage(file) {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
 
-          const MAX_DIM = 1500;
+          const MAX_DIM = 1600;
           let w = img.width;
           let h = img.height;
           if (w > MAX_DIM || h > MAX_DIM) {
@@ -51,7 +52,7 @@ function processScanImage(file) {
           }
           ctx.putImageData(imgData, 0, 0);
 
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.80);
           resolve(dataUrl);
         } catch (err) {
           reject(new Error("Eroare la procesarea imaginii."));
@@ -67,19 +68,20 @@ function processScanImage(file) {
 
 export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn, onNotify }) {
   const [query, setQuery] = useState("");
-  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [selectedClaimId, setSelectedClaimId] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName, saveAsPdf, saveAsPhotos }
+  const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
+  const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
-  // Lista celor mai recente dosare editeabile
+  // Lista celor mai recente dosare
   const recentClaims = useMemo(
     () => [...editableClaims].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || "")).slice(0, 8),
     [editableClaims]
   );
 
-  // Rezultate căutare rapidă
+  // Rezultate căutare
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return recentClaims;
@@ -88,13 +90,19 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
       (c.client || "").toLowerCase().includes(q) ||
       (c.numarInmatriculare || "").toLowerCase().includes(q) ||
       (c.vin || "").toLowerCase().includes(q)
-    ).slice(0, 20);
+    ).slice(0, 25);
   }, [editableClaims, query, recentClaims]);
 
-  // Încărcare fotografii direct din camera telefonului
+  // Dosarul selectat curent (up-to-date cu ultimele poze/documente)
+  const selectedClaim = useMemo(() => {
+    if (!selectedClaimId) return null;
+    return claims.find((c) => c.id === selectedClaimId) || null;
+  }, [claims, selectedClaimId]);
+
+  // Fotografiere cu aparatul foto al telefonului
   const handleMobilePhotoCapture = async (fileList) => {
     if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar din listă sau caută numărul auto.", "error");
+      onNotify("Selectează mai întâi un dosar din listă.", "error");
       return;
     }
     const files = Array.from(fileList || []);
@@ -117,16 +125,16 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         const currentPoze = selectedClaim.poze || [];
         const updatedPoze = [...noiPoze, ...currentPoze];
         await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
-        onNotify(`📸 ${noiPoze.length} fotografie/ii salvate cu succes pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
+        onNotify(`📸 ${noiPoze.length} poze salvate pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
-      onNotify("Eroare la încărcare: " + err.message, "error");
+      onNotify("Eroare la încărcare poză: " + err.message, "error");
     } finally {
       setUploading(false);
     }
   };
 
-  // Încărcare document PDF din telefon
+  // Încărcare document PDF
   const handleMobileDocUpload = async (fileList) => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar.", "error");
@@ -154,16 +162,16 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         onNotify(`📄 ${noiDocs.length} document(e) atașat(e) pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
-      onNotify("Eroare la încărcarea documentului: " + err.message, "error");
+      onNotify("Eroare la încărcare document: " + err.message, "error");
     } finally {
       setUploading(false);
     }
   };
 
-  // Începere sesiune scanare pagini multiple de pe mobil
-  const handleStartScanSession = async (fileList) => {
+  // Scanare pagini noi (sau adăugare pagini la sesiunea de scanare)
+  const handleAddScanPages = async (fileList) => {
     if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar pentru scanare.", "error");
+      onNotify("Selectează mai întâi un dosar.", "error");
       return;
     }
     const files = Array.from(fileList || []);
@@ -171,27 +179,33 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
 
     setUploading(true);
     try {
-      const pages = [];
+      const newPages = [];
       for (const file of files) {
         const dataUrl = await processScanImage(file);
-        pages.push(dataUrl);
+        newPages.push(dataUrl);
       }
-      const defaultName = `Scan_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
-      setScanSession({
-        fileName: defaultName,
-        pages,
-        saveAsPdf: true,
-        saveAsPhotos: false,
-      });
+
+      if (scanSession) {
+        setScanSession((prev) => ({
+          ...prev,
+          pages: [...prev.pages, ...newPages],
+        }));
+      } else {
+        const defaultName = `Scan_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
+        setScanSession({
+          fileName: defaultName,
+          pages: newPages,
+        });
+      }
     } catch (err) {
-      onNotify("Eroare scanare: " + err.message, "error");
+      onNotify("Eroare scanare document: " + err.message, "error");
     } finally {
       setUploading(false);
     }
   };
 
-  // Finalizare scanare și salvare pe dosar
-  const handleSaveScan = async () => {
+  // Salvare sesiunii de scanare PDF
+  const handleSaveScanPDF = async () => {
     if (!scanSession || !scanSession.pages.length || !selectedClaim) return;
     setUploading(true);
 
@@ -215,42 +229,37 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
       await onPatch(selectedClaim.id, { documente: [uploadedDoc, ...currentDocs] }, { canEditFn });
 
       setScanSession(null);
-      onNotify(`📄 Documentul scanat „${fileName}” a fost salvat pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
+      onNotify(`📄 Documentul scanat „${fileName}” a fost atașat pe dosar!`, "success");
     } catch (err) {
-      onNotify("Eroare salvare document scanat: " + err.message, "error");
+      onNotify("Eroare la salvare PDF: " + err.message, "error");
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="space-y-4 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
+    <div className="space-y-3.5 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
       
-      {/* HEADER MOBIL CAPTURĂ */}
-      <div className="bg-[#1C2127] text-white p-4 rounded-2xl shadow-md space-y-1">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Camera className="text-[#C98A2B]" size={20} />
-            <h2 className="font-extrabold text-[15px] tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Captură &amp; Scanare Teren
-            </h2>
-          </div>
-          <span className="text-[10.5px] bg-[#C98A2B]/20 text-[#F3D9A8] px-2.5 py-0.5 rounded-full border border-[#C98A2B]/40 font-bold">
-            Mod Mobil
-          </span>
+      {/* 1. HEADER MODUL: FOTO AUTO & DOCUMENTE DOSAR */}
+      <div className="bg-[#1C2127] text-white p-3.5 rounded-2xl shadow-md space-y-1">
+        <div className="flex items-center gap-2">
+          <Camera className="text-[#C98A2B]" size={20} />
+          <h2 className="font-extrabold text-[15px] tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Foto Auto &amp; Documente Dosar
+          </h2>
         </div>
-        <p className="text-[11.5px] text-[#A69F91]">
-          Selectează mașina și fă poze direct cu camera telefonului sau scanează acte.
+        <p className="text-[11px] text-[#A69F91]">
+          Efectuează poze cu telefonul și scanează acte pentru atașare directă la dosar.
         </p>
       </div>
 
-      {/* PASUL 1: SELECTARE DOSAR / CĂUTARE MOBILĂ */}
+      {/* 2. SELECTARE & CĂUTARE DOSAR (AFIȘARE OBLIGATORIE: NR. AUTO + NR. DOSAR) */}
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
         <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] flex items-center justify-between">
-          <span>1. Alege Dosarul 🚗</span>
+          <span>Alege Dosarul</span>
           {selectedClaim && (
-            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">
-              Selectat: {selectedClaim.numarInmatriculare}
+            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <Check size={11} /> Selectat
             </span>
           )}
         </div>
@@ -261,7 +270,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           <input
             type="text"
             className="w-full pl-9 pr-8 py-2 border border-[#DAD4C6] rounded-xl text-[13px] font-bold bg-[#FAF8F5] focus:bg-white focus:outline-hidden"
-            placeholder="Caută nr. auto (ex: B123ABC) sau dosar..."
+            placeholder="Caută nr. auto (ex: B123ABC) sau nr. dosar..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -272,17 +281,17 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           )}
         </div>
 
-        {/* Listă orizontală / verticală rapidă de selecție dosar */}
-        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+        {/* Listă cu afișare clară: Număr Auto + Număr Dosar */}
+        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 text-[11px] text-[#8A8375] italic">Niciun dosar găsit.</div>
           ) : (
             searchResults.map((c) => {
-              const isSelected = selectedClaim?.id === c.id;
+              const isSelected = selectedClaimId === c.id;
               return (
                 <div
                   key={c.id}
-                  onClick={() => setSelectedClaim(c)}
+                  onClick={() => setSelectedClaimId(c.id)}
                   className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                     isSelected
                       ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
@@ -290,16 +299,22 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`font-mono font-extrabold text-[12.5px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
-                      {c.numarInmatriculare || "—"}
+                    <span className={`font-mono font-extrabold text-[13px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
+                      {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
-                    <span className="text-[11px] opacity-75 truncate">{c.marcaModel || "—"}</span>
+                    <span className={`text-[11px] font-semibold truncate ${isSelected ? "text-white/80" : "text-[#6B6558]"}`}>
+                      {c.marcaModel || "—"}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 text-[10.5px]">
-                    <span className={`font-mono px-1.5 py-0.5 rounded border ${isSelected ? "bg-white/10 border-white/20 text-white" : "bg-white border-[#DAD4C6] text-[#6B6558]"}`}>
-                      {c.numarDosar || "Fără nr."}
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Număr Dosar explicit */}
+                    <span className={`font-mono text-[11px] px-2 py-0.5 rounded font-extrabold border ${
+                      isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
+                    }`}>
+                      Dosar: {c.numarDosar || "Fără nr."}
                     </span>
-                    {isSelected && <CheckCircle2 size={15} className="text-[#F3D9A8]" />}
+                    {isSelected && <CheckCircle2 size={16} className="text-[#F3D9A8]" />}
                   </div>
                 </div>
               );
@@ -308,28 +323,24 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </div>
       </div>
 
-      {/* PASUL 2: BUTOANE MARI DE CAPTURĂ (ACTIVABIL CÂND E SELECTAT DOSARUL) */}
-      <div className={`bg-white rounded-2xl border p-4 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
-        <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] flex items-center justify-between">
-          <span>2. Acțiune Teren 📸</span>
-          {uploading && <span className="flex items-center gap-1 text-[#C98A2B] text-[11px] font-bold"><Loader2 size={13} className="animate-spin" /> Se încarcă...</span>}
-        </div>
-
-        {!selectedClaim && (
-          <div className="p-3 bg-[#FAF8F5] border border-dashed border-[#DAD4C6] rounded-xl text-center text-[11.5px] text-[#8A8375] font-medium">
-            👈 Selectează mai întâi un dosar de sus pentru a activa aparatul foto.
+      {/* 3. BARA DE BUTOANE EXCLUSIV CU ICONIȚE (FĂRĂ TEXT "2. ACȚIUNE TEREN") */}
+      <div className={`bg-white rounded-2xl border p-3.5 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
+        
+        {uploading && (
+          <div className="flex items-center justify-center gap-2 p-2 bg-[#FAF8F5] border border-[#C98A2B]/40 rounded-xl text-[12px] font-bold text-[#C98A2B]">
+            <Loader2 size={16} className="animate-spin" /> Se încarcă...
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* BUTOANE DOAR CU ICONIȚE MARI TACTILE */}
+        <div className="grid grid-cols-4 gap-2.5">
           
-          {/* BUTON 1: FĂ POZĂ (CAMERA) */}
-          <label className="flex flex-col items-center justify-center p-4 bg-[#FBF3E6] border-2 border-dashed border-[#C98A2B] rounded-2xl cursor-pointer hover:bg-[#F3D9A8]/40 active:scale-98 transition-all text-center space-y-1.5 shadow-2xs">
-            <div className="w-12 h-12 rounded-full bg-[#C98A2B] text-white flex items-center justify-center shadow-md">
-              <Camera size={24} />
-            </div>
-            <span className="font-extrabold text-[13.5px] text-[#7A5316]">Fă Poză cu Aparatul Foto</span>
-            <span className="text-[10.5px] text-[#7A5316]/80 font-medium">Fotografiază daune/piese de pe telefon</span>
+          {/* BUTON 1: CAMERA FOTO (DOAR ICONIȚĂ) */}
+          <label
+            className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
+            title="Fă Poză cu Aparatul Foto"
+          >
+            <Camera size={26} />
             <input
               type="file"
               accept="image/*"
@@ -340,28 +351,28 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             />
           </label>
 
-          {/* BUTON 2: SCANEAZĂ DOCUMENT (SCANNER) */}
-          <label className="flex flex-col items-center justify-center p-4 bg-[#EEF1F3] border-2 border-dashed border-[#3B5166] rounded-2xl cursor-pointer hover:bg-gray-200 active:scale-98 transition-all text-center space-y-1.5 shadow-2xs">
-            <div className="w-12 h-12 rounded-full bg-[#3B5166] text-white flex items-center justify-center shadow-md">
-              <FileText size={24} />
-            </div>
-            <span className="font-extrabold text-[13.5px] text-[#3B5166]">Scanează Document Acte</span>
-            <span className="text-[10.5px] text-[#3B5166]/80 font-medium">Captură pagini multiple (contrast clar)</span>
+          {/* BUTON 2: SCANNER DOCUMENTE (DOAR ICONIȚĂ) */}
+          <label
+            className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
+            title="Scanează Document Acte"
+          >
+            <FileText size={26} />
             <input
               type="file"
               accept="image/*"
               capture="environment"
               multiple
               className="hidden"
-              onChange={(e) => handleStartScanSession(e.target.files)}
+              onChange={(e) => handleAddScanPages(e.target.files)}
             />
           </label>
-        </div>
 
-        {/* Opțiune secundară: Încarcă din galerie / PDF existent */}
-        <div className="pt-2 flex gap-2">
-          <label className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-[11.5px] font-bold text-[#6B6558] cursor-pointer hover:bg-gray-100">
-            <ImageIcon size={14} /> Poze din Galerie
+          {/* BUTON 3: GALERIE POZE (DOAR ICONIȚĂ) */}
+          <label
+            className="flex flex-col items-center justify-center p-3.5 bg-[#FAF8F5] border-2 border-[#DAD4C6] text-[#3B5166] rounded-2xl cursor-pointer hover:bg-gray-100 active:scale-95 transition-all shadow-2xs"
+            title="Alege Poze din Galerie"
+          >
+            <ImageIcon size={24} />
             <input
               type="file"
               accept="image/*"
@@ -370,8 +381,13 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               onChange={(e) => handleMobilePhotoCapture(e.target.files)}
             />
           </label>
-          <label className="flex-1 flex items-center justify-center gap-1.5 p-2 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-[11.5px] font-bold text-[#6B6558] cursor-pointer hover:bg-gray-100">
-            <FolderOpen size={14} /> PDF din Telefon
+
+          {/* BUTON 4: FIȘIERE PDF (DOAR ICONIȚĂ) */}
+          <label
+            className="flex flex-col items-center justify-center p-3.5 bg-[#FAF8F5] border-2 border-[#DAD4C6] text-[#3B5166] rounded-2xl cursor-pointer hover:bg-gray-100 active:scale-95 transition-all shadow-2xs"
+            title="Încarcă PDF din Telefon"
+          >
+            <FolderOpen size={24} />
             <input
               type="file"
               accept="application/pdf"
@@ -383,65 +399,185 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </div>
       </div>
 
-      {/* OVERLAY SCANNER PAGINI MULTIPLE */}
-      {scanSession && (
-        <div className="fixed inset-0 z-50 bg-[#1C2127]/98 p-4 text-white flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <h3 className="font-extrabold text-[14px] text-[#C98A2B] flex items-center gap-1.5">
-              <FileText size={18} /> Previzualizare Scanare ({scanSession.pages.length} pagini)
+      {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT */}
+      {selectedClaim && (
+        <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
+            <h3 className="font-extrabold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <FileCheck size={16} className="text-[#3E6B45]" /> Fișiere Atașate pe {selectedClaim.numarInmatriculare}
             </h3>
-            <button onClick={() => setScanSession(null)} className="text-white/70 hover:text-white">
+            <span className="text-[10.5px] font-bold text-[#8A8375] font-mono">
+              {(selectedClaim.poze?.length || 0)} poze · {(selectedClaim.documente?.length || 0)} doc
+            </span>
+          </div>
+
+          {/* GALERIE THUMBNAILS POZE */}
+          <div className="space-y-1.5">
+            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
+              📸 Fotografii Daună / Vehicul ({selectedClaim.poze?.length || 0})
+            </span>
+            {(!selectedClaim.poze || selectedClaim.poze.length === 0) ? (
+              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+                Nicio fotografie atașată încă.
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-0.5 scrollbar-thin">
+                {selectedClaim.poze.map((p, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setPreviewMedia(p.url || p)}
+                    className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
+                  >
+                    <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                      <Eye size={16} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* LISTĂ DOCUMENTE ATAȘATE */}
+          <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
+            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
+              📄 Documente Acte ({selectedClaim.documente?.length || 0})
+            </span>
+            {(!selectedClaim.documente || selectedClaim.documente.length === 0) ? (
+              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+                Niciun document PDF atașat.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
+                {selectedClaim.documente.map((doc, idx) => (
+                  <a
+                    key={idx}
+                    href={doc.url || doc}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] hover:bg-gray-100 text-[11.5px] font-semibold text-[#23282E]"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={15} className="text-[#3B5166] shrink-0" />
+                      <span className="truncate">{doc.name || `Document_${idx + 1}.pdf`}</span>
+                    </div>
+                    <Eye size={14} className="text-[#8A8375] shrink-0" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 5. MODAL REVIZUIT SCANARE DOCUMENTE (COMPLET OPAC, FUNDAL SOLID NENEGRU OBLIGATORIU) */}
+      {scanSession && (
+        <div className="fixed inset-0 z-[9999] bg-[#12161A] text-white p-4 flex flex-col justify-between overflow-hidden">
+          
+          {/* Header Modal Scanare */}
+          <div className="flex items-center justify-between border-b border-white/15 pb-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <FileText size={20} className="text-[#C98A2B]" />
+              <h3 className="font-extrabold text-[15px] text-white">
+                Scanare Documente ({scanSession.pages.length} pagini)
+              </h3>
+            </div>
+            <button
+              onClick={() => setScanSession(null)}
+              className="p-1.5 bg-white/10 rounded-xl text-white hover:bg-white/20 transition-colors"
+            >
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto py-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              {scanSession.pages.map((pUrl, idx) => (
-                <div key={idx} className="relative rounded-xl overflow-hidden border border-white/20 aspect-[3/4] bg-white/5">
-                  <img src={pUrl} alt={`Pagina ${idx + 1}`} className="w-full h-full object-contain" />
-                  <span className="absolute top-1 left-1 bg-black/70 px-2 py-0.5 rounded text-[10px] font-bold">
-                    Pag. {idx + 1}
-                  </span>
-                  <button
-                    onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
-                    className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-md"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
+          {/* Pagini Scanate Previzualizabile */}
+          <div className="flex-1 overflow-y-auto py-4 space-y-3 scrollbar-thin">
+            {scanSession.pages.length === 0 ? (
+              <div className="text-center py-12 text-white/60 text-[13px] font-semibold">
+                Nicio pagină scanată încă. Folosește butonul de mai jos pentru a adăuga pagini.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {scanSession.pages.map((pUrl, idx) => (
+                  <div key={idx} className="relative rounded-2xl overflow-hidden border border-white/20 bg-black aspect-[3/4] shadow-lg">
+                    <img src={pUrl} alt={`Pagina ${idx + 1}`} className="w-full h-full object-contain" />
+                    <span className="absolute top-2 left-2 bg-black/80 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
+                      Pag. {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
+                      className="absolute top-2 right-2 bg-[#B23A2E] text-white p-1.5 rounded-lg shadow-md"
+                      title="Șterge pagina"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-white/10 pt-3 space-y-3">
-            <div>
-              <label className="block text-[11px] text-white/70 mb-1 font-bold">Nume Fișier Document</label>
+          {/* Bară inferioară acțiuni scanare cu fundal solid */}
+          <div className="border-t border-white/15 pt-3 space-y-3 shrink-0 bg-[#12161A]">
+            
+            {/* Buton adăugare altă pagină */}
+            <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold cursor-pointer transition-colors">
+              <Camera size={18} className="text-[#C98A2B]" />
+              <span>Adaugă încă o pagină</span>
               <input
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-[13px] text-white font-bold focus:outline-hidden"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={(e) => handleAddScanPages(e.target.files)}
+              />
+            </label>
+
+            {/* Nume fișier scanat */}
+            <div>
+              <label className="block text-[11px] text-white/70 font-bold mb-1">Nume fișier PDF salvat</label>
+              <input
+                className="w-full bg-[#1C2127] border border-white/20 rounded-xl px-3 py-2 text-[13px] font-bold text-white focus:outline-hidden"
                 value={scanSession.fileName}
                 onChange={(e) => setScanSession((prev) => ({ ...prev, fileName: e.target.value }))}
               />
             </div>
 
+            {/* Butoane Salvare / Anulare */}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setScanSession(null)}
-                className="flex-1 py-2.5 rounded-xl border border-white/20 font-bold text-[12.5px] text-white/80"
+                className="flex-1 py-3 rounded-xl border border-white/20 font-bold text-[13px] text-white/80"
               >
                 Anulează
               </button>
               <button
                 type="button"
-                onClick={handleSaveScan}
+                onClick={handleSaveScanPDF}
                 disabled={uploading || scanSession.pages.length === 0}
-                className="flex-1 py-2.5 rounded-xl bg-[#C98A2B] text-white font-extrabold text-[12.5px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[13px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
               >
-                {uploading ? <Loader2 size={15} className="animate-spin" /> : "Salvează PDF pe Dosar"}
+                {uploading ? <Loader2 size={16} className="animate-spin" /> : "Salvează PDF pe Dosar"}
               </button>
             </div>
           </div>
+
+        </div>
+      )}
+
+      {/* OVERLAY PREVIZUALIZARE MARITĂ IMAGINE */}
+      {previewMedia && (
+        <div
+          className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-center p-4"
+          onClick={() => setPreviewMedia(null)}
+        >
+          <button className="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full">
+            <X size={24} />
+          </button>
+          <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
         </div>
       )}
 
