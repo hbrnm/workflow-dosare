@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 export const STATUSES = [
-  { key: "deschidere",       num: 1, label: "Deschidere dosar",          phase: "start" },
+  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", phase: "start" },
   { key: "reconstatare",     num: 2, label: "Reconstatare",              phase: "eval"  },
   { key: "accept_plata",     num: 3, label: "Accept de plată",           phase: "eval"  },
   { key: "piese_comandate",  num: 4, label: "Piese comandate",           phase: "lucru" },
