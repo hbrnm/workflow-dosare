@@ -95,7 +95,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
         </div>
         <div className="text-[11px] font-bold text-[#1B2430] flex items-center justify-between">
           <span>
-            <span className="text-[#5B6572] font-semibold">{statusDef.num}/11</span> · {statusDef.label}
+            <span className="text-[#5B6572] font-semibold">{statusDef.num}/9</span> · {statusDef.label}
           </span>
           {claim.blocat && <span className="text-[#D6473F] text-[10px] font-extrabold">🛑 BLOCAT</span>}
         </div>

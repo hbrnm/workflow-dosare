@@ -3,21 +3,25 @@
 // ---------------------------------------------------------------------------
 
 export const STATUSES = [
-  { key: "primit",           num: 1, label: "Dosar primit",              phase: "start" },
-  { key: "cerere_reparatie", num: 2, label: "Cerere intrare reparație",  phase: "start" },
-  { key: "reconstatare",     num: 3, label: "Reconstatare",              phase: "eval"  },
-  { key: "accept_plata",     num: 4, label: "Accept de plată",           phase: "eval"  },
-  { key: "piese_comandate",  num: 5, label: "Piese comandate",           phase: "lucru" },
-  { key: "piese_sosite",     num: 6, label: "Piese sosite",              phase: "lucru" },
-  { key: "programat",        num: 7, label: "Programat",                 phase: "lucru" },
-  { key: "in_lucru",         num: 8, label: "În lucru",                  phase: "lucru" },
-  { key: "gata_de_ridicare", num: 9, label: "Gata de ridicare",          phase: "final" },
-  { key: "predat_client",    num: 10, label: "Predat client",            phase: "final" },
-  { key: "facturat",         num: 11, label: "Facturat",                 phase: "final" },
+  { key: "deschidere",       num: 1, label: "Deschidere dosar",          phase: "start" },
+  { key: "reconstatare",     num: 2, label: "Reconstatare",              phase: "eval"  },
+  { key: "accept_plata",     num: 3, label: "Accept de plată",           phase: "eval"  },
+  { key: "piese_comandate",  num: 4, label: "Piese comandate",           phase: "lucru" },
+  { key: "programat",        num: 5, label: "Programat",                 phase: "lucru" },
+  { key: "in_lucru",         num: 6, label: "În lucru",                  phase: "lucru" },
+  { key: "gata_de_ridicare", num: 7, label: "Gata de ridicare",          phase: "final" },
+  { key: "predat_client",    num: 8, label: "Predat client",            phase: "final" },
+  { key: "facturat",         num: 9, label: "Facturat asigurător",       phase: "final" },
 ];
 
-export const STATUS_MIGRATION = { chemat_lucru: "programat", finalizat: "gata_de_ridicare" };
-export const STADII_PROGRAMABILE = ["piese_sosite", "programat", "in_lucru"];
+export const STATUS_MIGRATION = {
+  primit: "deschidere",
+  cerere_reparatie: "deschidere",
+  piese_sosite: "piese_comandate",
+  chemat_lucru: "programat",
+  finalizat: "gata_de_ridicare"
+};
+export const STADII_PROGRAMABILE = ["piese_comandate", "programat", "in_lucru"];
 
 export const PHASE_COLORS = {
   start: { bar: "#3B5166", tint: "#EEF1F3" },
@@ -44,7 +48,8 @@ export const MAX_POZE_PER_DOSAR = 20;
 export const MAX_DOCUMENTE_PER_DOSAR = 15;
 
 export function getStatusDefinition(statusKey) {
-  return STATUSES.find((status) => status.key === statusKey) || FALLBACK_STATUS;
+  const mappedKey = STATUS_MIGRATION[statusKey] || statusKey;
+  return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
 }
 
 export function getPhaseColors(statusKey) {
@@ -58,7 +63,7 @@ export const PIPELINE_PHASES = [
     description: "Preluare dosar și cerere intrare reparație",
     barColor: "#3B5166",
     bgColor: "#EEF1F3",
-    statuses: ["primit", "cerere_reparatie"]
+    statuses: ["deschidere"]
   },
   {
     key: "eval",
@@ -71,15 +76,15 @@ export const PIPELINE_PHASES = [
   {
     key: "lucru",
     label: "3. Piese & Service",
-    description: "Comandă, recepție piese, atelier și lucru",
+    description: "Comandă piese, recepție, atelier și lucru",
     barColor: "#C98A2B",
     bgColor: "#FBF3E6",
-    statuses: ["piese_comandate", "piese_sosite", "programat", "in_lucru"]
+    statuses: ["piese_comandate", "programat", "in_lucru"]
   },
   {
     key: "final",
     label: "4. Finalizare & Predare",
-    description: "Facturare dosar și eliberare mașină",
+    description: "Gata de ridicare, predare și facturare asigurător",
     barColor: "#3E6B45",
     bgColor: "#EEF5EE",
     statuses: ["gata_de_ridicare", "predat_client", "facturat"]
