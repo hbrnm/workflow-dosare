@@ -28,7 +28,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   const overdue = isStageOverdue(claim);
   const phaseColorHex = PHASE_COLOR_MAP[statusDef.phase]?.bg || "#1E2A44";
 
-  const currentIndex = STATUSES.findIndex((s) => s.key === claim.status);
+  const currentStatusKey = statusDef.key;
+  const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
   const nextStatus = currentIndex < STATUSES.length - 1 ? STATUSES[currentIndex + 1] : null;
 
   // Calcul stare aging (sub 2 zile = ok, 2-4 zile = warn, peste 4 zile sau intarziat = danger)
@@ -37,7 +38,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   if (days > 4 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const commentsCount = (claim.poze?.length || 0) + (claim.documente?.length || 0);
-  const isPartOverdue = claim.status === "piese_comandate" && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
+  const isPartOverdue = (claim.status === "piese_comandate" || currentStatusKey === "piese_comandate") && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
 
   return (
     <div
@@ -82,7 +83,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* 2. VISUAL STEPPER (9 SEGMENTE RESTRÂNS PE VERTICALĂ) */}
       <div className="space-y-0.5">
-        <div className="flex items-center gap-0.5 h-1 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5">
+        <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5">
           {STATUSES.map((s, idx) => {
             const isDone = idx < currentIndex;
             const isCurrent = idx === currentIndex;
@@ -91,8 +92,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
                 key={s.key}
                 className="h-full flex-1 rounded-xs transition-all"
                 style={{
-                  background: isDone || isCurrent ? phaseColorHex : "#E4E1D9",
-                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3
+                  backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
+                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35
                 }}
               />
             );
