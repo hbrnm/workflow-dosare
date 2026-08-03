@@ -32,7 +32,13 @@ import { useSettings } from "./hooks/useSettings";
 export default function App() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
-  const [view, setView] = useState("brief");
+  const [view, setView] = useState(() => {
+    try {
+      return localStorage.getItem("workflow_dosare_active_view") || "brief";
+    } catch (err) {
+      return "brief";
+    }
+  });
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
@@ -40,6 +46,11 @@ export default function App() {
   const { session, authLoading, setSession, handleLogout } = useAuth();
 
   useEffect(() => {
+    try {
+      localStorage.setItem("workflow_dosare_active_view", view);
+    } catch (err) {
+      console.warn("Unable to persist active view to localStorage", err);
+    }
     if (["brief", "programator"].includes(view)) {
       setShowFilterPanel(false);
     }
@@ -204,7 +215,6 @@ export default function App() {
     setSaving(false);
     if (!result.success) return;
     closeClaimModal();
-    if (result.openProgramator) setView("programator");
   };
 
   const handleDelete = async (id) => {
