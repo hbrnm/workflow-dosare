@@ -433,7 +433,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                         className="truncate cursor-pointer hover:text-[#C98A2B] hover:underline active:opacity-60 transition-colors"
                         title="Click pentru a deschide dosarul · Trage pentru a muta în altă zi"
                       >
-                        🚗 {c.numarInmatriculare || "—"}
+                        🚗 {c.numarInmatriculare || "FĂRĂ NR."}{c.numarDosar ? ` (#${c.numarDosar})` : ""}
                       </div>
                     ))}
                     {total > 5 && (
@@ -519,7 +519,12 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">{c.numarInmatriculare}</span>
+                                <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
+                                {c.numarDosar && (
+                                  <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
+                                    #{c.numarDosar}
+                                  </span>
+                                )}
                                 <span className="text-[#8A8375] shrink-0">·</span>
                                 <span className="font-bold text-[#23282E] truncate">{c.client || "—"}</span>
                               </div>
@@ -598,7 +603,12 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                                 className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
                               >
                                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                  <span className="font-mono text-[#3B5166] font-bold uppercase shrink-0">{c.numarInmatriculare || c.numarDosar}</span>
+                                  <span className="font-mono text-[#3B5166] font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
+                                  {c.numarDosar && (
+                                    <span className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
+                                      #{c.numarDosar}
+                                    </span>
+                                  )}
                                   {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
                                     <>
                                       <span className="text-[#8A8375] shrink-0">·</span>
