@@ -524,7 +524,7 @@ export default function TablouPeFazeRedesign({
                       </td>
                     </tr>
                   );
-                })}
+                }))}
             </tbody>
           </table>
         </div>
