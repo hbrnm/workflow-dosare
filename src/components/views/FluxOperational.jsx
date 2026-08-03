@@ -279,7 +279,7 @@ export default function TablouPeFazeRedesign({
 
       {/* 3. CONTROL STRIP & CHIPS FILTRARE */}
       <div className="flex items-center gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2.5 shadow-2xs">
-        {/* Toggle Vizualizare: Kanban | Listă | Pe tehnician */}
+        {/* Toggle Vizualizare: Kanban | Pe tehnician */}
         <div className="flex bg-[#F3F2EE] p-1 rounded-lg gap-1 border border-[#E4E1D9]">
           <button
             type="button"
@@ -288,16 +288,7 @@ export default function TablouPeFazeRedesign({
               viewMode === "kanban" ? "bg-[#1B2430] text-white shadow-xs" : "text-[#5B6572] hover:text-[#1B2430]"
             }`}
           >
-            ▦ Kanban
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            className={`px-3 py-1 rounded-md text-[12.5px] font-bold transition-all ${
-              viewMode === "list" ? "bg-[#1B2430] text-white shadow-xs" : "text-[#5B6572] hover:text-[#1B2430]"
-            }`}
-          >
-            ☰ Listă
+            ▦ Tablou Kanban
           </button>
           <button
             type="button"
