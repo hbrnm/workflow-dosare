@@ -70,29 +70,29 @@ export default function MobileBrief({ claims, onOpen, pragRidicare }) {
         </p>
       </div>
 
-      {/* FILTRU TACTIL ALERTE */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold">
+      {/* FILTRU TACTIL ALERTE - GRILĂ FĂRĂ DERULARE ORIZONTALĂ */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-bold">
         <button
           onClick={() => setActiveAlertTab("toate")}
-          className={`px-3 py-1.5 rounded-xl border whitespace-nowrap ${activeAlertTab === "toate" ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-white text-[#6B6558] border-[#DAD4C6]"}`}
+          className={`w-full py-2 px-2.5 rounded-xl border text-center transition-all ${activeAlertTab === "toate" ? "bg-[#2C4160] text-white border-[#2C4160] shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6]"}`}
         >
           Toate ({totalAlerte})
         </button>
         <button
           onClick={() => setActiveAlertTab("blocate")}
-          className={`px-3 py-1.5 rounded-xl border whitespace-nowrap ${activeAlertTab === "blocate" ? "bg-[#B23A2E] text-white border-[#B23A2E]" : "bg-red-50 text-[#B23A2E] border-red-200"}`}
+          className={`w-full py-2 px-2.5 rounded-xl border text-center transition-all ${activeAlertTab === "blocate" ? "bg-[#B23A2E] text-white border-[#B23A2E] shadow-xs" : "bg-red-50 text-[#B23A2E] border-red-200"}`}
         >
           🛑 Blocate ({blocate.length})
         </button>
         <button
           onClick={() => setActiveAlertTab("masini_schimb")}
-          className={`px-3 py-1.5 rounded-xl border whitespace-nowrap ${activeAlertTab === "masini_schimb" ? "bg-[#C98A2B] text-white border-[#C98A2B]" : "bg-amber-50 text-[#7A5316] border-amber-200"}`}
+          className={`w-full py-2 px-2.5 rounded-xl border text-center transition-all ${activeAlertTab === "masini_schimb" ? "bg-[#C98A2B] text-white border-[#C98A2B] shadow-xs" : "bg-amber-50 text-[#7A5316] border-amber-200"}`}
         >
           🚗 Auto Schimb ({masiniSchimbDepasite.length})
         </button>
         <button
           onClick={() => setActiveAlertTab("stagnate")}
-          className={`px-3 py-1.5 rounded-xl border whitespace-nowrap ${activeAlertTab === "stagnate" ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-blue-50 text-[#3B5166] border-blue-200"}`}
+          className={`w-full py-2 px-2.5 rounded-xl border text-center transition-all ${activeAlertTab === "stagnate" ? "bg-[#3B5166] text-white border-[#3B5166] shadow-xs" : "bg-blue-50 text-[#3B5166] border-blue-200"}`}
         >
           ⏳ Stagnate ({restante.length})
         </button>
