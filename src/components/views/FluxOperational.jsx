@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, PackageCheck, CalendarClock, Car, Truck,
   ChevronRight, ArrowRight, Clock, MessageSquare, ExternalLink,
-  Search, Check
+  Search, Check, User, Bell, AlertOctagon, X
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -17,6 +17,9 @@ const PHASE_COLOR_MAP = {
   final: { bg: "#2F6B4E", soft: "#E7F1EC" },
 };
 
+const WIP_LIMIT_LUCRU = 2; // limită dosare "În lucru" per tehnician
+const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
+
 function getOperatorInitials(name) {
   if (!name) return "OP";
   const parts = name.trim().split(" ");
@@ -27,7 +30,7 @@ function getOperatorInitials(name) {
 // ---------------------------------------------------------------------------
 // KANBAN CARD REDESIGN
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, pragRidicare, isOverCapacity }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -43,6 +46,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
   if (days > 4 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const commentsCount = (claim.poze?.length || 0) + (claim.documente?.length || 0);
+  const isPartOverdue = claim.status === "piese_comandate" && days > PART_OVERDUE_DAYS;
 
   return (
     <div
@@ -54,7 +58,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
       }}
       onClick={() => onOpen(claim)}
       className={`card group relative bg-white border border-[#E4E1D9] rounded-xl p-3 shadow-xs transition-all duration-150 cursor-pointer select-none space-y-2.5 hover:shadow-md ${
-        claim.blocat || overdue ? "border-[#EAC3C0] bg-gradient-to-b from-[#FBEAE9]/60 to-white" : "hover:border-[#1B2430]"
+        isOverCapacity
+          ? "border-l-4 border-l-[#D6473F] border-[#E4E1D9]"
+          : claim.blocat || overdue
+          ? "border-[#EAC3C0] bg-gradient-to-b from-[#FBEAE9]/60 to-white"
+          : "hover:border-[#1B2430]"
       }`}
     >
       {/* 1. TOP ROW: Nr. Înmatriculare + Asigurare Badge + Vehicul */}
@@ -104,7 +112,15 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
         </div>
       </div>
 
-      {/* 3. CARD FOOTER: AGING + TECH + COMMENTS + ADVANCE BUTTON */}
+      {/* 3. PART OVERDUE ALERT BANNER ON CARD */}
+      {isPartOverdue && (
+        <div className="flex items-center gap-1 bg-[#FBEAE9] text-[#8C2E28] text-[10.5px] font-extrabold px-2 py-1 rounded-lg border border-[#EFC3C0]">
+          <Bell size={11} className="shrink-0 animate-bounce" />
+          <span>Fără confirmare sosire ({days} zile)</span>
+        </div>
+      )}
+
+      {/* 4. CARD FOOTER: AGING + TECH + COMMENTS + ADVANCE BUTTON */}
       <div className="flex items-center gap-2 pt-1 border-t border-[#E4E1D9]/60 text-[10.5px]">
         {/* Aging Pill */}
         <span className={`font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${agingClass}`}>
@@ -131,7 +147,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, canEdit, prag
 
         <span className="flex-1" />
 
-        {/* 1-Click Advance Button (Avansare rapidă cu 1 singur click) */}
+        {/* 1-Click Advance Button */}
         {nextStatus && (
           <button
             type="button"
@@ -165,22 +181,50 @@ export default function TablouPeFazeRedesign({
   quickFilter,
   setQuickFilter
 }) {
-  const [viewMode, setViewMode] = useState("kanban"); // "kanban" | "list"
+  const [viewMode, setViewMode] = useState("kanban"); // "kanban" | "list" | "tech"
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
 
-  const alertClaims = useMemo(() => claims.filter(isStageOverdue), [claims]);
+  // Dosare cu piese întârziate (peste pragul de zile fără confirmare de sosire)
+  const overduePartClaims = useMemo(() => {
+    return claims.filter((c) => c.status === "piese_comandate" && daysBetween(c.dataSchimbareStatus) > PART_OVERDUE_DAYS);
+  }, [claims]);
+
+  // Alerte și grupări dosare
   const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
-  const inLucruClaims = useMemo(() => claims.filter((c) => c.adusaFizic && !c.gataDeRidicare && !c.ridicata && c.status !== "facturat"), [claims]);
-  const pieseSositeClaims = useMemo(() => claims.filter((c) => c.status === "piese_sosite"), [claims]);
+  const inLucruClaims = useMemo(() => claims.filter((c) => c.status === "in_lucru"), [claims]);
   const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
+
+  // Calcul capacitate WIP per tehnician pentru "În lucru"
+  const wipByTech = useMemo(() => {
+    const map = {};
+    claims.forEach((c) => {
+      if (c.status === "in_lucru") {
+        const op = c.operator || "Operator Nealocat";
+        map[op] = (map[op] || 0) + 1;
+      }
+    });
+    return map;
+  }, [claims]);
+
+  // Grupări dosare pe tehnician pentru vizualizarea "👤 Pe tehnician"
+  const claimsByTech = useMemo(() => {
+    const map = {};
+    claims.forEach((c) => {
+      const op = c.operator || "Operator Nealocat";
+      if (!map[op]) map[op] = [];
+      map[op].push(c);
+    });
+    return map;
+  }, [claims]);
 
   const filteredClaims = useMemo(() => {
     let list = claims;
 
     // Filtru rapid din chips
     if (quickFilter === "atentie") list = attentionClaims;
-    else if (quickFilter === "piese") list = pieseSositeClaims;
+    else if (quickFilter === "piese") list = overduePartClaims;
     else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "lucru") list = inLucruClaims;
 
@@ -202,10 +246,10 @@ export default function TablouPeFazeRedesign({
     }
 
     return list;
-  }, [claims, quickFilter, selectedSubStatus, searchTerm, attentionClaims, pieseSositeClaims, programateClaims, inLucruClaims]);
+  }, [claims, quickFilter, selectedSubStatus, searchTerm, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-4 font-sans text-[#1B2430]">
+    <div className="flex flex-col flex-1 min-h-0 space-y-3.5 font-sans text-[#1B2430]">
       
       {/* 1. TOP BAR INTEGRAT */}
       <div className="flex items-center justify-between gap-3 flex-wrap bg-white border border-[#E4E1D9] rounded-xl px-4 py-2.5 shadow-2xs">
@@ -228,11 +272,47 @@ export default function TablouPeFazeRedesign({
             className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[#E4E1D9] text-[13px] bg-white focus:outline-none focus:border-[#B8791E] font-medium"
           />
         </div>
+
+        {/* Clopoțel alerte piese întârziate */}
+        {overduePartClaims.length > 0 && (
+          <div className="relative bg-white border border-[#E4E1D9] p-2 rounded-xl text-[14px] flex items-center justify-center font-bold">
+            🔔
+            <span className="absolute -top-1.5 -right-1.5 bg-[#D6473F] text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center">
+              {overduePartClaims.length}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
+      {/* 2. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
+      {overduePartClaims.length > 0 && !dismissAlertBanner && (
+        <div className="flex items-center justify-between gap-3 bg-[#FBEAE9] border border-[#EFC3C0] rounded-xl p-3 text-[12.5px] text-[#8C2E28] shadow-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[16px]">🔔</span>
+            <span>
+              <b>{overduePartClaims.length} dosare</b> peste pragul de <b>{PART_OVERDUE_DAYS} zile</b> fără confirmare de sosire piese:
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {overduePartClaims.map((c) => (
+                <span key={c.id} className="bg-white border border-[#EFC3C0] px-2 py-0.5 rounded-full font-mono font-bold text-[11.5px] text-[#1B2430]">
+                  {c.numarInmatriculare || "—"} · {daysBetween(c.dataSchimbareStatus)}z
+                </span>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDismissAlertBanner(true)}
+            className="text-[#8C2E28] hover:bg-[#EFC3C0]/40 p-1 rounded-md text-[14px] font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* 3. CONTROL STRIP & CHIPS FILTRARE */}
       <div className="flex items-center gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2.5 shadow-2xs">
-        {/* Toggle Vizualizare Kanban vs Listă */}
+        {/* Toggle Vizualizare: Kanban | Listă | Pe tehnician */}
         <div className="flex bg-[#F3F2EE] p-1 rounded-lg gap-1 border border-[#E4E1D9]">
           <button
             type="button"
@@ -251,6 +331,15 @@ export default function TablouPeFazeRedesign({
             }`}
           >
             ☰ Listă
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("tech")}
+            className={`px-3 py-1 rounded-md text-[12.5px] font-bold transition-all ${
+              viewMode === "tech" ? "bg-[#1B2430] text-white shadow-xs" : "text-[#5B6572] hover:text-[#1B2430]"
+            }`}
+          >
+            👤 Pe tehnician
           </button>
         </div>
 
@@ -278,8 +367,8 @@ export default function TablouPeFazeRedesign({
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#D69A1E]" />
-            <span>Piese sosite</span>
-            <span className="opacity-70">({pieseSositeClaims.length})</span>
+            <span>Piese întârziate</span>
+            <span className="opacity-70">({overduePartClaims.length})</span>
           </button>
 
           <button
@@ -331,12 +420,13 @@ export default function TablouPeFazeRedesign({
         </div>
       </div>
 
-      {/* 3. VIZUALIZARE KANBAN BOARD */}
+      {/* 4. VIZUALIZARE KANBAN BOARD */}
       {viewMode === "kanban" && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
           {PIPELINE_PHASES.map((phase) => {
             const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
             const phaseColors = PHASE_COLOR_MAP[phase.key] || { bg: "#1E2A44" };
+            const isPhaseLucru = phase.key === "lucru";
 
             return (
               <div
@@ -377,6 +467,8 @@ export default function TablouPeFazeRedesign({
                     const stDef = getStatusDefinition(stKey);
                     const stCount = filteredClaims.filter((c) => c.status === stKey).length;
                     const isActive = selectedSubStatus === stKey;
+                    const isSubstepOverCapacity = stKey === "in_lucru" && Object.values(wipByTech).some((cnt) => cnt > WIP_LIMIT_LUCRU);
+
                     return (
                       <button
                         key={stKey}
@@ -385,6 +477,8 @@ export default function TablouPeFazeRedesign({
                         className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-md border transition-all ${
                           isActive
                             ? "bg-[#1B2430] text-white border-[#1B2430]"
+                            : isSubstepOverCapacity
+                            ? "bg-[#FBEAE9] text-[#D6473F] border-[#EFC3C0]"
                             : "bg-white/80 text-[#5B6572] border-[#E4E1D9] hover:bg-white"
                         }`}
                       >
@@ -394,6 +488,37 @@ export default function TablouPeFazeRedesign({
                   })}
                 </div>
 
+                {/* PANOU WIP CAPACITATE ATELIER (PENTRU FAZA 3: PIESE & SERVICE) */}
+                {isPhaseLucru && Object.keys(wipByTech).length > 0 && (
+                  <div className="bg-[#FBF8F1] border-b border-[#E4E1D9] p-2.5 space-y-1.5 text-[11px]">
+                    <div className="font-extrabold text-[10px] text-[#5B6572] uppercase tracking-wider">
+                      Capacitate atelier — limită WIP {WIP_LIMIT_LUCRU} dosare/tehnician „În lucru”
+                    </div>
+                    <div className="space-y-1">
+                      {Object.entries(wipByTech).map(([techName, count]) => {
+                        const isOver = count > WIP_LIMIT_LUCRU;
+                        const pct = Math.min(100, (count / WIP_LIMIT_LUCRU) * 100);
+                        return (
+                          <div key={techName} className="flex items-center gap-2 text-[11.5px]">
+                            <span className="font-bold w-12 truncate" title={techName}>
+                              {getOperatorInitials(techName)}
+                            </span>
+                            <div className="flex-1 h-2 rounded-full bg-[#E4E1D9] overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${isOver ? "bg-[#D6473F]" : "bg-[#2F8F5B]"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className={`font-bold text-[11px] min-w-[36px] text-right ${isOver ? "text-[#D6473F]" : "text-[#2F8F5B]"}`}>
+                              {count}/{WIP_LIMIT_LUCRU} {isOver ? "⚠" : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Zona cu cardurile din coloană */}
                 <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin">
                   {phaseClaims.length === 0 ? (
@@ -401,16 +526,20 @@ export default function TablouPeFazeRedesign({
                       Niciun dosar în această fază
                     </div>
                   ) : (
-                    phaseClaims.map((c) => (
-                      <PhaseCardRedesign
-                        key={c.id}
-                        claim={c}
-                        onOpen={onOpen}
-                        onMoveToStatus={onMoveToStatus}
-                        canEdit={canEditFn(c)}
-                        pragRidicare={pragRidicare}
-                      />
-                    ))
+                    phaseClaims.map((c) => {
+                      const techOver = c.status === "in_lucru" && (wipByTech[c.operator || "Operator Nealocat"] || 0) > WIP_LIMIT_LUCRU;
+                      return (
+                        <PhaseCardRedesign
+                          key={c.id}
+                          claim={c}
+                          onOpen={onOpen}
+                          onMoveToStatus={onMoveToStatus}
+                          canEdit={canEditFn(c)}
+                          pragRidicare={pragRidicare}
+                          isOverCapacity={techOver}
+                        />
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -419,7 +548,7 @@ export default function TablouPeFazeRedesign({
         </div>
       )}
 
-      {/* 4. VIZUALIZARE LISTĂ TABELARĂ (LIST VIEW) */}
+      {/* 5. VIZUALIZARE LISTĂ TABELARĂ (LIST VIEW) */}
       {viewMode === "list" && (
         <div className="bg-white border border-[#E4E1D9] rounded-2xl overflow-hidden shadow-xs flex-1 overflow-y-auto scrollbar-thin">
           <table className="w-full text-left border-collapse text-[12.5px]">
@@ -527,6 +656,48 @@ export default function TablouPeFazeRedesign({
                 }))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* 6. VIZUALIZARE GRUPATĂ PE TEHNICIAN (TECH VIEW) */}
+      {viewMode === "tech" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+          {Object.entries(claimsByTech).map(([techName, techClaims]) => {
+            const inLucruCount = techClaims.filter((c) => c.status === "in_lucru").length;
+            const isOverCapacity = inLucruCount > WIP_LIMIT_LUCRU;
+
+            return (
+              <div key={techName} className="bg-white border border-[#E4E1D9] rounded-2xl overflow-hidden flex flex-col shadow-2xs">
+                {/* Antet Tehnician */}
+                <div className={`p-3.5 text-white flex items-center gap-3 ${isOverCapacity ? "bg-[#D6473F]" : "bg-[#1B2430]"}`}>
+                  <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-extrabold text-[13px] font-mono shrink-0">
+                    {getOperatorInitials(techName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-extrabold text-[14px] truncate">{techName}</div>
+                    <div className="text-[11px] opacity-85">
+                      {techClaims.length} dosare active · „În lucru”: {inLucruCount}/{WIP_LIMIT_LUCRU} {isOverCapacity ? "⚠ depășit" : ""}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Carduri Tehnician */}
+                <div className="p-3 bg-[#FBFAF7] space-y-2.5 flex-1 overflow-y-auto">
+                  {techClaims.map((c) => (
+                    <PhaseCardRedesign
+                      key={c.id}
+                      claim={c}
+                      onOpen={onOpen}
+                      onMoveToStatus={onMoveToStatus}
+                      canEdit={canEditFn(c)}
+                      pragRidicare={pragRidicare}
+                      isOverCapacity={c.status === "in_lucru" && isOverCapacity}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
