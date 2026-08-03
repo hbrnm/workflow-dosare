@@ -237,7 +237,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     }
   };
 
-  // Ștergere fotografie din dosar
+  // Ștergere fotografie din dosar și din Supabase Storage
   const handleDeletePhoto = async (e, idx) => {
     e.stopPropagation();
     if (!selectedClaim) return;
@@ -246,9 +246,20 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     try {
       setUploading(true);
       const currentPoze = selectedClaim.poze || [];
+      const targetItem = currentPoze[idx];
+
+      // Curățare fișier din stocarea Supabase
+      if (targetItem && targetItem.path) {
+        try {
+          await supabase.storage.from("poze-dosare").remove([targetItem.path]);
+        } catch (stErr) {
+          console.warn("Could not delete from storage bucket:", stErr);
+        }
+      }
+
       const updatedPoze = currentPoze.filter((_, i) => i !== idx);
       await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
-      onNotify("Fotografia a fost ștearsă din dosar.", "info");
+      onNotify("Fotografia a fost ștearsă din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
     } finally {
@@ -256,7 +267,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     }
   };
 
-  // Ștergere document din dosar
+  // Ștergere document din dosar și din Supabase Storage
   const handleDeleteDocument = async (e, idx) => {
     e.preventDefault();
     e.stopPropagation();
@@ -266,9 +277,20 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     try {
       setUploading(true);
       const currentDocs = selectedClaim.documente || [];
+      const targetItem = currentDocs[idx];
+
+      // Curățare fișier din stocarea Supabase
+      if (targetItem && targetItem.path) {
+        try {
+          await supabase.storage.from("documente-dosare").remove([targetItem.path]);
+        } catch (stErr) {
+          console.warn("Could not delete from storage bucket:", stErr);
+        }
+      }
+
       const updatedDocs = currentDocs.filter((_, i) => i !== idx);
       await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
-      onNotify("Documentul a fost șters din dosar.", "info");
+      onNotify("Documentul a fost șters din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea documentului: " + err.message, "error");
     } finally {
