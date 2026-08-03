@@ -33,10 +33,20 @@ export default class ErrorBoundary extends React.Component {
             </p>
             <button
               onClick={() => {
-                this.setState({ hasError: false, error: null });
-                if (this.props.onReset) this.props.onReset();
+                const msg = this.state.error?.message || "";
+                const isChunkError =
+                  msg.includes("dynamically imported module") ||
+                  msg.includes("Failed to fetch") ||
+                  msg.includes("Importing a module script failed");
+
+                if (isChunkError) {
+                  window.location.reload();
+                } else {
+                  this.setState({ hasError: false, error: null });
+                  if (this.props.onReset) this.props.onReset();
+                }
               }}
-              className="px-4 py-2 bg-[#3B5166] text-white text-[13px] font-semibold rounded-lg hover:bg-[#2C3E4C] transition-colors inline-flex items-center gap-1.5"
+              className="px-4 py-2 bg-[#3B5166] text-white text-[13px] font-semibold rounded-lg hover:bg-[#2C3E4C] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-md"
             >
               <RotateCcw size={14} /> Reîncearcă
             </button>
