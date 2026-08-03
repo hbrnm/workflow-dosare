@@ -103,7 +103,13 @@ export function useClaims(session, showNotice) {
         : ["gata_de_ridicare", "predat_client"].includes(claim.status) && newStatusKey !== "facturat"
         ? { gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null }
         : {};
-      const updated = { ...claim, ...deliveryPatch, status: newStatusKey, dataSchimbareStatus: changedAt, dataUltimeiActualizari: changedAt, updatedByEmail: myEmail };
+
+      const isPreProgramat = ["deschidere", "reconstatare", "accept_plata", "piese_comandate", "primit", "cerere_reparatie"].includes(newStatusKey);
+      const schedulePatch = isPreProgramat
+        ? { dataProgramare: null, pieseSosite: newStatusKey === "piese_comandate" ? !!claim.pieseSosite : false }
+        : {};
+
+      const updated = { ...claim, ...deliveryPatch, ...schedulePatch, status: newStatusKey, dataSchimbareStatus: changedAt, dataUltimeiActualizari: changedAt, updatedByEmail: myEmail };
       setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
       const { error } = await supabase.from("dosare").upsert(toDb(updated));
       if (error) {
