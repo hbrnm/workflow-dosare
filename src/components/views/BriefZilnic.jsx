@@ -188,14 +188,13 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
                   <CheckCircle2 size={12} /> Nicio alertă urgentă nesoluționată
                 </span>
               )}
-              <span>· {activeClaimsCount} dosare active în lucru</span>
             </p>
           </div>
         </div>
 
         {/* Badge sumar dosare active */}
         <div className="flex items-center gap-2 text-[11.5px]">
-          <div className="px-3 py-1.5 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] flex items-center gap-2">
+          <div className="px-3 py-1 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] flex items-center gap-2">
             <span className="text-[#8A8375] font-semibold">Total Dosare Active:</span>
             <span className="font-bold text-[#2C4160] font-mono text-[13px]">{activeClaimsCount}</span>
           </div>
@@ -203,8 +202,8 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
       </div>
 
       {/* 2. CENTRUL DE TRIAJ ALERTE URGENTE (PRIORITATE MAXIMĂ) */}
-      <div className="bg-white rounded-xl border border-[#DAD4C6] p-4 shadow-sm space-y-3 shrink-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DAD4C6] pb-2.5">
+      <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-sm space-y-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#DAD4C6] pb-2">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className={totalActiuniUrgente > 0 ? "text-[#B23A2E]" : "text-[#3E6B45]"} />
             <h2 className="font-bold text-[14px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -264,7 +263,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
         {/* Grilă de carduri interactive de alerte cu acțiuni 1-click */}
         {alertsList.length === 0 ? (
-          <div className="p-6 text-center text-[12px] text-[#8A8375] bg-[#FAF8F5] border border-dashed border-[#DAD4C6] rounded-xl font-medium">
+          <div className="py-3.5 px-4 text-center text-[12px] text-[#8A8375] bg-[#FAF8F5] border border-dashed border-[#DAD4C6] rounded-xl font-medium">
             ✨ Nicio alertă detectată pentru filtrul selectat. Toate dosarele sunt în parametrii optimi!
           </div>
         ) : (
@@ -344,17 +343,17 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 flex-1 min-h-0">
 
         {/* COLOANA 1: INTRĂRI PROGRAMATE ASTĂZI */}
-        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3.5 shadow-sm flex flex-col min-h-[260px]">
-          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2 mb-2 shrink-0">
+        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-sm flex flex-col min-h-[200px] max-h-[380px]">
+          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <CalendarClock size={16} className="text-[#3B5166]" /> Intrări Programate Astăzi ({programariAzi.length})
             </h3>
             <span className="text-[10.5px] font-mono bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#8A8375]">Agendă Zi</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
             {programariAzi.length === 0 ? (
-              <div className="text-center py-10 text-[11.5px] text-[#8A8375] italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#DAD4C6] my-auto">
+              <div className="text-center py-6 text-[11.5px] text-[#8A8375] italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#DAD4C6] my-auto">
                 Nicio mașină programată sau intrată astăzi.
               </div>
             ) : (
@@ -362,19 +361,19 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
                 <div
                   key={c.id}
                   onClick={() => onOpen(c)}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] hover:border-[#3B5166] cursor-pointer transition-all shadow-2xs"
+                  className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] hover:border-[#3B5166] cursor-pointer transition-all shadow-2xs"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="font-mono font-extrabold text-[12px] bg-[#3B5166] text-white px-2 py-1 rounded-lg shrink-0 shadow-2xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono font-extrabold text-[11.5px] bg-[#3B5166] text-white px-2 py-0.5 rounded-lg shrink-0 shadow-2xs">
                       {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "08:00"}
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold uppercase text-[12.5px] text-[#23282E]">{c.numarInmatriculare}</span>
+                        <span className="font-mono font-bold uppercase text-[12px] text-[#23282E]">{c.numarInmatriculare}</span>
                         <span className="text-[#8A8375] text-[10px]">·</span>
-                        <span className="font-semibold text-[11.5px] text-[#6B6558] truncate">{c.marcaModel || "—"}</span>
+                        <span className="font-semibold text-[11px] text-[#6B6558] truncate">{c.marcaModel || "—"}</span>
                       </div>
-                      <div className="text-[10.5px] text-[#8A8375] flex items-center gap-1 mt-0.5">
+                      <div className="text-[10px] text-[#8A8375] flex items-center gap-1 mt-0.5">
                         <User size={10} /> <span className="truncate">{c.client || "Client neintrodus"}</span>
                       </div>
                     </div>
@@ -397,17 +396,17 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
         </div>
 
         {/* COLOANA 2: FINALIZATE AZI / DE PREDAI */}
-        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3.5 shadow-sm flex flex-col min-h-[260px]">
-          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2 mb-2 shrink-0">
+        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-sm flex flex-col min-h-[200px] max-h-[380px]">
+          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <PackageCheck size={16} className="text-[#3E6B45]" /> Finalizate Azi / Gata Predare ({gataAzi.length})
             </h3>
             <Pill tone="success">GATA</Pill>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
             {gataAzi.length === 0 ? (
-              <div className="text-center py-10 text-[11.5px] text-[#8A8375] italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#DAD4C6] my-auto">
+              <div className="text-center py-6 text-[11.5px] text-[#8A8375] italic bg-[#FAF8F5] rounded-xl border border-dashed border-[#DAD4C6] my-auto">
                 Nicio mașină finalizată astăzi.
               </div>
             ) : (
@@ -445,8 +444,8 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
         </div>
 
         {/* COLOANA 3: STATISTICI & PULSUL ATELIERULUI */}
-        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3.5 shadow-sm flex flex-col min-h-[260px]">
-          <div className="border-b border-[#EFEAE1] pb-2 mb-2.5 shrink-0">
+        <div className="bg-white rounded-xl border border-[#DAD4C6] p-3 shadow-sm flex flex-col min-h-[200px] max-h-[380px]">
+          <div className="border-b border-[#EFEAE1] pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <BarChart3 size={16} className="text-[#3B5166]" /> Pulsul Atelierului
             </h3>

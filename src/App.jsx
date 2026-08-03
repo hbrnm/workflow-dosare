@@ -218,6 +218,53 @@ export default function App() {
     };
   }, []);
 
+  // Suport navigare buton Back din browser (History API)
+  const isNavigatingHistoryRef = useRef(false);
+
+  const handleSetViewWithHistory = useCallback((newView, pushToHistory = true) => {
+    setView(newView);
+    if (pushToHistory && !isNavigatingHistoryRef.current) {
+      window.history.pushState({ view: newView, modalOpen: false }, "", `#${newView}`);
+    }
+  }, [setView]);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      isNavigatingHistoryRef.current = true;
+      if (modalClaim) {
+        closeClaimModal();
+      } else if (setariOpen) {
+        closeSettings();
+      } else if (quickCaptureOpen) {
+        closeQuickCapture();
+      } else if (event.state && event.state.view) {
+        setView(event.state.view);
+      } else {
+        const hash = window.location.hash.replace("#", "");
+        if (hash && ["brief", "flux", "list", "programator", "dashboard", "rapoarte"].includes(hash)) {
+          setView(hash);
+        }
+      }
+      setTimeout(() => {
+        isNavigatingHistoryRef.current = false;
+      }, 50);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [modalClaim, closeClaimModal, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
+
+  // Deschidere modal adaugă stare în istoric pentru închidere prin butonul Back
+  useEffect(() => {
+    if (modalClaim && !isNavigatingHistoryRef.current) {
+      window.history.pushState(
+        { view, modalOpen: true, claimId: modalClaim.id },
+        "",
+        `#claim-${modalClaim.id || "nou"}`
+      );
+    }
+  }, [modalClaim, view]);
+
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -438,7 +485,7 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Breadcrumb & Action Header */}
-        <header className="h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <header className="relative h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
 
           {/* Left Breadcrumb & Context */}
           <div className="flex items-center gap-2 text-[13px]">
@@ -449,11 +496,11 @@ export default function App() {
             </span>
           </div>
 
-          {/* Center Search Trigger (Ctrl+K) */}
-          <div className="hidden lg:flex items-center">
+          {/* Center Search Trigger (Ctrl+K) - Strictly Centered in Header */}
+          <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#8A8375] hover:bg-white hover:border-[#C98A2B] text-[12.5px] transition-all w-64 justify-between shadow-2xs"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#8A8375] hover:bg-white hover:border-[#C98A2B] text-[12.5px] transition-all w-72 justify-between shadow-2xs"
             >
               <div className="flex items-center gap-2">
                 <Search size={14} />
