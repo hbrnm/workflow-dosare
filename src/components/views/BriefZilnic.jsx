@@ -451,11 +451,11 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
             </h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin">
-            <h4 className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider mb-1.5">
+          <div className="flex-1 min-h-0 flex flex-col justify-between">
+            <h4 className="text-[10px] font-extrabold text-[#6B6558] uppercase tracking-wider mb-1.5 shrink-0">
               Dosare Înregistrate pe Etape de Lucru
             </h4>
-            <div className="space-y-1.5 text-[11px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10.5px]">
               {STATUSES.map((s) => {
                 const count = statusStats[s.key] || 0;
                 const color = PHASE_COLORS[s.phase]?.bar || "#3B5166";
@@ -469,36 +469,29 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
                         onSelectStatusFilter(s.key);
                       }
                     }}
-                    className={`p-2 rounded-xl border transition-all space-y-1 select-none ${
+                    className={`px-2 py-1 rounded-lg border transition-all select-none flex items-center justify-between gap-1 ${
                       count > 0
                         ? "bg-[#FAF8F5] border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-[#FDFBF7] cursor-pointer shadow-2xs group"
-                        : "bg-[#FAF8F5]/50 border-[#DAD4C6]/40 opacity-70 cursor-pointer hover:opacity-100"
+                        : "bg-[#FAF8F5]/40 border-[#DAD4C6]/40 opacity-65 cursor-pointer hover:opacity-100"
                     }`}
                     title={count > 0 ? `Apasă pentru a deschide cele ${count} dosare din etapa „${s.label}”` : `Niciun dosar în etapa „${s.label}”`}
                   >
-                    <div className="flex items-center justify-between font-semibold text-[#23282E]">
-                      <span className="flex items-center gap-1.5 min-w-0 pr-1 truncate group-hover:text-[#C98A2B] transition-colors">
-                        <span className="text-[10px] font-mono text-[#8A8375] bg-white border border-[#DAD4C6] px-1 py-0.2 rounded shrink-0">
-                          {String(s.num).padStart(2, "0")}
-                        </span>
-                        <span className="truncate">{s.label}</span>
+                    <div className="flex items-center gap-1 min-w-0 pr-1 truncate">
+                      <span className="text-[9px] font-mono text-[#8A8375] bg-white border border-[#DAD4C6] px-1 py-0.2 rounded shrink-0">
+                        {String(s.num).padStart(2, "0")}
                       </span>
-                      <span
-                        className={`font-bold font-mono px-2.5 py-0.5 rounded-full text-[10.5px] transition-all flex items-center gap-1 shrink-0 ${
-                          count > 0
-                            ? "bg-[#2C4160] text-white shadow-xs group-hover:bg-[#C98A2B]"
-                            : "bg-white text-[#8A8375] border border-[#DAD4C6]"
-                        }`}
-                      >
-                        <span>{count} {count === 1 ? "dosar" : "dosare"}</span>
-                        {count > 0 && <span className="text-[11px] group-hover:translate-x-0.5 transition-transform">➔</span>}
-                      </span>
+                      <span className="truncate font-semibold text-[#23282E] group-hover:text-[#C98A2B] transition-colors">{s.label}</span>
                     </div>
-                    {count > 0 && (
-                      <div className="w-full bg-white border border-[#DAD4C6]/60 rounded-full h-1.5 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${percent}%`, backgroundColor: color }} />
-                      </div>
-                    )}
+
+                    <span
+                      className={`font-bold font-mono px-1.5 py-0.2 rounded-full text-[10px] shrink-0 transition-transform group-hover:scale-105 ${
+                        count > 0
+                          ? "bg-[#2C4160] text-white group-hover:bg-[#C98A2B] shadow-xs"
+                          : "bg-white text-[#8A8375] border border-[#DAD4C6]"
+                      }`}
+                    >
+                      {count} {count > 0 && "➔"}
+                    </span>
                   </div>
                 );
               })}
