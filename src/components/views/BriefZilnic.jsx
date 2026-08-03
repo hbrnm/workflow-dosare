@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { todayISO, daysBetween, telLink } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
-import { getStatusDefinition } from "../../constants/config";
+import { STATUSES, PHASE_COLORS, getStatusDefinition } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
@@ -153,27 +153,16 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
     claims.filter((c) => c.status !== "facturat").length,
     [claims]);
 
-  // Încărcare faze pipeline
-  const phaseStats = useMemo(() => {
-    const stats = { start: 0, eval: 0, lucru: 0, final: 0 };
+  // Număr dosare înregistrate pe fiecare etapă din workflow
+  const statusStats = useMemo(() => {
+    const counts = {};
+    STATUSES.forEach((s) => (counts[s.key] = 0));
     claims.forEach((c) => {
-      const phase = getStatusDefinition(c.status).phase;
-      if (stats[phase] !== undefined) stats[phase]++;
-    });
-    return stats;
-  }, [claims]);
-
-  // Top Asigurători
-  const insurerStats = useMemo(() => {
-    const map = {};
-    claims.forEach((c) => {
-      if (c.asigurator && c.status !== "facturat") {
-        map[c.asigurator] = (map[c.asigurator] || 0) + 1;
+      if (counts[c.status] !== undefined) {
+        counts[c.status]++;
       }
     });
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+    return counts;
   }, [claims]);
 
   return (
@@ -457,69 +446,44 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
 
         {/* COLOANA 3: STATISTICI & PULSUL ATELIERULUI */}
         <div className="bg-white rounded-xl border border-[#DAD4C6] p-3.5 shadow-sm flex flex-col min-h-[260px]">
-          <div className="border-b border-[#EFEAE1] pb-2 mb-3 shrink-0">
+          <div className="border-b border-[#EFEAE1] pb-2 mb-2.5 shrink-0">
             <h3 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              <BarChart3 size={16} className="text-[#3B5166]" /> Pulsul Atelierului &amp; Asigurători
+              <BarChart3 size={16} className="text-[#3B5166]" /> Pulsul Atelierului
             </h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin">
+            <h4 className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider mb-1.5">
+              Dosare Înregistrate pe Etape de Lucru
+            </h4>
+            <div className="space-y-1.5 text-[11px]">
+              {STATUSES.map((s) => {
+                const count = statusStats[s.key] || 0;
+                const color = PHASE_COLORS[s.phase]?.bar || "#3B5166";
+                const percent = activeClaimsCount > 0 ? (count / activeClaimsCount) * 100 : 0;
 
-            {/* Distribuție etape */}
-            <div className="space-y-2">
-              <h4 className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider">Distribuție Dosare pe Etape</h4>
-              <div className="space-y-1.5 text-[11px]">
-                <div>
-                  <div className="flex justify-between font-medium text-[#6B6558]">
-                    <span>Deschidere</span>
-                    <span className="font-bold">{phaseStats.start}</span>
-                  </div>
-                  <div className="w-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-full h-2 mt-0.5">
-                    <div className="bg-[#3B5166] h-full rounded-full" style={{ width: `${activeClaimsCount > 0 ? (phaseStats.start / activeClaimsCount) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between font-medium text-[#6B6558]">
-                    <span>Evaluare &amp; Accept</span>
-                    <span className="font-bold">{phaseStats.eval}</span>
-                  </div>
-                  <div className="w-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-full h-2 mt-0.5">
-                    <div className="bg-[#4A6FA5] h-full rounded-full" style={{ width: `${activeClaimsCount > 0 ? (phaseStats.eval / activeClaimsCount) * 100 : 0}%` }} />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between font-medium text-[#6B6558]">
-                    <span>Atelier &amp; Reparare</span>
-                    <span className="font-bold">{phaseStats.lucru}</span>
-                  </div>
-                  <div className="w-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-full h-2 mt-0.5">
-                    <div className="bg-[#C98A2B] h-full rounded-full" style={{ width: `${activeClaimsCount > 0 ? (phaseStats.lucru / activeClaimsCount) * 100 : 0}%` }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Asigurători */}
-            <div className="space-y-2 pt-2 border-t border-[#EFEAE1]">
-              <h4 className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider">Top Asigurători Activi</h4>
-              {insurerStats.length === 0 ? (
-                <div className="text-[10.5px] text-[#8A8375] italic">Niciun dosar activ.</div>
-              ) : (
-                <div className="divide-y divide-[#EFEAE1]">
-                  {insurerStats.map(([insurer, count]) => (
-                    <div key={insurer} className="flex justify-between items-center py-1 text-[11px]">
-                      <span className="font-semibold text-[#23282E] truncate max-w-[160px]" title={insurer}>{insurer}</span>
-                      <span className="font-bold font-mono px-2 py-0.2 rounded-full bg-[#FAF8F5] border border-[#DAD4C6] text-[#23282E]">
-                        {count}
+                return (
+                  <div key={s.key} className="p-1.5 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]/60 hover:border-[#DAD4C6] transition-colors space-y-1">
+                    <div className="flex items-center justify-between font-semibold text-[#23282E]">
+                      <span className="flex items-center gap-1.5 min-w-0 pr-1 truncate">
+                        <span className="text-[10px] font-mono text-[#8A8375] bg-white border border-[#DAD4C6] px-1 py-0.2 rounded shrink-0">
+                          {String(s.num).padStart(2, "0")}
+                        </span>
+                        <span className="truncate">{s.label}</span>
+                      </span>
+                      <span className={`font-bold font-mono px-2 py-0.5 rounded-full text-[10px] shrink-0 ${count > 0 ? "bg-[#2C4160] text-white" : "bg-white text-[#8A8375] border border-[#DAD4C6]"}`}>
+                        {count} {count === 1 ? "dosar" : "dosare"}
                       </span>
                     </div>
-                  ))}
-                </div>
-              )}
+                    {count > 0 && (
+                      <div className="w-full bg-white border border-[#DAD4C6]/60 rounded-full h-1.5 overflow-hidden">
+                        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${percent}%`, backgroundColor: color }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-
           </div>
         </div>
 
