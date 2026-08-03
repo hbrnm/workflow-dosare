@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, PackageCheck, CalendarClock, Car, Truck,
   ChevronRight, ArrowRight, Clock, MessageSquare, ExternalLink,
-  Search, Check, Bell, AlertOctagon, X
+  Search, Check, Bell, AlertOctagon, X, Maximize2, Minimize2
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -20,9 +20,9 @@ const PHASE_COLOR_MAP = {
 const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
 
 // ---------------------------------------------------------------------------
-// KANBAN CARD REDESIGN
+// KANBAN CARD REDESIGN (SUPOORTĂ DENSITATE NORMALĂ SAU COMPACTĂ)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, canEdit, pragRidicare, densityMode = "normal" }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -39,6 +39,70 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   const commentsCount = (claim.poze?.length || 0) + (claim.documente?.length || 0);
   const isPartOverdue = claim.status === "piese_comandate" && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
 
+  // --- VIZUALIZARE COMPACTĂ (ULTRA-DENSĂ: 12-14 DOSARE/ECRAN) ---
+  if (densityMode === "compact") {
+    return (
+      <div
+        id={`claim-card-${claim.id}`}
+        draggable={true}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", claim.id);
+          e.dataTransfer.effectAllowed = "move";
+        }}
+        onClick={() => onOpen(claim)}
+        className={`card group bg-white border border-[#E4E1D9] rounded-xl px-2.5 py-1.5 shadow-2xs hover:border-[#1B2430] flex items-center justify-between gap-1.5 cursor-pointer select-none transition-all ${
+          claim.blocat || overdue ? "border-[#EAC3C0] bg-[#FBEAE9]/40" : ""
+        }`}
+      >
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="font-mono font-bold text-[12.5px] text-[#1B2430] truncate">
+            {claim.numarInmatriculare || "FĂRĂ NR."}
+          </span>
+          <span className={`text-[9px] font-bold px-1 py-0.2 rounded shrink-0 ${claim.tipAsigurare === "CASCO" ? "bg-[#F4E3C6] text-[#8A5A0E]" : "bg-[#DDE7F0] text-[#2E5C8A]"}`}>
+            {claim.tipAsigurare || "RCA"}
+          </span>
+          <span className="text-[11px] text-[#5B6572] truncate max-w-[85px] hidden sm:inline" title={claim.marcaModel || claim.client}>
+            {claim.marcaModel || claim.client || "—"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {claim.status === "piese_comandate" && (
+            <input
+              type="checkbox"
+              checked={!!claim.pieseSosite}
+              onChange={(e) => {
+                e.stopPropagation();
+                if (onTogglePieseSosite) onTogglePieseSosite(claim, e.target.checked);
+              }}
+              title={claim.pieseSosite ? "Piese sosite ✓" : "Bifează dacă piesele au sosit"}
+              className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
+            />
+          )}
+
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${agingClass}`}>
+            ⏱ {days}z
+          </span>
+
+          {nextStatus && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveToStatus(claim, nextStatus.key);
+              }}
+              className="w-6 h-6 rounded-md bg-[#B8791E] hover:bg-[#9E6517] text-white flex items-center justify-center text-[12px] font-bold shadow-2xs active:scale-90"
+              title={`1-Click Avansează în „${nextStatus.label}”`}
+            >
+              →
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- VIZUALIZARE NORMALĂ CONFORTABILĂ ---
   return (
     <div
       id={`claim-card-${claim.id}`}
@@ -190,6 +254,7 @@ export default function TablouPeFazeRedesign({
 }) {
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
+  const [densityMode, setDensityMode] = useState("normal"); // "normal" | "compact"
 
   // Dosare cu piese întârziate (peste pragul de zile fără confirmare de sosire)
   const overduePartClaims = useMemo(() => {
@@ -247,8 +312,8 @@ export default function TablouPeFazeRedesign({
         </div>
       )}
 
-      {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
-      <div className="flex items-center gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2.5 shadow-2xs">
+      {/* 2. CONTROL STRIP & CHIPS FILTRARE & DENSITATE TOGGLE */}
+      <div className="flex items-center justify-between gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2.5 shadow-2xs">
         {/* Chips de filtrare rapidă */}
         <div className="flex items-center gap-2 flex-wrap text-[12.5px] font-semibold">
           <button
@@ -310,18 +375,32 @@ export default function TablouPeFazeRedesign({
           )}
         </div>
 
-        {/* Legendă Timp în Fază */}
-        <div className="ml-auto hidden xl:flex items-center gap-3.5 text-[11.5px] text-[#5B6572] font-semibold">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#2F8F5B]" /> sub 2 zile
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#D69A1E]" /> 2–4 zile
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm bg-[#D6473F]" /> peste 4 zile
-          </span>
+        {/* TOGGLE DENSITATE KANBAN (CONFORTABIL vs COMPACT) */}
+        <div className="flex items-center gap-2">
+          <div className="flex bg-[#F3F2EE] p-1 rounded-lg gap-1 border border-[#E4E1D9]">
+            <button
+              type="button"
+              onClick={() => setDensityMode("normal")}
+              className={`px-2.5 py-1 rounded-md text-[11.5px] font-bold transition-all flex items-center gap-1 ${
+                densityMode === "normal" ? "bg-[#1B2430] text-white shadow-xs" : "text-[#5B6572] hover:text-[#1B2430]"
+              }`}
+              title="Afișare normală detaliată (6-7 dosare per coloană pe ecran)"
+            >
+              <Maximize2 size={12} /> Normal
+            </button>
+            <button
+              type="button"
+              onClick={() => setDensityMode("compact")}
+              className={`px-2.5 py-1 rounded-md text-[11.5px] font-bold transition-all flex items-center gap-1 ${
+                densityMode === "compact" ? "bg-[#1B2430] text-white shadow-xs" : "text-[#5B6572] hover:text-[#1B2430]"
+              }`}
+              title="Afișare ultra-densă compactă (12-14 dosare per coloană pe ecran FĂRĂ SCROLL!)"
+            >
+              <Minimize2 size={12} /> Compact (14/ecran)
+            </button>
+          </div>
         </div>
+
       </div>
 
       {/* 3. VIZUALIZARE KANBAN BOARD */}
@@ -388,7 +467,7 @@ export default function TablouPeFazeRedesign({
               </div>
 
               {/* Zona cu cardurile din coloană */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2.5 scrollbar-thin">
+              <div className={`flex-1 overflow-y-auto p-2.5 scrollbar-thin ${densityMode === "compact" ? "space-y-1.5" : "space-y-2.5"}`}>
                 {phaseClaims.length === 0 ? (
                   <div className="border-1.5 border-dashed border-[#E4E1D9] rounded-xl p-6 text-center text-[#5B6572] text-[12.5px] italic my-auto">
                     Niciun dosar în această fază
@@ -403,6 +482,7 @@ export default function TablouPeFazeRedesign({
                       onTogglePieseSosite={onTogglePieseSosite}
                       canEdit={canEditFn(c)}
                       pragRidicare={pragRidicare}
+                      densityMode={densityMode}
                     />
                   ))
                 )}
