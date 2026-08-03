@@ -24,10 +24,10 @@ export default function MobileAppLayout({
   const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare"
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#EFEAE1] overflow-hidden font-sans text-[#23282E]">
+    <div className="fixed inset-0 flex flex-col bg-[#EFEAE1] overflow-hidden font-sans text-[#23282E]">
       
       {/* HEADER MOBIL SUPERIOR */}
-      <header className="bg-[#1C2127] text-white px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b border-white/10 select-none">
+      <header className="bg-[#1C2127] text-white px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b border-white/10 select-none z-30">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-[#C98A2B] flex items-center justify-center font-extrabold text-[12px] text-white shadow-xs">
             <ShieldCheck size={16} />
@@ -66,8 +66,8 @@ export default function MobileAppLayout({
         </div>
       </header>
 
-      {/* ZONA DE CONȚINUT MOBIL (SCROLLABILĂ) */}
-      <main className="flex-1 min-h-0 p-3 overflow-y-auto">
+      {/* ZONA DE CONȚINUT MOBIL (SCROLLABILĂ CU PADDING INFERIOR PENTRU BARA DE JOS) */}
+      <main className="flex-1 min-h-0 p-3 pb-24 overflow-y-auto scrollbar-thin">
         {activeTab === "capture" ? (
           <MobileQuickCapture
             claims={claims}
@@ -92,8 +92,8 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      {/* BARA DE NAVIGARE NATIVĂ ÎN PARTEA DE JOS (BOTTOM DOCK) */}
-      <nav className="bg-[#1C2127] text-white border-t border-white/10 px-2 py-1.5 flex items-center justify-around shrink-0 select-none shadow-lg z-40">
+      {/* BARA DE NAVIGARE NATIVĂ PERMANENT FIXATĂ ÎN PARTEA DE JOS (ALWAYS VISIBLE FIXED BOTTOM DOCK) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1C2127] text-white border-t border-white/10 px-2 py-2 flex items-center justify-around select-none shadow-2xl backdrop-blur-md">
         
         {/* TAB 1: CAPTURĂ & SCANER */}
         <button
