@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import {
   ShieldCheck, Camera, FileText, List, Settings, LogOut,
-  BarChart3, Plus, User, Smartphone, Monitor
+  BarChart3, Plus, User, Smartphone, Monitor, CalendarClock
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
+import MobileProgramari from "./MobileProgramari";
 
 export default function MobileAppLayout({
   claims,
@@ -21,7 +22,7 @@ export default function MobileAppLayout({
   pragRidicare,
   onSwitchToDesktop,
 }) {
-  const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare"
+  const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare" | "programari"
 
   return (
     <div className="fixed inset-0 flex flex-col bg-[#EFEAE1] overflow-hidden font-sans text-[#23282E]">
@@ -78,6 +79,14 @@ export default function MobileAppLayout({
             onNew={onNewClaim}
             canEditFn={canEditFn}
           />
+        ) : activeTab === "programari" ? (
+          <MobileProgramari
+            claims={claims}
+            onOpen={onOpenClaim}
+            onPatch={onPatchClaim}
+            canEditFn={canEditFn}
+            onNotify={onNotify}
+          />
         ) : null}
       </main>
 
@@ -120,14 +129,16 @@ export default function MobileAppLayout({
           <span className="text-[10px]">Dosare</span>
         </button>
 
-        {/* TAB 4: SETĂRI */}
+        {/* TAB 4: PROGRAMĂRI */}
         <button
           type="button"
-          onClick={onOpenSettings}
-          className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-white/60 font-semibold hover:text-white transition-all"
+          onClick={() => setActiveTab("programari")}
+          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
+            activeTab === "programari" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
+          }`}
         >
-          <Settings size={20} />
-          <span className="text-[10px]">Setări</span>
+          <CalendarClock size={20} />
+          <span className="text-[10px]">Programari</span>
         </button>
 
       </nav>
