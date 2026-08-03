@@ -314,26 +314,15 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </p>
       </div>
 
-      {/* 2. SELECTARE & CĂUTARE DOSAR (AFIȘARE OBLIGATORIE: NR. AUTO + NR. DOSAR) */}
+      {/* 2. SELECTARE & CĂUTARE DOSAR */}
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
-        <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] flex items-center justify-between">
-          <span>Alege Dosarul</span>
-          {selectedClaim && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Check size={11} /> {selectedClaim.numarInmatriculare}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSelectedClaimId(null)}
-                className="text-[10px] text-[#B23A2E] hover:text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md font-bold transition-colors"
-                title="Resetează selecția"
-              >
-                Resetare
-              </button>
-            </div>
-          )}
-        </div>
+        {selectedClaim && (
+          <div className="flex items-center justify-end">
+            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <Check size={11} /> Selectat: {selectedClaim.numarDosar || selectedClaim.numarInmatriculare}
+            </span>
+          </div>
+        )}
 
         {/* Căutare tactilă */}
         <div className="relative">
@@ -341,7 +330,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           <input
             type="text"
             className="w-full pl-9 pr-8 py-2 border border-[#DAD4C6] rounded-xl text-[13px] font-bold bg-[#FAF8F5] focus:bg-white focus:outline-hidden"
-            placeholder="Caută nr. auto (ex: B123ABC) sau nr. dosar..."
+            placeholder="Caută nr. dosar sau nr. auto..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -352,8 +341,8 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           )}
         </div>
 
-        {/* Listă cu afișare clară: Număr Auto + Număr Dosar */}
-        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+        {/* Listă cu afișare: Stânga (Număr Dosar) | Dreapta (Număr Înmatriculare) */}
+        <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 text-[11px] text-[#8A8375] italic">Niciun dosar găsit.</div>
           ) : (
@@ -369,21 +358,22 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                       : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`font-mono font-extrabold text-[13px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
-                      {c.numarInmatriculare || "FĂRĂ NR."}
+                  {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`font-mono text-[12.5px] px-2 py-0.5 rounded font-extrabold border ${
+                      isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
+                    }`}>
+                      Dosar: {c.numarDosar || "Fără nr."}
                     </span>
                     <span className={`text-[11px] font-semibold truncate ${isSelected ? "text-white/80" : "text-[#6B6558]"}`}>
                       {c.marcaModel || "—"}
                     </span>
                   </div>
 
+                  {/* DREAPTA: NUMĂR ÎNMATRICULARE */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {/* Număr Dosar explicit */}
-                    <span className={`font-mono text-[11px] px-2 py-0.5 rounded font-extrabold border ${
-                      isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
-                    }`}>
-                      Dosar: {c.numarDosar || "Fără nr."}
+                    <span className={`font-mono font-extrabold text-[13px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
+                      {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
                     {isSelected && <CheckCircle2 size={16} className="text-[#F3D9A8]" />}
                   </div>
