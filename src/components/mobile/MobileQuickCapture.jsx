@@ -319,9 +319,19 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] flex items-center justify-between">
           <span>Alege Dosarul</span>
           {selectedClaim && (
-            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-              <Check size={11} /> Selectat
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Check size={11} /> {selectedClaim.numarInmatriculare}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedClaimId(null)}
+                className="text-[10px] text-[#B23A2E] hover:text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md font-bold transition-colors"
+                title="Resetează selecția"
+              >
+                Resetare
+              </button>
+            </div>
           )}
         </div>
 
@@ -352,7 +362,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               return (
                 <div
                   key={c.id}
-                  onClick={() => setSelectedClaimId(c.id)}
+                  onClick={() => setSelectedClaimId((prev) => (prev === c.id ? null : c.id))}
                   className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                     isSelected
                       ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
