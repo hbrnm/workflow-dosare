@@ -184,7 +184,8 @@ export default function ClaimModal({
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const noteInputRef = useRef(null);
-  const [scanSession, setScanSession] = useState(null);
+  const [scanSession, setScanSession] = useState(null); // { pages: [{ dataUrl, file }] }
+  const [uploadingScan, setUploadingScan] = useState(false);
   const [istoric, setIstoric] = useState([]);
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
@@ -246,8 +247,6 @@ export default function ClaimModal({
   };
 
   const isNew = useMemo(() => !Array.isArray(allClaims) || !allClaims.some((c) => c && c.id === claim?.id), [allClaims, claim?.id]);
-  const [scanSession, setScanSession] = useState(null); // { pages: [{ dataUrl, file }] }
-  const [uploadingScan, setUploadingScan] = useState(false);
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
