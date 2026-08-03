@@ -23,6 +23,13 @@ export function useAuth() {
   }, []);
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem("workflow_dosare_users");
+      localStorage.removeItem("workflow_dosare_admins");
+      localStorage.removeItem("workflow_dosare_asiguratori");
+    } catch (err) {
+      console.warn("Failed clearing localStorage on logout:", err);
+    }
     await supabase.auth.signOut();
     setSession(null);
   };

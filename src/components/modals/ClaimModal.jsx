@@ -246,6 +246,8 @@ export default function ClaimModal({
   };
 
   const isNew = useMemo(() => !Array.isArray(allClaims) || !allClaims.some((c) => c && c.id === claim?.id), [allClaims, claim?.id]);
+  const [scanSession, setScanSession] = useState(null); // { pages: [{ dataUrl, file }] }
+  const [uploadingScan, setUploadingScan] = useState(false);
 
   useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
 
@@ -278,13 +280,13 @@ export default function ClaimModal({
   const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
 
   const financial = form.financiar || {};
-  const manoperaFaraTva = (Number(form.manopera?.tinichigerie?.facturat) || 0) + (Number(form.manopera?.vopsitorie?.facturat) || 0);
-  const pieseFacturateFaraTva = Number(financial.pieseFacturateFaraTva ?? form.valoarePieseAudatex) || 0;
+  const manoperaFaraTva = parseNumber(form.manopera?.tinichigerie?.facturat, 0) + parseNumber(form.manopera?.vopsitorie?.facturat, 0);
+  const pieseFacturateFaraTva = parseNumber(financial.pieseFacturateFaraTva ?? form.valoarePieseAudatex, 0);
   const venitFaraTva = manoperaFaraTva + pieseFacturateFaraTva;
-  const tvaProc = Number(financial.tvaProc) || 0;
+  const tvaProc = parseNumber(financial.tvaProc, 0);
   const tvaValoare = venitFaraTva * tvaProc / 100;
   const totalCuTva = venitFaraTva + tvaValoare;
-  const costTotal = (Number(form.valoareAchizitiePiese) || 0) + (Number(financial.costManoperaInterna) || 0) + (Number(financial.costuriExterne) || 0) + (Number(financial.costMasinaSchimb) || 0);
+  const costTotal = parseNumber(form.valoareAchizitiePiese, 0) + parseNumber(financial.costManoperaInterna, 0) + parseNumber(financial.costuriExterne, 0) + parseNumber(financial.costMasinaSchimb, 0);
   const profitBrut = venitFaraTva - costTotal;
 
   const toggleGata = (checked) => setForm((f) => ({

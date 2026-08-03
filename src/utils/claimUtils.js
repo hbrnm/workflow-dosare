@@ -24,6 +24,21 @@ export function emptyClaim(status = "primit") {
   };
 }
 
+export function parseNumber(val, defaultVal = 0) {
+  if (val === null || val === undefined || val === "") return defaultVal;
+  if (typeof val === "number") return isNaN(val) ? defaultVal : val;
+  const str = String(val).trim();
+  if (!str) return defaultVal;
+  let normalized = str;
+  if (str.includes(".") && str.includes(",")) {
+    normalized = str.replace(/\./g, "").replace(",", ".");
+  } else if (str.includes(",")) {
+    normalized = str.replace(",", ".");
+  }
+  const parsed = parseFloat(normalized.replace(/[^0-9.-]/g, ""));
+  return isNaN(parsed) ? defaultVal : parsed;
+}
+
 export function sanitizeClaim(c) {
   const base = emptyClaim();
   if (!c) return base;
@@ -48,27 +63,27 @@ export function sanitizeClaim(c) {
     dataGataRidicare: c.dataGataRidicare || null,
     ridicata: !!c.ridicata,
     dataRidicare: c.dataRidicare || null,
-    valoarePieseAudatex: Number(c.valoarePieseAudatex) || 0,
-    valoareAchizitiePiese: Number(c.valoareAchizitiePiese) || 0,
+    valoarePieseAudatex: parseNumber(c.valoarePieseAudatex, 0),
+    valoareAchizitiePiese: parseNumber(c.valoareAchizitiePiese, 0),
     financiar: {
-      tvaProc: Number(c.financiar?.tvaProc ?? 21),
-      pieseFacturateFaraTva: Number(c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex) || 0,
-      costManoperaInterna: Number(c.financiar?.costManoperaInterna) || 0,
-      costuriExterne: Number(c.financiar?.costuriExterne) || 0,
-      costMasinaSchimb: Number(c.financiar?.costMasinaSchimb) || 0,
+      tvaProc: parseNumber(c.financiar?.tvaProc, 21),
+      pieseFacturateFaraTva: parseNumber(c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex, 0),
+      costManoperaInterna: parseNumber(c.financiar?.costManoperaInterna, 0),
+      costuriExterne: parseNumber(c.financiar?.costuriExterne, 0),
+      costMasinaSchimb: parseNumber(c.financiar?.costMasinaSchimb, 0),
       numarFactura: c.financiar?.numarFactura || "",
       dataFactura: c.financiar?.dataFactura || null,
     },
-    zileChirieAudatex: Number(c.zileChirieAudatex) || 0,
-    termenAlertaZile: Number(c.termenAlertaZile) || 3,
+    zileChirieAudatex: parseNumber(c.zileChirieAudatex, 0),
+    termenAlertaZile: parseNumber(c.termenAlertaZile, 3),
     incasat: !!c.incasat,
     dataIncasarii: c.dataIncasarii || null,
     note: Array.isArray(c.note) ? c.note : [],
     documente: Array.isArray(c.documente) ? c.documente : [],
     poze: Array.isArray(c.poze) ? c.poze : [],
     manopera: {
-      tinichigerie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(c.manopera?.tinichigerie || {}) },
-      vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null, ...(c.manopera?.vopsitorie || {}) },
+      tinichigerie: { facturat: parseNumber(c.manopera?.tinichigerie?.facturat, 0), alocat: parseNumber(c.manopera?.tinichigerie?.alocat, 0), dataIntrareEtapa: c.manopera?.tinichigerie?.dataIntrareEtapa || null },
+      vopsitorie: { facturat: parseNumber(c.manopera?.vopsitorie?.facturat, 0), alocat: parseNumber(c.manopera?.vopsitorie?.alocat, 0), dataIntrareEtapa: c.manopera?.vopsitorie?.dataIntrareEtapa || null },
     },
   };
 }

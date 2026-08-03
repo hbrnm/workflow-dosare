@@ -17,7 +17,8 @@ export function useSettings(session, showNotice) {
 
     (async () => {
       try {
-        const localUsers = JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]");
+        const rawLocalUsers = JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]");
+        const localUsers = sanitizeUsers(rawLocalUsers);
         const localAdmins = JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]");
         if (Array.isArray(localUsers) && localUsers.length > 0) setUsersList(localUsers);
         if (Array.isArray(localAdmins) && localAdmins.length > 0) setAdminEmails(localAdmins);
@@ -47,9 +48,10 @@ export function useSettings(session, showNotice) {
         ? data.admin_emails
         : JSON.parse(localStorage.getItem("workflow_dosare_admins") || "[]");
 
-      const loadedUsers = Array.isArray(data?.utilizatori) && data.utilizatori.length > 0
+      const rawLoadedUsers = Array.isArray(data?.utilizatori) && data.utilizatori.length > 0
         ? data.utilizatori
         : JSON.parse(localStorage.getItem("workflow_dosare_users") || "[]");
+      const loadedUsers = sanitizeUsers(rawLoadedUsers);
 
       if (myEmail) {
         if (!loadedUsers.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase())) {
@@ -63,10 +65,11 @@ export function useSettings(session, showNotice) {
         }
       }
 
+      const cleanLoadedUsers = sanitizeUsers(loadedUsers);
       setAdminEmails(loadedAdmins);
-      setUsersList(loadedUsers);
+      setUsersList(cleanLoadedUsers);
       try {
-        localStorage.setItem("workflow_dosare_users", JSON.stringify(loadedUsers));
+        localStorage.setItem("workflow_dosare_users", JSON.stringify(cleanLoadedUsers));
         localStorage.setItem("workflow_dosare_admins", JSON.stringify(loadedAdmins));
       } catch (err) {
         console.warn("Unable to persist users/admins to localStorage", err);
@@ -74,18 +77,28 @@ export function useSettings(session, showNotice) {
     })();
   }, [session, myEmail]);
 
+  const sanitizeUsers = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list.map((u) => {
+      if (!u || typeof u !== "object") return u;
+      const { password, ...safeUser } = u;
+      return safeUser;
+    });
+  };
+
   const saveUsersAndAdmins = async (newUsers, newAdmins) => {
-    setUsersList(newUsers);
+    const cleanUsers = sanitizeUsers(newUsers);
+    setUsersList(cleanUsers);
     setAdminEmails(newAdmins);
 
     try {
-      localStorage.setItem("workflow_dosare_users", JSON.stringify(newUsers));
+      localStorage.setItem("workflow_dosare_users", JSON.stringify(cleanUsers));
       localStorage.setItem("workflow_dosare_admins", JSON.stringify(newAdmins));
     } catch (err) {
       console.warn("Unable to persist users/admins to localStorage", err);
     }
 
-    const { error } = await supabase.from("setari").upsert({ id: 1, utilizatori: newUsers, admin_emails: newAdmins });
+    const { error } = await supabase.from("setari").upsert({ id: 1, utilizatori: cleanUsers, admin_emails: newAdmins });
     if (error) {
       console.error("Setari upsert error:", error);
       showNotice("Salvat local. Eroare salvare Supabase setări: " + error.message, "warning");
@@ -142,7 +155,7 @@ export function useSettings(session, showNotice) {
       }
     }
 
-    const newUserObj = { email: cleanEmail, role: role || "operator", password: (password || "").trim() };
+    const newUserObj = { email: cleanEmail, role: role || "operator" };
     const updatedUsers = [...usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail), newUserObj];
     const updatedAdmins = role === "admin"
       ? [...new Set([...adminEmails, cleanEmail])]

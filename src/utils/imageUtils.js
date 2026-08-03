@@ -13,8 +13,14 @@ async function loadBitmap(file) {
   return await new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Nu am putut citi imaginea."));
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Nu am putut citi imaginea."));
+    };
     img.src = url;
   });
 }
