@@ -9,9 +9,7 @@ import { getStatusDefinition } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
-export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, onSetPrag }) {
-  const [pragInput, setPragInput] = useState(pragRidicare);
-  useEffect(() => setPragInput(pragRidicare), [pragRidicare]);
+export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare }) {
   const todayStr = todayISO();
 
   // Today Date formatted in Romanian
@@ -111,25 +109,6 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
               Sunt identificate <span className="font-bold text-[#B23A2E]">{totalActiuniUrgente} alerte</span> ce necesită atenție urgentă astăzi.
             </p>
           </div>
-        </div>
-
-        {/* Overdue Limit Trigger Input */}
-        <div className="flex items-center gap-2 text-[11.5px] bg-[#FAF8F5] px-3 py-1.5 rounded-lg border border-[#DAD4C6]">
-          <span className="text-[#6B6558] font-medium">Notificare client neridicare:</span>
-          <input
-            type="number"
-            min={1} max={30}
-            className="w-11 border border-[#DAD4C6] rounded px-1.5 py-0.5 text-center font-bold text-[#23282E] bg-white text-[11.5px]"
-            value={pragInput}
-            onChange={(e) => setPragInput(Number(e.target.value) || 1)}
-          />
-          <span className="text-[#6B6558]">zile</span>
-          <button
-            onClick={() => onSetPrag(pragInput)}
-            className="px-2.5 py-0.5 bg-[#3B5166] text-white rounded text-[11.5px] font-semibold hover:bg-[#2C4160] transition-colors"
-          >
-            Salvează
-          </button>
         </div>
       </div>
 
