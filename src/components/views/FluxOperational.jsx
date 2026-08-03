@@ -2,7 +2,8 @@ import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, AlertOctagon, PackageCheck, Car, Phone,
   ChevronDown, Check, Clock, Copy, CalendarClock, Truck,
-  Minimize2, Maximize2, ExternalLink
+  Minimize2, Maximize2, ExternalLink, ArrowRight, ArrowLeft,
+  ChevronRight, Sparkles, MessageCircle, ShieldAlert
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -12,8 +13,6 @@ import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 
 export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit, pragRidicare }) {
-  const compact = true;
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
@@ -21,233 +20,210 @@ export function PhaseCard({ claim, onOpen, onMoveToStatus, onDuplicate, canEdit,
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = isReadyForPickupOverdue(claim, pragRidicare || 3);
 
-  const expanded = isExpanded;
-
-  const handleCardClick = (e) => {
-    // If click was on an interactive element, let its own handler execute
-    if (e.target.closest("button") || e.target.closest("a") || e.target.closest("select")) {
-      return;
-    }
-    setIsExpanded(!isExpanded);
-  };
+  // Găsire status precedent și status următor pentru avansare cu 1 singur click (0 friction)
+  const currentIndex = STATUSES.findIndex((s) => s.key === claim.status);
+  const prevStatus = currentIndex > 0 ? STATUSES[currentIndex - 1] : null;
+  const nextStatus = currentIndex < STATUSES.length - 1 ? STATUSES[currentIndex + 1] : null;
 
   return (
     <div
       id={`claim-card-${claim.id}`}
-      onClick={handleCardClick}
-      onDoubleClick={(e) => { e.stopPropagation(); onOpen(claim); }}
       draggable={true}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`group relative bg-white rounded-lg border transition-all duration-150 hover:shadow-md cursor-pointer select-none active:opacity-60 ${
-        compact ? "p-1.5 text-[10.5px]" : "p-2.5 text-[11.5px]"
-      } ${
-        claim.blocat ? "border-[#23282E] border-2" : overdue ? "border-[#B23A2E]" : "border-[#DAD4C6]"
+      onClick={() => onOpen(claim)}
+      className={`group relative bg-white rounded-xl border p-3 text-[11.5px] transition-all duration-200 hover:shadow-lg cursor-pointer select-none space-y-2 ${
+        claim.blocat
+          ? "border-[#B23A2E] ring-2 ring-[#B23A2E]/20 bg-red-50/10"
+          : overdue
+          ? "border-[#C98A2B] ring-1 ring-[#C98A2B]/30"
+          : "border-[#DAD4C6] hover:border-[#2C4160]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
-      title={compact && !isExpanded ? "Dublu-click pentru a deschide sau click simplu pentru detalii" : ""}
     >
-      {/* Header Row: Nr Dosar + Asigurare */}
-      <div className="flex items-center justify-between gap-1">
-        <span
-          className={`font-mono font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate ${
-            compact ? "text-[11.5px]" : "text-[12.5px]"
-          }`}
-        >
-          {claim.numarDosar || "(fără nr.)"}
-        </span>
+      {/* 1. RÂND HEADER CARD: NR AUTO & NR DOSAR & TIP ASIGURARE */}
+      <div className="flex items-start justify-between gap-1 border-b border-[#EFEAE1] pb-2">
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono font-extrabold text-[13px] text-[#23282E] group-hover:text-[#C98A2B] transition-colors truncate">
+              {claim.numarInmatriculare || "FĂRĂ NR."}
+            </span>
+            <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
+          </div>
+          <span className="text-[10.5px] font-mono text-[#8A8375] font-semibold mt-0.5 truncate">
+            Dosar: {claim.numarDosar || "—"}
+          </span>
+        </div>
+
         <div className="flex items-center gap-1 shrink-0">
-          <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
           {overdue && <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />}
-          
-          {/* Quick open button in compact collapsed view */}
-          {compact && !isExpanded && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-              title="Deschide detalii complet"
-              className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"
-            >
-              <ExternalLink size={11} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
+            title="Deschide dosar complet"
+            className="p-1 rounded-md hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"
+          >
+            <ExternalLink size={13} />
+          </button>
         </div>
       </div>
 
-      {/* Row 2: Client & License Plate (Collapsed view version) */}
-      {!expanded && (
-        <div className="mt-1 flex items-center justify-between gap-1">
-          <span className="font-semibold text-[#23282E] truncate max-w-[60%]" title={claim.client}>
-            {claim.client || "Client neintrodus"}
-          </span>
-          <span className="font-mono font-bold text-[#23282E] shrink-0 text-[10px] bg-[#FAF8F5] px-1 border border-[#DAD4C6] rounded">
-            {claim.numarInmatriculare || "—"}
-          </span>
+      {/* 2. RÂND CLIENT & MARCA MODEL */}
+      <div className="space-y-0.5 text-[11px]">
+        <div className="flex items-center justify-between text-[#23282E] font-bold">
+          <span className="truncate" title={claim.client}>{claim.client || "Client neintrodus"}</span>
+          <span className="text-[10px] text-[#6B6558] font-mono shrink-0">{claim.marcaModel || claim.asigurator || "—"}</span>
         </div>
-      )}
 
-      {/* Row 3: Active Badges when collapsed */}
-      {!expanded && (claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
-        <div className="mt-1 flex items-center gap-1 flex-wrap text-[9px]">
-          {claim.blocat && <span className="text-[#B23A2E] font-bold" title="Blocat">⚠️ bl</span>}
-          {claim.masinaSchimb && (
-            <span className="px-0.5 rounded bg-[#FBF3E6] text-[#7A5316] font-bold" title={`Mașină la schimb: ${claim.masinaSchimb}`}>
-              🚗
-            </span>
-          )}
-          {claim.gataDeRidicare && !claim.ridicata && (
-            <span className={`px-0.5 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`} title={`Gata de ridicare (${zileNeridicata} zile)`}>
-              📦 {zileNeridicata}z
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Expandable fields (only visible when expanded) */}
-      {expanded && (
-        <>
-          {/* Interactive 1-Click Status Dropdown Badge */}
-          <div className={`${compact ? "mt-1" : "mt-1.5"} relative`}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
-              className={`w-full flex items-center justify-between px-1.5 py-0.5 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-[#EFEAE1] transition-colors font-semibold text-[#23282E] ${
-                compact ? "text-[10px]" : "text-[11px]"
-              }`}
-              title="Apasă pentru a schimba etapa dosarului"
-            >
-              <span className="flex items-center gap-1 truncate">
-                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
-                <span className="font-mono text-[9.5px] text-[#6B6558] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
-                <span className="truncate">{statusDef.label}</span>
+        {/* Badges active (Blocat / Auto Schimb / Neridicată) */}
+        {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
+          <div className="flex items-center gap-1 flex-wrap pt-0.5 text-[9.5px]">
+            {claim.blocat && (
+              <span className="px-1.5 py-0.2 rounded bg-[#B23A2E] text-white font-extrabold flex items-center gap-1">
+                <AlertOctagon size={10} /> Blocat: {claim.motivBlocare || "Urgent"}
               </span>
-              <ChevronDown size={11} className="text-[#8A8375] shrink-0" />
-            </button>
+            )}
+            {claim.masinaSchimb && (
+              <span className="px-1.5 py-0.2 rounded bg-[#FBF3E6] border border-[#C98A2B]/40 text-[#7A5316] font-bold flex items-center gap-1">
+                🚗 {claim.masinaSchimb}
+              </span>
+            )}
+            {claim.gataDeRidicare && !claim.ridicata && (
+              <span className={`px-1.5 py-0.2 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
+                📦 Gata de ridicare ({zileNeridicata}z)
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
-            {showStatusPicker && (
-              <>
-                <div
-                  className="fixed inset-0 z-20 cursor-default"
+      {/* 3. ETAPĂ CURENTĂ (1-CLICK DROPDOWN PICKER) */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowStatusPicker(!showStatusPicker); }}
+          className="w-full flex items-center justify-between px-2 py-1 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-white transition-all text-[11px] font-bold text-[#23282E]"
+          title="Apasă pentru a alege direct orice etapă"
+        >
+          <span className="flex items-center gap-1.5 min-w-0 pr-1 truncate">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getPhaseColors(claim.status).bar }} />
+            <span className="font-mono text-[10px] text-[#8A8375] shrink-0">{String(statusDef.num).padStart(2, "0")}.</span>
+            <span className="truncate">{statusDef.label}</span>
+          </span>
+          <ChevronDown size={12} className="text-[#8A8375] shrink-0" />
+        </button>
+
+        {showStatusPicker && (
+          <>
+            <div
+              className="fixed inset-0 z-30 cursor-default"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowStatusPicker(false);
+              }}
+            />
+            <div
+              className="absolute left-0 right-0 top-full mt-1 z-40 bg-white rounded-xl border border-[#DAD4C6] shadow-2xl p-1 text-[11px] space-y-0.5 max-h-56 overflow-y-auto scrollbar-thin"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-2 py-1 text-[9.5px] font-extrabold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
+                Schimbă etapa dosarului:
+              </div>
+              {STATUSES.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
+                    onMoveToStatus(claim, s.key);
                     setShowStatusPicker(false);
                   }}
-                />
-                <div
-                  className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[#DAD4C6] shadow-lg p-1 text-[11px] space-y-0.5"
-                  onClick={(e) => e.stopPropagation()}
+                  className={`w-full flex items-center justify-between px-2.5 py-1 rounded-lg text-left transition-colors font-medium ${
+                    claim.status === s.key ? "bg-[#2C4160] text-white font-bold" : "hover:bg-[#EEF5EE] text-[#23282E]"
+                  }`}
                 >
-                  <div className="px-2 py-0.5 text-[9.5px] font-bold text-[#8A8375] uppercase border-b border-[#EFEAE1]">
-                    Schimbă etapa dosarului:
-                  </div>
-                  {STATUSES.map((s) => (
-                    <button
-                      key={s.key}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onMoveToStatus(claim, s.key);
-                        setShowStatusPicker(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
-                        claim.status === s.key ? "bg-[#3B5166] text-white font-bold" : "hover:bg-[#F3EFE6] text-[#23282E]"
-                      }`}
-                    >
-                      <span className="flex items-center gap-1 truncate">
-                        <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
-                        <span className="truncate">{s.label}</span>
-                      </span>
-                      {claim.status === s.key && <Check size={11} className="shrink-0" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Client & Phone */}
-          <div className={`${compact ? "mt-1 text-[10.5px]" : "mt-1.5 text-[11.5px]"} flex items-center justify-between gap-1`}>
-            <span className="font-semibold text-[#23282E] truncate group-hover:underline">
-              {claim.client || "Client neintrodus"}
-            </span>
-            {claim.telefonClient && (
-              <div className="flex items-center gap-0.5 shrink-0">
-                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[#EFEAE1] text-[#3B5166]">
-                  <Phone size={compact ? 10 : 11} />
-                </a>
-                <WhatsAppButton phone={claim.telefonClient} claim={claim} size={compact ? 10 : 11} />
-              </div>
-            )}
-          </div>
-
-          {/* Auto & Insurer */}
-          <div className={`${compact ? "mt-0.5 text-[9.5px]" : "mt-1 text-[10.5px]"} flex items-center justify-between gap-1 text-[#6B6558]`}>
-            <span className="flex items-center gap-1 font-mono font-bold text-[#23282E]">
-              <Car size={compact ? 10 : 11} className="text-[#8A8375]" />
-              {claim.numarInmatriculare || "—"}
-            </span>
-            <span className="truncate max-w-[90px]" title={claim.marcaModel || claim.asigurator}>
-              {claim.marcaModel || claim.asigurator}
-            </span>
-          </div>
-
-          {/* Active Badges */}
-          {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
-            <div className="mt-1 flex items-center gap-1 flex-wrap text-[9px]">
-              {claim.blocat && <Pill tone="danger">⚠️ blocat</Pill>}
-              {claim.masinaSchimb && (
-                <span className="px-1 py-0.1 rounded bg-[#FBF3E6] text-[#7A5316] font-bold">
-                  🚗 {claim.masinaSchimb}
-                </span>
-              )}
-              {claim.gataDeRidicare && !claim.ridicata && (
-                <span className={`px-1 py-0.1 rounded font-bold ${neridicataAlert ? "bg-[#B23A2E] text-white" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
-                  📦 gata ({zileNeridicata}z)
-                </span>
-              )}
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className="font-mono text-[10px] opacity-75">{String(s.num).padStart(2, "0")}.</span>
+                    <span className="truncate">{s.label}</span>
+                  </span>
+                  {claim.status === s.key && <Check size={12} className="shrink-0" />}
+                </button>
+              ))}
             </div>
+          </>
+        )}
+      </div>
+
+      {/* 4. BARĂ DE ACȚIUNI RAPIDE DE REACȚIE & AVANSARE DE 1-CLICK */}
+      <div className="pt-1.5 border-t border-[#EFEAE1] flex items-center justify-between gap-1">
+        
+        {/* Contact direct WhatsApp / Call */}
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {claim.telefonClient ? (
+            <>
+              <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
+              <a
+                href={telLink(claim.telefonClient)}
+                className="p-1 rounded bg-[#EEF1F3] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+                title={`Sună la ${claim.telefonClient}`}
+              >
+                <Phone size={11} />
+              </a>
+            </>
+          ) : (
+            <span className="text-[10px] text-[#8A8375] italic font-mono">{days}z în etapă</span>
+          )}
+        </div>
+
+        {/* BUTOANE AVANSARE RAPIDĂ DE 1-CLICK (UX 100x MAI RAPID) */}
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          {prevStatus && (
+            <button
+              type="button"
+              onClick={() => onMoveToStatus(claim, prevStatus.key)}
+              className="p-1 rounded border border-[#DAD4C6] bg-[#FAF8F5] hover:bg-gray-200 text-[#6B6558] transition-colors"
+              title={`Pas înapoi la „${prevStatus.label}”`}
+            >
+              <ArrowLeft size={11} />
+            </button>
           )}
 
-          {/* Card Footer: Days + Quick Actions */}
-          <div className={`${compact ? "mt-1 pt-1 text-[9.5px]" : "mt-1.5 pt-1.5 text-[10px]"} border-t border-[#EFEAE1] flex items-center justify-between`}>
-            <span className="text-[#8A8375] font-mono flex items-center gap-1">
-              <Clock size={compact ? 9 : 10} /> {days}z în etapă
+          {nextStatus ? (
+            <button
+              type="button"
+              onClick={() => onMoveToStatus(claim, nextStatus.key)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[11px] shadow-2xs transition-all active:scale-95"
+              title={`Avansează cu 1-click în etapa „${nextStatus.label}”`}
+            >
+              <span>Avansează</span>
+              <ArrowRight size={12} />
+            </button>
+          ) : (
+            <span className="px-2 py-0.5 rounded bg-green-100 text-[#3E6B45] font-bold text-[10px]">
+              Finalizat ✓
             </span>
+          )}
+        </div>
 
-            <div className="flex items-center gap-1">
-              {compact && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-                  title="Deschide detalii complet"
-                  className="px-1.5 py-0.5 rounded bg-[#3B5166] text-white hover:bg-[#2C4160] text-[9.5px] font-bold transition-colors"
-                >
-                  Deschide
-                </button>
-              )}
-              {claim.status === "piese_sosite" && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onOpen(claim); }}
-                  title="Programează service"
-                  className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/30 text-[9px] font-bold transition-colors border border-[#C98A2B]/30"
-                >
-                  <CalendarClock size={9} /> Programează
-                </button>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); onDuplicate(claim); }}
-                title="Duplică dosarul"
-                className="px-1 py-0.2 rounded hover:bg-[#EFEAE1] text-[#8A8375] hover:text-[#3B5166] text-[9.5px] font-semibold transition-colors"
-              >
-                <Copy size={10} className="inline mr-0.5" /> Duplică
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      </div>
+
     </div>
   );
 }
 
-export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, quickFilter, setQuickFilter }) {
+export default function TablouPeFaze({
+  claims,
+  onOpen,
+  onMoveToStatus,
+  onAddInStatus,
+  onDuplicate,
+  canEditFn,
+  pragRidicare,
+  quickFilter,
+  setQuickFilter
+}) {
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [mobileExpandedPhases, setMobileExpandedPhases] = useState({ start: true });
 
@@ -287,84 +263,92 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
-      <div className="bg-white rounded-lg border border-[#DAD4C6] px-3 py-2 shadow-2xs shrink-0">
-        <div className="flex items-center justify-between gap-2 mb-1.5 md:mb-0">
-          <button onClick={() => { setQuickFilter("toate"); setSelectedSubStatus(null); }} className="font-bold text-[#23282E] text-[13px] flex items-center gap-1.5 shrink-0 hover:text-[#3B5166]" title="Arată toate dosarele" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <Layers size={15} className="text-[#C98A2B]" /> Flux Operațional
+      
+      {/* HEADER DE TRIAJ RAPID FLUX OPERAȚIONAL */}
+      <div className="bg-white rounded-xl border border-[#DAD4C6] px-3.5 py-2.5 shadow-2xs shrink-0 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setQuickFilter("toate"); setSelectedSubStatus(null); }}
+            className="font-bold text-[#23282E] text-[13.5px] flex items-center gap-1.5 hover:text-[#C98A2B] transition-colors"
+            title="Arată toate dosarele"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          >
+            <Layers size={17} className="text-[#C98A2B]" />
+            <span>Flux Operațional Kanban</span>
           </button>
-          <span className="text-[11.5px] text-[#8A8375] shrink-0">({displayClaims.length} / {claims.length})</span>
+          <span className="text-[11px] font-mono font-extrabold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded-md text-[#2C4160]">
+            {displayClaims.length} / {claims.length} dosare
+          </span>
         </div>
 
-        {/* Quick Filter Buttons - scrollable on mobile */}
-        <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
-          <div className="flex items-center gap-1.5 text-[11px] min-w-max">
-            <button
-              onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "atentie"
-                  ? "bg-[#B23A2E] text-white shadow-xs font-bold"
-                  : "bg-[#B23A2E]/10 text-[#B23A2E] hover:bg-[#B23A2E]/20"
-              }`}
-            >
-              <AlertTriangle size={11} /> Necesită atenție ({attentionClaims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "piese_sosite"
-                  ? "bg-[#C98A2B] text-white shadow-xs font-bold"
-                  : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
-              }`}
-            >
-              <PackageCheck size={11} /> Piese ({pieseSositeClaims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "programate"
-                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
-                  : "bg-[#3B5166]/15 text-[#2C4160] hover:bg-[#3B5166]/25"
-              }`}
-            >
-              <CalendarClock size={11} /> Programate ({programateClaims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "in_lucru" ? "toate" : "in_lucru")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "in_lucru"
-                  ? "bg-[#3B5166] text-white shadow-xs font-bold"
-                  : "bg-[#3B5166]/10 text-[#3B5166] hover:bg-[#3B5166]/20"
-              }`}
-            >
-              <Car size={11} /> În lucru ({inLucruClaims.length})
-            </button>
-            <button
-              onClick={() => setQuickFilter(quickFilter === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate")}
-              className={`px-2.5 py-0.5 rounded-md font-semibold transition-all flex items-center gap-1 whitespace-nowrap ${
-                quickFilter === "gata_ridicare_intarziate"
-                  ? "bg-[#C98A2B] text-white shadow-xs font-bold"
-                  : "bg-[#C98A2B]/15 text-[#7A5316] hover:bg-[#C98A2B]/25"
-              }`}
-            >
-              <Truck size={11} /> Neridicate ({gataRidicareIntarziateClaims.length})
-            </button>
+        {/* BUTOANE DE TRIAJ RAPID PE FLUX */}
+        <div className="flex items-center gap-1.5 text-[11px] overflow-x-auto scrollbar-none py-0.5">
+          <button
+            onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
+              quickFilter === "atentie"
+                ? "bg-[#B23A2E] text-white shadow-xs"
+                : "bg-red-50 text-[#B23A2E] border border-red-200 hover:bg-red-100"
+            }`}
+          >
+            <AlertTriangle size={12} /> Atenție ({attentionClaims.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter(quickFilter === "piese_sosite" ? "toate" : "piese_sosite")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
+              quickFilter === "piese_sosite"
+                ? "bg-[#C98A2B] text-white shadow-xs"
+                : "bg-amber-50 text-[#7A5316] border border-amber-200 hover:bg-amber-100"
+            }`}
+          >
+            <PackageCheck size={12} /> Piese Sosite ({pieseSositeClaims.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
+              quickFilter === "programate"
+                ? "bg-[#3B5166] text-white shadow-xs"
+                : "bg-blue-50 text-[#2C4160] border border-blue-200 hover:bg-blue-100"
+            }`}
+          >
+            <CalendarClock size={12} /> Programate ({programateClaims.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter(quickFilter === "in_lucru" ? "toate" : "in_lucru")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
+              quickFilter === "in_lucru"
+                ? "bg-[#3B5166] text-white shadow-xs"
+                : "bg-[#EEF1F3] text-[#3B5166] border border-[#DAD4C6] hover:bg-[#E2E7EB]"
+            }`}
+          >
+            <Car size={12} /> În lucru ({inLucruClaims.length})
+          </button>
+          <button
+            onClick={() => setQuickFilter(quickFilter === "gata_ridicare_intarziate" ? "toate" : "gata_ridicare_intarziate")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 whitespace-nowrap ${
+              quickFilter === "gata_ridicare_intarziate"
+                ? "bg-[#C98A2B] text-white shadow-xs"
+                : "bg-amber-50 text-[#7A5316] border border-amber-200 hover:bg-amber-100"
+            }`}
+          >
+            <Truck size={12} /> Neridicate ({gataRidicareIntarziateClaims.length})
+          </button>
 
-            {/* Reset Sub-status Filter */}
-            {selectedSubStatus && (
-              <button
-                onClick={() => setSelectedSubStatus(null)}
-                className="px-2.5 py-0.5 rounded-md font-bold transition-all bg-[#B23A2E] text-white hover:bg-[#922D24] shadow-xs flex items-center gap-1 text-[11px] whitespace-nowrap"
-                title="Resetează filtrul de etapă selectat"
-              >
-                <span>{getStatusDefinition(selectedSubStatus).label} ✕</span>
-              </button>
-            )}
-          </div>
+          {/* Reset Sub-status Filter */}
+          {selectedSubStatus && (
+            <button
+              onClick={() => setSelectedSubStatus(null)}
+              className="px-2.5 py-1 rounded-lg font-extrabold transition-all bg-[#B23A2E] text-white hover:bg-[#922D24] shadow-xs flex items-center gap-1 text-[11px] whitespace-nowrap"
+              title="Resetează filtrul de etapă selectat"
+            >
+              <span>{getStatusDefinition(selectedSubStatus).label} ✕</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 4 Phase Columns Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2.5 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
+      {/* 4 CELE 4 COLOANE PRINCIPALE ALE FLUXULUI OPERAȚIONAL */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaimsForCount = claimsForCounts.filter((c) => phase.statuses.includes(c.status));
           const phaseClaims = displayClaims.filter((c) => phase.statuses.includes(c.status));
@@ -395,35 +379,34 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                   }
                 }
               }}
-              className="flex flex-col h-auto md:h-full rounded-lg overflow-hidden border border-[#DAD4C6] shadow-2xs shrink-0"
-              style={{ background: phase.bgColor }}
+              className="flex flex-col h-auto md:h-full rounded-2xl overflow-hidden border border-[#DAD4C6] shadow-sm shrink-0 bg-[#FAF8F5]"
             >
-              {/* Phase Column Header */}
+              {/* Antet Coloană Fază */}
               <div
                 onClick={() => {
                   if (window.innerWidth < 768) {
                     togglePhaseMobile(phase.key);
                   }
                 }}
-                className="p-2.5 text-white shrink-0 md:cursor-default cursor-pointer select-none"
+                className="p-3 text-white shrink-0 md:cursor-default cursor-pointer select-none shadow-xs"
                 style={{ background: phase.barColor }}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-bold text-[12.5px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <div className="flex items-center gap-1.5 font-extrabold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                     <span className="md:hidden mr-1 text-[10px]">
                       {isExpandedMobile ? "▼" : "▶"}
                     </span>
                     {phase.label}
                   </div>
-                  <span className="min-w-[22px] h-[22px] px-1 flex items-center justify-center rounded-full bg-white/20 text-[11px] font-bold text-white">
+                  <span className="min-w-[24px] h-[24px] px-1.5 flex items-center justify-center rounded-full bg-white/20 text-[11.5px] font-extrabold font-mono text-white shadow-xs">
                     {phaseClaimsForCount.length}
                   </span>
                 </div>
-                <div className={`mt-0.5 text-[10px] opacity-80 leading-tight ${isExpandedMobile ? "block" : "hidden md:block"}`}>
+                <div className={`mt-0.5 text-[10.5px] opacity-90 leading-tight ${isExpandedMobile ? "block" : "hidden md:block"}`}>
                   {phase.description}
                 </div>
 
-                {/* Sub-status Pills inside Phase */}
+                {/* Sub-status Pills de filtrare rapidă */}
                 <div className={`mt-2 flex items-center gap-1 flex-wrap ${isExpandedMobile ? "flex" : "hidden md:flex"}`}>
                   {phase.statuses.map((stKey) => {
                     const stDef = getStatusDefinition(stKey);
@@ -459,54 +442,41 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
                           const claimId = e.dataTransfer.getData("text/plain");
                           if (claimId && onMoveToStatus) {
                             const claim = claims.find(cl => cl.id === claimId);
-                            if (claim) {
-                              onMoveToStatus(claim, stKey);
-                            }
+                            if (claim) onMoveToStatus(claim, stKey);
                           }
                         }}
-                        className={`px-1.5 py-0.2 rounded text-[9.5px] font-semibold flex items-center gap-1 transition-all select-none ${
+                        className={`text-[9.5px] px-2 py-0.5 rounded-full font-bold transition-all cursor-pointer ${
                           isActive
-                            ? "bg-white text-[#23282E] font-bold shadow-xs scale-105"
+                            ? "bg-white text-[#23282E] shadow-sm font-black scale-105"
                             : hasClaims
-                            ? "bg-white/15 hover:bg-white/30 cursor-pointer active:scale-95"
-                            : "bg-white/5 opacity-40 cursor-not-allowed"
+                            ? "bg-white/20 text-white hover:bg-white hover:text-[#23282E]"
+                            : "bg-white/10 text-white/50 cursor-default"
                         }`}
-                        title={
-                          isActive
-                            ? "Apasă pentru a șterge filtrul"
-                            : hasClaims
-                            ? `Filtrează după: ${stDef.label}`
-                            : "Niciun dosar în această etapă"
-                        }
+                        title={hasClaims ? `Filtrează sub-etapa „${stDef.label}” (${stCount} dosare)` : `Niciun dosar în sub-etapa „${stDef.label}”`}
                       >
-                        <span className="opacity-75">{stDef.num}.</span>
-                        <span>{stDef.label}</span>
-                        <span className={`px-1 rounded-full text-[9px] font-bold ${isActive ? "bg-[#3B5166] text-white" : "bg-white/25"}`}>{stCount}</span>
+                        {stDef.num}. {stDef.label} ({stCount})
                       </span>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Claims Grid (2 Cards per row when width permits) */}
-              <div className={`p-2 grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto scrollbar-thin flex-1 max-h-[500px] md:max-h-none md:min-h-0 items-start auto-rows-max ${
-                isExpandedMobile ? "block" : "hidden md:grid"
-              }`}>
+              {/* Zonă scrolabilă cu cardurile din coloană */}
+              <div className={`flex-1 overflow-y-auto p-2 space-y-2.5 scrollbar-thin ${isExpandedMobile ? "block" : "hidden md:block"}`}>
                 {phaseClaims.length === 0 ? (
-                  <div className="col-span-full text-center py-8 text-[11.5px] text-[#8A8375]/70 italic">
+                  <div className="text-[11.5px] text-[#8A8375] italic p-8 text-center border-2 border-dashed border-[#DAD4C6] rounded-xl bg-white/50 my-auto">
                     Niciun dosar în această fază
                   </div>
                 ) : (
-                  phaseClaims.map((claim) => (
+                  phaseClaims.map((c) => (
                     <PhaseCard
-                      key={claim.id}
-                      claim={claim}
+                      key={c.id}
+                      claim={c}
                       onOpen={onOpen}
                       onMoveToStatus={onMoveToStatus}
                       onDuplicate={onDuplicate}
-                      canEdit={canEditFn ? canEditFn(claim) : true}
+                      canEdit={canEditFn(c)}
                       pragRidicare={pragRidicare}
-                      compact={true}
                     />
                   ))
                 )}
@@ -515,6 +485,7 @@ export default function TablouPeFaze({ claims, onOpen, onMoveToStatus, onAddInSt
           );
         })}
       </div>
+
     </div>
   );
 }
