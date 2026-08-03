@@ -10,7 +10,7 @@ import { STATUSES, PHASE_COLORS, getStatusDefinition } from "../../constants/con
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
-export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare }) {
+export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, onSelectStatusFilter }) {
   const todayStr = todayISO();
   const [activeAlertTab, setActiveAlertTab] = useState("toate"); // "toate" | "blocate" | "masini_schimb" | "stagnate" | "piese" | "neridicate"
 
@@ -463,16 +463,36 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
                 const percent = activeClaimsCount > 0 ? (count / activeClaimsCount) * 100 : 0;
 
                 return (
-                  <div key={s.key} className="p-1.5 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6]/60 hover:border-[#DAD4C6] transition-colors space-y-1">
+                  <div
+                    key={s.key}
+                    onClick={() => {
+                      if (onSelectStatusFilter) {
+                        onSelectStatusFilter(s.key);
+                      }
+                    }}
+                    className={`p-2 rounded-xl border transition-all space-y-1 select-none ${
+                      count > 0
+                        ? "bg-[#FAF8F5] border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-[#FDFBF7] cursor-pointer shadow-2xs group"
+                        : "bg-[#FAF8F5]/50 border-[#DAD4C6]/40 opacity-70 cursor-pointer hover:opacity-100"
+                    }`}
+                    title={count > 0 ? `Apasă pentru a deschide cele ${count} dosare din etapa „${s.label}”` : `Niciun dosar în etapa „${s.label}”`}
+                  >
                     <div className="flex items-center justify-between font-semibold text-[#23282E]">
-                      <span className="flex items-center gap-1.5 min-w-0 pr-1 truncate">
+                      <span className="flex items-center gap-1.5 min-w-0 pr-1 truncate group-hover:text-[#C98A2B] transition-colors">
                         <span className="text-[10px] font-mono text-[#8A8375] bg-white border border-[#DAD4C6] px-1 py-0.2 rounded shrink-0">
                           {String(s.num).padStart(2, "0")}
                         </span>
                         <span className="truncate">{s.label}</span>
                       </span>
-                      <span className={`font-bold font-mono px-2 py-0.5 rounded-full text-[10px] shrink-0 ${count > 0 ? "bg-[#2C4160] text-white" : "bg-white text-[#8A8375] border border-[#DAD4C6]"}`}>
-                        {count} {count === 1 ? "dosar" : "dosare"}
+                      <span
+                        className={`font-bold font-mono px-2.5 py-0.5 rounded-full text-[10.5px] transition-all flex items-center gap-1 shrink-0 ${
+                          count > 0
+                            ? "bg-[#2C4160] text-white shadow-xs group-hover:bg-[#C98A2B]"
+                            : "bg-white text-[#8A8375] border border-[#DAD4C6]"
+                        }`}
+                      >
+                        <span>{count} {count === 1 ? "dosar" : "dosare"}</span>
+                        {count > 0 && <span className="text-[11px] group-hover:translate-x-0.5 transition-transform">➔</span>}
                       </span>
                     </div>
                     {count > 0 && (

@@ -575,7 +575,18 @@ export default function App() {
                 setQuickFilter={setFluxFilter}
               />
             ) : view === "brief" ? (
-              <BriefZilnic claims={filteredClaims} onOpen={openExisting} onMoveToStatus={handleMoveToStatus} onDuplicate={duplicateClaim} canEditFn={canEdit} pragRidicare={pragRidicare} />
+              <BriefZilnic
+                claims={claims}
+                onOpen={openExisting}
+                onMoveToStatus={handleMoveToStatus}
+                onDuplicate={duplicateClaim}
+                canEditFn={canEdit}
+                pragRidicare={pragRidicare}
+                onSelectStatusFilter={(statusKey) => {
+                  setFilterStatus(statusKey);
+                  setView("list");
+                }}
+              />
             ) : view === "list" ? (
               <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
             ) : view === "dashboard" ? (
