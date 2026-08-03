@@ -237,6 +237,45 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     }
   };
 
+  // Ștergere fotografie din dosar
+  const handleDeletePhoto = async (e, idx) => {
+    e.stopPropagation();
+    if (!selectedClaim) return;
+    if (!window.confirm("Confirmi ștergerea acestei fotografii din dosar?")) return;
+
+    try {
+      setUploading(true);
+      const currentPoze = selectedClaim.poze || [];
+      const updatedPoze = currentPoze.filter((_, i) => i !== idx);
+      await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
+      onNotify("Fotografia a fost ștearsă din dosar.", "info");
+    } catch (err) {
+      onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Ștergere document din dosar
+  const handleDeleteDocument = async (e, idx) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedClaim) return;
+    if (!window.confirm("Confirmi ștergerea acestui document din dosar?")) return;
+
+    try {
+      setUploading(true);
+      const currentDocs = selectedClaim.documente || [];
+      const updatedDocs = currentDocs.filter((_, i) => i !== idx);
+      await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
+      onNotify("Documentul a fost șters din dosar.", "info");
+    } catch (err) {
+      onNotify("Eroare la ștergerea documentului: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-3.5 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
       
@@ -399,7 +438,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </div>
       </div>
 
-      {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT */}
+      {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT (CU POSIBILITATE DE ȘTERGERE) */}
       {selectedClaim && (
         <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
           <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
@@ -411,7 +450,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             </span>
           </div>
 
-          {/* GALERIE THUMBNAILS POZE */}
+          {/* GALERIE THUMBNAILS POZE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5">
             <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
               📸 Fotografii Daună / Vehicul ({selectedClaim.poze?.length || 0})
@@ -421,7 +460,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                 Nicio fotografie atașată încă.
               </div>
             ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-0.5 scrollbar-thin">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-0.5 scrollbar-thin">
                 {selectedClaim.poze.map((p, idx) => (
                   <div
                     key={idx}
@@ -429,16 +468,28 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                     className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
                   >
                     <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    
+                    {/* Overlay buton vizualizare */}
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                       <Eye size={16} />
                     </div>
+
+                    {/* BUTON ROȘU DE ȘTERGERE POZĂ */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeletePhoto(e, idx)}
+                      className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
+                      title="Șterge fotografia"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* LISTĂ DOCUMENTE ATAȘATE */}
+          {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
             <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
               📄 Documente Acte ({selectedClaim.documente?.length || 0})
@@ -450,19 +501,42 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             ) : (
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
                 {selectedClaim.documente.map((doc, idx) => (
-                  <a
+                  <div
                     key={idx}
-                    href={doc.url || doc}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] hover:bg-gray-100 text-[11.5px] font-semibold text-[#23282E]"
+                    className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[11.5px] font-semibold text-[#23282E]"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <a
+                      href={doc.url || doc}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[#23282E]"
+                    >
                       <FileText size={15} className="text-[#3B5166] shrink-0" />
                       <span className="truncate">{doc.name || `Document_${idx + 1}.pdf`}</span>
+                    </a>
+
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <a
+                        href={doc.url || doc}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 text-[#8A8375] hover:text-[#3B5166]"
+                        title="Vizualizează"
+                      >
+                        <Eye size={15} />
+                      </a>
+                      
+                      {/* BUTON ROȘU DE ȘTERGERE DOCUMENT */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteDocument(e, idx)}
+                        className="p-1 bg-[#B23A2E]/10 hover:bg-[#B23A2E] text-[#B23A2E] hover:text-white rounded-lg transition-colors"
+                        title="Șterge documentul"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                    <Eye size={14} className="text-[#8A8375] shrink-0" />
-                  </a>
+                  </div>
                 ))}
               </div>
             )}
