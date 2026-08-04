@@ -703,87 +703,65 @@ export default function ClaimModal({
                 <button
                   type="button"
                   onClick={handleDuplicate}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
                   title="Duplică / Copiază datele acestui dosar"
                 >
                   <Copy size={12} /><span className="hidden md:inline"> Copiază</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={handleDownloadZip}
                   disabled={downloadingZip}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
-                  title="Descarcă toate pozele și documentele într-o arhivă ZIP pe categorii"
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Descarcă toate pozele și documentele într-o arhivă ZIP"
                 >
                   {downloadingZip ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                  <span className="hidden md:inline"> Descarcă ZIP</span>
+                  <span className="hidden md:inline"> ZIP</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={async () => await generateazaPDF(form, istoric)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
-                  title="Descarcă Proces-Verbal General & Istoric"
+
+                {/* DROPDOWN UNIFICAT PENTRU GENERARE PDF */}
+                <select
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    if (val === "pdf") await generateazaPDF(form, istoric);
+                    if (val === "fisa") await generateazaFisaIntrareService(form);
+                    if (val === "schimb" && form.masinaSchimb) generateazaProcesVerbalMasinaSchimb(form);
+                    e.target.value = "";
+                  }}
+                  className="bg-[#2C333D] border border-white/20 text-white text-[10.5px] font-bold rounded-lg px-2 py-1 cursor-pointer focus:outline-none hover:bg-white/10 transition-colors"
+                  title="Generează și descarcă documente PDF"
                 >
-                  <FileDown size={12} /><span className="hidden md:inline"> PDF</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => await generateazaFisaIntrareService(form)}
-                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
-                  title="Descarcă Fișă de Intrare Service & Ordin de Lucru"
-                >
-                  <FileDown size={12} /><span className="hidden md:inline"> Fișă</span>
-                </button>
-                {form.masinaSchimb && (
-                  <button
-                    type="button"
-                    onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                    className="flex items-center gap-1 text-white hover:text-white text-[10.5px] font-bold border border-white/20 rounded-lg px-2 py-1 bg-white/10 hover:bg-white/20 transition-colors"
-                    title="Descarcă Proces-Verbal Auto la Schimb"
-                  >
-                    <Car size={12} /><span className="hidden md:inline"> PV Schimb</span>
-                  </button>
-                )}
+                  <option value="">📄 Export PDF ▾</option>
+                  <option value="pdf">📄 Proces-Verbal General</option>
+                  <option value="fisa">📄 Fișă Intrare Service</option>
+                  {form.masinaSchimb && <option value="schimb">🚗 PV Auto la Schimb</option>}
+                </select>
               </div>
             )}
-            <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1">
+            <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer">
               <X size={20} />
             </button>
           </div>
         </div>
 
-        {/* BARA DE TUPURI/ETAPE FIXĂ DEDICATĂ (PERMANENT LA TOP) */}
-        <div className="bg-[#23282E] px-4 py-2 border-b border-[#3B424E] flex items-center justify-between gap-2 overflow-x-auto text-[11px] shrink-0 scrollbar-none shadow-md z-30">
-          <div className="flex items-center gap-2">
+        {/* BARA DE TAB-URI COMPACTĂ LA TOP */}
+        <div className="bg-[#23282E] px-3 py-1.5 border-b border-[#3B424E] flex items-center justify-between gap-1.5 overflow-x-auto text-[11px] shrink-0 scrollbar-none z-30">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setActiveTab("note")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 ${
-                activeTab === "note" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                activeTab === "note" || activeTab === "service" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               }`}
             >
-              <FileText size={14} /> Date Dosar
-              {form.note.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                  {form.note.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("service")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 ${
-                activeTab === "service" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              <Wrench size={14} /> Service &amp; Auto Schimb
+              <FileText size={14} /> Date Dosar &amp; Service
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("media")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeTab === "media" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               }`}
             >
@@ -798,11 +776,26 @@ export default function ClaimModal({
             <button
               type="button"
               onClick={() => setActiveTab("financial")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeTab === "financial" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               }`}
             >
-              <Wallet size={14} /> Financiar
+              <Wallet size={14} /> Financiar &amp; Audatex
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("history")}
+              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                activeTab === "history" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              <History size={14} /> Istoric &amp; Notițe
+              {form.note.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
+                  {form.note.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
