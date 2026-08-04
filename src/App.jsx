@@ -37,11 +37,15 @@ export default function App() {
   const [notice, setNotice] = useState(null);
   const [view, setView] = useState(() => {
     try {
-      return localStorage.getItem("workflow_dosare_active_view") || "brief";
+      const saved = localStorage.getItem("workflow_dosare_active_view");
+      if (saved === "brief" || saved === "flux" || saved === "list") return "dosare";
+      return saved || "dosare";
     } catch (err) {
-      return "brief";
+      return "dosare";
     }
   });
+
+  const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => {
     try {
@@ -432,12 +436,9 @@ export default function App() {
           className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none"
         >
           {[
-            { id: "brief", label: "Brief Zilnic", icon: Sunrise },
-            { id: "flux", label: "Flux Operațional", icon: Layers, badge: userClaims.length },
-            { id: "list", label: "Listă Dosare", icon: List },
+            { id: "dosare", label: "Dosare & Flux", icon: Layers, badge: userClaims.length },
             { id: "programator", label: "Programări", icon: CalendarClock },
-            { id: "dashboard", label: "Statistici", icon: BarChart3 },
-            { id: "rapoarte", label: "Financiar", icon: Wallet },
+            { id: "dashboard", label: "Statistici & Rapoarte", icon: BarChart3 },
           ].map(({ id, label, icon: Icon, badge }) => {
             const active = view === id;
             return (
@@ -495,8 +496,57 @@ export default function App() {
             <span className="font-extrabold text-[#23282E]">Workflow Dosare</span>
             <ChevronRight size={14} className="text-[#8A8375]" />
             <span className="font-bold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-2.5 py-1 rounded-lg">
-              {viewLabels[view] || "Aplicație"}
+              {view === "dosare" ? "Dosare & Operational" : viewLabels[view] || "Aplicație"}
             </span>
+
+            {/* COMUTATOR SIMPLU 3 CAI: TABLOU FLUX / BRIEF ALERTE / TABEL DOSARE */}
+            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
+              <div className="hidden sm:flex items-center bg-[#EFEAE1] border border-[#DAD4C6] p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px] ml-2">
+                <button
+                  type="button"
+                  onClick={() => setDosareSubView("flux")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    dosareSubView === "flux"
+                      ? "bg-[#C98A2B] text-white shadow-xs"
+                      : "text-[#6B6558] hover:text-[#23282E]"
+                  }`}
+                >
+                  <Layers size={13} />
+                  <span>Tablou Flux</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDosareSubView("brief")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    dosareSubView === "brief"
+                      ? "bg-[#C98A2B] text-white shadow-xs"
+                      : "text-[#6B6558] hover:text-[#23282E]"
+                  }`}
+                >
+                  <Sunrise size={13} />
+                  <span>Brief Alerte</span>
+                  {totalAlertsCount > 0 && (
+                    <span className="bg-[#B23A2E] text-white text-[9.5px] px-1.5 py-0.2 rounded-full font-mono">
+                      {totalAlertsCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDosareSubView("list")}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    dosareSubView === "list"
+                      ? "bg-[#C98A2B] text-white shadow-xs"
+                      : "text-[#6B6558] hover:text-[#23282E]"
+                  }`}
+                >
+                  <List size={13} />
+                  <span>Tabel Dosare</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
@@ -626,34 +676,36 @@ export default function App() {
           <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
             {loading ? (
               <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
-            ) : view === "flux" ? (
-              <TablouPeFaze
-                claims={filteredClaims}
-                onOpen={openExisting}
-                onMoveToStatus={handleMoveToStatus}
-                onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val }, true)}
-                onAddInStatus={openNew}
-                onDuplicate={duplicateClaim}
-                canEditFn={canEdit}
-                pragRidicare={pragRidicare}
-                quickFilter={fluxFilter}
-                setQuickFilter={setFluxFilter}
-              />
-            ) : view === "brief" ? (
-              <BriefZilnic
-                claims={claims}
-                onOpen={openExisting}
-                onMoveToStatus={handleMoveToStatus}
-                onDuplicate={duplicateClaim}
-                canEditFn={canEdit}
-                pragRidicare={pragRidicare}
-                onSelectStatusFilter={(statusKey) => {
-                  setFilterStatus(statusKey);
-                  setView("list");
-                }}
-              />
-            ) : view === "list" ? (
-              <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
+            ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
+              dosareSubView === "brief" ? (
+                <BriefZilnic
+                  claims={claims}
+                  onOpen={openExisting}
+                  onMoveToStatus={handleMoveToStatus}
+                  onDuplicate={duplicateClaim}
+                  canEditFn={canEdit}
+                  pragRidicare={pragRidicare}
+                  onSelectStatusFilter={(statusKey) => {
+                    setFilterStatus(statusKey);
+                    setDosareSubView("list");
+                  }}
+                />
+              ) : dosareSubView === "list" ? (
+                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
+              ) : (
+                <TablouPeFaze
+                  claims={filteredClaims}
+                  onOpen={openExisting}
+                  onMoveToStatus={handleMoveToStatus}
+                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val }, true)}
+                  onAddInStatus={openNew}
+                  onDuplicate={duplicateClaim}
+                  canEditFn={canEdit}
+                  pragRidicare={pragRidicare}
+                  quickFilter={fluxFilter}
+                  setQuickFilter={setFluxFilter}
+                />
+              )
             ) : view === "dashboard" ? (
               <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
             ) : view === "programator" ? (
@@ -667,10 +719,9 @@ export default function App() {
 
       {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 md:hidden w-[92%] max-w-sm">
-        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-3 py-2 grid grid-cols-[1fr_1fr_auto_1fr_1fr] gap-2 text-white items-center">
+        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-4 py-2 grid grid-cols-[1fr_auto_1fr_1fr] gap-3 text-white items-center">
           {[
-            { id: "brief", label: "Acasă", icon: Sunrise },
-            { id: "flux", label: "Dosare", icon: Layers },
+            { id: "dosare", label: "Dosare", icon: Layers },
             { id: "quickCapture", label: "Scan/Foto", icon: Camera, isAction: true },
             { id: "programator", label: "Programat", icon: CalendarClock },
             { id: "dashboard", label: "Statistici", icon: BarChart3 },
