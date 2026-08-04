@@ -93,16 +93,21 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </span>
       </div>
 
-      {/* 2. VISUAL STEPPER (9 SEGMENTE RESTRÂNS PE VERTICALĂ) */}
-      <div className="space-y-0.5">
-        <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5">
+      {/* 2. VISUAL STEPPER INTERACTIV (9 SEGMENTE CU CLICK DIRECT PENTRU MUTARE ÎN ORICE FAZĂ) */}
+      <div className="space-y-0.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 h-2 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5 cursor-pointer">
           {STATUSES.map((s, idx) => {
             const isDone = idx < currentIndex;
             const isCurrent = idx === currentIndex;
             return (
               <div
                 key={s.key}
-                className="h-full flex-1 rounded-xs transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isCurrent) onMoveToStatus(claim, s.key);
+                }}
+                title={`Click pentru mutare directă în faza „${s.num}. ${s.label}”`}
+                className="h-full flex-1 rounded-xs transition-all hover:scale-y-125 hover:brightness-110 cursor-pointer"
                 style={{
                   backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
                   opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35
@@ -111,10 +116,28 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
             );
           })}
         </div>
+
         <div className="text-[10.5px] font-bold text-[#1B2430] flex items-center justify-between">
-          <span>
-            <span className="text-[#5B6572] font-semibold">{statusDef.num}/9</span> · {statusDef.label}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-[#5B6572] font-semibold">{statusDef.num}/9</span> ·
+            <select
+              value={claim.status}
+              onChange={(e) => {
+                e.stopPropagation();
+                onMoveToStatus(claim, e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-md px-1.5 py-0.5 font-extrabold text-[#1B2430] text-[10.5px] cursor-pointer hover:bg-white focus:outline-none transition-colors"
+              title="Alege orice stadiu din listă"
+            >
+              {STATUSES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.num}. {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {claim.blocat && <span className="text-[#D6473F] text-[9.5px] font-extrabold">🛑 BLOCAT</span>}
         </div>
       </div>
@@ -162,51 +185,25 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </div>
       )}
 
-      {/* 5. SELECȚIE RAPIDĂ ORICARE FAZĂ ÎNAPOI / ÎNAINTE (1-CLICK DIRECT PE CARD) */}
-      <div className="pt-1.5 border-t border-[#E4E1D9]/80 space-y-1" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between text-[9.5px] font-bold text-[#6B6558] mb-0.5">
-          <div className="flex items-center gap-1.5">
-            <span>Fază 1-Click:</span>
-            {claim.telefonClient && (
-              <div className="flex items-center gap-1 shrink-0">
-                <a
-                  href={telLink(claim.telefonClient)}
-                  onClick={(e) => e.stopPropagation()}
-                  title={`Sună clientul: ${claim.telefonClient}`}
-                  className="p-0.5 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
-                >
-                  <Phone size={10} />
-                </a>
-                <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
-              </div>
-            )}
+      {/* 5. FOOTER CURAT: AGING + APEL & WHATSAPP */}
+      <div className="flex items-center justify-between pt-1 border-t border-[#E4E1D9]/60 text-[10px]">
+        <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
+          <Clock size={10} /> {days} zile
+        </span>
+
+        {claim.telefonClient && (
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <a
+              href={telLink(claim.telefonClient)}
+              onClick={(e) => e.stopPropagation()}
+              title={`Sună clientul: ${claim.telefonClient}`}
+              className="p-1 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+            >
+              <Phone size={11} />
+            </a>
+            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
           </div>
-          <span className={`px-1 rounded ${agingClass}`}>{days} zile</span>
-        </div>
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
-          {STATUSES.map((s) => {
-            const isCurrent = s.key === claim.status;
-            const shortLabel = SHORT_STATUS_LABELS[s.key] || s.num;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isCurrent) onMoveToStatus(claim, s.key);
-                }}
-                className={`px-1.5 py-0.5 rounded text-[9.5px] font-black transition-all shrink-0 ${
-                  isCurrent
-                    ? "bg-[#C98A2B] text-white shadow-2xs scale-105"
-                    : "bg-[#F4F1EA] hover:bg-[#3B5166] text-[#3B5166] hover:text-white"
-                }`}
-                title={`Mută instant în faza „${s.label}”`}
-              >
-                {shortLabel}
-              </button>
-            );
-          })}
-        </div>
+        )}
       </div>
 
     </div>
