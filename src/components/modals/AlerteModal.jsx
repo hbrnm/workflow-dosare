@@ -15,7 +15,9 @@ export default function AlerteModal({
   pragRidicare = 3,
   pragInactivitate = 7,
   onClose,
-  onOpenClaim
+  onOpenClaim,
+  onPatchClaim,
+  onNotify,
 }) {
   // Dacă initialTab este "toate", setăm implicit "depasite" pentru claritate maximă
   const [activeTab, setActiveTab] = useState(initialTab === "toate" ? "depasite" : initialTab);
@@ -40,13 +42,13 @@ export default function AlerteModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                    className="flex items-center justify-between bg-white border border-[#E8DCC4] rounded-xl p-3 hover:border-[#7A5316] hover:shadow-sm cursor-pointer transition-all group"
-                    Centrul de Alerte Operaționale
-                  </h2>
-                  <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                    {totalAlertsCount} Alerte Total
-                  </span>
-                </div>
+                <h2 className="font-extrabold text-[16px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  Centrul de Alerte Operaționale
+                </h2>
+                <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                  {totalAlertsCount} Alerte Total
+                </span>
+              </div>
               <p className="text-[11.5px] text-white/70">Alege o categorie pentru a vizualiza dosarele ce necesită acțiune</p>
             </div>
           </div>
