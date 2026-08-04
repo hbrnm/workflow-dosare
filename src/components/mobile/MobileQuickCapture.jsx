@@ -954,6 +954,8 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           </button>
           <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
         </div>
+      )}
+
       {/* MODAL VIZOR CAMERĂ FOTO CONTINUĂ (RAFALĂ Pe MOBIL) */}
       {showContinuousCamera && selectedClaim && (
         <ContinuousCameraModal
