@@ -30,6 +30,8 @@ export const PHASE_COLORS = {
   final: { bar: "#3E6B45", tint: "#EEF5EE" },
 };
 
+export const INSURANCE_TYPES = ["CASCO", "RCA", "Regie Proprie", "Fără asigurare"];
+
 export const INSURERS = [
   "Omniasig VIG", "Asirom VIG", "Allianz-Țiriac", "Groupama Asigurări",
   "Euroins România", "Grawe România", "Generali România", "Uniqa Asigurări",

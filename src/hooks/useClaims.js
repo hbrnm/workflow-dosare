@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { fromDb, toDb } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
@@ -21,6 +21,22 @@ export function useClaims(session, showNotice) {
     }
     setLoading(false);
   }, [showNotice]);
+
+  // Real-time subscription to synchronize deletions and updates instantly on mobile and web
+  useEffect(() => {
+    loadAll();
+
+    const channel = supabase
+      .channel("public:dosare_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "dosare" }, () => {
+        loadAll();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadAll]);
 
   const saveClaim = useCallback(
     async (claim, { openProgramator = false } = {}) => {

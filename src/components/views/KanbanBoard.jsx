@@ -350,24 +350,84 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                 </div>
               </div>
 
-              {/* Lista de Carduri */}
+              {/* Lista de Carduri Comasate pe Vehicul (Punctul 15) */}
               <div className="p-2 space-y-2 overflow-y-auto flex-1">
-                {list.map((c) => (
-                  <ClaimCard
-                    key={c.id}
-                    claim={c}
-                    onOpen={onOpen}
-                    onMove={(claimToMove, dir) => {
-                      const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
-                      const next = STATUSES[curIdx + dir];
-                      if (next) onMoveToStatus(claimToMove, next.key);
-                    }}
-                    onDuplicate={onDuplicate}
-                    canEdit={canEditFn ? canEditFn(c) : true}
-                    pragRidicare={pragRidicare}
-                    compact={viewMode === "compact"}
-                  />
-                ))}
+                {(() => {
+                  // Group claims by vehicle registration if multiple exist in the same status
+                  const groupedMap = new Map();
+                  list.forEach((c) => {
+                    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+                    const key = plate && plate.length > 2 ? plate : c.id;
+                    if (!groupedMap.has(key)) groupedMap.set(key, []);
+                    groupedMap.get(key).push(c);
+                  });
+
+                  return Array.from(groupedMap.entries()).map(([groupKey, groupClaims]) => {
+                    if (groupClaims.length === 1) {
+                      const c = groupClaims[0];
+                      return (
+                        <div key={c.id} className="space-y-1">
+                          <ClaimCard
+                            claim={c}
+                            onOpen={onOpen}
+                            onMove={(claimToMove, dir) => {
+                              const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
+                              const next = STATUSES[curIdx + dir];
+                              if (next) onMoveToStatus(claimToMove, next.key);
+                            }}
+                            onDuplicate={onDuplicate}
+                            canEdit={canEditFn ? canEditFn(c) : true}
+                            pragRidicare={pragRidicare}
+                            compact={viewMode === "compact"}
+                          />
+                          {c.status === "piese_comandate" && c.dataComandaPiese && (
+                            <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                              📦 Comandat la: {c.dataComandaPiese}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    // Stacked group for multiple claims on the same car in the SAME status
+                    return (
+                      <div key={groupKey} className="border-2 border-[#3B5166]/40 bg-[#EEF1F3] p-1.5 rounded-xl space-y-1.5 shadow-xs">
+                        <div className="flex items-center justify-between px-1.5 py-0.5 text-[11px] font-extrabold text-[#3B5166]">
+                          <span className="flex items-center gap-1 font-mono">
+                            🚗 {groupKey}
+                          </span>
+                          <span className="bg-[#3B5166] text-white text-[9.5px] px-1.5 py-0.2 rounded-full">
+                            {groupClaims.length} dosare comasate
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 pl-1 border-l-2 border-[#3B5166]">
+                          {groupClaims.map((c) => (
+                            <div key={c.id} className="space-y-1">
+                              <ClaimCard
+                                claim={c}
+                                onOpen={onOpen}
+                                onMove={(claimToMove, dir) => {
+                                  const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
+                                  const next = STATUSES[curIdx + dir];
+                                  if (next) onMoveToStatus(claimToMove, next.key);
+                                }}
+                                onDuplicate={onDuplicate}
+                                canEdit={canEditFn ? canEditFn(c) : true}
+                                pragRidicare={pragRidicare}
+                                compact={true}
+                              />
+                              {c.status === "piese_comandate" && c.dataComandaPiese && (
+                                <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                                  📦 Comandat la: {c.dataComandaPiese}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
                 {list.length === 0 && (
                   <div className="text-[11.5px] text-[#8A8375] italic p-4 text-center border border-dashed border-[#DAD4C6] rounded-lg bg-white/50">
                     Niciun dosar în această etapă

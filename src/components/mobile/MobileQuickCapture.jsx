@@ -664,16 +664,20 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </div>
       )}
 
-      {/* OVERLAY PREVIZUALIZARE MARITĂ IMAGINE */}
+      {/* OVERLAY PREVIZUALIZARE MĂRITĂ IMAGINE (Punctul 12 - Buton X vizibil) */}
       {previewMedia && (
         <div
-          className="fixed inset-0 z-[10000] bg-black/95 flex flex-col items-center justify-center p-4"
+          className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-xs"
           onClick={() => setPreviewMedia(null)}
         >
-          <button className="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full">
+          <button
+            onClick={() => setPreviewMedia(null)}
+            className="absolute top-4 right-4 text-white bg-black/60 hover:bg-[#B23A2E] p-2.5 rounded-full transition-colors shadow-lg z-10"
+            title="Închide previzualizarea"
+          >
             <X size={24} />
           </button>
-          <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
+          <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
         </div>
       )}
 

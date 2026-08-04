@@ -68,6 +68,11 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
                 <td className="px-3 py-2 whitespace-nowrap">{c.marcaModel || "—"}</td>
                 <td className="px-3 py-2 whitespace-nowrap">
                   <span className="text-[11px] font-semibold">{String(s.num).padStart(2, "0")}. {s.label}</span>
+                  {c.status === "piese_comandate" && c.dataComandaPiese && (
+                    <span className="ml-1.5 text-[10px] text-[#7A5316] font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                      📦 {c.dataComandaPiese}
+                    </span>
+                  )}
                   {overdue && <AlertBadge days={days} threshold={c.termenAlertaZile || 3} />}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap">{fmtDate(c.dataDeschiderii)}</td>

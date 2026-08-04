@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, Layers, AlertCircle, Sparkles, User as UserIcon
+  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, Layers, AlertCircle, Sparkles, User as UserIcon,
+  CheckSquare, Square, Download, Calendar, Eye
 } from "lucide-react";
 import {
-  STATUSES, INSURERS, getStatusDefinition,
+  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
@@ -15,6 +16,8 @@ import {
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
 } from "../../utils/pdfGenerator";
+import { downloadClaimAsZip } from "../../utils/zipUtils";
+import DocumentCropModal from "../common/DocumentCropModal";
 import { supabase } from "../../supabaseClient";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
@@ -190,6 +193,9 @@ export default function ClaimModal({
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
+  const [previewPoza, setPreviewPoza] = useState(null);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const filteredSlashCommands = useMemo(() => {
     if (!noteText.includes("/")) return [];
@@ -427,7 +433,7 @@ export default function ClaimModal({
     setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
   };
 
-  const handleUploadPoze = async (fileList) => {
+  const handleUploadPoze = async (fileList, categoria = "generale") => {
     const requested = Array.from(fileList || []);
     if (requested.length === 0) return;
 
@@ -485,11 +491,23 @@ export default function ClaimModal({
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
-      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
+      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
     }
     setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
     setUploadingPoze(false);
-    if (noi.length) onNotify(`${noi.length} fotografie(i) încărcată(e).`, "success");
+    if (noi.length) onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}”.`, "success");
+  };
+
+  const handleDownloadZip = async () => {
+    try {
+      setDownloadingZip(true);
+      await downloadClaimAsZip(form, form.numarDosar);
+      onNotify("Arhiva ZIP a fost descărcată cu succes!", "success");
+    } catch (err) {
+      onNotify(`Eroare la generarea arhivei ZIP: ${err.message}`, "error");
+    } finally {
+      setDownloadingZip(false);
+    }
   };
 
   const handleUploadDocumente = async (fileList) => {
@@ -683,6 +701,24 @@ export default function ClaimModal({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
+                  onClick={handleDuplicate}
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
+                  title="Duplică / Copiază datele acestui dosar"
+                >
+                  <Copy size={12} /><span className="hidden md:inline"> Copiază</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadZip}
+                  disabled={downloadingZip}
+                  className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
+                  title="Descarcă toate pozele și documentele într-o arhivă ZIP pe categorii"
+                >
+                  {downloadingZip ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                  <span className="hidden md:inline"> Descarcă ZIP</span>
+                </button>
+                <button
+                  type="button"
                   onClick={async () => await generateazaPDF(form, istoric)}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors"
                   title="Descarcă Proces-Verbal General & Istoric"
@@ -701,7 +737,7 @@ export default function ClaimModal({
                   <button
                     type="button"
                     onClick={() => generateazaProcesVerbalMasinaSchimb(form)}
-                    className="flex items-center gap-1 text-[#F3D9A8] hover:text-white text-[10.5px] font-bold border border-[#C98A2B]/40 rounded-lg px-2 py-1 bg-[#C98A2B]/20 hover:bg-[#C98A2B]/40 transition-colors"
+                    className="flex items-center gap-1 text-white hover:text-white text-[10.5px] font-bold border border-white/20 rounded-lg px-2 py-1 bg-white/10 hover:bg-white/20 transition-colors"
                     title="Descarcă Proces-Verbal Auto la Schimb"
                   >
                     <Car size={12} /><span className="hidden md:inline"> PV Schimb</span>
@@ -741,55 +777,93 @@ export default function ClaimModal({
                 {/* COLOANA 1: DATE DOSAR */}
                 <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-2 space-y-1.5">
                   <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
-                    <FileText size={13} className="text-[#C98A2B]" /> 1. Date Dosar
+                    <FileText size={13} className="text-[#6B6558]" /> 1. Date Dosar
                   </div>
 
                   {/* 1. Nr. Dosar Daună */}
                   <div>
                     <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <FileText size={12} className="text-[#8A8375]" /> Nr. Dosar Daună
+                      <FileText size={12} className="text-[#6B6558]" /> Nr. Dosar Daună
                     </label>
                     <input
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
                       value={form.numarDosar}
-                      onChange={(e) => set("numarDosar", e.target.value)}
+                      onChange={(e) => set("numarDosar", e.target.value.toUpperCase())}
                       placeholder="ex: 2026-00451"
                       required
                     />
                   </div>
 
-                  {/* 2. Asigurător & Tip */}
+                  {/* Dată Deschidere Dosar (Editable - Punctul 17) */}
                   <div>
                     <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <ShieldCheck size={12} className="text-[#8A8375]" /> Asigurător &amp; Tip Asigurare
+                      <Calendar size={12} className="text-[#6B6558]" /> Dată Deschidere / Intrare Dosar
+                    </label>
+                    <DatePickerInput
+                      value={form.dataDeschiderii}
+                      onChange={(v) => set("dataDeschiderii", v)}
+                      withTime={false}
+                      placeholder="zi/lună/an"
+                    />
+                  </div>
+
+                  {/* 2. Asigurător & Tip (Punctul 16) */}
+                  <div>
+                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                      <ShieldCheck size={12} className="text-[#6B6558]" /> Asigurător &amp; Tip Asigurare
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       <select
                         className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
                         value={form.tipAsigurare}
-                        onChange={(e) => set("tipAsigurare", e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          set("tipAsigurare", val);
+                          if (val === "Fără asigurare") {
+                            set("asigurator", "");
+                          }
+                        }}
                       >
-                        <option value="CASCO">CASCO</option>
-                        <option value="RCA">RCA</option>
+                        {INSURANCE_TYPES.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
                       </select>
                       <select
-                        className="col-span-2 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E]"
+                        disabled={form.tipAsigurare === "Fără asigurare"}
+                        className={`col-span-2 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E] ${
+                          form.tipAsigurare === "Fără asigurare" ? "opacity-50 bg-[#EFEAE1] cursor-not-allowed" : ""
+                        }`}
                         value={form.asigurator}
                         onChange={(e) => set("asigurator", e.target.value)}
                       >
-                        <option value="" disabled>-- Societate Asigurare --</option>
+                        <option value="">{form.tipAsigurare === "Fără asigurare" ? "-- Fără asigurător --" : "-- Societate Asigurare --"}</option>
                         {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
                       </select>
                     </div>
                   </div>
 
-                  {/* 3. Status & Etapă Flux (Mutat SUB Asigurător & Tip Asigurare) */}
+                  {/* Dată Comandă Piese (Punctul 13) */}
+                  {form.status === "piese_comandate" && (
+                    <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
+                      <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
+                        <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
+                      </label>
+                      <DatePickerInput
+                        value={form.dataComandaPiese}
+                        onChange={(v) => set("dataComandaPiese", v)}
+                        withTime={false}
+                        placeholder="Selectează data comenzii"
+                      />
+                    </div>
+                  )}
+
+                  {/* 3. Status & Etapă Flux */}
                   <div>
                     <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <Layers size={12} className="text-[#8A8375]" /> Status &amp; Etapă Flux
+                      <Layers size={12} className="text-[#6B6558]" /> Status &amp; Etapă Flux
                     </label>
                     <select
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#C98A2B]"
+                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#3B5166]"
                       value={form.status}
                       onChange={(e) => set("status", e.target.value)}
                     >
@@ -799,6 +873,109 @@ export default function ClaimModal({
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT (Punctul 5 & 8) */}
+                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
+                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                    <Car size={13} className="text-[#6B6558]" /> 2. Date Vehicul, Proprietar &amp; Delegat
+                  </div>
+
+                  {/* 5. Nr. Înmatriculare (Majuscule) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Car size={13} className="text-[#6B6558]" /> Nr. Înmatriculare
+                    </label>
+                    <input
+                      className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                      value={form.numarInmatriculare}
+                      onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
+                      placeholder="ex: B111AAA"
+                      required
+                    />
+                  </div>
+
+                  {/* 6. Serie Șasiu (VIN 17 caractere) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Tag size={13} className="text-[#6B6558]" /> Serie Șasiu (VIN 17 caractere)
+                    </label>
+                    <input
+                      className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                      value={form.vin}
+                      onChange={(e) => set("vin", e.target.value.toUpperCase())}
+                      maxLength={17}
+                      placeholder="Cod VIN 17 caractere"
+                    />
+                  </div>
+
+                  {/* 7. Marcă & Model (Majuscule - Punctul 7) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Car size={13} className="text-[#6B6558]" /> Marcă &amp; Model Vehicul
+                    </label>
+                    <input
+                      className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                      value={form.marcaModel}
+                      onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
+                      placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
+                    />
+                  </div>
+
+                  {/* 8. Nume Proprietar Auto (redenumit din Asigurat) & Delegat (Punctul 8) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                        <UserIcon size={13} className="text-[#6B6558]" /> Proprietar Auto
+                      </label>
+                      <input
+                        className="w-full font-semibold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                        value={form.client}
+                        onChange={(e) => set("client", e.target.value.toUpperCase())}
+                        placeholder="Nume proprietar auto"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                        <UserIcon size={13} className="text-[#6B6558]" /> Delegat
+                      </label>
+                      <input
+                        className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                        value={form.delegat || ""}
+                        onChange={(e) => set("delegat", e.target.value.toUpperCase())}
+                        placeholder="Nume delegat (opțional)"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Telefon contact */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                      <Phone size={13} className="text-[#6B6558]" /> Telefon Contact
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <input
+                        className="flex-1 font-mono text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white"
+                        type="tel"
+                        placeholder="07xx xxx xxx"
+                        value={form.telefonClient}
+                        onChange={(e) => set("telefonClient", e.target.value)}
+                      />
+                      {form.telefonClient && (
+                        <>
+                          <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
+                          <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECȚIUNE RELOCATĂ: STADIU FLUX, BLOCAT & ISTORIC (Sub Date Vehicul - Punctul 5) */}
+                <div className="col-span-1 md:col-span-2 bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2">
+                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Layers size={13} className="text-[#6B6558]" /> Etape Flux &amp; Jurnal de Activități</span>
                   </div>
 
                   {/* Stepper Statusuri Scrolabil (Timeline) */}
@@ -815,9 +992,9 @@ export default function ClaimModal({
 
                   {/* Status Blocat & Motiv Callout Box */}
                   <div className="pt-1.5 border-t border-[#DAD4C6]/60">
-                    <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] hover:bg-white"}`}>
+                    <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-white border-[#DAD4C6] text-[#6B6558] hover:bg-[#FAF8F5]"}`}>
                       <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} />
-                      <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#8A8375]"} />
+                      <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#6B6558]"} />
                       <span>Marchează Dosar Blocat în Etapă</span>
                     </label>
 
@@ -827,89 +1004,6 @@ export default function ClaimModal({
                         <input className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* COLOANA 2: VEHICUL & ASIGURAT */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
-                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
-                    <Car size={13} className="text-[#C98A2B]" /> 2. Date Vehicul &amp; Client
-                  </div>
-
-                  {/* 5. Nr. Înmatriculare */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Car size={13} className="text-[#8A8375]" /> Nr. Înmatriculare
-                    </label>
-                    <input
-                      className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
-                      value={form.numarInmatriculare}
-                      onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
-                      placeholder="ex: B111AAA"
-                      required
-                    />
-                  </div>
-
-                  {/* 6. Serie Șasiu (VIN) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Tag size={13} className="text-[#8A8375]" /> Serie Șasiu (VIN 17 caractere)
-                    </label>
-                    <input
-                      className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#C98A2B]"
-                      value={form.vin}
-                      onChange={(e) => set("vin", e.target.value.toUpperCase())}
-                      maxLength={17}
-                      placeholder="Cod VIN 17 caractere"
-                    />
-                  </div>
-
-                  {/* 7. Marcă & Model */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Car size={13} className="text-[#8A8375]" /> Marcă &amp; Model Vehicul
-                    </label>
-                    <input
-                      className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
-                      value={form.marcaModel}
-                      onChange={(e) => set("marcaModel", e.target.value)}
-                      placeholder="ex: Volkswagen Passat 2.0 TDI"
-                    />
-                  </div>
-
-                  {/* 8. Nume Client & Contact */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                        <UserIcon size={13} className="text-[#8A8375]" /> Nume Asigurat
-                      </label>
-                      <input
-                        className="w-full font-semibold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#C98A2B]"
-                        value={form.client}
-                        onChange={(e) => set("client", e.target.value)}
-                        placeholder="Nume complet client"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                        <Phone size={13} className="text-[#8A8375]" /> Telefon Contact
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <input
-                          className="flex-1 font-mono text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white"
-                          type="tel"
-                          placeholder="07xx xxx xxx"
-                          value={form.telefonClient}
-                          onChange={(e) => set("telefonClient", e.target.value)}
-                        />
-                        {form.telefonClient && (
-                          <>
-                            <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
-                            <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
-                          </>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -992,16 +1086,76 @@ export default function ClaimModal({
                 </button>
               </div>
 
-              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT (NOTION CONTENT EDITING) */}
+              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
               {activeTab === "note" && (
                 <div className="space-y-2.5">
+                  {/* Operațiuni de Efectuat (Bife INL, REV, REP, UNI - Punctul 3) */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-sm">
+                    <label className="block text-[12px] font-bold text-[#23282E] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
+                      <Wrench size={14} className="text-[#6B6558]" /> Operațiuni de Efectuat (Bife)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px] pt-1">
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
+                        form.operatiuni?.inl ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={!!form.operatiuni?.inl}
+                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), inl: e.target.checked })}
+                          className="hidden"
+                        />
+                        {form.operatiuni?.inl ? <CheckSquare size={16} /> : <Square size={16} />}
+                        <span>INL (Înlocuire)</span>
+                      </label>
+
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
+                        form.operatiuni?.rev ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={!!form.operatiuni?.rev}
+                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), rev: e.target.checked })}
+                          className="hidden"
+                        />
+                        {form.operatiuni?.rev ? <CheckSquare size={16} /> : <Square size={16} />}
+                        <span>REV (Revopsire)</span>
+                      </label>
+
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
+                        form.operatiuni?.rep ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={!!form.operatiuni?.rep}
+                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), rep: e.target.checked })}
+                          className="hidden"
+                        />
+                        {form.operatiuni?.rep ? <CheckSquare size={16} /> : <Square size={16} />}
+                        <span>REP (Reparație)</span>
+                      </label>
+
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
+                        form.operatiuni?.uni ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={!!form.operatiuni?.uni}
+                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), uni: e.target.checked })}
+                          className="hidden"
+                        />
+                        {form.operatiuni?.uni ? <CheckSquare size={16} /> : <Square size={16} />}
+                        <span>UNI (Dem./Mont.)</span>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Descriere Operațiuni (Notion Text Block) */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
                     <label className="block text-[12px] font-bold text-[#23282E] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <FileText size={14} className="text-[#C98A2B]" /> Descriere Operațiuni &amp; Ce este de reparat
+                      <FileText size={14} className="text-[#6B6558]" /> Descriere Operațiuni &amp; Ce este de reparat
                     </label>
                     <textarea
-                      className="w-full p-2.5 border border-[#DAD4C6] rounded-lg text-[12.5px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B] min-h-[70px]"
+                      className="w-full p-2.5 border border-[#DAD4C6] rounded-lg text-[12.5px] bg-[#FAF8F5] focus:bg-white focus:border-[#3B5166] min-h-[70px]"
                       placeholder="Ex: Aripă dreapta față + ușă — îndreptat și vopsit; sau doar înlocuit parbriz..."
                       value={form.ceEsteDeReparat}
                       onChange={(e) => set("ceEsteDeReparat", e.target.value)}
@@ -1395,30 +1549,68 @@ export default function ClaimModal({
               {/* TAB CONTENT 4: POZE & DOCUMENTE */}
               {activeTab === "media" && (
                 <div className="grid md:grid-cols-2 gap-2">
-                  {/* Poze */}
+                  {/* Poze cu Categorii Structurate (Punctul 9) */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze ({form.poze.length})</span>
+                      <button
+                        type="button"
+                        onClick={handleDownloadZip}
+                        disabled={downloadingZip || form.poze.length === 0}
+                        className="text-[11px] font-bold text-[#3B5166] hover:underline flex items-center gap-1 disabled:opacity-40"
+                      >
+                        <Download size={12} /> Descarcă ZIP
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
-                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă din galerie</>}
-                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                    {/* Categorii rapide de fotografiere (Recepție, Reconstatare, Predare) */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10.5px] font-bold text-[#6B6558]">Adaugă poze direct în Categorie:</div>
+                      <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#3B5166]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#EEF1F3] cursor-pointer text-[#3B5166] font-bold text-center">
+                          <span>🚗 Recepție</span>
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "receptie")} />
+                        </label>
+
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#C98A2B]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#FBF3E6] cursor-pointer text-[#7A5316] font-bold text-center">
+                          <span>📋 Reconstatare</span>
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "reconstatare")} />
+                        </label>
+
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#3E6B45]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#EEF5EE] cursor-pointer text-[#3E6B45] font-bold text-center">
+                          <span>✨ Predare</span>
+                          <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "predare")} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#DAD4C6]">
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] font-bold"}`}>
+                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Galerie generală</>}
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
                       </label>
-                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#3E6B45]/40 text-[#294A2E] font-bold"}`}>
-                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Fă poză (Cameră)</>}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files)} />
+                      <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#DAD4C6] text-[#6B6558] font-bold"}`}>
+                        {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
                       </label>
                     </div>
 
                     {form.poze.length > 0 ? (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1 pt-1">
                         {form.poze.map((p) => (
                           <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                            <a href={p.url} target="_blank" rel="noreferrer" className="block w-full h-full">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewPoza(p)}
+                              className="w-full h-full block text-left"
+                            >
                               <img src={p.url} alt={p.nume} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                            </a>
+                            </button>
+                            {p.categoria && p.categoria !== "generale" && (
+                              <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1 rounded uppercase">
+                                {p.categoria}
+                              </span>
+                            )}
                             <button type="button" onClick={() => removePoza(p)} className="absolute top-1 right-1 bg-black/70 hover:bg-[#B23A2E] text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Trash2 size={12} />
                             </button>
@@ -1444,8 +1636,21 @@ export default function ClaimModal({
                         <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
                       </label>
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
-                        {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează (Cameră)</>}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleStartScanSession(e.target.files)} />
+                        {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => setCropImageSrc(ev.target.result);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
                       </label>
                     </div>
 
@@ -1467,6 +1672,48 @@ export default function ClaimModal({
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* MODAL PREVIZUALIZARE POZĂ CU BUTON DE ÎNCHIDERE X (Punctul 12) */}
+              {previewPoza && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs">
+                  <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center bg-slate-900 rounded-xl overflow-hidden shadow-2xl p-2">
+                    <button
+                      onClick={() => setPreviewPoza(null)}
+                      className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/60 hover:bg-[#B23A2E] text-white transition-colors"
+                      title="Închide previzualizarea"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+
+                    <img
+                      src={previewPoza.url || previewPoza.dataUrl}
+                      alt={previewPoza.nume}
+                      className="max-h-[80vh] max-w-full object-contain rounded"
+                    />
+
+                    <div className="w-full text-center text-xs text-slate-300 pt-2 font-medium flex items-center justify-between px-4">
+                      <span>{previewPoza.nume || "Fotografie"}</span>
+                      {previewPoza.categoria && <span className="uppercase font-bold text-amber-400">Categorie: {previewPoza.categoria}</span>}
+                      <a href={previewPoza.url} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">Deschide original</a>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CROP MODAL DOCUMENT (Punctul 1) */}
+              {cropImageSrc && (
+                <DocumentCropModal
+                  imageSrc={cropImageSrc}
+                  onClose={() => setCropImageSrc(null)}
+                  onConfirm={async (croppedDataUrl) => {
+                    setCropImageSrc(null);
+                    const res = await fetch(croppedDataUrl);
+                    const blob = await res.blob();
+                    const cropFile = new File([blob], `Scan_Cropped_${todayISO()}.jpg`, { type: "image/jpeg" });
+                    await handleUploadDocumente([cropFile]);
+                  }}
+                />
               )}
 
             </div>
