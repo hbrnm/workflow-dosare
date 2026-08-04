@@ -766,9 +766,9 @@ export default function ClaimModal({
               }`}
             >
               <ImageIcon size={14} /> Poze &amp; Documente
-              {(form.poze.length > 0 || form.documente.length > 0) && (
+              {((Array.isArray(form.poze) ? form.poze.length : 0) + (Array.isArray(form.documente) ? form.documente.length : 0)) > 0 && (
                 <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                  {form.poze.length + form.documente.length}
+                  {(Array.isArray(form.poze) ? form.poze.length : 0) + (Array.isArray(form.documente) ? form.documente.length : 0)}
                 </span>
               )}
             </button>
@@ -791,7 +791,7 @@ export default function ClaimModal({
               }`}
             >
               <History size={14} /> Istoric &amp; Notițe
-              {form.note.length > 0 && (
+              {Array.isArray(form.note) && form.note.length > 0 && (
                 <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
                   {form.note.length}
                 </span>
