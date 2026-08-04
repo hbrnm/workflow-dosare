@@ -294,14 +294,25 @@ export default function ClaimModal({
   const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
 
   const financial = form.financiar || {};
-  const manoperaFaraTva = parseNumber(form.manopera?.tinichigerie?.facturat, 0) + parseNumber(form.manopera?.vopsitorie?.facturat, 0);
-  const pieseFacturateFaraTva = parseNumber(financial.pieseFacturateFaraTva ?? form.valoarePieseAudatex, 0);
-  const venitFaraTva = manoperaFaraTva + pieseFacturateFaraTva;
-  const tvaProc = parseNumber(financial.tvaProc, 0);
-  const tvaValoare = venitFaraTva * tvaProc / 100;
-  const totalCuTva = venitFaraTva + tvaValoare;
-  const costTotal = parseNumber(form.valoareAchizitiePiese, 0) + parseNumber(financial.costManoperaInterna, 0) + parseNumber(financial.costuriExterne, 0) + parseNumber(financial.costMasinaSchimb, 0);
-  const profitBrut = venitFaraTva - costTotal;
+  const valoareDevizAudatex = parseNumber(form.valoareDevizAudatex, 0);
+  const valoareAcceptPlata = parseNumber(financial.valoareAcceptPlata ?? form.valoareAcceptataReglata, 0);
+  const valoareFransiza = parseNumber(financial.valoareFransiza, 0);
+
+  const manoperaTinichigerie = parseNumber(financial.manoperaTinichigerie ?? form.manopera?.tinichigerie?.facturat, 0);
+  const manoperaVopsitorie = parseNumber(financial.manoperaVopsitorie ?? form.manopera?.vopsitorie?.facturat, 0);
+  const totalManopera = manoperaTinichigerie + manoperaVopsitorie;
+
+  const pretPieseAudatex = parseNumber(form.valoarePieseAudatex, 0);
+  const pretPieseService = parseNumber(form.valoareAchizitiePiese, 0);
+  const marjaPiese = pretPieseAudatex - pretPieseService;
+
+  const cheltuieliDiverse = parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
+  const costMasinaSchimb = parseNumber(financial.costMasinaSchimb, 0);
+
+  const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
+  const totalCosturiService = pretPieseService + cheltuieliDiverse + costMasinaSchimb;
+  const profitBrutReal = venitNetTotal - totalCosturiService;
+  const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
   const toggleGata = (checked) => setForm((f) => ({
     ...f,
@@ -1361,114 +1372,172 @@ export default function ClaimModal({
                   </div>
                 </div>
               )}
-
-              {/* ========================================================================= */}
+{/* ========================================================================= */}
               {/* TAB 3: FINANCIAR & AUDATEX                                                */}
               {/* ========================================================================= */}
               {activeTab === "financial" && (
                 <div className="space-y-3">
-                  {/* Secțiunea Valori Deviz & Reglat */}
+                  {/* Secțiunea 1: Valori Deviz Audatex, Accept Plată & Franșiză */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[#C98A2B]" /> Valori Deviz Audatex &amp; Facturare</span>
+                      <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[#C98A2B]" /> 1. Valori Deviz Audatex, Accept Plată &amp; Franșiză</span>
+                      <span className="text-[10.5px] font-mono font-semibold text-[#8A8375]">TOATE SUMELE ÎN LEI (FĂRĂ TVA)</span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
                       <div>
                         <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Deviz Audatex (lei)</label>
-                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.valoareDevizAudatex || 0} onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)} />
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white text-[#23282E]"
+                          value={form.valoareDevizAudatex || 0}
+                          onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)}
+                          placeholder="0"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Valoare Reglată (lei)</label>
-                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.valoareAcceptataReglata || 0} onChange={(e) => set("valoareAcceptataReglata", Number(e.target.value) || 0)} />
+                        <label className="block text-[10.5px] font-bold text-[#3E6B45] mb-1">Valoare Accept Plată (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#3E6B45]/40 rounded-lg font-mono font-extrabold text-[12.5px] bg-[#EEF5EE]/40 text-[#294A2E]"
+                          value={financial.valoareAcceptPlata || form.valoareAcceptataReglata || 0}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setForm((f) => ({
+                              ...f,
+                              valoareAcceptataReglata: val,
+                              financiar: { ...(f.financiar || {}), valoareAcceptPlata: val }
+                            }));
+                          }}
+                          placeholder="0"
+                        />
                       </div>
                       <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Cuantum Rereglat (lei)</label>
-                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.cuantumRereglat || 0} onChange={(e) => set("cuantumRereglat", Number(e.target.value) || 0)} />
+                        <label className="block text-[10.5px] font-bold text-[#B23A2E] mb-1">Valoare Franșiză (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#B23A2E]/30 rounded-lg font-mono font-bold text-[12.5px] bg-[#FBEAE9]/40 text-[#8C2E2E]"
+                          value={financial.valoareFransiza || 0}
+                          onChange={(e) => setFinancial("valoareFransiza", Number(e.target.value) || 0)}
+                          placeholder="0"
+                        />
                       </div>
                       <div>
                         <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Nr. Factură &amp; Stadiu</label>
-                        <input type="text" className="w-full p-2 border border-[#DAD4C6] rounded-lg font-bold text-[12px] bg-white" placeholder="ex: FACT-1029" value={form.numarFactura || ""} onChange={(e) => set("numarFactura", e.target.value)} />
+                        <input
+                          type="text"
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-bold text-[12px] bg-white"
+                          placeholder="ex: FACT-1029"
+                          value={financial.numarFactura || form.numarFactura || ""}
+                          onChange={(e) => setFinancial("numarFactura", e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
 
-                  {/* Detalii Costuri & Calcul Profit */}
+                  {/* Secțiunea 2: Defalcare Manoperă & Cost Piese Audatex vs Service */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
-                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5">
-                      💰 Defalcare Manoperă, Cost Piese &amp; Profitabilitate Reală
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 flex items-center justify-between">
+                      <span>🛠️ 2. Defalcare Manoperă &amp; Preț Piese (Audatex vs. Service)</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Manoperă & Piese */}
-                      <div className="space-y-2 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
-                        <div className="text-[11px] font-bold text-[#6B6558] uppercase">Manoperă &amp; Cost Piese (lei)</div>
+                      {/* Coloana Stânga: Manoperă & Piese Audatex */}
+                      <div className="space-y-2.5 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
+                        <div className="text-[11px] font-extrabold text-[#3B5166] uppercase flex items-center gap-1">
+                          <Wrench size={13} /> Manoperă &amp; Deviz Piese Audatex
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Tinichigerie (lei)</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.manoperaTinichigerie || 0} onChange={(e) => setFinancial("manoperaTinichigerie", Number(e.target.value) || 0)} />
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Manoperă Tinichigerie</label>
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12px] bg-white"
+                              value={manoperaTinichigerie || 0}
+                              onChange={(e) => setFinancial("manoperaTinichigerie", Number(e.target.value) || 0)}
+                            />
                           </div>
                           <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Vopsitorie (lei)</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.manoperaVopsitorie || 0} onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)} />
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Manoperă Vopsitorie</label>
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12px] bg-white"
+                              value={manoperaVopsitorie || 0}
+                              onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)}
+                            />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Piese Înlocuire (lei)</label>
-                          <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costPiese || 0} onChange={(e) => setFinancial("costPiese", Number(e.target.value) || 0)} />
+                          <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Preț Achiziție Piese Audatex (lei)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#2C4160] text-[12.5px] bg-white"
+                            value={form.valoarePieseAudatex || 0}
+                            onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)}
+                            placeholder="Preț piese din deviz"
+                          />
                         </div>
                       </div>
 
-                      {/* Costuri Externe & Masina Schimb */}
-                      <div className="space-y-2 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
-                        <div className="text-[11px] font-bold text-[#6B6558] uppercase">Alte Costuri Externe (lei)</div>
+                      {/* Coloana Dreapta: Piese Service & Cheltuieli Diverse */}
+                      <div className="space-y-2.5 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
+                        <div className="text-[11px] font-extrabold text-[#7A5316] uppercase flex items-center gap-1">
+                          <Tag size={13} /> Costuri Realizate Service
+                        </div>
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Preț Achiziție Piese Service (lei)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#B23A2E] text-[12.5px] bg-white"
+                            value={form.valoareAchizitiePiese || 0}
+                            onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
+                            placeholder="Cost real piese achiziționate"
+                          />
+                        </div>
+
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Costuri Externe</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costuriExterne || 0} onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)} />
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cheltuieli Diverse</label>
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12px] bg-white"
+                              value={cheltuieliDiverse || 0}
+                              onChange={(e) => setFinancial("cheltuieliDiverse", Number(e.target.value) || 0)}
+                              placeholder="Subcontractări / alte"
+                            />
                           </div>
                           <div>
                             <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Auto Schimb</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costMasinaSchimb || 0} onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)} />
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12px] bg-white"
+                              value={costMasinaSchimb || 0}
+                              onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
+                            />
                           </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl border border-[#DAD4C6] bg-white flex items-center justify-between text-[12px] mt-2">
-                          <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
-                          <span className="font-mono font-bold text-[14px] text-[#B23A2E]">{costTotal.toLocaleString("ro-RO")} lei</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Summary KPI Card */}
+                    {/* Summary KPI Raport Financiar Real */}
                     <div className="p-3 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] shadow-xs mt-2">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-2 flex items-center justify-between">
-                        <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
-                        <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
+                        <span>📊 Raport Financiar &amp; Profitabilitate Reală Dosar</span>
+                        <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat</span>
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                         <div className="p-2.5 rounded-xl bg-white border border-[#DAD4C6]">
-                          <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
-                          <div className="text-[15px] font-mono font-bold text-[#2C4160] mt-0.5">{venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
-                        </div>
-                        <div className="p-2.5 rounded-xl bg-white border border-[#DAD4C6]">
-                          <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
-                          <div className="text-[15px] font-mono font-bold text-[#B23A2E] mt-0.5">{costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
-                        </div>
-                        <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                          <div className="text-[10px] font-bold uppercase">Profit Brut</div>
-                          <div className="text-[15px] font-mono font-bold mt-0.5">{profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
-                        </div>
-                        <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                          <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
-                          <div className="text-[15px] font-mono font-bold mt-0.5">{venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               )}
 
               {/* ========================================================================= */}
