@@ -463,19 +463,19 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             📸 Fotografiere pe Categorii (Salvare automată live pe dosar &amp; ZIP)
           </span>
 
-          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Nativă a Telefonului / Galerie Multiselect) */}
+          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Foto Direct) */}
           <div className="grid grid-cols-3 gap-2.5">
             {/* 1. RECEPȚIE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-              title="Fă Poză sau Încarcă Poze Recepție"
+              title="Deschide Camera Foto pentru Recepție"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Recepție</span>
               <input
                 type="file"
                 accept="image/*"
-                multiple
+                capture="environment"
                 className="hidden"
                 onChange={(e) => {
                   handleMobilePhotoCapture(e.target.files, "receptie");
@@ -487,14 +487,14 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             {/* 2. RECONSTATARE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-              title="Fă Poză sau Încarcă Poze Reconstatare"
+              title="Deschide Camera Foto pentru Reconstatare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Reconstatare</span>
               <input
                 type="file"
                 accept="image/*"
-                multiple
+                capture="environment"
                 className="hidden"
                 onChange={(e) => {
                   handleMobilePhotoCapture(e.target.files, "reconstatare");
@@ -506,14 +506,14 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             {/* 3. PREDARE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
-              title="Fă Poză sau Încarcă Poze Predare"
+              title="Deschide Camera Foto pentru Predare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Predare</span>
               <input
                 type="file"
                 accept="image/*"
-                multiple
+                capture="environment"
                 className="hidden"
                 onChange={(e) => {
                   handleMobilePhotoCapture(e.target.files, "predare");
@@ -534,7 +534,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               <input
                 type="file"
                 accept="image/*"
-                multiple
+                capture="environment"
                 className="hidden"
                 onChange={(e) => {
                   handleAddScanPages(e.target.files);
@@ -545,7 +545,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
 
             <label
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
-              title="Încarcă Poze din Galerie sau Fișiere PDF"
+              title="Alege Poze din Galerie sau Fișiere PDF"
             >
               <ImageIcon size={16} className="text-[#3B5166]" />
               <span>Galerie / PDF</span>
