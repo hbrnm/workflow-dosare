@@ -82,7 +82,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onDelete && confirm("Ștergi definitiv acest dosar?")) onDelete(c.id);
+                        if (onDelete) onDelete(c.id);
                       }}
                       className="inline-flex items-center gap-1 rounded-full border border-[#B23A2E] bg-[#FFF2F0] px-2 py-1 text-[11px] font-semibold text-[#B23A2E] hover:bg-[#FCE3E0] transition-colors"
                     >

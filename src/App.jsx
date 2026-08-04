@@ -9,6 +9,7 @@ import { nowISO } from "./utils/dateUtils";
 import { useExportExcel } from "./hooks/useExportExcel";
 import { emptyClaim } from "./utils/claimUtils";
 import Notification from "./components/common/Notification";
+import UndoToast from "./components/common/UndoToast";
 import Login from "./components/auth/Login";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 const TablouPeFaze = lazyWithRetry(() => import("./components/views/FluxOperational"));
@@ -35,6 +36,7 @@ import { useSettings } from "./hooks/useSettings";
 export default function App() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [undoToastItem, setUndoToastItem] = useState(null);
   const [view, setView] = useState(() => {
     try {
       const saved = localStorage.getItem("workflow_dosare_active_view");
@@ -307,16 +309,17 @@ export default function App() {
     closeClaimModal();
   };
 
-  const handleDelete = async (id) => {
-    setSaving(true);
-    const success = await deleteClaim(id, canEdit);
-    setSaving(false);
-    if (!success) return;
+  const handleDelete = (id) => {
+    deleteClaim(id, canEdit, {
+      onUndoToast: (item) => setUndoToastItem(item),
+    });
     closeClaimModal();
   };
 
-  const handleMoveToStatus = async (claim, newStatusKey) => {
-    await moveToStatus(claim, newStatusKey, canEdit);
+  const handleMoveToStatus = (claim, newStatusKey) => {
+    moveToStatus(claim, newStatusKey, canEdit, {
+      onUndoToast: (item) => setUndoToastItem(item),
+    });
   };
 
   const handlePatchClaim = async (id, patch, skipOwnershipCheck = false) => {
@@ -345,6 +348,7 @@ export default function App() {
     return (
       <ErrorBoundary>
         <Notification notice={notice} onClose={() => setNotice(null)} />
+        <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
             claims={claims}
@@ -413,6 +417,7 @@ export default function App() {
   return (
     <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
       <Notification notice={notice} onClose={() => setNotice(null)} />
+      <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
       {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
       <aside className={`hidden md:flex flex-col ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>

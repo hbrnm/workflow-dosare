@@ -1735,9 +1735,7 @@ export default function ClaimModal({
           ) : (
             <button
               type="button"
-              onClick={() => {
-                if (confirm("Ștergi definitiv acest dosar?")) onDelete(claim.id);
-              }}
+              onClick={() => onDelete(claim.id)}
               className="flex items-center gap-1 text-[#B23A2E] text-[12px] font-bold hover:bg-[#B23A2E]/10 px-3 py-1.5 rounded-lg transition-colors"
             >
               <Trash2 size={13} /> Șterge dosar
