@@ -127,8 +127,8 @@ function processScanImage(file) {
 }
 
 // Modul vizor cameră foto continuă (Modul Rafală pe Mobil)
-function ContinuousCameraModal({ claim, onSavePhoto, onClose }) {
-  const [categorie, setCategorie] = useState("receptie");
+function ContinuousCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
+  const [categorie, setCategorie] = useState(initialCategorie);
   const [photoCount, setPhotoCount] = useState(0);
   const [isCapturing, setIsCapturing] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -282,6 +282,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
   const [showContinuousCamera, setShowContinuousCamera] = useState(false);
+  const [activeCameraCategory, setActiveCameraCategory] = useState("receptie");
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
@@ -605,83 +606,65 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           </div>
         )}
 
-        {/* BUTON MARE: DESCHIDE CAMERĂ FOTO CONTINUĂ (LIVE VIZOR) */}
-        <button
-          type="button"
-          onClick={() => setShowContinuousCamera(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-700 hover:to-amber-700 text-white rounded-2xl font-extrabold text-[13px] shadow-md active:scale-98 transition-all mb-2"
-        >
-          <Camera size={20} className="animate-pulse" />
-          <span>🔴 Deschide Cameră Foto Continuă (Rafală)</span>
-        </button>
-
-        {/* BUTOANE FOTO PE CATEGORII (SINCRONIZATE CU FOLDEREELE ZIP) */}
-        <div className="space-y-2">
+        {/* SECTIUNE SIMPLIFICATĂ FOTO & DOCUMENT (3 CATEGORII PRINCIPALE + UTILS) */}
+        <div className="space-y-2.5">
           <span className="text-[11px] font-extrabold text-[#6B6558] uppercase tracking-wider block">
-            📸 Sau alege categoria direct (Salvare automată)
+            📸 Fotografiere pe Categorii (Salvare automată live pe dosar &amp; ZIP)
           </span>
 
-          <div className="grid grid-cols-3 gap-2">
-            {/* 1. FOTO RECEPȚIE */}
-            <label
-              className="flex flex-col items-center justify-center p-3 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Recepție Vehicul"
+          {/* Cele 3 Butoane Principale pe Categorii (Fiecare deschide Vizorul Foto Continuu) */}
+          <div className="grid grid-cols-3 gap-2.5">
+            {/* 1. RECEPȚIE */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCameraCategory("receptie");
+                setShowContinuousCamera(true);
+              }}
+              className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
+              title="Deschide Cameră Continuă Recepție"
             >
-              <Camera size={22} />
-              <span className="text-[11px] font-extrabold mt-1">Recepție</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "receptie")}
-              />
-            </label>
+              <Camera size={24} />
+              <span className="text-[12px] font-extrabold mt-1">Recepție</span>
+            </button>
 
-            {/* 2. FOTO RECONSTATARE */}
-            <label
-              className="flex flex-col items-center justify-center p-3 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Reconstatare"
+            {/* 2. RECONSTATARE */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCameraCategory("reconstatare");
+                setShowContinuousCamera(true);
+              }}
+              className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
+              title="Deschide Cameră Continuă Reconstatare"
             >
-              <Camera size={22} />
-              <span className="text-[11px] font-extrabold mt-1">Reconstatare</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "reconstatare")}
-              />
-            </label>
+              <Camera size={24} />
+              <span className="text-[12px] font-extrabold mt-1">Reconstatare</span>
+            </button>
 
-            {/* 3. FOTO PREDARE */}
-            <label
-              className="flex flex-col items-center justify-center p-3 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Predare / Auto Reparat"
+            {/* 3. PREDARE */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCameraCategory("predare");
+                setShowContinuousCamera(true);
+              }}
+              className="flex flex-col items-center justify-center p-3.5 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
+              title="Deschide Cameră Continuă Predare"
             >
-              <Camera size={22} />
-              <span className="text-[11px] font-extrabold mt-1">Predare</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "predare")}
-              />
-            </label>
+              <Camera size={24} />
+              <span className="text-[12px] font-extrabold mt-1">Predare</span>
+            </button>
           </div>
 
-          {/* ALTE OPȚIUNI: SCANNER DOCUMENTE / GALERIE / PDF */}
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          {/* 2 OPȚIUNI UTILITARE (SCANNER ACTE PRO / GALERIE & PDF) */}
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#EFEAE1]">
             <label
-              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
-              title="Scanează Document Acte"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+              title="Scanează Acte cu Auto-Crop CamScanner"
             >
-              <FileText size={15} className="text-[#C98A2B]" />
-              <span>Scan Acte</span>
+              <FileText size={16} className="text-[#C98A2B]" />
+              <span>Scan Acte (Auto-Crop)</span>
               <input
                 type="file"
                 accept="image/*"
@@ -693,32 +676,23 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             </label>
 
             <label
-              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
-              title="Alege Poze din Galerie"
+              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+              title="Încarcă Poze din Galerie sau Fișiere PDF"
             >
-              <ImageIcon size={15} className="text-[#3B5166]" />
-              <span>Galerie</span>
+              <ImageIcon size={16} className="text-[#3B5166]" />
+              <span>Galerie / PDF</span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 multiple
                 className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "generale")}
-              />
-            </label>
-
-            <label
-              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
-              title="Încarcă PDF din Telefon"
-            >
-              <FolderOpen size={15} className="text-[#6B6558]" />
-              <span>PDF</span>
-              <input
-                type="file"
-                accept="application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => handleMobileDocUpload(e.target.files)}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  const images = files.filter((f) => f.type.startsWith("image/"));
+                  const pdfs = files.filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
+                  if (images.length > 0) handleMobilePhotoCapture(images, "generale");
+                  if (pdfs.length > 0) handleMobileDocUpload(pdfs);
+                }}
               />
             </label>
           </div>
@@ -960,6 +934,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
       {showContinuousCamera && selectedClaim && (
         <ContinuousCameraModal
           claim={selectedClaim}
+          initialCategorie={activeCameraCategory}
           onSavePhoto={handleMobilePhotoCapture}
           onClose={() => setShowContinuousCamera(false)}
         />
