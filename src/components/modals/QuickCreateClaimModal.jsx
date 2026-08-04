@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { X, Plus, ShieldCheck, FileText, Phone, Car, Building2, Check } from "lucide-react";
+import { X, Plus, ShieldCheck, FileText, Phone, Car, Building2, Check, User } from "lucide-react";
 import { INSURERS } from "../../constants/config";
+import { emptyClaim } from "../../utils/claimUtils";
 
 export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
+  const [client, setClient] = useState("");
   const [telefon, setTelefon] = useState("");
   const [asigurator, setAsigurator] = useState(INSURERS[0] || "Omniasig VIG");
   const [customAsigurator, setCustomAsigurator] = useState("");
@@ -23,20 +25,20 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
 
     setIsSaving(true);
     try {
+      const baseClaim = emptyClaim("deschidere");
       await onSave({
+        ...baseClaim,
         numarInmatriculare: numarInmatriculare.trim().toUpperCase(),
         numarDosar: numarDosar.trim(),
-        telefon: telefon.trim(),
+        client: client.trim().toUpperCase(),
+        telefonClient: telefon.trim(),
         asigurator: selectedInsurer,
         status: "deschidere",
-        note: [],
-        poze: [],
-        documente: [],
-        operatiuni: [],
       });
       // Reset form
       setNumarInmatriculare("");
       setNumarDosar("");
+      setClient("");
       setTelefon("");
       onClose();
     } catch (err) {
@@ -105,10 +107,24 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
             />
           </div>
 
-          {/* 3. TELEFON CLIENT */}
+          {/* 3. PROPRIETAR AUTO / CLIENT */}
           <div>
             <label className="text-[12px] font-extrabold text-[#6B6558] flex items-center gap-1.5 uppercase mb-1">
-              <Phone size={15} className="text-[#3E6B45]" /> 3. Telefon Client
+              <User size={15} className="text-[#4A6FA5]" /> 3. Proprietar Auto
+            </label>
+            <input
+              type="text"
+              className="w-full px-3.5 py-2.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-[14px] font-semibold uppercase focus:bg-white focus:border-[#4A6FA5] focus:outline-none transition-colors"
+              placeholder="ex: POPESCU ION"
+              value={client}
+              onChange={(e) => setClient(e.target.value)}
+            />
+          </div>
+
+          {/* 4. TELEFON CLIENT */}
+          <div>
+            <label className="text-[12px] font-extrabold text-[#6B6558] flex items-center gap-1.5 uppercase mb-1">
+              <Phone size={15} className="text-[#3E6B45]" /> 4. Telefon Client
             </label>
             <input
               type="tel"
@@ -119,10 +135,10 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
             />
           </div>
 
-          {/* 4. ASIGURATOR */}
+          {/* 5. ASIGURATOR */}
           <div>
             <label className="text-[12px] font-extrabold text-[#6B6558] flex items-center gap-1.5 uppercase mb-1">
-              <Building2 size={15} className="text-[#6B6558]" /> 4. Asigurator
+              <Building2 size={15} className="text-[#6B6558]" /> 5. Asigurator
             </label>
             <select
               className="w-full px-3.5 py-2.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-[13.5px] font-bold focus:bg-white focus:border-[#6B6558] focus:outline-none transition-colors"
