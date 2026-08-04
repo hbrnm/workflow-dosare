@@ -182,10 +182,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               e.stopPropagation();
               onMoveToStatus(claim, nextStatus.key);
             }}
-            className="w-6 h-6 rounded-md bg-[#B8791E] hover:bg-[#9E6517] text-white flex items-center justify-center text-[12px] font-bold shadow-2xs transition-all active:scale-90"
-            title={`1-Click Avansează în „${nextStatus.label}”`}
+            className="flex items-center gap-1 py-0.5 px-2 rounded-lg bg-[#C98A2B] hover:bg-[#B37A22] text-white text-[10px] font-extrabold shadow-2xs transition-all active:scale-95 shrink-0"
+            title={`Avansează rapid în stadiul „${nextStatus.label}”`}
           >
-            →
+            <span>{nextStatus.label}</span>
+            <ArrowRight size={11} />
           </button>
         )}
       </div>
