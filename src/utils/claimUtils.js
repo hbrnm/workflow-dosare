@@ -1,11 +1,30 @@
-import { STATUS_MIGRATION, STATUSES } from "../constants/config";
-import { todayISO, nowISO, fmtDate, fmtDateTime, uid } from "./dateUtils";
+import { INSURERS } from "../constants/config";
 
-export function emptyClaim(status = "primit") {
+export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
+  if (!Array.isArray(claims) || claims.length === 0) return fallback || "Omniasig VIG";
+  const counts = {};
+  claims.forEach((c) => {
+    if (c && c.asigurator) {
+      const ins = String(c.asigurator).trim();
+      if (ins) counts[ins] = (counts[ins] || 0) + 1;
+    }
+  });
+  let maxCount = 0;
+  let topInsurer = fallback || "Omniasig VIG";
+  Object.entries(counts).forEach(([ins, cnt]) => {
+    if (cnt > maxCount) {
+      maxCount = cnt;
+      topInsurer = ins;
+    }
+  });
+  return topInsurer;
+}
+
+export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG") {
   return {
     id: uid(),
-    numarDosar: "", tipAsigurare: "CASCO", asigurator: "", client: "", delegat: "", telefonClient: "",
-    numarInmatriculare: "", vin: "", marcaModel: "", status,
+    numarDosar: "", tipAsigurare: "RCA", asigurator: defaultInsurer || INSURERS[0] || "Omniasig VIG", client: "", delegat: "", telefonClient: "",
+    numarInmatriculare: "", vin: "", marcaModel: "", status: status === "primit" ? "deschidere" : status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
     termenAlertaZile: 3, dataProgramare: "", dataComandaPiese: null, note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",

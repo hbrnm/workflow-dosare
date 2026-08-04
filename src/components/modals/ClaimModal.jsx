@@ -1537,7 +1537,60 @@ export default function ClaimModal({
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        {/* Venit Net */}
                         <div className="p-2.5 rounded-xl bg-white border border-[#DAD4C6]">
+                          <div className="text-[10px] font-semibold text-[#6B6558] uppercase mb-1">Venit Net</div>
+                          <div className="text-[15px] font-extrabold text-[#23282E] font-mono">{venitNetTotal.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
+                          <div className="text-[9px] text-[#8A8375] mt-0.5">{valoareAcceptPlata > 0 ? "Accept Plată" : "Deviz Audatex"}</div>
+                        </div>
+
+                        {/* Total Costuri */}
+                        <div className="p-2.5 rounded-xl bg-white border border-[#B23A2E]/30">
+                          <div className="text-[10px] font-semibold text-[#B23A2E] uppercase mb-1">Total Costuri</div>
+                          <div className="text-[15px] font-extrabold text-[#B23A2E] font-mono">{totalCosturiService.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
+                          <div className="text-[9px] text-[#8A8375] mt-0.5">Piese + Diverse + Schimb</div>
+                        </div>
+
+                        {/* Profit Brut */}
+                        <div className={`p-2.5 rounded-xl bg-white border ${profitBrutReal >= 0 ? "border-[#3E6B45]/30" : "border-[#B23A2E]/30"}`}>
+                          <div className="text-[10px] font-semibold text-[#6B6558] uppercase mb-1">Profit Brut</div>
+                          <div className={`text-[15px] font-extrabold font-mono ${profitBrutReal >= 0 ? "text-[#294A2E]" : "text-[#B23A2E]"}`}>
+                            {profitBrutReal >= 0 ? "+" : ""}{profitBrutReal.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span>
+                          </div>
+                          <div className="text-[9px] text-[#8A8375] mt-0.5">Venit - Costuri Service</div>
+                        </div>
+
+                        {/* Marjă Profit */}
+                        <div className={`p-2.5 rounded-xl border ${parseFloat(marjaProfitProc) >= 20 ? "bg-emerald-50 border-[#3E6B45]/40" : parseFloat(marjaProfitProc) >= 0 ? "bg-amber-50 border-amber-300" : "bg-red-50 border-[#B23A2E]/40"}`}>
+                          <div className="text-[10px] font-semibold text-[#6B6558] uppercase mb-1">Marjă Profit</div>
+                          <div className={`text-[18px] font-extrabold font-mono ${parseFloat(marjaProfitProc) >= 20 ? "text-[#294A2E]" : parseFloat(marjaProfitProc) >= 0 ? "text-[#7A5316]" : "text-[#B23A2E]"}`}>
+                            {marjaProfitProc}%
+                          </div>
+                          <div className="text-[9px] text-[#8A8375] mt-0.5">
+                            {parseFloat(marjaProfitProc) >= 25 ? "✅ Excelent" : parseFloat(marjaProfitProc) >= 15 ? "🟡 Acceptabil" : parseFloat(marjaProfitProc) >= 0 ? "🟠 Slab" : "🔴 Pierdere"}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Detalii Marjă Piese */}
+                      <div className="mt-2.5 p-2.5 bg-white border border-[#DAD4C6] rounded-xl">
+                        <div className="text-[10.5px] font-bold text-[#6B6558] uppercase mb-1.5">📦 Marjă Piese (Audatex vs. Achiziție Service)</div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-[#6B6558]">Preț Audatex: <strong className="text-[#23282E] font-mono">{pretPieseAudatex.toLocaleString("ro-RO")} lei</strong></span>
+                          <span className="text-[#6B6558]">Preț Service: <strong className="text-[#B23A2E] font-mono">{pretPieseService.toLocaleString("ro-RO")} lei</strong></span>
+                          <span className={`font-extrabold font-mono text-[12px] ${marjaPiese >= 0 ? "text-[#3E6B45]" : "text-[#B23A2E]"}`}>
+                            {marjaPiese >= 0 ? "+" : ""}{marjaPiese.toLocaleString("ro-RO")} lei
+                          </span>
+                        </div>
+                        <div className="mt-1.5 text-[10px] text-[#8A8375]">
+                          Total Manoperă: <strong className="text-[#23282E]">{totalManopera.toLocaleString("ro-RO")} lei</strong>
+                          <span className="mx-2">·</span>
+                          Franșiză client: <strong className="text-[#8C2E2E]">{valoareFransiza.toLocaleString("ro-RO")} lei</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* ========================================================================= */}

@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { X, Plus, ShieldCheck, FileText, Phone, Car, Building2, Check, User } from "lucide-react";
 import { INSURERS } from "../../constants/config";
-import { emptyClaim } from "../../utils/claimUtils";
+import { emptyClaim, getMostFrequentInsurer } from "../../utils/claimUtils";
 
-export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
+export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [] }) {
+  const defaultInsurer = getMostFrequentInsurer(allClaims, INSURERS[0]);
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
   const [client, setClient] = useState("");
   const [telefon, setTelefon] = useState("");
-  const [asigurator, setAsigurator] = useState(INSURERS[0] || "Omniasig VIG");
+  const [asigurator, setAsigurator] = useState(defaultInsurer);
   const [customAsigurator, setCustomAsigurator] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
