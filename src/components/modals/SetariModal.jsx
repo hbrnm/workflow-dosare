@@ -279,7 +279,9 @@ export default function SetariModal({
                         className="p-2 border border-[#DAD4C6] rounded-lg font-bold text-[13.5px] bg-white focus:border-[#C98A2B]"
                         value={inactivitateDays}
                         onChange={(e) => setInactivitateDays(Number(e.target.value))}
-                      >
+                      > 
+                        <option value={1}>1 zi fără activitate</option>
+                        <option value={2}>2 zile fără activitate</option>
                         <option value={3}>3 zile fără activitate</option>
                         <option value={5}>5 zile fără activitate</option>
                         <option value={7}>7 zile fără activitate (implicit)</option>
