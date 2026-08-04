@@ -183,7 +183,7 @@ export default function ClaimModal({
   }, [isDragging]);
 
   const [form, setForm] = useState(safeClaim);
-  const [activeTab, setActiveTab] = useState("note");
+  const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const noteInputRef = useRef(null);
@@ -750,12 +750,12 @@ export default function ClaimModal({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setActiveTab("note")}
+              onClick={() => setActiveTab("general")}
               className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                activeTab === "note" || activeTab === "service" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                activeTab === "general" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
               }`}
             >
-              <FileText size={14} /> Date Dosar &amp; Service
+              <FileText size={14} /> Date Dosar &amp; Vehicul
             </button>
 
             <button
@@ -809,655 +809,320 @@ export default function ClaimModal({
         {/* MAIN BODY CONTAINER */}
         <div className="flex-1 min-h-0 overflow-y-auto bg-[#FAF8F5]">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
+            <div className="p-3 space-y-3 font-sans">
 
-            {/* ========================================================================= */}
-            {/* SECTION 2: TABS CONTENT (AFIȘATE PRIMELE LA TOP)                          */}
-            {/* ========================================================================= */}
-            <div className="p-2 space-y-2 font-sans">
-              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
-              {activeTab === "note" && (
-                <div className="space-y-2.5">
+              {/* ========================================================================= */}
+              {/* TAB 1: DATE DOSAR & VEHICUL                                               */}
+              {/* ========================================================================= */}
+              {activeTab === "general" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-end">
+                    <span className="text-[10.5px] font-semibold text-[#8A8375]">
+                      ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
+                    </span>
+                  </div>
 
-                  {/* Note Interne */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-3 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
-                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe interne echipă ({form.note.length})
-                      </h3>
-                    </div>
+                  {/* Grid cu 2 Coloane Spațioase: Date Dosar & Date Vehicul */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
 
-                    <div className="flex gap-2">
-                      <input
-                        ref={noteInputRef}
-                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
-                        placeholder="Adaugă o notă internă..."
-                        value={noteText}
-                        onChange={(e) => {
-                          setNoteText(e.target.value);
-                          setSlashIndex(0);
-                        }}
-                        onKeyDown={handleNoteKeyDown}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addNote()}
-                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0"
-                      >
-                        <Plus size={15} /> Adaugă
-                      </button>
-                    </div>
+                    {/* COLOANA 1: DATE DOSAR */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                        <FileText size={13} className="text-[#6B6558]" /> 1. Date Dosar
+                      </div>
 
-                    <div className="space-y-1.5 pt-0.5 max-h-44 overflow-y-auto pr-1">
-                      {form.note.map((n) => {
-                        const isAlert = n.text.includes("[ALERTĂ]");
-                        const isParts = n.text.includes("[PIESE]");
-                        const isCar = n.text.includes("[AUTO SCHIMB]");
-                        const isCall = n.text.includes("[APEL CLIENT]");
+                      {/* 1. Nr. Dosar Daună */}
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                          <FileText size={12} className="text-[#6B6558]" /> Nr. Dosar Daună
+                        </label>
+                        <input
+                          className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                          value={form.numarDosar}
+                          onChange={(e) => set("numarDosar", e.target.value.toUpperCase())}
+                          placeholder="ex: 2026-00451"
+                          required
+                        />
+                      </div>
 
-                        return (
-                          <div
-                            key={n.id}
-                            className={`p-2 rounded-lg border transition-all ${
-                              isAlert
-                                ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
-                                : isParts
-                                ? "bg-amber-50/70 border-amber-200 text-[#7A5316]"
-                                : isCar
-                                ? "bg-blue-50/70 border-blue-200 text-[#2C4160]"
-                                : isCall
-                                ? "bg-emerald-50/70 border-emerald-200 text-[#294A2E]"
-                                : "bg-[#FAF8F5] border-[#DAD4C6] text-[#23282E]"
-                            }`}
+                      {/* Dată Deschidere Dosar */}
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                          <Calendar size={12} className="text-[#6B6558]" /> Dată Deschidere / Intrare Dosar
+                        </label>
+                        <DatePickerInput
+                          value={form.dataDeschiderii}
+                          onChange={(v) => set("dataDeschiderii", v)}
+                          withTime={false}
+                          placeholder="zi/lună/an"
+                        />
+                      </div>
+
+                      {/* Asigurător & Tip */}
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
+                          <ShieldCheck size={12} className="text-[#6B6558]" /> Asigurător &amp; Tip Asigurare
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <select
+                            className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
+                            value={form.tipAsigurare}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              set("tipAsigurare", val);
+                              if (val === "Fără asigurare") {
+                                set("asigurator", "");
+                              }
+                            }}
                           >
-                            <div className="flex items-center justify-between text-[10px] font-mono text-[#8A8375] border-b border-black/5 pb-1 mb-1">
-                              <span>📅 {fmtDateTime(n.data)}</span>
-                              <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-80 p-0.5">
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                            <div className="text-[12px] whitespace-pre-wrap font-medium leading-relaxed">
-                              {n.text}
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {form.note.length === 0 && (
-                        <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
-                          Nicio notă înregistrată.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ========================================================================= */}
-            {/* SECTION 1: PROPERTIES SECTION                                              */}
-            {/* ========================================================================= */}
-            <div className="bg-white border-t border-[#DAD4C6] p-2 shadow-sm space-y-1.5 mt-2">
-              <div className="flex items-center justify-end">
-                <span className="text-[10.5px] font-semibold text-[#8A8375]">
-                  ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
-                </span>
-              </div>
-
-              {/* Grid cu 2 Coloane Spațioase și Compacte */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
-
-                {/* COLOANA 1: DATE DOSAR */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-2 space-y-1.5">
-                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
-                    <FileText size={13} className="text-[#6B6558]" /> 1. Date Dosar
-                  </div>
-
-                  {/* 1. Nr. Dosar Daună */}
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <FileText size={12} className="text-[#6B6558]" /> Nr. Dosar Daună
-                    </label>
-                    <input
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                      value={form.numarDosar}
-                      onChange={(e) => set("numarDosar", e.target.value.toUpperCase())}
-                      placeholder="ex: 2026-00451"
-                      required
-                    />
-                  </div>
-
-                  {/* Dată Deschidere Dosar (Editable - Punctul 17) */}
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <Calendar size={12} className="text-[#6B6558]" /> Dată Deschidere / Intrare Dosar
-                    </label>
-                    <DatePickerInput
-                      value={form.dataDeschiderii}
-                      onChange={(v) => set("dataDeschiderii", v)}
-                      withTime={false}
-                      placeholder="zi/lună/an"
-                    />
-                  </div>
-
-                  {/* 2. Asigurător & Tip (Punctul 16) */}
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <ShieldCheck size={12} className="text-[#6B6558]" /> Asigurător &amp; Tip Asigurare
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <select
-                        className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E]"
-                        value={form.tipAsigurare}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          set("tipAsigurare", val);
-                          if (val === "Fără asigurare") {
-                            set("asigurator", "");
-                          }
-                        }}
-                      >
-                        {INSURANCE_TYPES.map((t) => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
-                      <select
-                        disabled={form.tipAsigurare === "Fără asigurare"}
-                        className={`col-span-2 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E] ${
-                          form.tipAsigurare === "Fără asigurare" ? "opacity-50 bg-[#EFEAE1] cursor-not-allowed" : ""
-                        }`}
-                        value={form.asigurator}
-                        onChange={(e) => set("asigurator", e.target.value)}
-                      >
-                        <option value="">{form.tipAsigurare === "Fără asigurare" ? "-- Fără asigurător --" : "-- Societate Asigurare --"}</option>
-                        {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Dată Comandă Piese (Punctul 13) */}
-                  {form.status === "piese_comandate" && (
-                    <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
-                      <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
-                        <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
-                      </label>
-                      <DatePickerInput
-                        value={form.dataComandaPiese}
-                        onChange={(v) => set("dataComandaPiese", v)}
-                        withTime={false}
-                        placeholder="Selectează data comenzii"
-                      />
-                    </div>
-                  )}
-
-                  {/* 3. Status & Etapă Flux */}
-                  <div>
-                    <label className="block text-[10.5px] font-bold text-[#6B6558] mb-0.5 flex items-center gap-1">
-                      <Layers size={12} className="text-[#6B6558]" /> Status &amp; Etapă Flux
-                    </label>
-                    <select
-                      className="w-full font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white focus:border-[#3B5166]"
-                      value={form.status}
-                      onChange={(e) => set("status", e.target.value)}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {String(s.num).padStart(2, "0")}. {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* SECȚIUNE NOUĂ RELOCATĂ: OPERAȚIUNI DE EFECTUAT PE LINII (PIESĂ + BIFE INL, REV, REP, UNI) */}
-                  <div className="pt-2 border-t border-[#DAD4C6]/60 space-y-2 bg-white/70 p-2 rounded-xl border border-[#DAD4C6]/80 mt-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#23282E] flex items-center gap-1.5">
-                        <Wrench size={13} className="text-[#C98A2B]" /> Operațiuni de Efectuat (Linii &amp; Bife)
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentList = Array.isArray(form.operatiuni) ? form.operatiuni : [];
-                          const newList = [...currentList, { id: uid(), piesa: "", inl: false, rev: false, rep: false, uni: false }];
-                          set("operatiuni", newList);
-                        }}
-                        className="text-[10.5px] font-bold text-[#3B5166] hover:text-black bg-white border border-[#DAD4C6] hover:bg-gray-100 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs transition-all"
-                      >
-                        <Plus size={12} /> Adaugă Linie
-                      </button>
-                    </div>
-
-                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5 scrollbar-thin">
-                      {(!Array.isArray(form.operatiuni) || form.operatiuni.length === 0) ? (
-                        <div className="text-[11px] text-[#8A8375] italic bg-white p-2 rounded-lg text-center border border-dashed border-[#DAD4C6]">
-                          Nicio operațiune adăugată. Apasă pe „+ Adaugă Linie”.
-                        </div>
-                      ) : (
-                        form.operatiuni.map((op, idx) => (
-                          <div key={op.id || idx} className="bg-white p-1.5 border border-[#DAD4C6] rounded-xl flex flex-wrap items-center gap-1.5 shadow-2xs">
-                            {/* Câmp de completat denumire piesă / subansamblu */}
-                            <div className="flex-1 min-w-[130px]">
-                              <input
-                                className="w-full font-bold text-[11.5px] p-1 border border-[#DAD4C6] rounded-lg uppercase text-[#23282E] focus:bg-[#FAF8F5] focus:border-[#3B5166]"
-                                placeholder="ex: OGLINDĂ EXTT ST, BARA FAȚĂ..."
-                                value={op.piesa || ""}
-                                onChange={(e) => {
-                                  const val = e.target.value.toUpperCase();
-                                  const newList = [...form.operatiuni];
-                                  newList[idx] = { ...newList[idx], piesa: val };
-                                  set("operatiuni", newList);
-                                  set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
-                                }}
-                              />
-                            </div>
-
-                            {/* Bife INL, REV, REP, UNI pe fiecare linie */}
-                            <div className="flex items-center gap-1 shrink-0">
-                              {/* INL */}
-                              <label
-                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
-                                  op.inl ? "bg-[#C98A2B] text-white border-[#C98A2B]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
-                                }`}
-                                title="Înlocuire"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={!!op.inl}
-                                  onChange={(e) => {
-                                    const newList = [...form.operatiuni];
-                                    newList[idx] = { ...newList[idx], inl: e.target.checked };
-                                    set("operatiuni", newList);
-                                  }}
-                                  className="hidden"
-                                />
-                                INL
-                              </label>
-
-                              {/* REV */}
-                              <label
-                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
-                                  op.rev ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
-                                }`}
-                                title="Revopsire"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={!!op.rev}
-                                  onChange={(e) => {
-                                    const newList = [...form.operatiuni];
-                                    newList[idx] = { ...newList[idx], rev: e.target.checked };
-                                    set("operatiuni", newList);
-                                  }}
-                                  className="hidden"
-                                />
-                                REV
-                              </label>
-
-                              {/* REP */}
-                              <label
-                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
-                                  op.rep ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
-                                }`}
-                                title="Reparație"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={!!op.rep}
-                                  onChange={(e) => {
-                                    const newList = [...form.operatiuni];
-                                    newList[idx] = { ...newList[idx], rep: e.target.checked };
-                                    set("operatiuni", newList);
-                                  }}
-                                  className="hidden"
-                                />
-                                REP
-                              </label>
-
-                              {/* UNI */}
-                              <label
-                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
-                                  op.uni ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
-                                }`}
-                                title="Demontare / Montare"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={!!op.uni}
-                                  onChange={(e) => {
-                                    const newList = [...form.operatiuni];
-                                    newList[idx] = { ...newList[idx], uni: e.target.checked };
-                                    set("operatiuni", newList);
-                                  }}
-                                  className="hidden"
-                                />
-                                UNI
-                              </label>
-
-                              {/* Buton Ștergere Linie */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newList = form.operatiuni.filter((_, i) => i !== idx);
-                                  set("operatiuni", newList);
-                                  set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
-                                }}
-                                className="p-1 text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors ml-0.5"
-                                title="Șterge linia"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT (Punctul 5 & 8) */}
-                <div className="bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2.5">
-                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
-                    <Car size={13} className="text-[#6B6558]" /> 2. Date Vehicul, Proprietar &amp; Delegat
-                  </div>
-
-                  {/* 5. Nr. Înmatriculare (Majuscule) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Car size={13} className="text-[#6B6558]" /> Nr. Înmatriculare
-                    </label>
-                    <input
-                      className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                      value={form.numarInmatriculare}
-                      onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
-                      placeholder="ex: B111AAA"
-                      required
-                    />
-                  </div>
-
-                  {/* 6. Serie Șasiu (VIN 17 caractere) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Tag size={13} className="text-[#6B6558]" /> Serie Șasiu (VIN 17 caractere)
-                    </label>
-                    <input
-                      className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                      value={form.vin}
-                      onChange={(e) => set("vin", e.target.value.toUpperCase())}
-                      maxLength={17}
-                      placeholder="Cod VIN 17 caractere"
-                    />
-                  </div>
-
-                  {/* 7. Marcă & Model (Majuscule - Punctul 7) */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Car size={13} className="text-[#6B6558]" /> Marcă &amp; Model Vehicul
-                    </label>
-                    <input
-                      className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                      value={form.marcaModel}
-                      onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
-                      placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
-                    />
-                  </div>
-
-                  {/* 8. Nume Proprietar Auto (redenumit din Asigurat) & Delegat (Punctul 8) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                        <UserIcon size={13} className="text-[#6B6558]" /> Proprietar Auto
-                      </label>
-                      <input
-                        className="w-full font-semibold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                        value={form.client}
-                        onChange={(e) => set("client", e.target.value.toUpperCase())}
-                        placeholder="Nume proprietar auto"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                        <UserIcon size={13} className="text-[#6B6558]" /> Delegat
-                      </label>
-                      <input
-                        className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
-                        value={form.delegat || ""}
-                        onChange={(e) => set("delegat", e.target.value.toUpperCase())}
-                        placeholder="Nume delegat (opțional)"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Telefon contact */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
-                      <Phone size={13} className="text-[#6B6558]" /> Telefon Contact
-                    </label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        className="flex-1 font-mono text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white"
-                        type="tel"
-                        placeholder="07xx xxx xxx"
-                        value={form.telefonClient}
-                        onChange={(e) => set("telefonClient", e.target.value)}
-                      />
-                      {form.telefonClient && (
-                        <>
-                          <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
-                          <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECȚIUNE RELOCATĂ: STADIU FLUX, BLOCAT & ISTORIC (Sub Date Vehicul - Punctul 5) */}
-                <div className="col-span-1 md:col-span-2 bg-[#FAF8F5] border border-[#DAD4C6]/80 rounded-xl p-3 space-y-2">
-                  <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5"><Layers size={13} className="text-[#6B6558]" /> Etape Flux &amp; Jurnal de Activități</span>
-                  </div>
-
-                  {/* Stepper Statusuri Scrolabil (Timeline) */}
-                  {!isNew && (
-                    <div className="pt-0.5">
-                      <ClaimTimeline
-                        currentStatus={form.status}
-                        dataSchimbareStatus={form.dataSchimbareStatus}
-                        istoric={istoric}
-                        loading={loadingIstoric}
-                      />
-                    </div>
-                  )}
-
-                  {/* Status Blocat & Motiv Callout Box */}
-                  <div className="pt-1.5 border-t border-[#DAD4C6]/60">
-                    <label className={`flex items-center gap-2 text-[11.5px] cursor-pointer px-2.5 py-1.5 rounded-xl border transition-all ${form.blocat ? "bg-[#B23A2E]/10 border-[#B23A2E] text-[#8C2E2E] font-bold" : "bg-white border-[#DAD4C6] text-[#6B6558] hover:bg-[#FAF8F5]"}`}>
-                      <input type="checkbox" checked={form.blocat} onChange={(e) => set("blocat", e.target.checked)} />
-                      <AlertOctagon size={14} className={form.blocat ? "text-[#B23A2E]" : "text-[#6B6558]"} />
-                      <span>Marchează Dosar Blocat în Etapă</span>
-                    </label>
-
-                    {form.blocat && (
-                      <div className="mt-2 px-3 py-1.5 bg-[#B23A2E] text-white rounded-xl text-[11.5px] flex flex-col gap-2 shadow-xs">
-                        <span className="font-extrabold">Motiv blocare:</span>
-                        <input className="w-full bg-white/10 border border-white/20 rounded-lg px-2 py-1 text-white text-[12px] placeholder:text-white/60 focus:outline-hidden" placeholder="Descrieți de ce este blocat..." value={form.motivBlocare || ""} onChange={(e) => set("motivBlocare", e.target.value)} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Dosare Anterioare Client / VIN */}
-              {istoricClientVehicul.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10.5px] font-bold text-[#2C4160] flex items-center gap-1 shrink-0">
-                    <History size={11} /> {istoricClientVehicul.length} anterioare:
-                  </span>
-                  {istoricClientVehicul.slice(0, 3).map((c) => {
-                    const s = getStatusDefinition(c.status);
-                    return (
-                      <button key={c.id} type="button" onClick={() => onJumpTo && onJumpTo(c)}
-                        className="text-[10px] text-[#2C4160] hover:underline font-bold bg-[#ECF1F7] border border-[#3B5166]/20 rounded-lg px-2 py-0.5 truncate max-w-[130px]">
-                        {c.numarDosar || "—"} · {s.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* SECȚIUNE EXPANDABILĂ: DETALII FINANCIAR & AUDATEX (Ascunsă Implicit) */}
-              <div className="col-span-1 md:col-span-2 border border-[#DAD4C6] rounded-xl overflow-hidden bg-white shadow-2xs mt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowFinancialAccordion((prev) => !prev)}
-                  className="w-full px-3.5 py-2.5 bg-[#F4F1EA] hover:bg-[#EFEAE1] text-[#3B5166] font-extrabold text-[12px] flex items-center justify-between transition-colors border-b border-[#DAD4C6]"
-                >
-                  <span className="flex items-center gap-2">
-                    <Wallet size={15} className="text-[#C98A2B]" />
-                    <span>▼ Detalii Financiar &amp; Audatex</span>
-                  </span>
-                  <span className="text-[11px] text-[#8A8375] font-normal">
-                    {showFinancialAccordion ? "Restrânge ▲" : "Afișează valoare deviz, reglat, facturi ▼"}
-                  </span>
-                </button>
-
-                {showFinancialAccordion && (
-                  <div className="p-3 space-y-3 bg-[#FAF8F5]">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Deviz Audatex (lei)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
-                          value={form.valoareDevizAudatex || 0}
-                          onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Valoare Reglată (lei)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
-                          value={form.valoareAcceptataReglata || 0}
-                          onChange={(e) => set("valoareAcceptataReglata", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Cuantum Rereglat (lei)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
-                          value={form.cuantumRereglat || 0}
-                          onChange={(e) => set("cuantumRereglat", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Nr. Factură &amp; Stadiu</label>
-                        <input
-                          type="text"
-                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-bold text-[12px] bg-white"
-                          placeholder="ex: FACT-1029"
-                          value={form.numarFactura || ""}
-                          onChange={(e) => set("numarFactura", e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ========================================================================= */}
-            {/* SECTION 2: TABS CONTENT                                                    */}
-            {/* ========================================================================= */}
-            <div className="p-2 space-y-2">
-
-              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
-              {activeTab === "note" && (
-                <div className="space-y-2.5">
-
-                  {/* Note Interne */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-3 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
-                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe interne echipă ({form.note.length})
-                      </h3>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <input
-                        ref={noteInputRef}
-                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
-                        placeholder="Adaugă o notă internă..."
-                        value={noteText}
-                        onChange={(e) => {
-                          setNoteText(e.target.value);
-                          setSlashIndex(0);
-                        }}
-                        onKeyDown={handleNoteKeyDown}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addNote()}
-                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0"
-                      >
-                        <Plus size={15} /> Adaugă
-                      </button>
-                    </div>
-
-                    <div className="space-y-1.5 pt-0.5 max-h-44 overflow-y-auto pr-1">
-                      {form.note.map((n) => {
-                        const isAlert = n.text.includes("[ALERTĂ]");
-                        const isParts = n.text.includes("[PIESE]");
-                        const isCar = n.text.includes("[AUTO SCHIMB]");
-                        const isCall = n.text.includes("[APEL CLIENT]");
-
-                        return (
-                          <div
-                            key={n.id}
-                            className={`p-2 rounded-lg border transition-all ${
-                              isAlert
-                                ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
-                                : isParts
-                                ? "bg-amber-50/70 border-amber-200 text-[#7A5316]"
-                                : isCar
-                                ? "bg-blue-50/70 border-blue-200 text-[#2C4160]"
-                                : isCall
-                                ? "bg-emerald-50/70 border-emerald-200 text-[#294A2E]"
-                                : "bg-[#FAF8F5] border-[#DAD4C6] text-[#23282E]"
+                            {INSURANCE_TYPES.map((t) => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                          <select
+                            disabled={form.tipAsigurare === "Fără asigurare"}
+                            className={`col-span-2 text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white font-semibold text-[#23282E] ${
+                              form.tipAsigurare === "Fără asigurare" ? "opacity-50 bg-[#EFEAE1] cursor-not-allowed" : ""
                             }`}
+                            value={form.asigurator}
+                            onChange={(e) => set("asigurator", e.target.value)}
                           >
-                            <div className="flex items-center justify-between text-[10px] font-mono text-[#8A8375] border-b border-black/5 pb-1 mb-1">
-                              <span>📅 {fmtDateTime(n.data)}</span>
-                              <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-80 p-0.5">
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                            <div className="text-[12px] whitespace-pre-wrap font-medium leading-relaxed">
-                              {n.text}
-                            </div>
-                          </div>
-                        );
-                      })}
+                            <option value="">{form.tipAsigurare === "Fără asigurare" ? "-- Fără asigurător --" : "-- Societate Asigurare --"}</option>
+                            {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((i) => <option key={i} value={i}>{i}</option>)}
+                          </select>
+                        </div>
+                      </div>
 
-                      {form.note.length === 0 && (
-                        <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
-                          Nicio notă înregistrată.
+                      {/* Dată Comandă Piese */}
+                      {form.status === "piese_comandate" && (
+                        <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
+                          <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
+                            <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
+                          </label>
+                          <DatePickerInput
+                            value={form.dataComandaPiese}
+                            onChange={(v) => set("dataComandaPiese", v)}
+                            withTime={false}
+                            placeholder="zi/lună/an"
+                          />
                         </div>
                       )}
+
+                      {/* Piese sosite checkbox */}
+                      {form.status === "piese_comandate" && (
+                        <label className="flex items-center gap-2 text-[11.5px] font-bold text-[#3E6B45] cursor-pointer bg-[#EEF5EE] p-2 rounded-xl border border-[#3E6B45]/20">
+                          <input
+                            type="checkbox"
+                            checked={!!form.pieseSosite}
+                            onChange={(e) => set("pieseSosite", e.target.checked)}
+                            className="rounded accent-[#3E6B45] w-4 h-4"
+                          />
+                          <span>Confirmare: Toate piesele au sosit în service</span>
+                        </label>
+                      )}
+
+                      {/* Linii reparații */}
+                      <div className="space-y-1.5 border-t border-[#DAD4C6]/60 pt-2">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10.5px] font-extrabold text-[#6B6558] uppercase flex items-center gap-1">
+                            <Wrench size={12} className="text-[#6B6558]" /> Operațiuni de efectuat (linii &amp; bife)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newList = [...(form.operatiuni || []), { id: uid(), piesa: "", inl: false, rev: false, rep: false, uni: false }];
+                              set("operatiuni", newList);
+                            }}
+                            className="text-[10px] font-extrabold text-[#3B5166] hover:bg-[#EFEAE1] px-2 py-0.5 rounded border border-[#DAD4C6] flex items-center gap-1"
+                          >
+                            + Adaugă Linie
+                          </button>
+                        </div>
+
+                        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                          {(!form.operatiuni || form.operatiuni.length === 0) ? (
+                            <div className="text-[10.5px] text-[#8A8375] italic p-2 border border-dashed border-[#DAD4C6] rounded-lg text-center">
+                              Nicio linie adăugată. Apasă pe „+ Adaugă Linie” de mai sus.
+                            </div>
+                          ) : (
+                            form.operatiuni.map((op, idx) => (
+                              <div key={op.id || idx} className="flex items-center gap-1 bg-white p-1 rounded-lg border border-[#DAD4C6]">
+                                <input
+                                  className="flex-1 font-semibold text-[11px] px-1.5 py-0.5 border border-[#DAD4C6] rounded uppercase text-[#23282E]"
+                                  placeholder="ex: Oglindă ext. stanga, Bara față..."
+                                  value={op.piesa || ""}
+                                  onChange={(e) => {
+                                    const newList = [...form.operatiuni];
+                                    newList[idx] = { ...newList[idx], piesa: e.target.value.toUpperCase() };
+                                    set("operatiuni", newList);
+                                    set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
+                                  }}
+                                />
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"}`} title="Înlocuire">
+                                    <input type="checkbox" checked={!!op.inl} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], inl: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> INL
+                                  </label>
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"}`} title="Revopsire">
+                                    <input type="checkbox" checked={!!op.rev} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rev: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REV
+                                  </label>
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"}`} title="Reparație">
+                                    <input type="checkbox" checked={!!op.rep} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rep: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REP
+                                  </label>
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"}`} title="Demontare / Montare">
+                                    <input type="checkbox" checked={!!op.uni} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], uni: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> UNI
+                                  </label>
+                                  <button type="button" onClick={() => { const newList = form.operatiuni.filter((_, i) => i !== idx); set("operatiuni", newList); set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", ")); }} className="p-1 text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors ml-0.5" title="Șterge linia">
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT */}
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2.5 shadow-2xs">
+                      <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                        <Car size={13} className="text-[#6B6558]" /> 2. Date Vehicul, Proprietar &amp; Delegat
+                      </div>
+
+                      {/* Nr. Înmatriculare */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                          <Car size={13} className="text-[#6B6558]" /> Nr. Înmatriculare
+                        </label>
+                        <input
+                          className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                          value={form.numarInmatriculare}
+                          onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
+                          placeholder="ex: B111AAA"
+                          required
+                        />
+                      </div>
+
+                      {/* Serie Șasiu (VIN) */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                          <Tag size={13} className="text-[#6B6558]" /> Serie Șasiu (VIN 17 caractere)
+                        </label>
+                        <input
+                          className="w-full font-mono text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                          value={form.vin}
+                          onChange={(e) => set("vin", e.target.value.toUpperCase())}
+                          maxLength={17}
+                          placeholder="Cod VIN 17 caractere"
+                        />
+                      </div>
+
+                      {/* Marcă & Model */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                          <Car size={13} className="text-[#6B6558]" /> Marcă &amp; Model Vehicul
+                        </label>
+                        <input
+                          className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                          value={form.marcaModel}
+                          onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
+                          placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
+                        />
+                      </div>
+
+                      {/* Proprietar & Delegat */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                            <UserIcon size={13} className="text-[#6B6558]" /> Proprietar Auto
+                          </label>
+                          <input
+                            className="w-full font-semibold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                            value={form.client}
+                            onChange={(e) => set("client", e.target.value.toUpperCase())}
+                            placeholder="Nume proprietar auto"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                            <UserIcon size={13} className="text-[#6B6558]" /> Delegat
+                          </label>
+                          <input
+                            className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white uppercase text-[#23282E] focus:border-[#3B5166]"
+                            value={form.delegat || ""}
+                            onChange={(e) => set("delegat", e.target.value.toUpperCase())}
+                            placeholder="Nume delegat (opțional)"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Telefon contact */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#6B6558] mb-1 flex items-center gap-1">
+                          <Phone size={13} className="text-[#6B6558]" /> Telefon Contact
+                        </label>
+                        <div className="flex items-center gap-1">
+                          <input
+                            className="flex-1 font-mono text-[11.5px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white"
+                            type="tel"
+                            placeholder="07xx xxx xxx"
+                            value={form.telefonClient}
+                            onChange={(e) => set("telefonClient", e.target.value)}
+                          />
+                          {form.telefonClient && (
+                            <>
+                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* STATUS & STAGEBAR */}
+                    <div className="col-span-1 md:col-span-2 bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-1">
+                        <label className="block text-[11px] font-bold text-[#6B6558] uppercase flex items-center gap-1">
+                          <Layers size={13} className="text-[#6B6558]" /> Status &amp; Etapă Flux Operațional
+                        </label>
+                        <select
+                          className="font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#3B5166]"
+                          value={form.status}
+                          onChange={(e) => {
+                            const newStatusKey = e.target.value;
+                            setForm((f) => ({
+                              ...f,
+                              status: newStatusKey,
+                              dataSchimbareStatus: f.status !== newStatusKey ? nowISO() : f.dataSchimbareStatus,
+                            }));
+                          }}
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {String(s.num).padStart(2, "0")}. {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Bara Interactivă de Stadii */}
+                      <StageBar
+                        statuses={STATUSES}
+                        currentStatusKey={form.status}
+                        onSelectStatus={(statusKey) => {
+                          setForm((f) => ({
+                            ...f,
+                            status: statusKey,
+                            dataSchimbareStatus: f.status !== statusKey ? nowISO() : f.dataSchimbareStatus,
+                          }));
+                        }}
+                      />
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* TAB CONTENT 2: SERVICE & REPARAȚIE */}
-              {activeTab === "service" && (
-                <div className="grid md:grid-cols-2 gap-2">
-                  <div className="space-y-2">
+                  {/* STARE FIZICĂ & MAȘINĂ LA SCHIMB */}
+                  <div className="grid md:grid-cols-2 gap-3 pt-1">
                     {/* Stepper Stare Fizică */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-3 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                         <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
                         {!isNew && (
@@ -1466,50 +1131,10 @@ export default function ClaimModal({
                           </button>
                         )}
                       </div>
-
-                      <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-1.5 flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px]">
-                        <button
-                          type="button"
-                          onClick={() => set("adusaFizic", !form.adusaFizic)}
-                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                            form.adusaFizic ? "bg-[#3B5166] text-white border-[#3B5166] font-bold shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 font-bold"><Car size={13} /> 1. Adusă în service</span>
-                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.adusaFizic ? "Fizic în curte" : "Neintrată încă"}</span>
-                        </button>
-
-                        <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleGata(!form.gataDeRidicare)}
-                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                            form.gataDeRidicare ? "bg-[#C98A2B] text-white border-[#C98A2B] font-bold shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 font-bold"><PackageCheck size={13} /> 2. Gata de ridicare</span>
-                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.gataDeRidicare ? `${form.dataGataRidicare ? daysBetween(form.dataGataRidicare) : 0}z în curte` : "În reparație"}</span>
-                        </button>
-
-                        <span className="text-[#8A8375] font-bold text-[11px]">➔</span>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleRidicata(!form.ridicata)}
-                          disabled={!form.gataDeRidicare && !form.ridicata}
-                          className={`w-full sm:flex-1 flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center ${
-                            form.ridicata ? "bg-[#3E6B45] text-white border-[#3E6B45] font-bold shadow-xs" : !form.gataDeRidicare ? "opacity-50 cursor-not-allowed bg-white text-[#8A8375] border-[#DAD4C6]" : "bg-white text-[#6B6558] border-[#DAD4C6] hover:bg-[#EFEAE1]"
-                          }`}
-                        >
-                          <span className="flex items-center gap-1 font-bold"><CheckCircle2 size={13} /> 3. Predată client</span>
-                          <span className="text-[10px] opacity-85 mt-0.5 font-medium">{form.ridicata && form.dataRidicare ? fmtDate(form.dataRidicare) : "Nepredată"}</span>
-                        </button>
-                      </div>
                     </div>
 
                     {/* Mașină la Schimb */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                         <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
                         {!isNew && form.masinaSchimb && (
@@ -1519,267 +1144,50 @@ export default function ClaimModal({
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <div>
-                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Nr. Mașină la schimb</label>
-                          <input className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[12.5px] font-semibold bg-[#FAF8F5]" placeholder="lasă gol dacă nu" value={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Dată predare auto</label>
-                          <DatePickerInput value={form.dataDariiLaSchimb} onChange={(v) => set("dataDariiLaSchimb", v)} withTime={false} placeholder="zi/luna/an" />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Zile chirie Audatex</label>
-                          <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[12.5px] font-bold text-center bg-[#FAF8F5]" value={form.zileChirieAudatex} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} />
-                        </div>
-                      </div>
+                      <label className="flex items-center gap-2 text-[11.5px] font-bold text-[#6B6558] cursor-pointer">
+                        <input type="checkbox" checked={form.masinaSchimb} onChange={(e) => set("masinaSchimb", e.target.checked)} className="rounded border-[#DAD4C6]" />
+                        <span>S-a oferit mașină la schimb (Rent-a-car)</span>
+                      </label>
 
-                      {form.masinaSchimb && form.dataDariiLaSchimb && (
-                        <div className="mt-2 text-[11.5px] font-semibold flex items-center justify-between px-3 py-2 bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg">
-                          <span className="text-[#6B6558]">Zile utilizate mașină la schimb:</span>
-                          <span className={`font-bold font-mono px-2 py-0.5 rounded ${
-                            form.zileChirieAudatex > 0 && daysBetween(form.dataDariiLaSchimb) > form.zileChirieAudatex
-                              ? "bg-[#B23A2E] text-white"
-                              : "bg-[#3E6B45]/15 text-[#3E6B45]"
-                          }`}>
-                            {daysBetween(form.dataDariiLaSchimb)}z {form.zileChirieAudatex > 0 ? `/ ${form.zileChirieAudatex}z Audatex` : ""}
-                          </span>
+                      {form.masinaSchimb && (
+                        <div className="space-y-2 pt-1 border-t border-[#DAD4C6]">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Model Mașină Oferită</label>
+                            <input className="w-full text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg uppercase bg-[#FAF8F5]" placeholder="ex: HYUNDAI I20 (B100ABC)" value={form.masinaSchimbModel || ""} onChange={(e) => set("masinaSchimbModel", e.target.value.toUpperCase())} />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                              <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Dată Predare Auto</label>
+                              <DatePickerInput value={form.dataPredareMasinaSchimb} onChange={(v) => set("dataPredareMasinaSchimb", v)} withTime={false} placeholder="zi/lună/an" />
+                            </div>
+
+                            <div>
+                              <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Zile Chirie Audatex</label>
+                              <input type="number" min={0} className="w-full p-1.5 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12px] bg-[#FAF8F5]" value={form.zileChirieAudatex || 0} onChange={(e) => set("zileChirieAudatex", Number(e.target.value) || 0)} />
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    {/* Manoperă pe etape */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
-                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                        <Paintbrush size={14} /> Manoperă Facturată pe Etape
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <StageBar label="Tinichigerie" icon={<Wrench size={13} className="text-[#3B5166]" />} data={form.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("tinichigerie", v)} />
-                        <StageBar label="Vopsitorie" icon={<Paintbrush size={13} className="text-[#7A4A9B]" />} data={form.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }} onChange={(v) => setStage("vopsitorie", v)} />
-                      </div>
-                    </div>
-
-                    {/* Decontare Piese & Marjă */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
-                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                        <span className="flex items-center gap-1.5">💰 Decontare Piese &amp; Marjă Estimată</span>
-                        {((Number(form.valoarePieseAudatex) || 0) > 0 || (Number(form.valoareAchizitiePiese) || 0) > 0) && (
-                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                            ((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)) >= 0
-                              ? "bg-[#3E6B45]/15 text-[#3E6B45]"
-                              : "bg-[#B23A2E]/15 text-[#B23A2E]"
-                          }`}>
-                            Marjă: {((Number(form.valoarePieseAudatex) || 0) - (Number(form.valoareAchizitiePiese) || 0)).toLocaleString("ro-RO")} lei
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div className="border border-[#DAD4C6] rounded-xl p-3 bg-[#FAF8F5] space-y-1">
-                          <div className="text-[11.5px] font-bold text-[#23282E]">Valoare piese Audatex</div>
-                          <div className="flex items-center gap-1.5">
-                            <input type="number" min={0} className="w-full p-1.5 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] bg-white" value={form.valoarePieseAudatex} onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)} />
-                            <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
-                          </div>
-                        </div>
-                        <div className="border border-[#DAD4C6] rounded-xl p-3 bg-[#FAF8F5] space-y-1">
-                          <div className="text-[11.5px] font-bold text-[#23282E]">Achiziție piese service</div>
-                          <div className="flex items-center gap-1.5">
-                            <input type="number" min={0} className="w-full p-1.5 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] bg-white" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
-                            <span className="text-[11px] text-[#8A8375] font-bold">lei</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               )}
 
-              {/* TAB CONTENT 3: FINANCIAR */}
-              {activeTab === "financial" && (
-                <div className="space-y-2">
-                  <div className="grid md:grid-cols-2 gap-2">
-                    {/* Venituri & Facturare */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
-                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                        <span className="flex items-center gap-1.5"><Wallet size={14} /> Facturare (Venituri Dosar)</span>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Manoperă fără TVA</label>
-                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#EFEAE1] font-mono font-bold text-[#23282E] text-[12.5px]" value={manoperaFaraTva} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Piese fără TVA</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]"
-                              value={pieseFacturateFaraTva}
-                              onChange={(e) => {
-                                const val = Number(e.target.value) || 0;
-                                setFinancial("pieseFacturateFaraTva", val);
-                                set("valoarePieseAudatex", val);
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Subtotal fără TVA</label>
-                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#EFEAE1] font-mono font-bold text-[#2C4160] text-[12px]" value={`${venitFaraTva.toLocaleString("ro-RO")} lei`} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cota TVA (%)</label>
-                            <input type="number" min={0} max={100} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-center text-[12.5px] bg-[#FAF8F5]" value={tvaProc} onChange={(e) => setFinancial("tvaProc", Number(e.target.value) || 0)} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Total cu TVA</label>
-                            <input disabled className="w-full p-2 border border-[#DAD4C6] rounded-lg bg-[#3E6B45]/10 font-mono font-bold text-[#3E6B45] text-[12px]" value={`${totalCuTva.toLocaleString("ro-RO")} lei`} />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#DAD4C6]">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Număr Factură</label>
-                            <input className="w-full p-2 border border-[#DAD4C6] rounded-lg font-semibold text-[12.5px] bg-[#FAF8F5]" placeholder="ex: FF-1042" value={financial.numarFactura || ""} onChange={(e) => setFinancial("numarFactura", e.target.value)} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Data Factură</label>
-                            <DatePickerInput value={financial.dataFactura} onChange={(v) => setFinancial("dataFactura", v)} withTime={false} placeholder="zi/luna/an" />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-[#DAD4C6]">
-                          <label className="flex items-center gap-2 cursor-pointer font-semibold text-[#23282E] text-[12px]">
-                            <input
-                              type="checkbox"
-                              checked={form.incasat}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                set("incasat", checked);
-                                set("dataIncasarii", checked ? todayISO() : null);
-                              }}
-                              className="rounded border-[#DAD4C6] text-[#3E6B45] focus:ring-0"
-                            />
-                            <span>Factură încasată integral</span>
-                          </label>
-                          {form.incasat && (
-                            <span className="text-[11px] font-bold text-[#3E6B45] bg-[#3E6B45]/10 px-2 py-0.5 rounded-md">
-                              Încasat la {fmtDate(form.dataIncasarii)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Costuri Reale */}
-                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
-                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                        <span className="flex items-center gap-1.5">💸 Costuri Directe Service</span>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Achiziție Piese service</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={form.valoareAchizitiePiese} onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Manoperă Internă</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costManoperaInterna || 0} onChange={(e) => setFinancial("costManoperaInterna", Number(e.target.value) || 0)} />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Costuri Externe</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costuriExterne || 0} onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)} />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Auto la Schimb</label>
-                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-[#FAF8F5]" value={financial.costMasinaSchimb || 0} onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)} />
-                          </div>
-                        </div>
-
-                        <div className="p-3 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] flex items-center justify-between text-[12px]">
-                          <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
-                          <span className="font-mono font-bold text-[14px] text-[#B23A2E]">
-                            {costTotal.toLocaleString("ro-RO")} lei
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Summary KPI Card */}
-                  <div className="p-2 rounded-xl border border-[#DAD4C6] bg-white shadow-sm">
-                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-2 flex items-center justify-between">
-                      <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
-                      <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-                      <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6]">
-                        <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
-                        <div className="text-[15px] font-mono font-bold text-[#2C4160] mt-0.5">
-                          {venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6]">
-                        <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
-                        <div className="text-[15px] font-mono font-bold text-[#B23A2E] mt-0.5">
-                          {costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                        </div>
-                      </div>
-
-                      <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                        <div className="text-[10px] font-bold uppercase">Profit Brut</div>
-                        <div className="text-[15px] font-mono font-bold mt-0.5">
-                          {profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span>
-                        </div>
-                      </div>
-
-                      <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
-                        <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
-                        <div className="text-[15px] font-mono font-bold mt-0.5">
-                          {venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB CONTENT 4: POZE & DOCUMENTE */}
+              {/* ========================================================================= */}
+              {/* TAB 2: POZE & DOCUMENTE                                                    */}
+              {/* ========================================================================= */}
               {activeTab === "media" && (
-                <div className="grid md:grid-cols-2 gap-2">
-                  {/* Poze cu Categorii Structurate (Punctul 9) */}
+                <div className="grid md:grid-cols-2 gap-3">
+                  {/* Galerie Poze */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
                       <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze ({form.poze.length})</span>
-                      <button
-                        type="button"
-                        onClick={handleDownloadZip}
-                        disabled={downloadingZip || form.poze.length === 0}
-                        className="text-[11px] font-bold text-[#3B5166] hover:underline flex items-center gap-1 disabled:opacity-40"
-                      >
+                      <button type="button" onClick={handleDownloadZip} disabled={downloadingZip || form.poze.length === 0} className="text-[11px] font-bold text-[#3B5166] hover:underline flex items-center gap-1 disabled:opacity-40">
                         <Download size={12} /> Descarcă ZIP
                       </button>
                     </div>
 
-                    {/* Categorii rapide de fotografiere (Recepție, Reconstatare, Predare) */}
                     <div className="space-y-1.5">
                       <div className="text-[10.5px] font-bold text-[#6B6558]">Adaugă poze direct în Categorie:</div>
                       <div className="grid grid-cols-3 gap-1.5 text-[11px]">
@@ -1787,12 +1195,10 @@ export default function ClaimModal({
                           <span>🚗 Recepție</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "receptie")} />
                         </label>
-
                         <label className="flex items-center justify-center gap-1 border border-dashed border-[#C98A2B]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#FBF3E6] cursor-pointer text-[#7A5316] font-bold text-center">
                           <span>📋 Reconstatare</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "reconstatare")} />
                         </label>
-
                         <label className="flex items-center justify-center gap-1 border border-dashed border-[#3E6B45]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#EEF5EE] cursor-pointer text-[#3E6B45] font-bold text-center">
                           <span>✨ Predare</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "predare")} />
@@ -1812,14 +1218,10 @@ export default function ClaimModal({
                     </div>
 
                     {form.poze.length > 0 ? (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-60 overflow-y-auto pr-1 pt-1">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 pt-1">
                         {form.poze.map((p) => (
                           <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewPoza(p)}
-                              className="w-full h-full block text-left"
-                            >
+                            <button type="button" onClick={() => setPreviewPoza(p)} className="w-full h-full block text-left">
                               <img src={p.url} alt={p.nume} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                             </button>
                             {p.categoria && p.categoria !== "generale" && (
@@ -1834,16 +1236,16 @@ export default function ClaimModal({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
-                        Nicio fotografie adăugată.
+                      <div className="text-[12px] text-[#8A8375] italic p-8 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                        Nicio fotografie adăugată. Adaugă poze folosind butoanele de mai sus.
                       </div>
                     )}
                   </div>
 
-                  {/* Documente */}
+                  {/* Documente PDF & Scaner Pro */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
-                      <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente PDF ({form.documente.length})</span>
+                      <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente PDF &amp; Scanate ({form.documente.length})</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1853,24 +1255,11 @@ export default function ClaimModal({
                       </label>
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
                         {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => setCropImageSrc(ev.target.result);
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                        />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => setCropImageSrc(ev.target.result); reader.readAsDataURL(file); } }} />
                       </label>
                     </div>
 
-                    <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                       {form.documente.map((d) => (
                         <div key={d.id} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1881,7 +1270,7 @@ export default function ClaimModal({
                         </div>
                       ))}
                       {form.documente.length === 0 && (
-                        <div className="text-[12px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                        <div className="text-[12px] text-[#8A8375] italic p-8 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
                           Niciun document atașat.
                         </div>
                       )}
