@@ -1078,33 +1078,8 @@ export default function ClaimModal({
                       </div>
                     </div>
 
-                    {/* STATUS & STAGEBAR */}
-                    <div className="col-span-1 md:col-span-2 bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-2xs">
-                      <div className="flex items-center justify-between border-b border-[#DAD4C6]/60 pb-1">
-                        <label className="block text-[11px] font-bold text-[#6B6558] uppercase flex items-center gap-1">
-                          <Layers size={13} className="text-[#6B6558]" /> Status &amp; Etapă Flux Operațional
-                        </label>
-                        <select
-                          className="font-bold text-[12px] p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#3B5166]"
-                          value={form.status}
-                          onChange={(e) => {
-                            const newStatusKey = e.target.value;
-                            setForm((f) => ({
-                              ...f,
-                              status: newStatusKey,
-                              dataSchimbareStatus: f.status !== newStatusKey ? nowISO() : f.dataSchimbareStatus,
-                            }));
-                          }}
-                        >
-                          {STATUSES.map((s) => (
-                            <option key={s.key} value={s.key}>
-                              {String(s.num).padStart(2, "0")}. {s.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Bara Interactivă de Stadii */}
+                    {/* BARA INTERACTIVĂ DE STADII FLUX */}
+                    <div className="col-span-1 md:col-span-2 bg-white border border-[#DAD4C6] rounded-xl p-2.5 shadow-2xs">
                       <StageBar
                         statuses={STATUSES}
                         currentStatusKey={form.status}
