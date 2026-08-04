@@ -58,12 +58,29 @@ export function sanitizeClaim(c) {
     status: c.status || "primit",
     dataComandaPiese: c.dataComandaPiese || null,
     ceEsteDeReparat: c.ceEsteDeReparat || "",
-    operatiuni: {
-      inl: !!(c.operatiuni?.inl),
-      rev: !!(c.operatiuni?.rev),
-      rep: !!(c.operatiuni?.rep),
-      uni: !!(c.operatiuni?.uni),
-    },
+    operatiuni: Array.isArray(c.operatiuni) && c.operatiuni.length > 0
+      ? c.operatiuni.map((op, idx) => ({
+          id: op.id || uid() + "_" + idx,
+          piesa: op.piesa || "",
+          inl: !!op.inl,
+          rev: !!op.rev,
+          rep: !!op.rep,
+          uni: !!op.uni,
+        }))
+      : c.operatiuni && typeof c.operatiuni === "object"
+      ? [
+          {
+            id: uid(),
+            piesa: c.ceEsteDeReparat || "",
+            inl: !!c.operatiuni.inl,
+            rev: !!c.operatiuni.rev,
+            rep: !!c.operatiuni.rep,
+            uni: !!c.operatiuni.uni,
+          },
+        ]
+      : [
+          { id: uid(), piesa: c.ceEsteDeReparat || "", inl: false, rev: false, rep: false, uni: false },
+        ],
     masinaSchimb: c.masinaSchimb || "",
     dataDariiLaSchimb: c.dataDariiLaSchimb || "",
     motivBlocare: c.motivBlocare || "",

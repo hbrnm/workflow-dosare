@@ -874,6 +874,151 @@ export default function ClaimModal({
                       ))}
                     </select>
                   </div>
+
+                  {/* SECȚIUNE NOUĂ RELOCATĂ: OPERAȚIUNI DE EFECTUAT PE LINII (PIESĂ + BIFE INL, REV, REP, UNI) */}
+                  <div className="pt-2 border-t border-[#DAD4C6]/60 space-y-2 bg-white/70 p-2 rounded-xl border border-[#DAD4C6]/80 mt-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#23282E] flex items-center gap-1.5">
+                        <Wrench size={13} className="text-[#C98A2B]" /> Operațiuni de Efectuat (Linii &amp; Bife)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentList = Array.isArray(form.operatiuni) ? form.operatiuni : [];
+                          const newList = [...currentList, { id: uid(), piesa: "", inl: false, rev: false, rep: false, uni: false }];
+                          set("operatiuni", newList);
+                        }}
+                        className="text-[10.5px] font-bold text-[#3B5166] hover:text-black bg-white border border-[#DAD4C6] hover:bg-gray-100 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-2xs transition-all"
+                      >
+                        <Plus size={12} /> Adaugă Linie
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5 scrollbar-thin">
+                      {(!Array.isArray(form.operatiuni) || form.operatiuni.length === 0) ? (
+                        <div className="text-[11px] text-[#8A8375] italic bg-white p-2 rounded-lg text-center border border-dashed border-[#DAD4C6]">
+                          Nicio operațiune adăugată. Apasă pe „+ Adaugă Linie”.
+                        </div>
+                      ) : (
+                        form.operatiuni.map((op, idx) => (
+                          <div key={op.id || idx} className="bg-white p-1.5 border border-[#DAD4C6] rounded-xl flex flex-wrap items-center gap-1.5 shadow-2xs">
+                            {/* Câmp de completat denumire piesă / subansamblu */}
+                            <div className="flex-1 min-w-[130px]">
+                              <input
+                                className="w-full font-bold text-[11.5px] p-1 border border-[#DAD4C6] rounded-lg uppercase text-[#23282E] focus:bg-[#FAF8F5] focus:border-[#3B5166]"
+                                placeholder="ex: OGLINDĂ EXTT ST, BARA FAȚĂ..."
+                                value={op.piesa || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value.toUpperCase();
+                                  const newList = [...form.operatiuni];
+                                  newList[idx] = { ...newList[idx], piesa: val };
+                                  set("operatiuni", newList);
+                                  set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
+                                }}
+                              />
+                            </div>
+
+                            {/* Bife INL, REV, REP, UNI pe fiecare linie */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* INL */}
+                              <label
+                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
+                                  op.inl ? "bg-[#C98A2B] text-white border-[#C98A2B]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
+                                }`}
+                                title="Înlocuire"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!!op.inl}
+                                  onChange={(e) => {
+                                    const newList = [...form.operatiuni];
+                                    newList[idx] = { ...newList[idx], inl: e.target.checked };
+                                    set("operatiuni", newList);
+                                  }}
+                                  className="hidden"
+                                />
+                                INL
+                              </label>
+
+                              {/* REV */}
+                              <label
+                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
+                                  op.rev ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
+                                }`}
+                                title="Revopsire"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!!op.rev}
+                                  onChange={(e) => {
+                                    const newList = [...form.operatiuni];
+                                    newList[idx] = { ...newList[idx], rev: e.target.checked };
+                                    set("operatiuni", newList);
+                                  }}
+                                  className="hidden"
+                                />
+                                REV
+                              </label>
+
+                              {/* REP */}
+                              <label
+                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
+                                  op.rep ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
+                                }`}
+                                title="Reparație"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!!op.rep}
+                                  onChange={(e) => {
+                                    const newList = [...form.operatiuni];
+                                    newList[idx] = { ...newList[idx], rep: e.target.checked };
+                                    set("operatiuni", newList);
+                                  }}
+                                  className="hidden"
+                                />
+                                REP
+                              </label>
+
+                              {/* UNI */}
+                              <label
+                                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${
+                                  op.uni ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6] hover:bg-gray-100"
+                                }`}
+                                title="Demontare / Montare"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={!!op.uni}
+                                  onChange={(e) => {
+                                    const newList = [...form.operatiuni];
+                                    newList[idx] = { ...newList[idx], uni: e.target.checked };
+                                    set("operatiuni", newList);
+                                  }}
+                                  className="hidden"
+                                />
+                                UNI
+                              </label>
+
+                              {/* Buton Ștergere Linie */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newList = form.operatiuni.filter((_, i) => i !== idx);
+                                  set("operatiuni", newList);
+                                  set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
+                                }}
+                                className="p-1 text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors ml-0.5"
+                                title="Șterge linia"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT (Punctul 5 & 8) */}
@@ -1089,78 +1234,6 @@ export default function ClaimModal({
               {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
               {activeTab === "note" && (
                 <div className="space-y-2.5">
-                  {/* Operațiuni de Efectuat (Bife INL, REV, REP, UNI - Punctul 3) */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-sm">
-                    <label className="block text-[12px] font-bold text-[#23282E] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <Wrench size={14} className="text-[#6B6558]" /> Operațiuni de Efectuat (Bife)
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px] pt-1">
-                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
-                        form.operatiuni?.inl ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={!!form.operatiuni?.inl}
-                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), inl: e.target.checked })}
-                          className="hidden"
-                        />
-                        {form.operatiuni?.inl ? <CheckSquare size={16} /> : <Square size={16} />}
-                        <span>INL (Înlocuire)</span>
-                      </label>
-
-                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
-                        form.operatiuni?.rev ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={!!form.operatiuni?.rev}
-                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), rev: e.target.checked })}
-                          className="hidden"
-                        />
-                        {form.operatiuni?.rev ? <CheckSquare size={16} /> : <Square size={16} />}
-                        <span>REV (Revopsire)</span>
-                      </label>
-
-                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
-                        form.operatiuni?.rep ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={!!form.operatiuni?.rep}
-                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), rep: e.target.checked })}
-                          className="hidden"
-                        />
-                        {form.operatiuni?.rep ? <CheckSquare size={16} /> : <Square size={16} />}
-                        <span>REP (Reparație)</span>
-                      </label>
-
-                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer font-bold transition-all ${
-                        form.operatiuni?.uni ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-white"
-                      }`}>
-                        <input
-                          type="checkbox"
-                          checked={!!form.operatiuni?.uni}
-                          onChange={(e) => set("operatiuni", { ...(form.operatiuni || {}), uni: e.target.checked })}
-                          className="hidden"
-                        />
-                        {form.operatiuni?.uni ? <CheckSquare size={16} /> : <Square size={16} />}
-                        <span>UNI (Dem./Mont.)</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Descriere Operațiuni (Notion Text Block) */}
-                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-2 shadow-sm">
-                    <label className="block text-[12px] font-bold text-[#23282E] flex items-center gap-1.5 border-b border-[#DAD4C6] pb-1.5">
-                      <FileText size={14} className="text-[#6B6558]" /> Descriere Operațiuni &amp; Ce este de reparat
-                    </label>
-                    <textarea
-                      className="w-full p-2.5 border border-[#DAD4C6] rounded-lg text-[12.5px] bg-[#FAF8F5] focus:bg-white focus:border-[#3B5166] min-h-[70px]"
-                      placeholder="Ex: Aripă dreapta față + ușă — îndreptat și vopsit; sau doar înlocuit parbriz..."
-                      value={form.ceEsteDeReparat}
-                      onChange={(e) => set("ceEsteDeReparat", e.target.value)}
-                    />
-                  </div>
 
                   {/* Note Interne */}
                   <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-3 shadow-sm">
