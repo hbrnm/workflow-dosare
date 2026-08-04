@@ -1159,6 +1159,61 @@ export default function ClaimModal({
                           </button>
                         )}
                       </div>
+
+                      {/* Stepper cu 3 casete interactive bidirecționale */}
+                      <div className="space-y-2 text-[11.5px]">
+                        {/* 1. Adusă fizic */}
+                        <label className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${form.adusaFizic ? "bg-amber-50/60 border-amber-300" : "bg-[#FAF8F5] border-[#DAD4C6]"}`}>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!form.adusaFizic}
+                              onChange={(e) => setForm((f) => ({
+                                ...f,
+                                adusaFizic: e.target.checked,
+                                dataAdusaFizic: e.target.checked ? nowISO() : null,
+                              }))}
+                              className="rounded border-[#DAD4C6]"
+                            />
+                            <span className="font-bold text-[#23282E]">1. Vehicul adus fizic în service</span>
+                          </div>
+                          {form.adusaFizic && (
+                            <span className="text-[10px] font-mono text-[#8A8375]">📅 {fmtDateTime(form.dataAdusaFizic)}</span>
+                          )}
+                        </label>
+
+                        {/* 2. Gata de ridicare */}
+                        <label className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${form.gataDeRidicare ? "bg-emerald-50/60 border-emerald-300" : "bg-[#FAF8F5] border-[#DAD4C6]"}`}>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!form.gataDeRidicare}
+                              onChange={(e) => toggleGata(e.target.checked)}
+                              className="rounded border-[#DAD4C6]"
+                            />
+                            <span className="font-bold text-[#23282E]">2. Lucrare finalizată (Gata de ridicare)</span>
+                          </div>
+                          {form.gataDeRidicare && (
+                            <span className="text-[10px] font-mono text-[#3E6B45] font-bold">📅 {fmtDateTime(form.dataGataRidicare)}</span>
+                          )}
+                        </label>
+
+                        {/* 3. Predată client */}
+                        <label className={`flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${form.ridicata ? "bg-blue-50/60 border-blue-300" : "bg-[#FAF8F5] border-[#DAD4C6]"}`}>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!form.ridicata}
+                              onChange={(e) => toggleRidicata(e.target.checked)}
+                              className="rounded border-[#DAD4C6]"
+                            />
+                            <span className="font-bold text-[#23282E]">3. Predată clientului</span>
+                          </div>
+                          {form.ridicata && (
+                            <span className="text-[10px] font-mono text-[#2C4160] font-bold">📅 {fmtDateTime(form.dataRidicare)}</span>
+                          )}
+                        </label>
+                      </div>
                     </div>
 
                     {/* Mașină la Schimb */}
