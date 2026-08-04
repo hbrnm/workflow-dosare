@@ -19,6 +19,7 @@ const Programator = lazyWithRetry(() => import("./components/views/Programator")
 const Rapoarte = lazyWithRetry(() => import("./components/views/Rapoarte"));
 const QuickCapture = lazyWithRetry(() => import("./components/views/QuickCapture"));
 const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
+const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
 const SetariModal = lazyWithRetry(() => import("./components/modals/SetariModal"));
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
@@ -188,6 +189,8 @@ export default function App() {
     quickCaptureOpen,
     openQuickCapture,
     closeQuickCapture,
+    quickCreateOpen,
+    closeQuickCreate,
   } = useClaimModal(showNotice);
 
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
@@ -842,6 +845,14 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
+          />
+        )}
+
+        {quickCreateOpen && (
+          <QuickCreateClaimModal
+            isOpen={quickCreateOpen}
+            onClose={closeQuickCreate}
+            onSave={handleCreateClaim}
           />
         )}
 

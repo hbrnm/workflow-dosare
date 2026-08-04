@@ -6,9 +6,10 @@ export function useClaimModal(showNotice) {
   const [setariOpen, setSetariOpen] = useState(false);
   const [alerteModalTab, setAlerteModalTab] = useState(null);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
 
-  const openNew = useCallback((type = "primit") => {
-    setModalClaim(emptyClaim(type));
+  const openNew = useCallback(() => {
+    setQuickCreateOpen(true);
   }, []);
 
   const openExisting = useCallback((claim) => {
@@ -37,6 +38,7 @@ export function useClaimModal(showNotice) {
   const closeAlerts = useCallback(() => setAlerteModalTab(null), []);
   const openQuickCapture = useCallback(() => setQuickCaptureOpen(true), []);
   const closeQuickCapture = useCallback(() => setQuickCaptureOpen(false), []);
+  const closeQuickCreate = useCallback(() => setQuickCreateOpen(false), []);
 
   return {
     modalClaim,
@@ -53,5 +55,7 @@ export function useClaimModal(showNotice) {
     quickCaptureOpen,
     openQuickCapture,
     closeQuickCapture,
+    quickCreateOpen,
+    closeQuickCreate,
   };
 }

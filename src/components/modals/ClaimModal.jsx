@@ -196,6 +196,7 @@ export default function ClaimModal({
   const [previewPoza, setPreviewPoza] = useState(null);
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
 
   const filteredSlashCommands = useMemo(() => {
     if (!noteText.includes("/")) return [];
@@ -1226,6 +1227,70 @@ export default function ClaimModal({
                   })}
                 </div>
               )}
+
+              {/* SECȚIUNE EXPANDABILĂ: DETALII FINANCIAR & AUDATEX (Ascunsă Implicit) */}
+              <div className="col-span-1 md:col-span-2 border border-[#DAD4C6] rounded-xl overflow-hidden bg-white shadow-2xs mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowFinancialAccordion((prev) => !prev)}
+                  className="w-full px-3.5 py-2.5 bg-[#F4F1EA] hover:bg-[#EFEAE1] text-[#3B5166] font-extrabold text-[12px] flex items-center justify-between transition-colors border-b border-[#DAD4C6]"
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet size={15} className="text-[#C98A2B]" />
+                    <span>▼ Detalii Financiar &amp; Audatex</span>
+                  </span>
+                  <span className="text-[11px] text-[#8A8375] font-normal">
+                    {showFinancialAccordion ? "Restrânge ▲" : "Afișează valoare deviz, reglat, facturi ▼"}
+                  </span>
+                </button>
+
+                {showFinancialAccordion && (
+                  <div className="p-3 space-y-3 bg-[#FAF8F5]">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px]">
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Deviz Audatex (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
+                          value={form.valoareDevizAudatex || 0}
+                          onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Valoare Reglată (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
+                          value={form.valoareAcceptataReglata || 0}
+                          onChange={(e) => set("valoareAcceptataReglata", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Cuantum Rereglat (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white"
+                          value={form.cuantumRereglat || 0}
+                          onChange={(e) => set("cuantumRereglat", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Nr. Factură &amp; Stadiu</label>
+                        <input
+                          type="text"
+                          className="w-full p-2 border border-[#DAD4C6] rounded-lg font-bold text-[12px] bg-white"
+                          placeholder="ex: FACT-1029"
+                          value={form.numarFactura || ""}
+                          onChange={(e) => set("numarFactura", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* ========================================================================= */}
