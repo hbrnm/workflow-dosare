@@ -28,6 +28,67 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     setGrayscale(true);
   };
 
+  const handleAutoCamScannerCrop = () => {
+    if (!loadedImage) return;
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const w = Math.min(800, loadedImage.width);
+      const h = Math.round((loadedImage.height * w) / loadedImage.width);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(loadedImage, 0, 0, w, h);
+
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const data = imgData.data;
+
+      let top = 0, bottom = h - 1, left = 0, right = w - 1;
+      const step = 4;
+
+      const rowBright = new Array(h).fill(0);
+      const colBright = new Array(w).fill(0);
+
+      for (let y = 0; y < h; y += step) {
+        let sum = 0, cnt = 0;
+        for (let x = 0; x < w; x += step) {
+          const idx = (y * w + x) * 4;
+          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          cnt++;
+        }
+        rowBright[y] = sum / cnt;
+      }
+
+      for (let x = 0; x < w; x += step) {
+        let sum = 0, cnt = 0;
+        for (let y = 0; y < h; y += step) {
+          const idx = (y * w + x) * 4;
+          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+          cnt++;
+        }
+        colBright[x] = sum / cnt;
+      }
+
+      const validRows = [...rowBright].filter(v => v > 0).sort((a, b) => a - b);
+      const medianVal = validRows[Math.floor(validRows.length / 2)] || 128;
+      const cutoff = Math.max(70, medianVal * 0.7);
+
+      while (top < h * 0.25 && rowBright[top] < cutoff) top += step;
+      while (bottom > h * 0.75 && rowBright[bottom] < cutoff) bottom -= step;
+      while (left < w * 0.25 && colBright[left] < cutoff) left += step;
+      while (right > w * 0.75 && colBright[right] < cutoff) right -= step;
+
+      const cropTop = Math.max(0, Math.floor((top / h) * 100));
+      const cropBottom = Math.max(0, Math.floor(((h - bottom) / h) * 100));
+      const cropLeft = Math.max(0, Math.floor((left / w) * 100));
+      const cropRight = Math.max(0, Math.floor(((w - right) / w) * 100));
+
+      setCrop({ top: cropTop, bottom: cropBottom, left: cropLeft, right: cropRight });
+      applyAutoEnhance();
+    } catch (e) {
+      applyAutoEnhance();
+    }
+  };
+
   const handleSave = () => {
     if (!loadedImage) return;
 
@@ -128,8 +189,15 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
                 <RotateCw className="w-3.5 h-3.5" /> 90°
               </button>
               <button
+                onClick={handleAutoCamScannerCrop}
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded shadow-sm"
+                title="Detecție automată margini hârtie și decupare stil CamScanner"
+              >
+                <Crop className="w-3.5 h-3.5 text-white" /> ⚡ Auto-Crop CamScanner
+              </button>
+              <button
                 onClick={applyAutoEnhance}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-700 rounded"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-700 rounded font-bold"
               >
                 <Sun className="w-3.5 h-3.5 text-emerald-400" /> Scanner Alb/Negru Pro
               </button>

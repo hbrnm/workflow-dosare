@@ -10,7 +10,7 @@ import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
 import { todayISO } from "../../utils/dateUtils";
 
-// Function to process scanned document page for enhanced contrast
+// Function to process scanned document page with CamScanner auto-crop, contrast enhancement and high compression
 function processScanImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -18,8 +18,8 @@ function processScanImage(file) {
       const img = new Image();
       img.onload = () => {
         try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
+          const rawCanvas = document.createElement("canvas");
+          const rawCtx = rawCanvas.getContext("2d");
 
           const MAX_DIM = 1600;
           let w = img.width;
@@ -34,28 +34,88 @@ function processScanImage(file) {
             }
           }
 
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
+          rawCanvas.width = w;
+          rawCanvas.height = h;
+          rawCtx.drawImage(img, 0, 0, w, h);
 
-          const imgData = ctx.getImageData(0, 0, w, h);
+          const imgData = rawCtx.getImageData(0, 0, w, h);
           const data = imgData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            let v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            v = v > 130 ? Math.min(255, v * 1.2) : Math.max(0, v * 0.8);
-            data[i] = v;
-            data[i + 1] = v;
-            data[i + 2] = v;
-          }
-          ctx.putImageData(imgData, 0, 0);
 
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.80);
+          // 1. Edge & paper bounding box detection (CamScanner style Auto-Crop)
+          let top = 0, bottom = h - 1, left = 0, right = w - 1;
+          const rowBright = new Array(h).fill(0);
+          const colBright = new Array(w).fill(0);
+          const step = 4;
+
+          for (let y = 0; y < h; y += step) {
+            let sum = 0, cnt = 0;
+            for (let x = 0; x < w; x += step) {
+              const idx = (y * w + x) * 4;
+              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+              cnt++;
+            }
+            rowBright[y] = sum / cnt;
+          }
+
+          for (let x = 0; x < w; x += step) {
+            let sum = 0, cnt = 0;
+            for (let y = 0; y < h; y += step) {
+              const idx = (y * w + x) * 4;
+              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+              cnt++;
+            }
+            colBright[x] = sum / cnt;
+          }
+
+          const validRows = [...rowBright].filter(v => v > 0).sort((a, b) => a - b);
+          const medianVal = validRows[Math.floor(validRows.length / 2)] || 128;
+          const cutoff = Math.max(70, medianVal * 0.7);
+
+          while (top < h * 0.25 && rowBright[top] < cutoff) top += step;
+          while (bottom > h * 0.75 && rowBright[bottom] < cutoff) bottom -= step;
+          while (left < w * 0.25 && colBright[left] < cutoff) left += step;
+          while (right > w * 0.75 && colBright[right] < cutoff) right -= step;
+
+          const cropX = Math.max(0, left);
+          const cropY = Math.max(0, top);
+          const cropW = Math.max(100, right - left + 1);
+          const cropH = Math.max(100, bottom - top + 1);
+
+          // 2. Render cropped & enhanced document page
+          const finalCanvas = document.createElement("canvas");
+          finalCanvas.width = cropW;
+          finalCanvas.height = cropH;
+          const finalCtx = finalCanvas.getContext("2d");
+
+          finalCtx.drawImage(rawCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+          // 3. CamScanner High-Contrast Scanner Filter (White paper, black text)
+          const croppedData = finalCtx.getImageData(0, 0, cropW, cropH);
+          const pixels = croppedData.data;
+          for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+            // Thresholding: paper becomes clean white, text becomes sharp black
+            if (lum > 120) {
+              lum = Math.min(255, lum * 1.25);
+            } else {
+              lum = Math.max(0, lum * 0.75);
+            }
+
+            pixels[i] = lum;
+            pixels[i + 1] = lum;
+            pixels[i + 2] = lum;
+          }
+          finalCtx.putImageData(croppedData, 0, 0);
+
+          // 4. Maximum compression JPEG output (65% quality)
+          const dataUrl = finalCanvas.toDataURL("image/jpeg", 0.65);
           resolve(dataUrl);
         } catch (err) {
-          reject(new Error("Eroare la procesarea imaginii."));
+          reject(new Error("Eroare la autocropare și procesare scan."));
         }
       };
       img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
