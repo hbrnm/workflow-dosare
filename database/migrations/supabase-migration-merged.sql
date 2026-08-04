@@ -41,3 +41,6 @@ begin
       for delete using (bucket_id = 'documente-dosare' and auth.role() = 'authenticated');
   end if;
 end $$;
+
+-- 3) Mark alerts acknowledged flag
+alter table dosare add column if not exists alerte_ack boolean default false;

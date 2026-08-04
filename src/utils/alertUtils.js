@@ -3,6 +3,7 @@ import { daysBetween } from "./dateUtils";
 // După ce un dosar este gata de ridicare, el este urmărit separat de alertele
 // de întârziere ale etapelor din flux.
 export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
+  if (claim?.alerteAck) return false;
   return Boolean(
     claim.gataDeRidicare &&
     !claim.ridicata &&
@@ -12,6 +13,7 @@ export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
 }
 
 export function isStageOverdue(claim) {
+  if (claim?.alerteAck) return false;
   return Boolean(
     claim.status !== "facturat" &&
     !(claim.gataDeRidicare && !claim.ridicata) &&
@@ -25,6 +27,7 @@ export function getDaysInStage(claim) {
 
 // Dosare cu accept de plată dar pentru care nu au fost comandate încă piesele
 export function isAcceptPlataWithoutParts(claim) {
+  if (claim?.alerteAck) return false;
   return Boolean(
     !claim.blocat &&
     claim.status === "accept_plata"
@@ -34,6 +37,7 @@ export function isAcceptPlataWithoutParts(claim) {
 // Detectează dosarele care nu au avut nicio modificare/activitate de mai mult de X zile
 export function isInactiveClaim(claim, inactivityThresholdDays = 7) {
   if (["predat_client", "facturat"].includes(claim.status)) return false;
+  if (claim?.alerteAck) return false;
   const lastUpdate = claim.dataUltimeiActualizari || claim.dataSchimbareStatus || claim.dataDeschiderii;
   return daysBetween(lastUpdate) >= inactivityThresholdDays;
 }

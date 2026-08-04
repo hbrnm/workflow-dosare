@@ -40,13 +40,13 @@ export default function AlerteModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-[16px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Centrul de Alerte Operaționale
-                </h2>
-                <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                  {totalAlertsCount} Alerte Total
-                </span>
-              </div>
+                    className="flex items-center justify-between bg-white border border-[#E8DCC4] rounded-xl p-3 hover:border-[#7A5316] hover:shadow-sm cursor-pointer transition-all group"
+                    Centrul de Alerte Operaționale
+                  </h2>
+                  <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                    {totalAlertsCount} Alerte Total
+                  </span>
+                </div>
               <p className="text-[11.5px] text-white/70">Alege o categorie pentru a vizualiza dosarele ce necesită acțiune</p>
             </div>
           </div>
@@ -59,6 +59,13 @@ export default function AlerteModal({
         <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-5 gap-2.5 shrink-0 text-center">
 
           {/* Card 1: Depășite */}
+                        <button
+                          type="button"
+                          onClick={async (e) => { e.stopPropagation(); if (!onPatchClaim) return; const ok = await onPatchClaim(c.id, { alerteAck: true }); if (onNotify) onNotify(ok ? 'Alerta marcată ca rezolvată.' : 'Eroare la marcarea alertei.', ok ? 'success' : 'error'); }}
+                          className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]"
+                        >
+                          Marchează rezolvat
+                        </button>
           <button
             onClick={() => setActiveTab("depasite")}
             className={`p-2.5 rounded-xl border transition-all ${
@@ -203,7 +210,6 @@ export default function AlerteModal({
                 acceptPlataNoParts.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => { onClose(); onOpenClaim(c); }}
                     className="flex items-center justify-between bg-white border border-[#C6D2E1] rounded-xl p-3 hover:border-[#2C4160] hover:shadow-sm cursor-pointer transition-all group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -226,6 +232,13 @@ export default function AlerteModal({
                       <span className="text-[11.5px] font-bold text-[#2C4160] bg-[#E3E9F2] px-2.5 py-1 rounded-lg group-hover:bg-[#2C4160] group-hover:text-white transition-colors">
                         Comandă Piese ➔
                       </span>
+                      <button
+                        type="button"
+                        onClick={async (e) => { e.stopPropagation(); if (!onPatchClaim) return; const ok = await onPatchClaim(c.id, { alerteAck: true }); if (onNotify) onNotify(ok ? 'Alerta marcată ca rezolvată.' : 'Eroare la marcarea alertei.', ok ? 'success' : 'error'); }}
+                        className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]"
+                      >
+                        Marchează rezolvat
+                      </button>
                     </div>
                   </div>
                 ))
@@ -249,7 +262,6 @@ export default function AlerteModal({
                 unpicked.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => { onClose(); onOpenClaim(c); }}
                     className="flex items-center justify-between bg-white border border-[#F3E5CD] rounded-xl p-3 hover:border-[#C98A2B] hover:shadow-sm cursor-pointer transition-all group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -268,7 +280,16 @@ export default function AlerteModal({
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <ChevronRight size={18} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
+                      <button
+                        type="button"
+                        onClick={async (e) => { e.stopPropagation(); if (!onPatchClaim) return; const ok = await onPatchClaim(c.id, { alerteAck: true }); if (onNotify) onNotify(ok ? 'Alerta marcată ca rezolvată.' : 'Eroare la marcarea alertei.', ok ? 'success' : 'error'); }}
+                        className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]"
+                      >
+                        Marchează rezolvat
+                      </button>
+                      <button onClick={() => { onClose(); onOpenClaim(c); }} className="p-1.5 rounded hover:bg-[#F4F1EA]">
+                        <ChevronRight size={18} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -340,7 +361,6 @@ export default function AlerteModal({
                 blocked.map((c) => (
                   <div
                     key={c.id}
-                    onClick={() => { onClose(); onOpenClaim(c); }}
                     className="flex items-center justify-between bg-white border border-[#D5DCB4] rounded-xl p-3 hover:border-[#3B5166] hover:shadow-sm cursor-pointer transition-all group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -352,7 +372,18 @@ export default function AlerteModal({
                         <div className="text-[12px] text-[#B23A2E] font-medium truncate">Motiv blocare: {c.motivBlocare || "Nespecificat"}</div>
                       </div>
                     </div>
-                    <ChevronRight size={18} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async (e) => { e.stopPropagation(); if (!onPatchClaim) return; const ok = await onPatchClaim(c.id, { alerteAck: true }); if (onNotify) onNotify(ok ? 'Alerta marcată ca rezolvată.' : 'Eroare la marcarea alertei.', ok ? 'success' : 'error'); }}
+                        className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]"
+                      >
+                        Marchează rezolvat
+                      </button>
+                      <button onClick={() => { onClose(); onOpenClaim(c); }} className="p-1.5 rounded hover:bg-[#F4F1EA]">
+                        <ChevronRight size={18} className="text-[#8A8375] group-hover:translate-x-0.5 transition-transform" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

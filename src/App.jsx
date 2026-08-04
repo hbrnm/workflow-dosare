@@ -8,7 +8,7 @@ import { STATUSES, INSURERS } from "./constants/config";
 import { nowISO } from "./utils/dateUtils";
 import { useExportExcel } from "./hooks/useExportExcel";
 import { emptyClaim } from "./utils/claimUtils";
-import Notification from "./components/common/Notification";
+import NotificationQueue from "./components/common/NotificationQueue";
 import UndoToast from "./components/common/UndoToast";
 import Login from "./components/auth/Login";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
@@ -347,7 +347,7 @@ export default function App() {
   if (activeMode === "mobile") {
     return (
       <ErrorBoundary>
-        <Notification notice={notice} onClose={() => setNotice(null)} />
+        <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
@@ -416,7 +416,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
-      <Notification notice={notice} onClose={() => setNotice(null)} />
+      <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
       {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
@@ -874,6 +874,8 @@ export default function App() {
             pragInactivitate={pragInactivitate}
             onClose={closeAlerts}
             onOpenClaim={openExisting}
+            onPatchClaim={patchClaim}
+            onNotify={showNotice}
           />
         )}
 
