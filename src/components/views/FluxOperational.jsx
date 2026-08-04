@@ -42,14 +42,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
   const currentStatusKey = statusDef.key;
   const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
-  const nextStatus = currentIndex < STATUSES.length - 1 ? STATUSES[currentIndex + 1] : null;
 
-  // Calcul stare aging (sub 2 zile = ok, 2-4 zile = warn, peste 4 zile sau intarziat = danger)
   let agingClass = "bg-[#E9F5EE] text-[#2F8F5B]";
   if (days >= 2 && days <= 4) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
   if (days > 4 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
-  const commentsCount = (claim.poze?.length || 0) + (claim.documente?.length || 0);
   const isPartOverdue = (claim.status === "piese_comandate" || currentStatusKey === "piese_comandate") && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
 
   return (
@@ -61,10 +58,10 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative bg-white border border-[#E4E1D9] rounded-xl p-2.5 shadow-xs transition-all duration-150 cursor-pointer select-none space-y-1.5 hover:shadow-md ${
+      className={`card group relative bg-white border rounded-xl p-2.5 shadow-xs transition-all duration-150 cursor-pointer select-none space-y-1.5 hover:shadow-md ${
         claim.blocat || overdue
           ? "border-[#EAC3C0] bg-gradient-to-b from-[#FBEAE9]/60 to-white"
-          : "hover:border-[#1B2430]"
+          : "border-[#E4E1D9] hover:border-[#1B2430]"
       }`}
     >
       {/* 1. TOP ROW: Nr. Înmatriculare + Asigurare Badge + Vehicul */}
@@ -91,12 +88,18 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         <span className="text-[11px] text-[#5B6572] font-medium truncate max-w-[110px]" title={claim.marcaModel || claim.client}>
           {claim.marcaModel || claim.client || "—"}
         </span>
+      </div>
+
       {/* 2. VISUAL STEPPER INTERACTIV (9 SEGMENTE CLAR DELIMITATE CU NUMERE 1-9) */}
       <div className="space-y-1 my-1" onClick={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-9 gap-1 h-4.5 w-full bg-[#EFEAE1] border border-[#DAD4C6] rounded-lg p-0.5 cursor-pointer">
           {STATUSES.map((s, idx) => {
             const isDone = idx < currentIndex;
             const isCurrent = idx === currentIndex;
+            let btnClass = "bg-white text-[#334155] border-[#94A3B8] hover:bg-[#F3D9A8] hover:border-[#C98A2B] hover:text-[#7A5316]";
+            if (isCurrent) btnClass = "bg-[#C98A2B] text-white border-[#A86F1C] shadow-xs scale-105 z-10";
+            else if (isDone) btnClass = "bg-[#3B5166] text-white border-[#2C4160] opacity-90 hover:opacity-100";
+
             return (
               <button
                 key={s.key}
@@ -106,13 +109,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
                   if (!isCurrent) onMoveToStatus(claim, s.key);
                 }}
                 title={`Click pentru mutare directă în faza ${s.num}: ${s.label}`}
-                className={`h-full w-full rounded text-[9.5px] font-mono font-black flex items-center justify-center transition-all cursor-pointer border ${
-                  isCurrent
-                    ? "bg-[#C98A2B] text-white border-[#A86F1C] shadow-xs scale-105 z-10"
-                    : isDone
-                    ? "bg-[#3B5166] text-white border-[#2C4160] opacity-90 hover:opacity-100"
-                    : "bg-white text-[#334155] border-[#94A3B8] hover:bg-[#F3D9A8] hover:border-[#C98A2B] hover:text-[#7A5316]"
-                }`}
+                className={`h-full w-full rounded text-[9.5px] font-mono font-black flex items-center justify-center transition-all cursor-pointer border ${btnClass}`}
               >
                 {s.num}
               </button>
