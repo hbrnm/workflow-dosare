@@ -90,29 +90,21 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </span>
       </div>
 
-      {/* 2. VISUAL STEPPER INTERACTIV (9 SEGMENTE CLAR DELIMITATE CU NUMERE 1-9) */}
-      <div className="space-y-1 my-1" onClick={(e) => e.stopPropagation()}>
-        <div className="grid grid-cols-9 gap-1 h-4.5 w-full bg-[#EFEAE1] border border-[#DAD4C6] rounded-lg p-0.5 cursor-pointer">
+      {/* 2. BARA VIZUALĂ DE PROGRES & SELEKTOR UNIC DE STADIU */}
+      <div className="space-y-1 my-0.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5">
           {STATUSES.map((s, idx) => {
             const isDone = idx < currentIndex;
             const isCurrent = idx === currentIndex;
-            let btnClass = "bg-white text-[#334155] border-[#94A3B8] hover:bg-[#F3D9A8] hover:border-[#C98A2B] hover:text-[#7A5316]";
-            if (isCurrent) btnClass = "bg-[#C98A2B] text-white border-[#A86F1C] shadow-xs scale-105 z-10";
-            else if (isDone) btnClass = "bg-[#3B5166] text-white border-[#2C4160] opacity-90 hover:opacity-100";
-
             return (
-              <button
+              <div
                 key={s.key}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isCurrent) onMoveToStatus(claim, s.key);
+                className="h-full flex-1 rounded-xs transition-all"
+                style={{
+                  backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
+                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35,
                 }}
-                title={`Click pentru mutare directă în faza ${s.num}: ${s.label}`}
-                className={`h-full w-full rounded text-[9.5px] font-mono font-black flex items-center justify-center transition-all cursor-pointer border ${btnClass}`}
-              >
-                {s.num}
-              </button>
+              />
             );
           })}
         </div>
@@ -127,8 +119,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
                 onMoveToStatus(claim, e.target.value);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-md px-1.5 py-0.5 font-extrabold text-[#1B2430] text-[10.5px] cursor-pointer hover:bg-white focus:outline-none transition-colors"
-              title="Alege orice stadiu din listă"
+              className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-md px-2 py-0.5 font-extrabold text-[#1B2430] text-[11px] cursor-pointer hover:bg-white focus:outline-none transition-colors shadow-2xs"
+              title="Alege stadiul dosarului din listă"
             >
               {STATUSES.map((s) => (
                 <option key={s.key} value={s.key}>
