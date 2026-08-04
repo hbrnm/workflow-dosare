@@ -128,12 +128,158 @@ function processScanImage(file) {
 
 
 
+// MODAL CAMERĂ STIL IPHONE/SAMSUNG - FĂRĂ BUTOANE DE OK, SALVARE AUTOMATĂ LIVE
+function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
+  const [categorie, setCategorie] = useState(initialCategorie);
+  const [photoCount, setPhotoCount] = useState(0);
+  const [flash, setFlash] = useState(false);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        });
+        if (active) {
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        }
+      } catch (err) {
+        console.warn("Camera video stream failed:", err);
+      }
+    }
+    startCamera();
+    return () => {
+      active = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
+
+  const capturePhotoInstantly = async () => {
+    if (!videoRef.current) return;
+    setFlash(true);
+    setTimeout(() => setFlash(false), 120);
+
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], `Foto_${categorie}_${Date.now()}.jpg`, { type: "image/jpeg" });
+        setPhotoCount((c) => c + 1);
+        // Salvare automată silențioasă în fundal fără nicio confirmare "OK"
+        await onSavePhoto([file], categorie);
+      }, "image/jpeg", 0.70);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-black flex flex-col items-center justify-between text-white overflow-hidden select-none">
+      {/* HEADER CAMERA - SELECTOR CATEGORII */}
+      <div className="w-full flex items-center justify-between px-4 py-3 bg-black/90 z-20 shrink-0 border-b border-white/10">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCategorie("receptie")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+              categorie === "receptie" ? "bg-[#C98A2B] text-white shadow-sm" : "bg-white/10 text-white/70"
+            }`}
+          >
+            Recepție
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategorie("reconstatare")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+              categorie === "reconstatare" ? "bg-[#3B5166] text-white shadow-sm" : "bg-white/10 text-white/70"
+            }`}
+          >
+            Reconstatare
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategorie("predare")}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
+              categorie === "predare" ? "bg-[#3E6B45] text-white shadow-sm" : "bg-white/10 text-white/70"
+            }`}
+          >
+            Predare
+          </button>
+        </div>
+
+        <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+          <X size={22} />
+        </button>
+      </div>
+
+      {/* VIZOR LIVE CAMERA FULLSCREEN */}
+      <div className="relative flex-1 w-full flex items-center justify-center bg-black overflow-hidden">
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+        
+        {/* Flash Effect la Poza */}
+        {flash && <div className="absolute inset-0 bg-white z-30 transition-opacity duration-100" />}
+
+        {/* Indicator Poze Salvate */}
+        <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md border border-white/20 text-emerald-400 px-3.5 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>{photoCount} poze salvate direct</span>
+        </div>
+      </div>
+
+      {/* FOOTER CAMERA - DECLANȘATOR NATIV IPHONE / SAMSUNG */}
+      <div className="w-full py-6 px-8 bg-black/90 z-20 flex items-center justify-between shrink-0 border-t border-white/10">
+        <div className="w-16 text-center text-[11px] font-bold text-white/60 uppercase">
+          {categorie}
+        </div>
+
+        {/* SHUTTER BUTTON CERC NATIV */}
+        <button
+          type="button"
+          onClick={capturePhotoInstantly}
+          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform shadow-2xl bg-white/10"
+        >
+          <div className="w-16 h-16 rounded-full bg-white active:bg-gray-300 transition-colors shadow-inner" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-xl shadow-md"
+        >
+          Gata
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn, onNotify }) {
   const [query, setQuery] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraCategory, setCameraCategory] = useState("receptie");
+
+  const receptieInputRef = useRef(null);
+  const reconstatareInputRef = useRef(null);
+  const predareInputRef = useRef(null);
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
@@ -162,22 +308,30 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   }, [claims, selectedClaimId]);
 
   // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
-  const handleMobilePhotoCapture = async (fileList, categorie = "generale") => {
+  const handleMobilePhotoCapture = async (fileList, categorie = "generale", targetInputRef = null) => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar din listă.", "error");
       return;
     }
     const files = Array.from(fileList || []);
-    if (files.length === 0) return;
+    if (files.length === 0) return; // Utilizatorul a închis camera -> se oprește bucla automat
+
+    // Redeschide camera nativă imediat pentru poza următoare
+    if (targetInputRef && targetInputRef.current) {
+      setTimeout(() => {
+        try {
+          targetInputRef.current.click();
+        } catch (err) {
+          console.warn("Auto-reopen camera error:", err);
+        }
+      }, 350);
+    }
 
     setUploading(true);
     try {
       const noiPoze = [];
       for (const file of files) {
-        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB.`, "error");
-          continue;
-        }
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) continue;
         const compressed = await compressImage(file);
         const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
         const itemWithCat = typeof uploaded === "object" ? { ...uploaded, categoria: categorie } : { url: uploaded, categoria: categorie };
@@ -188,8 +342,6 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         const currentPoze = selectedClaim.poze || [];
         const updatedPoze = [...noiPoze, ...currentPoze];
         await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
-        const labelCat = categorie === "receptie" ? "Recepție" : categorie === "reconstatare" ? "Reconstatare" : categorie === "predare" ? "Predare" : "Generale";
-        onNotify(`📸 ${noiPoze.length} poză/poze (${labelCat}) salvată/e automat pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
       onNotify("Eroare la încărcare poză: " + err.message, "error");
@@ -463,64 +615,49 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             📸 Fotografiere pe Categorii (Salvare automată live pe dosar &amp; ZIP)
           </span>
 
-          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Foto Direct) */}
+          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Live Fără Nicio Confirmare "OK") */}
           <div className="grid grid-cols-3 gap-2.5">
             {/* 1. RECEPȚIE */}
-            <label
+            <button
+              type="button"
+              onClick={() => {
+                setCameraCategory("receptie");
+                setShowLiveCamera(true);
+              }}
               className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto pentru Recepție"
+              title="Deschide Camera Foto Live Recepție"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Recepție</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  handleMobilePhotoCapture(e.target.files, "receptie");
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            </button>
 
             {/* 2. RECONSTATARE */}
-            <label
+            <button
+              type="button"
+              onClick={() => {
+                setCameraCategory("reconstatare");
+                setShowLiveCamera(true);
+              }}
               className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto pentru Reconstatare"
+              title="Deschide Camera Foto Live Reconstatare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Reconstatare</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  handleMobilePhotoCapture(e.target.files, "reconstatare");
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            </button>
 
             {/* 3. PREDARE */}
-            <label
+            <button
+              type="button"
+              onClick={() => {
+                setCameraCategory("predare");
+                setShowLiveCamera(true);
+              }}
               className="flex flex-col items-center justify-center p-3.5 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto pentru Predare"
+              title="Deschide Camera Foto Live Predare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Predare</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  handleMobilePhotoCapture(e.target.files, "predare");
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            </button>
           </div>
 
           {/* 2 OPȚIUNI UTILITARE (SCANNER ACTE PRO / GALERIE & PDF) */}
@@ -797,6 +934,16 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           </button>
           <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
         </div>
+      )}
+
+      {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}
+      {showLiveCamera && selectedClaim && (
+        <LiveStreamCameraModal
+          claim={selectedClaim}
+          initialCategorie={cameraCategory}
+          onSavePhoto={handleMobilePhotoCapture}
+          onClose={() => setShowLiveCamera(false)}
+        />
       )}
 
     </div>
