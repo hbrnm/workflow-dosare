@@ -19,6 +19,18 @@ const PHASE_COLOR_MAP = {
 
 const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
 
+const SHORT_STATUS_LABELS = {
+  deschidere: "1.Acord",
+  reconstatare: "2.Reconst",
+  accept_plata: "3.Accept",
+  piese_comandate: "4.Piese",
+  programat: "5.Progr",
+  in_lucru: "6.Lucru",
+  gata_de_ridicare: "7.Gata",
+  predat_client: "8.Predat",
+  facturat: "9.Fact",
+};
+
 // ---------------------------------------------------------------------------
 // KANBAN CARD REDESIGN (OPTIMIZAT COMPACT PE VERTICALĂ)
 // ---------------------------------------------------------------------------
@@ -150,45 +162,51 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </div>
       )}
 
-      {/* 5. CARD FOOTER: AGING + PHONE / WHATSAPP + ADVANCE BUTTON */}
-      <div className="flex items-center gap-1.5 pt-0.5 border-t border-[#E4E1D9]/60 text-[10px]">
-        {/* Aging Pill */}
-        <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
-          <Clock size={10} /> {days} zile
-        </span>
-
-        {/* Apel Telefon & WhatsApp (în loc de iconiță număr mesaje) */}
-        {claim.telefonClient && (
-          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <a
-              href={telLink(claim.telefonClient)}
-              onClick={(e) => e.stopPropagation()}
-              title={`Sună clientul: ${claim.telefonClient}`}
-              className="p-1 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
-            >
-              <Phone size={11} />
-            </a>
-            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
+      {/* 5. SELECȚIE RAPIDĂ ORICARE FAZĂ ÎNAPOI / ÎNAINTE (1-CLICK DIRECT PE CARD) */}
+      <div className="pt-1.5 border-t border-[#E4E1D9]/80 space-y-1" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between text-[9.5px] font-bold text-[#6B6558] mb-0.5">
+          <div className="flex items-center gap-1.5">
+            <span>Fază 1-Click:</span>
+            {claim.telefonClient && (
+              <div className="flex items-center gap-1 shrink-0">
+                <a
+                  href={telLink(claim.telefonClient)}
+                  onClick={(e) => e.stopPropagation()}
+                  title={`Sună clientul: ${claim.telefonClient}`}
+                  className="p-0.5 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+                >
+                  <Phone size={10} />
+                </a>
+                <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
+              </div>
+            )}
           </div>
-        )}
-
-        <span className="flex-1" />
-
-        {/* 1-Click Advance Button */}
-        {nextStatus && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveToStatus(claim, nextStatus.key);
-            }}
-            className="flex items-center gap-1 py-0.5 px-2 rounded-lg bg-[#C98A2B] hover:bg-[#B37A22] text-white text-[10px] font-extrabold shadow-2xs transition-all active:scale-95 shrink-0"
-            title={`Avansează rapid în stadiul „${nextStatus.label}”`}
-          >
-            <span>{nextStatus.label}</span>
-            <ArrowRight size={11} />
-          </button>
-        )}
+          <span className={`px-1 rounded ${agingClass}`}>{days} zile</span>
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+          {STATUSES.map((s) => {
+            const isCurrent = s.key === claim.status;
+            const shortLabel = SHORT_STATUS_LABELS[s.key] || s.num;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isCurrent) onMoveToStatus(claim, s.key);
+                }}
+                className={`px-1.5 py-0.5 rounded text-[9.5px] font-black transition-all shrink-0 ${
+                  isCurrent
+                    ? "bg-[#C98A2B] text-white shadow-2xs scale-105"
+                    : "bg-[#F4F1EA] hover:bg-[#3B5166] text-[#3B5166] hover:text-white"
+                }`}
+                title={`Mută instant în faza „${s.label}”`}
+              >
+                {shortLabel}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
     </div>
