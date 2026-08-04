@@ -1279,6 +1279,204 @@ export default function ClaimModal({
                 </div>
               )}
 
+              {/* ========================================================================= */}
+              {/* TAB 3: FINANCIAR & AUDATEX                                                */}
+              {/* ========================================================================= */}
+              {activeTab === "financial" && (
+                <div className="space-y-3">
+                  {/* Secțiunea Valori Deviz & Reglat */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[#C98A2B]" /> Valori Deviz Audatex &amp; Facturare</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Deviz Audatex (lei)</label>
+                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.valoareDevizAudatex || 0} onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Valoare Reglată (lei)</label>
+                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.valoareAcceptataReglata || 0} onChange={(e) => set("valoareAcceptataReglata", Number(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Cuantum Rereglat (lei)</label>
+                        <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[12.5px] bg-white" value={form.cuantumRereglat || 0} onChange={(e) => set("cuantumRereglat", Number(e.target.value) || 0)} />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-bold text-[#6B6558] mb-1">Nr. Factură &amp; Stadiu</label>
+                        <input type="text" className="w-full p-2 border border-[#DAD4C6] rounded-lg font-bold text-[12px] bg-white" placeholder="ex: FACT-1029" value={form.numarFactura || ""} onChange={(e) => set("numarFactura", e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detalii Costuri & Calcul Profit */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5">
+                      💰 Defalcare Manoperă, Cost Piese &amp; Profitabilitate Reală
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Manoperă & Piese */}
+                      <div className="space-y-2 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
+                        <div className="text-[11px] font-bold text-[#6B6558] uppercase">Manoperă &amp; Cost Piese (lei)</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Tinichigerie (lei)</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.manoperaTinichigerie || 0} onChange={(e) => setFinancial("manoperaTinichigerie", Number(e.target.value) || 0)} />
+                          </div>
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Vopsitorie (lei)</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.manoperaVopsitorie || 0} onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Piese Înlocuire (lei)</label>
+                          <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costPiese || 0} onChange={(e) => setFinancial("costPiese", Number(e.target.value) || 0)} />
+                        </div>
+                      </div>
+
+                      {/* Costuri Externe & Masina Schimb */}
+                      <div className="space-y-2 bg-[#FAF8F5] p-3 rounded-xl border border-[#DAD4C6]">
+                        <div className="text-[11px] font-bold text-[#6B6558] uppercase">Alte Costuri Externe (lei)</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Costuri Externe</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costuriExterne || 0} onChange={(e) => setFinancial("costuriExterne", Number(e.target.value) || 0)} />
+                          </div>
+                          <div>
+                            <label className="block text-[10.5px] font-semibold text-[#6B6558] mb-1">Cost Auto Schimb</label>
+                            <input type="number" min={0} className="w-full p-2 border border-[#DAD4C6] rounded-lg font-mono font-bold text-[#23282E] text-[12.5px] bg-white" value={financial.costMasinaSchimb || 0} onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)} />
+                          </div>
+                        </div>
+
+                        <div className="p-3 rounded-xl border border-[#DAD4C6] bg-white flex items-center justify-between text-[12px] mt-2">
+                          <span className="font-bold text-[#6B6558]">Total Costuri Reale:</span>
+                          <span className="font-mono font-bold text-[14px] text-[#B23A2E]">{costTotal.toLocaleString("ro-RO")} lei</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary KPI Card */}
+                    <div className="p-3 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] shadow-xs mt-2">
+                      <div className="text-[12px] font-bold uppercase tracking-wide text-[#3B5166] border-b border-[#DAD4C6] pb-1.5 mb-2 flex items-center justify-between">
+                        <span>📊 Rezultat Financiar &amp; Profitabilitate Reală Dosar</span>
+                        <span className="text-[10.5px] text-[#8A8375] font-normal uppercase">Calculat automat fără TVA</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div className="p-2.5 rounded-xl bg-white border border-[#DAD4C6]">
+                          <div className="text-[10px] text-[#8A8375] font-bold uppercase">Venit Net (fără TVA)</div>
+                          <div className="text-[15px] font-mono font-bold text-[#2C4160] mt-0.5">{venitFaraTva.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-white border border-[#DAD4C6]">
+                          <div className="text-[10px] text-[#8A8375] font-bold uppercase">Total Costuri</div>
+                          <div className="text-[15px] font-mono font-bold text-[#B23A2E] mt-0.5">{costTotal.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
+                        </div>
+                        <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                          <div className="text-[10px] font-bold uppercase">Profit Brut</div>
+                          <div className="text-[15px] font-mono font-bold mt-0.5">{profitBrut.toLocaleString("ro-RO")} <span className="text-[10px]">lei</span></div>
+                        </div>
+                        <div className={`p-2.5 rounded-xl border ${profitBrut >= 0 ? "bg-[#3E6B45]/10 border-[#3E6B45]/30 text-[#3E6B45]" : "bg-[#B23A2E]/10 border-[#B23A2E]/30 text-[#B23A2E]"}`}>
+                          <div className="text-[10px] font-bold uppercase">Marjă Profit</div>
+                          <div className="text-[15px] font-mono font-bold mt-0.5">{venitFaraTva > 0 ? ((profitBrut / venitFaraTva) * 100).toFixed(1) : "0.0"}%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* TAB 4: ISTORIC & NOTIȚE                                                   */}
+              {/* ========================================================================= */}
+              {activeTab === "history" && (
+                <div className="space-y-3">
+                  {/* Note Interne Echipă */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe interne echipă ({form.note.length})
+                      </h3>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        ref={noteInputRef}
+                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
+                        placeholder="Adaugă o notă internă..."
+                        value={noteText}
+                        onChange={(e) => { setNoteText(e.target.value); setSlashIndex(0); }}
+                        onKeyDown={handleNoteKeyDown}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addNote()}
+                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                      >
+                        <Plus size={15} /> Adaugă
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 pt-0.5 max-h-56 overflow-y-auto pr-1">
+                      {form.note.map((n) => {
+                        const isAlert = n.text.includes("[ALERTĂ]");
+                        const isParts = n.text.includes("[PIESE]");
+                        const isCar = n.text.includes("[AUTO SCHIMB]");
+                        const isCall = n.text.includes("[APEL CLIENT]");
+
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-2 rounded-lg border transition-all ${
+                              isAlert ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
+                              : isParts ? "bg-amber-50/70 border-amber-200 text-[#7A5316]"
+                              : isCar ? "bg-blue-50/70 border-blue-200 text-[#2C4160]"
+                              : isCall ? "bg-emerald-50/70 border-emerald-200 text-[#294A2E]"
+                              : "bg-[#FAF8F5] border-[#DAD4C6] text-[#23282E]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono text-[#8A8375] border-b border-black/5 pb-1 mb-1">
+                              <span>📅 {fmtDateTime(n.data)}</span>
+                              <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-80 p-0.5">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <div className="text-[12px] whitespace-pre-wrap font-medium leading-relaxed">
+                              {n.text}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {form.note.length === 0 && (
+                        <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                          Nicio notă înregistrată.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stepper Statusuri & Istoric Timeline */}
+                  {!isNew && (
+                    <div className="bg-white border border-[#DAD4C6] rounded-xl p-3 space-y-2 shadow-2xs">
+                      <div className="text-[11px] font-extrabold uppercase tracking-wider text-[#6B6558] border-b border-[#DAD4C6]/60 pb-1 flex items-center gap-1.5">
+                        <Layers size={13} className="text-[#6B6558]" /> Etape Flux &amp; Jurnal de Activități
+                      </div>
+                      <div className="pt-1">
+                        <ClaimTimeline
+                          currentStatus={form.status}
+                          dataSchimbareStatus={form.dataSchimbareStatus}
+                          istoric={istoric}
+                          loading={loadingIstoric}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* MODAL PREVIZUALIZARE POZĂ CU BUTON DE ÎNCHIDERE X (Punctul 12) */}
               {previewPoza && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs">
