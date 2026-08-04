@@ -61,9 +61,8 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave }) {
             </div>
             <div>
               <h2 className="font-extrabold text-[16px] tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Dosar Nou Express
+                Dosar Nou Rapid
               </h2>
-              <span className="text-[11px] text-[#A69F91] block">Creare rapidă în 4 câmpuri</span>
             </div>
           </div>
           <button
