@@ -463,56 +463,62 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             📸 Fotografiere pe Categorii (Salvare automată live pe dosar &amp; ZIP)
           </span>
 
-          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Nativă a Telefonului) */}
+          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Nativă a Telefonului / Galerie Multiselect) */}
           <div className="grid grid-cols-3 gap-2.5">
             {/* 1. RECEPȚIE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Recepție (Cameră Telefon)"
+              title="Fă Poză sau Încarcă Poze Recepție"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Recepție</span>
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "receptie")}
+                onChange={(e) => {
+                  handleMobilePhotoCapture(e.target.files, "receptie");
+                  e.target.value = "";
+                }}
               />
             </label>
 
             {/* 2. RECONSTATARE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Reconstatare (Cameră Telefon)"
+              title="Fă Poză sau Încarcă Poze Reconstatare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Reconstatare</span>
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "reconstatare")}
+                onChange={(e) => {
+                  handleMobilePhotoCapture(e.target.files, "reconstatare");
+                  e.target.value = "";
+                }}
               />
             </label>
 
             {/* 3. PREDARE */}
             <label
               className="flex flex-col items-center justify-center p-3.5 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
-              title="Fă Poză Predare (Cameră Telefon)"
+              title="Fă Poză sau Încarcă Poze Predare"
             >
               <Camera size={24} />
               <span className="text-[12px] font-extrabold mt-1">Predare</span>
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 className="hidden"
-                onChange={(e) => handleMobilePhotoCapture(e.target.files, "predare")}
+                onChange={(e) => {
+                  handleMobilePhotoCapture(e.target.files, "predare");
+                  e.target.value = "";
+                }}
               />
             </label>
           </div>
@@ -528,10 +534,12 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 className="hidden"
-                onChange={(e) => handleAddScanPages(e.target.files)}
+                onChange={(e) => {
+                  handleAddScanPages(e.target.files);
+                  e.target.value = "";
+                }}
               />
             </label>
 
@@ -552,6 +560,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
                   const pdfs = files.filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
                   if (images.length > 0) handleMobilePhotoCapture(images, "generale");
                   if (pdfs.length > 0) handleMobileDocUpload(pdfs);
+                  e.target.value = "";
                 }}
               />
             </label>
