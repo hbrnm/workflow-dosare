@@ -811,9 +811,92 @@ export default function ClaimModal({
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
 
             {/* ========================================================================= */}
+            {/* SECTION 2: TABS CONTENT (AFIȘATE PRIMELE LA TOP)                          */}
+            {/* ========================================================================= */}
+            <div className="p-2 space-y-2 font-sans">
+              {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
+              {activeTab === "note" && (
+                <div className="space-y-2.5">
+
+                  {/* Note Interne */}
+                  <div className="bg-white border border-[#DAD4C6] rounded-xl p-2.5 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-1.5">
+                      <h3 className="font-bold text-[12px] text-[#23282E] flex items-center gap-1.5">
+                        <Sparkles size={14} className="text-[#C98A2B]" /> Notițe interne echipă ({form.note.length})
+                      </h3>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        ref={noteInputRef}
+                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] bg-[#FAF8F5] focus:bg-white focus:border-[#C98A2B]"
+                        placeholder="Adaugă o notă internă..."
+                        value={noteText}
+                        onChange={(e) => {
+                          setNoteText(e.target.value);
+                          setSlashIndex(0);
+                        }}
+                        onKeyDown={handleNoteKeyDown}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addNote()}
+                        className="px-3 py-1.5 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold text-[11px] rounded-lg transition-colors flex items-center gap-1 shrink-0"
+                      >
+                        <Plus size={15} /> Adaugă
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 pt-0.5 max-h-44 overflow-y-auto pr-1">
+                      {form.note.map((n) => {
+                        const isAlert = n.text.includes("[ALERTĂ]");
+                        const isParts = n.text.includes("[PIESE]");
+                        const isCar = n.text.includes("[AUTO SCHIMB]");
+                        const isCall = n.text.includes("[APEL CLIENT]");
+
+                        return (
+                          <div
+                            key={n.id}
+                            className={`p-2 rounded-lg border transition-all ${
+                              isAlert
+                                ? "bg-red-50/70 border-red-200 text-[#8C2E2E]"
+                                : isParts
+                                ? "bg-amber-50/70 border-amber-200 text-[#7A5316]"
+                                : isCar
+                                ? "bg-blue-50/70 border-blue-200 text-[#2C4160]"
+                                : isCall
+                                ? "bg-emerald-50/70 border-emerald-200 text-[#294A2E]"
+                                : "bg-[#FAF8F5] border-[#DAD4C6] text-[#23282E]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono text-[#8A8375] border-b border-black/5 pb-1 mb-1">
+                              <span>📅 {fmtDateTime(n.data)}</span>
+                              <button type="button" onClick={() => removeNote(n.id)} className="text-[#B23A2E] hover:opacity-80 p-0.5">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            <div className="text-[12px] whitespace-pre-wrap font-medium leading-relaxed">
+                              {n.text}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {form.note.length === 0 && (
+                        <div className="text-[12.5px] text-[#8A8375] italic p-6 text-center border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
+                          Nicio notă înregistrată.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ========================================================================= */}
             {/* SECTION 1: PROPERTIES SECTION                                              */}
             {/* ========================================================================= */}
-            <div className="bg-white border-b border-[#DAD4C6] p-2 shadow-sm space-y-1.5">
+            <div className="bg-white border-t border-[#DAD4C6] p-2 shadow-sm space-y-1.5 mt-2">
               <div className="flex items-center justify-end">
                 <span className="text-[10.5px] font-semibold text-[#8A8375]">
                   ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
