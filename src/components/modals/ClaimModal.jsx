@@ -1079,18 +1079,63 @@ export default function ClaimModal({
                     </div>
 
                     {/* BARA INTERACTIVĂ DE STADII FLUX */}
-                    <div className="col-span-1 md:col-span-2 bg-white border border-[#DAD4C6] rounded-xl p-2.5 shadow-2xs">
-                      <StageBar
-                        statuses={STATUSES}
-                        currentStatusKey={form.status}
-                        onSelectStatus={(statusKey) => {
-                          setForm((f) => ({
-                            ...f,
-                            status: statusKey,
-                            dataSchimbareStatus: f.status !== statusKey ? nowISO() : f.dataSchimbareStatus,
-                          }));
-                        }}
-                      />
+                    <div className="col-span-1 md:col-span-2 bg-white border border-[#DAD4C6] rounded-xl p-2.5 shadow-2xs space-y-2">
+                      {/* 9 Segmented Progress Bar */}
+                      <div className="flex items-center gap-1 h-2.5 w-full bg-[#EFEAE1] rounded-full overflow-hidden p-0.5">
+                        {STATUSES.map((s, idx) => {
+                          const curIdx = Math.max(0, STATUSES.findIndex((x) => x.key === form.status));
+                          const isDone = idx < curIdx;
+                          const isCurrent = idx === curIdx;
+                          const phaseColor = getPhaseColors(s.phase)?.bar || "#3B5166";
+
+                          return (
+                            <button
+                              key={s.key}
+                              type="button"
+                              onClick={() => {
+                                setForm((f) => ({
+                                  ...f,
+                                  status: s.key,
+                                  dataSchimbareStatus: f.status !== s.key ? nowISO() : f.dataSchimbareStatus,
+                                }));
+                              }}
+                              title={`${s.num}. ${s.label}`}
+                              className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
+                              style={{
+                                backgroundColor: isDone || isCurrent ? phaseColor : "#D1CDC0",
+                                opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3,
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* Status Label & Dropdown Select */}
+                      <div className="flex items-center justify-between text-[11.5px] pt-0.5">
+                        <span className="font-extrabold text-[#3B5166] flex items-center gap-1.5">
+                          <Layers size={13} className="text-[#C98A2B]" />
+                          <span>Etapa curentă ({STATUSES.findIndex((s) => s.key === form.status) + 1}/9):</span>
+                        </span>
+
+                        <select
+                          value={form.status}
+                          onChange={(e) => {
+                            const newStatusKey = e.target.value;
+                            setForm((f) => ({
+                              ...f,
+                              status: newStatusKey,
+                              dataSchimbareStatus: f.status !== newStatusKey ? nowISO() : f.dataSchimbareStatus,
+                            }));
+                          }}
+                          className="font-bold text-[11.5px] py-1 px-2.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#3B5166] cursor-pointer"
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {String(s.num).padStart(2, "0")}. {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
 
