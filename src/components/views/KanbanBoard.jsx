@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   Phone, Car, AlertTriangle, PackageCheck, Wrench, Paintbrush,
-  ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, Check
+  ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -278,6 +278,85 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
   );
 }
 
+function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact }) {
+  const [expanded, setExpanded] = useState(false);
+  const first = groupClaims[0];
+  const marcaModel = first.marcaModel || first.client || "";
+
+  return (
+    <div className="border-2 border-[#3B5166]/40 bg-[#F4F6F8] rounded-xl p-1.5 shadow-xs transition-all space-y-1.5">
+      {/* Header Comasat Interactiv (Apasă pentru extindere/deschidere) */}
+      <div 
+        onClick={() => setExpanded(!expanded)} 
+        className="flex items-center justify-between cursor-pointer select-none py-1.5 px-2 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EEF1F3] hover:border-[#3B5166] transition-colors"
+        title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate dosarele comasate"}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono font-extrabold text-[12.5px] text-[#23282E] uppercase">
+            🚗 {groupKey}
+          </span>
+          <span className="text-[10.5px] font-semibold text-[#6B6558] truncate max-w-[100px]">
+            {marcaModel}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="bg-[#3B5166] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
+            {groupClaims.length} dosare
+          </span>
+          <span className="text-[#3B5166] font-bold text-[11px] flex items-center gap-0.5">
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </span>
+        </div>
+      </div>
+
+      {/* Când este restrâns: Card Rezumat Interactiv */}
+      {!expanded && (
+        <div 
+          onClick={() => setExpanded(true)}
+          className="text-[11px] text-[#5B6572] bg-white/80 p-2 rounded-lg border border-dashed border-[#DAD4C6] cursor-pointer hover:bg-white transition-colors space-y-1"
+        >
+          <div className="flex items-center justify-between text-[10.5px] font-semibold">
+            <span className="truncate">Client: {first.client || "—"}</span>
+            <span className="font-mono text-[#8A8375]">Nr: {groupClaims.map(c => `#${c.numarDosar || '?'}`).join(", ")}</span>
+          </div>
+          <div className="text-[10.5px] text-[#3B5166] font-extrabold text-center flex items-center justify-center gap-1 pt-0.5 border-t border-[#EFEAE1]/60">
+            <span>Apasă pentru a deschide cele {groupClaims.length} dosare</span>
+            <ChevronDown size={13} />
+          </div>
+        </div>
+      )}
+
+      {/* Când este extins: Randează toate cardurile individuale */}
+      {expanded && (
+        <div className="space-y-1.5 pt-1 border-t border-[#3B5166]/20">
+          {groupClaims.map((c) => (
+            <div key={c.id} className="space-y-1">
+              <ClaimCard
+                claim={c}
+                onOpen={onOpen}
+                onMove={(claimToMove, dir) => {
+                  const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
+                  const next = STATUSES[curIdx + dir];
+                  if (next) onMoveToStatus(claimToMove, next.key);
+                }}
+                onDuplicate={onDuplicate}
+                canEdit={canEditFn ? canEditFn(c) : true}
+                pragRidicare={pragRidicare}
+                compact={compact}
+              />
+              {c.status === "piese_comandate" && c.dataComandaPiese && (
+                <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                  📦 Comandat la: {c.dataComandaPiese}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [viewMode, setViewMode] = useState("full");
 
@@ -389,42 +468,19 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                       );
                     }
 
-                    // Stacked group for multiple claims on the same car in the SAME status
+                    // Stacked group with toggle expansion for multiple claims on the same car in the SAME status
                     return (
-                      <div key={groupKey} className="border-2 border-[#3B5166]/40 bg-[#EEF1F3] p-1.5 rounded-xl space-y-1.5 shadow-xs">
-                        <div className="flex items-center justify-between px-1.5 py-0.5 text-[11px] font-extrabold text-[#3B5166]">
-                          <span className="flex items-center gap-1 font-mono">
-                            🚗 {groupKey}
-                          </span>
-                          <span className="bg-[#3B5166] text-white text-[9.5px] px-1.5 py-0.2 rounded-full">
-                            {groupClaims.length} dosare comasate
-                          </span>
-                        </div>
-                        <div className="space-y-1.5 pl-1 border-l-2 border-[#3B5166]">
-                          {groupClaims.map((c) => (
-                            <div key={c.id} className="space-y-1">
-                              <ClaimCard
-                                claim={c}
-                                onOpen={onOpen}
-                                onMove={(claimToMove, dir) => {
-                                  const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
-                                  const next = STATUSES[curIdx + dir];
-                                  if (next) onMoveToStatus(claimToMove, next.key);
-                                }}
-                                onDuplicate={onDuplicate}
-                                canEdit={canEditFn ? canEditFn(c) : true}
-                                pragRidicare={pragRidicare}
-                                compact={true}
-                              />
-                              {c.status === "piese_comandate" && c.dataComandaPiese && (
-                                <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
-                                  📦 Comandat la: {c.dataComandaPiese}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                      <StackedVehicleGroupCard
+                        key={groupKey}
+                        groupKey={groupKey}
+                        groupClaims={groupClaims}
+                        onOpen={onOpen}
+                        onMoveToStatus={onMoveToStatus}
+                        onDuplicate={onDuplicate}
+                        canEditFn={canEditFn}
+                        pragRidicare={pragRidicare}
+                        compact={viewMode === "compact"}
+                      />
                     );
                   });
                 })()}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Filter, ChevronRight, User, Phone, X, ExternalLink } from "lucide-react";
+import { Search, Plus, Filter, ChevronRight, User, Phone, X, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
@@ -117,80 +117,173 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
           </div>
         ) : (
           groupedClaims.map((group) => {
-            const isGroup = group.length > 1;
+            if (group.length === 1) {
+              const c = group[0];
+              const sDef = getStatusDefinition(c.status);
+              const phone = c.telefonClient || "";
 
-            return (
-              <div key={group[0].id} className={isGroup ? "border-2 border-[#3B5166]/40 rounded-2xl p-1.5 bg-[#EEF1F3] space-y-1.5" : ""}>
-                {isGroup && (
-                  <div className="flex items-center justify-between px-2 py-0.5 text-[11px] font-extrabold text-[#3B5166]">
-                    <span>🚗 {group[0].numarInmatriculare}</span>
-                    <span className="bg-[#3B5166] text-white text-[9.5px] px-2 py-0.2 rounded-full">
-                      {group.length} dosare comasate
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => onOpen(c)}
+                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
+                        {c.numarInmatriculare || "—"}
+                      </span>
+                      {c.blocat && <span className="px-1.5 py-0.2 text-[9.5px] bg-[#B23A2E] text-white font-bold rounded">BLOCAT</span>}
+                    </div>
+                    <span className="text-[10.5px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#3B5166]">
+                      {sDef.num}. {sDef.label}
                     </span>
                   </div>
-                )}
 
-                {group.map((c) => {
-                  const sDef = getStatusDefinition(c.status);
-                  const phone = c.telefonClient || "";
-
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => onOpen(c)}
-                      className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
-                            {c.numarInmatriculare || "—"}
-                          </span>
-                          {c.blocat && <span className="px-1.5 py-0.2 text-[9.5px] bg-[#B23A2E] text-white font-bold rounded">BLOCAT</span>}
-                        </div>
-                        <span className="text-[10.5px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#3B5166]">
-                          {sDef.num}. {sDef.label}
-                        </span>
-                      </div>
-
-                      {/* Data comandă piese (Punctul 13) */}
-                      {c.status === "piese_comandate" && c.dataComandaPiese && (
-                        <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
-                          <span>📦 Piese Comandate la:</span>
-                          <span className="font-mono">{c.dataComandaPiese}</span>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
-                        <span>{c.marcaModel || "—"}</span>
-                        <span className="font-mono text-[11px] text-[#8A8375]">Nr: {c.numarDosar || "—"}</span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-[#EFEAE1] text-[11px]">
-                        <div className="flex items-center gap-1.5 text-[#8A8375]">
-                          <User size={12} /> <span className="font-semibold text-[#23282E] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                          {phone && (
-                            <>
-                              <WhatsAppButton phone={phone} claim={c} size={11} />
-                              <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
-                                <Phone size={12} />
-                              </a>
-                            </>
-                          )}
-                          <ChevronRight size={16} className="text-[#8A8375]" />
-                        </div>
-                      </div>
+                  {c.status === "piese_comandate" && c.dataComandaPiese && (
+                    <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
+                      <span>📦 Piese Comandate la:</span>
+                      <span className="font-mono">{c.dataComandaPiese}</span>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+
+                  <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
+                    <span>{c.marcaModel || "—"}</span>
+                    <span className="font-mono text-[11px] text-[#8A8375]">Nr: {c.numarDosar || "—"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#EFEAE1] text-[11px]">
+                    <div className="flex items-center gap-1.5 text-[#8A8375]">
+                      <User size={12} /> <span className="font-semibold text-[#23282E] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {phone && (
+                        <>
+                          <WhatsAppButton phone={phone} claim={c} size={11} />
+                          <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                            <Phone size={12} />
+                          </a>
+                        </>
+                      )}
+                      <ChevronRight size={16} className="text-[#8A8375]" />
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Stacked interactive accordion group on Mobile
+            return (
+              <MobileStackedGroupCard
+                key={group[0].id}
+                group={group}
+                onOpen={onOpen}
+              />
             );
           })
         )}
       </div>
 
+    </div>
+  );
+}
+
+function MobileStackedGroupCard({ group, onOpen }) {
+  const [expanded, setExpanded] = useState(false);
+  const first = group[0];
+
+  return (
+    <div className="border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
+      {/* Header Comasat Mobil */}
+      <div 
+        onClick={() => setExpanded(!expanded)} 
+        className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
+            🚗 {first.numarInmatriculare}
+          </span>
+          <span className="bg-[#3B5166] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+            {group.length} dosare
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
+          <span>{expanded ? "Restrânge" : "Extinde"}</span>
+          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </div>
+
+      {/* Când este restrâns: Rezumat pe mobil */}
+      {!expanded && (
+        <div 
+          onClick={() => setExpanded(true)}
+          className="bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+        >
+          <span>Apasă pentru a deschide cele {group.length} dosare comasate</span>
+          <ChevronDown size={14} />
+        </div>
+      )}
+
+      {/* Când este extins: Lista dosarelor */}
+      {expanded && (
+        <div className="space-y-2 pt-1">
+          {group.map((c) => {
+            const sDef = getStatusDefinition(c.status);
+            const phone = c.telefonClient || "";
+
+            return (
+              <div
+                key={c.id}
+                onClick={() => onOpen(c)}
+                className="bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-extrabold text-[13px] text-[#23282E] uppercase">
+                      {c.numarInmatriculare || "—"}
+                    </span>
+                    {c.blocat && <span className="px-1.5 py-0.2 text-[9.5px] bg-[#B23A2E] text-white font-bold rounded">BLOCAT</span>}
+                  </div>
+                  <span className="text-[10.5px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#3B5166]">
+                    {sDef.num}. {sDef.label}
+                  </span>
+                </div>
+
+                {c.status === "piese_comandate" && c.dataComandaPiese && (
+                  <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1 rounded-lg border border-amber-200 flex items-center justify-between">
+                    <span>📦 Piese Comandate la:</span>
+                    <span className="font-mono">{c.dataComandaPiese}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-[11.5px] font-semibold text-[#6B6558]">
+                  <span>{c.marcaModel || "—"}</span>
+                  <span className="font-mono text-[10.5px] text-[#8A8375]">Nr: {c.numarDosar || "—"}</span>
+                </div>
+
+                <div className="flex items-center justify-between pt-1.5 border-t border-[#EFEAE1] text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[#8A8375]">
+                    <User size={12} /> <span className="font-semibold text-[#23282E] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {phone && (
+                      <>
+                        <WhatsAppButton phone={phone} claim={c} size={11} />
+                        <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                          <Phone size={12} />
+                        </a>
+                      </>
+                    )}
+                    <ChevronRight size={16} className="text-[#8A8375]" />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
