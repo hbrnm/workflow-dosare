@@ -255,12 +255,18 @@ export default function ClaimModal({
 
   const isNew = useMemo(() => !Array.isArray(allClaims) || !allClaims.some((c) => c && c.id === claim?.id), [allClaims, claim?.id]);
 
-  useEffect(() => setForm(sanitizeClaim(claim)), [claim]);
+  useEffect(() => {
+    setForm(sanitizeClaim(claim));
+  }, [claim?.id]);
 
   useEffect(() => {
     let cancelled = false;
     const loadStorageUrls = async () => {
       if (!claim?.id) return;
+      const pozeNeedRefresh = (claim.poze || []).some((p) => p && p.path && !p.url);
+      const docsNeedRefresh = (claim.documente || []).some((d) => d && d.path && !d.url);
+      if (!pozeNeedRefresh && !docsNeedRefresh) return;
+
       const [poze, documente] = await Promise.all([
         refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
         refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
@@ -271,14 +277,16 @@ export default function ClaimModal({
     };
     loadStorageUrls();
     return () => { cancelled = true; };
-  }, [claim]);
+  }, [claim?.id]);
 
   useEffect(() => {
     if (isNew || !claim?.id) { setIstoric([]); return; }
     setLoadingIstoric(true);
     supabase.from("istoric_dosar").select("*").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(100)
-      .then(({ data }) => setIstoric(data || []))
+      .then(({ data }) => { if (!cancelled) setIstoric(data || []); })
       .finally(() => setLoadingIstoric(false));
+    let cancelled = false;
+    return () => { cancelled = true; };
   }, [claim?.id, isNew]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));

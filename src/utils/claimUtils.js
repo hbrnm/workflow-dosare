@@ -135,6 +135,10 @@ export async function refreshStorageUrls(items = [], bucketName, supabase) {
   return Promise.all(
     items.map(async (item) => {
       if (!item || !item.path) return item;
+      // Skip network call if item already has a valid working URL
+      if (item.url && (item.url.startsWith("http") || item.url.startsWith("data:"))) {
+        return item;
+      }
       try {
         const { data: signed } = await supabase.storage.from(bucketName).createSignedUrl(item.path, 60 * 60);
         return { ...item, url: signed?.signedUrl || item.url || "" };
