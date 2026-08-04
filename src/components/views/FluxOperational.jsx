@@ -91,28 +91,31 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         <span className="text-[11px] text-[#5B6572] font-medium truncate max-w-[110px]" title={claim.marcaModel || claim.client}>
           {claim.marcaModel || claim.client || "—"}
         </span>
-      </div>
-
-      {/* 2. VISUAL STEPPER INTERACTIV (9 SEGMENTE CU CLICK DIRECT PENTRU MUTARE ÎN ORICE FAZĂ) */}
-      <div className="space-y-0.5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 h-2 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5 cursor-pointer">
+      {/* 2. VISUAL STEPPER INTERACTIV (9 SEGMENTE CLAR DELIMITATE CU NUMERE 1-9) */}
+      <div className="space-y-1 my-1" onClick={(e) => e.stopPropagation()}>
+        <div className="grid grid-cols-9 gap-1 h-4.5 w-full bg-[#EFEAE1] border border-[#DAD4C6] rounded-lg p-0.5 cursor-pointer">
           {STATUSES.map((s, idx) => {
             const isDone = idx < currentIndex;
             const isCurrent = idx === currentIndex;
             return (
-              <div
+              <button
                 key={s.key}
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!isCurrent) onMoveToStatus(claim, s.key);
                 }}
-                title={`Click pentru mutare directă în faza „${s.num}. ${s.label}”`}
-                className="h-full flex-1 rounded-xs transition-all hover:scale-y-125 hover:brightness-110 cursor-pointer"
-                style={{
-                  backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
-                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35
-                }}
-              />
+                title={`Click pentru mutare directă în faza ${s.num}: ${s.label}`}
+                className={`h-full w-full rounded text-[9.5px] font-mono font-black flex items-center justify-center transition-all cursor-pointer border ${
+                  isCurrent
+                    ? "bg-[#C98A2B] text-white border-[#A86F1C] shadow-xs scale-105 z-10"
+                    : isDone
+                    ? "bg-[#3B5166] text-white border-[#2C4160] opacity-90 hover:opacity-100"
+                    : "bg-white text-[#334155] border-[#94A3B8] hover:bg-[#F3D9A8] hover:border-[#C98A2B] hover:text-[#7A5316]"
+                }`}
+              >
+                {s.num}
+              </button>
             );
           })}
         </div>
