@@ -53,22 +53,6 @@ export default function MobileBrief({ claims, onOpen, pragRidicare }) {
 
   return (
     <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
-      
-      {/* BANNER HEADER BRIEF MOBIL */}
-      <div className="bg-[#1C2127] text-white p-4 rounded-2xl shadow-md space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-extrabold text-[15px] tracking-tight flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <ShieldAlert size={18} className={totalAlerte > 0 ? "text-[#B23A2E]" : "text-[#3E6B45]"} />
-            <span>Brief Mobil Atelier</span>
-          </h2>
-          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold ${totalAlerte > 0 ? "bg-[#B23A2E] text-white" : "bg-[#3E6B45] text-white"}`}>
-            {totalAlerte} Alerte
-          </span>
-        </div>
-        <p className="text-[11.5px] text-[#A69F91]">
-          Toate situațiile urgente ale zilei organizate pentru reacție rapidă pe mobil.
-        </p>
-      </div>
 
       {/* FILTRU TACTIL ALERTE - GRILĂ FĂRĂ DERULARE ORIZONTALĂ */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-bold">

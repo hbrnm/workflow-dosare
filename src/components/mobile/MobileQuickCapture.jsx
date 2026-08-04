@@ -515,22 +515,9 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   };
 
   return (
-    <div className="space-y-3.5 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
+    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
       
-      {/* 1. HEADER MODUL: FOTO AUTO & DOCUMENTE DOSAR */}
-      <div className="bg-[#1C2127] text-white p-3.5 rounded-2xl shadow-md space-y-1">
-        <div className="flex items-center gap-2">
-          <Camera className="text-[#C98A2B]" size={20} />
-          <h2 className="font-extrabold text-[15px] tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Foto Auto &amp; Documente Dosar
-          </h2>
-        </div>
-        <p className="text-[11px] text-[#A69F91]">
-          Efectuează poze cu telefonul și scanează acte pentru atașare directă la dosar.
-        </p>
-      </div>
-
-      {/* 2. SELECTARE & CĂUTARE DOSAR */}
+      {/* 1. SELECTARE & CĂUTARE DOSAR */}
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
         {selectedClaim && (
           <div className="flex items-center justify-end">
@@ -611,10 +598,6 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
 
         {/* SECTIUNE SIMPLIFICATĂ FOTO & DOCUMENT (3 CATEGORII PRINCIPALE + UTILS) */}
         <div className="space-y-2.5">
-          <span className="text-[11px] font-extrabold text-[#6B6558] uppercase tracking-wider block">
-            📸 Fotografiere pe Categorii (Salvare automată live pe dosar &amp; ZIP)
-          </span>
-
           {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Live Fără Nicio Confirmare "OK") */}
           <div className="grid grid-cols-3 gap-2.5">
             {/* 1. RECEPȚIE */}
