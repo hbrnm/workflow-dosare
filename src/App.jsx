@@ -605,7 +605,7 @@ export default function App() {
         </header>
 
         {/* DESKTOP FILTER DROPDOWNS BAR */}
-        {!["brief", "programator", "flux"].includes(view) && (
+        {!["brief", "programator", "flux", "dosare"].includes(view) && (
           <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
             <div className="flex flex-wrap items-center gap-2">
               <button
