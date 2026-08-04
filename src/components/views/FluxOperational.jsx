@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, PackageCheck, CalendarClock, Car, Truck,
   ChevronRight, ArrowRight, Clock, MessageSquare, ExternalLink,
-  Search, Check, Bell, AlertOctagon, X, Phone
+  Search, Check, Bell, AlertOctagon, X, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween, telLink, fmtDate } from "../../utils/dateUtils";
@@ -190,6 +190,82 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         )}
       </div>
 
+    </div>
+  );
+}
+
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, canEditFn, pragRidicare }) {
+  const [expanded, setExpanded] = useState(false);
+  const first = groupClaims[0];
+  const plate = first.numarInmatriculare || groupKey;
+  const brand = first.marcaModel || first.client || "";
+
+  if (groupClaims.length === 1) {
+    return (
+      <PhaseCardRedesign
+        claim={first}
+        onOpen={onOpen}
+        onMoveToStatus={onMoveToStatus}
+        onTogglePieseSosite={onTogglePieseSosite}
+        canEdit={canEditFn(first)}
+        pragRidicare={pragRidicare}
+      />
+    );
+  }
+
+  return (
+    <div className="border-2 border-[#1B2430]/30 rounded-xl p-1.5 bg-[#F4F6F8] space-y-1.5 shadow-xs">
+      {/* Header Comasat Interactiv */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#E4E1D9] hover:border-[#1B2430] cursor-pointer select-none transition-colors"
+        title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate cele 3 dosare comasate"}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono font-extrabold text-[13px] text-[#1B2430] uppercase">
+            🚗 {plate}
+          </span>
+          <span className="text-[11px] text-[#5B6572] font-semibold truncate max-w-[120px]">
+            {brand}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="bg-[#B8791E] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
+            {groupClaims.length} dosare
+          </span>
+          <span className="text-[#1B2430] font-bold text-[12px] flex items-center gap-0.5">
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </span>
+        </div>
+      </div>
+
+      {/* Când este restrâns */}
+      {!expanded && (
+        <div
+          onClick={() => setExpanded(true)}
+          className="bg-white/80 border border-dashed border-[#E4E1D9] p-2 rounded-lg text-[11px] text-[#1B2430] font-bold text-center flex items-center justify-center gap-1 cursor-pointer hover:bg-white transition-colors"
+        >
+          <span>Apasă pentru a deschide cele {groupClaims.length} dosare comasate</span>
+          <ChevronDown size={13} />
+        </div>
+      )}
+
+      {/* Când este extins */}
+      {expanded && (
+        <div className="space-y-1.5 pt-1 border-t border-[#1B2430]/15">
+          {groupClaims.map((c) => (
+            <PhaseCardRedesign
+              key={c.id}
+              claim={c}
+              onOpen={onOpen}
+              onMoveToStatus={onMoveToStatus}
+              onTogglePieseSosite={onTogglePieseSosite}
+              canEdit={canEditFn(c)}
+              pragRidicare={pragRidicare}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -408,25 +484,40 @@ export default function TablouPeFazeRedesign({
                 })}
               </div>
 
-              {/* Zona cu cardurile din coloană */}
+              {/* Zona cu cardurile din coloană Comasate pe Vehicul */}
               <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin">
-                {phaseClaims.length === 0 ? (
-                  <div className="border-1.5 border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic my-auto">
-                    Niciun dosar în această fază
-                  </div>
-                ) : (
-                  phaseClaims.map((c) => (
-                    <PhaseCardRedesign
-                      key={c.id}
-                      claim={c}
+                {(() => {
+                  const groupedMap = new Map();
+                  phaseClaims.forEach((c) => {
+                    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+                    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
+                    if (!groupedMap.has(key)) groupedMap.set(key, []);
+                    groupedMap.get(key).push(c);
+                  });
+
+                  const groups = Array.from(groupedMap.entries());
+
+                  if (groups.length === 0) {
+                    return (
+                      <div className="border-1.5 border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic my-auto">
+                        Niciun dosar în această fază
+                      </div>
+                    );
+                  }
+
+                  return groups.map(([groupKey, groupClaims]) => (
+                    <StackedPhaseCardGroup
+                      key={groupKey}
+                      groupKey={groupKey}
+                      groupClaims={groupClaims}
                       onOpen={onOpen}
                       onMoveToStatus={onMoveToStatus}
                       onTogglePieseSosite={onTogglePieseSosite}
-                      canEdit={canEditFn(c)}
+                      canEditFn={canEditFn}
                       pragRidicare={pragRidicare}
                     />
-                  ))
-                )}
+                  ));
+                })()}
               </div>
             </div>
           );

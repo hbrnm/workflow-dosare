@@ -280,6 +280,85 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
 
 
+function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact }) {
+  const [expanded, setExpanded] = useState(false);
+  const first = groupClaims[0];
+  const marcaModel = first.marcaModel || first.client || "";
+
+  return (
+    <div className="border-2 border-[#3B5166]/40 bg-[#F4F6F8] rounded-xl p-1.5 shadow-xs transition-all space-y-1.5">
+      {/* Header Comasat Interactiv */}
+      <div 
+        onClick={() => setExpanded(!expanded)} 
+        className="flex items-center justify-between cursor-pointer select-none py-1.5 px-2 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EEF1F3] hover:border-[#3B5166] transition-colors"
+        title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate dosarele comasate"}
+      >
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono font-extrabold text-[12.5px] text-[#23282E] uppercase">
+            🚗 {groupKey}
+          </span>
+          <span className="text-[10.5px] font-semibold text-[#6B6558] truncate max-w-[100px]">
+            {marcaModel}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="bg-[#3B5166] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
+            {groupClaims.length} dosare
+          </span>
+          <span className="text-[#3B5166] font-bold text-[11px] flex items-center gap-0.5">
+            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          </span>
+        </div>
+      </div>
+
+      {/* Când este restrâns: Card Rezumat Interactiv */}
+      {!expanded && (
+        <div 
+          onClick={() => setExpanded(true)}
+          className="text-[11px] text-[#5B6572] bg-white/80 p-2 rounded-lg border border-dashed border-[#DAD4C6] cursor-pointer hover:bg-white transition-colors space-y-1"
+        >
+          <div className="flex items-center justify-between text-[10.5px] font-semibold">
+            <span className="truncate">Client: {first.client || "—"}</span>
+            <span className="font-mono text-[#8A8375]">Nr: {groupClaims.map(c => `#${c.numarDosar || '?'}`).join(", ")}</span>
+          </div>
+          <div className="text-[10.5px] text-[#3B5166] font-extrabold text-center flex items-center justify-center gap-1 pt-0.5 border-t border-[#EFEAE1]/60">
+            <span>Apasă pentru a deschide cele {groupClaims.length} dosare</span>
+            <ChevronDown size={13} />
+          </div>
+        </div>
+      )}
+
+      {/* Când este extins: Randează toate cardurile individuale */}
+      {expanded && (
+        <div className="space-y-1.5 pt-1 border-t border-[#3B5166]/20">
+          {groupClaims.map((c) => (
+            <div key={c.id} className="space-y-1">
+              <ClaimCard
+                claim={c}
+                onOpen={onOpen}
+                onMove={(claimToMove, dir) => {
+                  const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
+                  const next = STATUSES[curIdx + dir];
+                  if (next) onMoveToStatus(claimToMove, next.key);
+                }}
+                onDuplicate={onDuplicate}
+                canEdit={canEditFn ? canEditFn(c) : true}
+                pragRidicare={pragRidicare}
+                compact={compact}
+              />
+              {c.status === "piese_comandate" && c.dataComandaPiese && (
+                <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                  📦 Comandat la: {c.dataComandaPiese}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
   const [viewMode, setViewMode] = useState("full");
 
@@ -352,30 +431,59 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                 </div>
               </div>
 
-              {/* Lista de Carduri Individuale pe Desktop */}
+              {/* Lista de Carduri Comasate pe Vehicul (Punctul 15) */}
               <div className="p-2 space-y-2 overflow-y-auto flex-1">
-                {list.map((c) => (
-                  <div key={c.id} className="space-y-1">
-                    <ClaimCard
-                      claim={c}
-                      onOpen={onOpen}
-                      onMove={(claimToMove, dir) => {
-                        const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
-                        const next = STATUSES[curIdx + dir];
-                        if (next) onMoveToStatus(claimToMove, next.key);
-                      }}
-                      onDuplicate={onDuplicate}
-                      canEdit={canEditFn ? canEditFn(c) : true}
-                      pragRidicare={pragRidicare}
-                      compact={viewMode === "compact"}
-                    />
-                    {c.status === "piese_comandate" && c.dataComandaPiese && (
-                      <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
-                        📦 Comandat la: {c.dataComandaPiese}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {(() => {
+                  const groupedMap = new Map();
+                  list.forEach((c) => {
+                    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+                    const key = plate && plate.length > 2 ? plate : c.id;
+                    if (!groupedMap.has(key)) groupedMap.set(key, []);
+                    groupedMap.get(key).push(c);
+                  });
+
+                  return Array.from(groupedMap.entries()).map(([groupKey, groupClaims]) => {
+                    if (groupClaims.length === 1) {
+                      const c = groupClaims[0];
+                      return (
+                        <div key={c.id} className="space-y-1">
+                          <ClaimCard
+                            claim={c}
+                            onOpen={onOpen}
+                            onMove={(claimToMove, dir) => {
+                              const curIdx = STATUSES.findIndex((s) => s.key === claimToMove.status);
+                              const next = STATUSES[curIdx + dir];
+                              if (next) onMoveToStatus(claimToMove, next.key);
+                            }}
+                            onDuplicate={onDuplicate}
+                            canEdit={canEditFn ? canEditFn(c) : true}
+                            pragRidicare={pragRidicare}
+                            compact={viewMode === "compact"}
+                          />
+                          {c.status === "piese_comandate" && c.dataComandaPiese && (
+                            <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                              📦 Comandat la: {c.dataComandaPiese}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <StackedVehicleGroupCard
+                        key={groupKey}
+                        groupKey={groupKey}
+                        groupClaims={groupClaims}
+                        onOpen={onOpen}
+                        onMoveToStatus={onMoveToStatus}
+                        onDuplicate={onDuplicate}
+                        canEditFn={canEditFn}
+                        pragRidicare={pragRidicare}
+                        compact={viewMode === "compact"}
+                      />
+                    );
+                  });
+                })()}
                 {list.length === 0 && (
                   <div className="text-[11.5px] text-[#8A8375] italic p-4 text-center border border-dashed border-[#DAD4C6] rounded-lg bg-white/50">
                     Niciun dosar în această etapă
