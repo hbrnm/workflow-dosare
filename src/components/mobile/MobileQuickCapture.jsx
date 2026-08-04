@@ -650,7 +650,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               title="Scanează Acte cu Auto-Crop CamScanner"
             >
               <FileText size={16} className="text-[#C98A2B]" />
-              <span>Scan Acte (Auto-Crop)</span>
+              <span>Scan Acte</span>
               <input
                 type="file"
                 accept="image/*"
