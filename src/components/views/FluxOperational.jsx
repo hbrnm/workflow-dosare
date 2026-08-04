@@ -43,9 +43,9 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   const currentStatusKey = statusDef.key;
   const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
 
-  let agingClass = "bg-[#E9F5EE] text-[#2F8F5B]";
-  if (days >= 2 && days <= 4) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
-  if (days > 4 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
+  let agingClass = "text-[#5B6572]";
+  if (days >= 3 && days <= 5) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
+  if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const isPartOverdue = (claim.status === "piese_comandate" || currentStatusKey === "piese_comandate") && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
 
@@ -71,15 +71,16 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
             {claim.numarInmatriculare || "FĂRĂ NR."}
           </span>
           {claim.numarDosar && (
-            <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] border border-[#DAD4C6] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${claim.numarDosar}`}>
+            <span className="text-[10px] font-mono text-[#8A8375]" title={`Dosar #${claim.numarDosar}`}>
               #{claim.numarDosar}
             </span>
           )}
+          {/* Tip asigurare — discret, doar relevant vizual */}
           <span
-            className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded ${
+            className={`text-[9px] font-bold px-1 py-0.2 rounded ${
               claim.tipAsigurare === "CASCO"
                 ? "bg-[#F4E3C6] text-[#8A5A0E]"
-                : "bg-[#DDE7F0] text-[#2E5C8A]"
+                : "text-[#8A8375]"  
             }`}
           >
             {claim.tipAsigurare || "RCA"}

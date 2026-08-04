@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, Layers, AlertCircle, Sparkles, User as UserIcon,
+  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
   CheckSquare, Square, Download, Calendar, Eye
 } from "lucide-react";
 import {
@@ -707,9 +707,30 @@ export default function ClaimModal({
           <div className="flex items-center gap-2 min-w-0 pr-2">
             <span className="text-[16px] shrink-0">📄</span>
             <div className="min-w-0">
-              <span className="font-extrabold text-[13px] tracking-tight block text-white truncate">
-                {isNew ? "Dosar Nou" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-extrabold text-[13px] tracking-tight text-white truncate">
+                  {isNew ? "Dosar Nou" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
+                </span>
+                {/* Single status chip — elimină nevoia de badge-uri duplicate */}
+                {!isNew && (() => {
+                  const sd = getStatusDefinition(form.status);
+                  const colors = { start: "#3B5166", eval: "#4A6FA5", lucru: "#C98A2B", final: "#3E6B45" };
+                  const bg = colors[sd.phase] || "#3B5166";
+                  return (
+                    <span
+                      className="shrink-0 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-full text-white"
+                      style={{ background: bg, opacity: 0.9 }}
+                    >
+                      {sd.num}/9 · {sd.label}
+                    </span>
+                  );
+                })()}
+                {form.blocat && (
+                  <span className="shrink-0 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#B23A2E] text-white">
+                    🛑 Blocat
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] text-[#A69F91] font-mono block truncate">
                 {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr."} · {form.marcaModel || "Model neprecizat"}
               </span>
@@ -835,9 +856,10 @@ export default function ClaimModal({
               {/* ========================================================================= */}
               {activeTab === "general" && (
                 <div className="space-y-3">
+                  {/* ID — discret, vizibil doar la hover sau pe desktop */}
                   <div className="flex items-center justify-end">
-                    <span className="text-[10.5px] font-semibold text-[#8A8375]">
-                      ID: <code className="font-mono text-[#23282E] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6]">{form.id?.slice(0, 8) || "Nou"}</code>
+                    <span className="text-[9.5px] font-mono text-[#B0A99A] hover:text-[#6B6558] transition-colors select-all cursor-help" title="ID intern dosar">
+                      #{form.id?.slice(0, 8) || "Nou"}
                     </span>
                   </div>
 
@@ -1129,11 +1151,10 @@ export default function ClaimModal({
                         })}
                       </div>
 
-                      {/* Status Label & Dropdown Select */}
+                      {/* Status Label — simplificat, fără text redundant */}
                       <div className="flex items-center justify-between text-[11.5px] pt-0.5">
-                        <span className="font-extrabold text-[#3B5166] flex items-center gap-1.5">
-                          <Layers size={13} className="text-[#C98A2B]" />
-                          <span>Etapa curentă ({STATUSES.findIndex((s) => s.key === form.status) + 1}/9):</span>
+                        <span className="text-[10px] text-[#8A8375] font-medium">
+                          Etapa {STATUSES.findIndex((s) => s.key === form.status) + 1} din 9 — click pe segment pentru a schimba
                         </span>
 
                         <select
