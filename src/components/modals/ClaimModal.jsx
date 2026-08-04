@@ -758,8 +758,65 @@ export default function ClaimModal({
         )}
 
         {/* MAIN BODY CONTAINER */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-[#FAF8F5]">
-          <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
+        <div className="flex-1 min-h-0 flex flex-col bg-[#FAF8F5]">
+
+          {/* BARA DE TUPURI/ETAPE FIXĂ ÎN PARTEA DE SUS A PAGINII */}
+          <div className="sticky top-0 z-30 bg-[#F4F1EA] px-3 py-2 border-b border-[#DAD4C6] shadow-xs flex items-center justify-between gap-2 overflow-x-auto text-[11px] shrink-0 scrollbar-none">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab("note")}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  activeTab === "note" ? "bg-[#3B5166] text-white shadow-xs" : "bg-white text-[#6B6558] hover:bg-[#FAF8F5] border border-[#DAD4C6]"
+                }`}
+              >
+                <FileText size={14} /> Date Dosar
+                {form.note.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
+                    {form.note.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("service")}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  activeTab === "service" ? "bg-[#3B5166] text-white shadow-xs" : "bg-white text-[#6B6558] hover:bg-[#FAF8F5] border border-[#DAD4C6]"
+                }`}
+              >
+                <Wrench size={14} /> Service &amp; Auto Schimb
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("media")}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  activeTab === "media" ? "bg-[#3B5166] text-white shadow-xs" : "bg-white text-[#6B6558] hover:bg-[#FAF8F5] border border-[#DAD4C6]"
+                }`}
+              >
+                <ImageIcon size={14} /> Poze &amp; Documente
+                {(form.poze.length > 0 || form.documente.length > 0) && (
+                  <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
+                    {form.poze.length + form.documente.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("financial")}
+                className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
+                  activeTab === "financial" ? "bg-[#3B5166] text-white shadow-xs" : "bg-white text-[#6B6558] hover:bg-[#FAF8F5] border border-[#DAD4C6]"
+                }`}
+              >
+                <Wallet size={14} /> Financiar
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
 
             {/* ========================================================================= */}
             {/* SECTION 1: PROPERTIES SECTION                                              */}
@@ -1174,62 +1231,9 @@ export default function ClaimModal({
             </div>
 
             {/* ========================================================================= */}
-            {/* SECTION 2: TABS REORDERED & RENAMED                                      */}
+            {/* SECTION 2: TABS CONTENT                                                    */}
             {/* ========================================================================= */}
             <div className="p-2 space-y-2">
-
-              {/* Notion Tab Switcher Bar */}
-              <div className="flex items-center gap-1.5 bg-white p-0.5 rounded-lg border border-[#DAD4C6] shadow-sm overflow-x-auto scrollbar-none text-[10.5px]">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("note")}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === "note" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
-                  }`}
-                >
-                  <MessageSquare size={13} /> 📝 Date Dosar
-                  {form.note.length > 0 && (
-                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                      {form.note.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("service")}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === "service" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
-                  }`}
-                >
-                  <Wrench size={13} /> 🔧 Service &amp; Auto Schimb
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("media")}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === "media" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
-                  }`}
-                >
-                  <ImageIcon size={13} /> 📷 Poze &amp; Documente
-                  {(form.poze.length > 0 || form.documente.length > 0) && (
-                    <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                      {form.poze.length + form.documente.length}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("financial")}
-                  className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all shrink-0 ${
-                    activeTab === "financial" ? "bg-[#3B5166] text-white shadow-xs" : "text-[#6B6558] hover:bg-[#FAF8F5]"
-                  }`}
-                >
-                  <Wallet size={13} /> 💰 Financiar
-                </button>
-              </div>
 
               {/* TAB CONTENT 1: NOTE & BLOCURI CONȚINUT */}
               {activeTab === "note" && (
@@ -1792,6 +1796,7 @@ export default function ClaimModal({
             </div>
           </fieldset>
         </div>
+      </div>
 
         {/* NOTION FOOTER DOCKED BAR */}
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#DAD4C6] bg-white shrink-0 shadow-sm">
