@@ -2,10 +2,10 @@ import React, { useState, useMemo } from "react";
 import {
   Layers, AlertTriangle, PackageCheck, CalendarClock, Car, Truck,
   ChevronRight, ArrowRight, Clock, MessageSquare, ExternalLink,
-  Search, Check, Bell, AlertOctagon, X
+  Search, Check, Bell, AlertOctagon, X, Phone
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
-import { daysBetween, telLink } from "../../utils/dateUtils";
+import { daysBetween, telLink, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 
@@ -109,27 +109,37 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (Etapa Piese comandate) */}
       {claim.status === "piese_comandate" && (
-        <label
-          onClick={(e) => e.stopPropagation()}
-          className={`flex items-center justify-between gap-1.5 text-[10.5px] font-bold cursor-pointer select-none py-0.5 px-2 rounded-md border transition-all ${
-            claim.pieseSosite
-              ? "bg-[#E9F5EE] text-[#2F8F5B] border-[#B9D9C6]"
-              : "bg-[#F3F2EE] text-[#5B6572] border-[#E4E1D9] hover:border-[#1B2430]"
-          }`}
-        >
-          <div className="flex items-center gap-1.5">
-            <input
-              type="checkbox"
-              checked={!!claim.pieseSosite}
-              onChange={(e) => {
-                if (onTogglePieseSosite) onTogglePieseSosite(claim, e.target.checked);
-              }}
-              className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
-            />
-            <span>Piese sosite</span>
-          </div>
-          {claim.pieseSosite && <span className="text-[9px] font-extrabold bg-[#2F8F5B] text-white px-1.5 py-0.2 rounded">✓ SOSITE</span>}
-        </label>
+        <div className="space-y-1">
+          {claim.dataComandaPiese && (
+            <div className="text-[10px] text-[#7A5316] font-bold bg-[#FDF8EE] border border-[#F5E2C4] px-2 py-0.5 rounded-md flex items-center justify-between">
+              <span className="flex items-center gap-1">
+                <CalendarClock size={11} className="text-[#C98A2B]" /> Comandat la:
+              </span>
+              <span className="font-mono">{fmtDate(claim.dataComandaPiese)}</span>
+            </div>
+          )}
+          <label
+            onClick={(e) => e.stopPropagation()}
+            className={`flex items-center justify-between gap-1.5 text-[10.5px] font-bold cursor-pointer select-none py-0.5 px-2 rounded-md border transition-all ${
+              claim.pieseSosite
+                ? "bg-[#E9F5EE] text-[#2F8F5B] border-[#B9D9C6]"
+                : "bg-[#F3F2EE] text-[#5B6572] border-[#E4E1D9] hover:border-[#1B2430]"
+            }`}
+          >
+            <div className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={!!claim.pieseSosite}
+                onChange={(e) => {
+                  if (onTogglePieseSosite) onTogglePieseSosite(claim, e.target.checked);
+                }}
+                className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
+              />
+              <span>Piese sosite</span>
+            </div>
+            {claim.pieseSosite && <span className="text-[9px] font-extrabold bg-[#2F8F5B] text-white px-1.5 py-0.2 rounded">✓ SOSITE</span>}
+          </label>
+        </div>
       )}
 
       {/* 4. PART OVERDUE ALERT BANNER ON CARD */}
@@ -140,22 +150,27 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </div>
       )}
 
-      {/* 5. CARD FOOTER: AGING + WHATSAPP/COMMENTS + ADVANCE BUTTON */}
+      {/* 5. CARD FOOTER: AGING + PHONE / WHATSAPP + ADVANCE BUTTON */}
       <div className="flex items-center gap-1.5 pt-0.5 border-t border-[#E4E1D9]/60 text-[10px]">
         {/* Aging Pill */}
         <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
           <Clock size={10} /> {days} zile
         </span>
 
-        {/* WhatsApp & Comments */}
-        <div className="flex items-center gap-1 text-[#5B6572] font-semibold" onClick={(e) => e.stopPropagation()}>
-          {claim.telefonClient && <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />}
-          {commentsCount > 0 && (
-            <span className="flex items-center gap-0.5 ml-1 text-[10.5px]">
-              💬 {commentsCount}
-            </span>
-          )}
-        </div>
+        {/* Apel Telefon & WhatsApp (în loc de iconiță număr mesaje) */}
+        {claim.telefonClient && (
+          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <a
+              href={telLink(claim.telefonClient)}
+              onClick={(e) => e.stopPropagation()}
+              title={`Sună clientul: ${claim.telefonClient}`}
+              className="p-1 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+            >
+              <Phone size={11} />
+            </a>
+            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
+          </div>
+        )}
 
         <span className="flex-1" />
 

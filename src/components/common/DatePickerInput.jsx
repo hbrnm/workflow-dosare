@@ -9,6 +9,7 @@ export default function DatePickerInput({
   placeholder,
   className = "in",
   disabled = false,
+  popDirection = "down",
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
@@ -195,7 +196,7 @@ export default function DatePickerInput({
       </div>
 
       {open && !disabled && (
-        <div className="absolute bottom-full left-0 mb-1 z-50 bg-white border border-[#DAD4C6] shadow-2xl rounded-lg p-3 w-[290px] text-[#23282E] text-[12px]">
+        <div className={`absolute ${popDirection === "up" ? "bottom-full mb-1" : "top-full mt-1"} left-0 z-50 bg-white border border-[#DAD4C6] shadow-2xl rounded-lg p-3 w-[290px] text-[#23282E] text-[12px]`}>
           <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#EFEAE1]">
             <button
               type="button"
