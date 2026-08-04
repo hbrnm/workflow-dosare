@@ -1,4 +1,4 @@
-import { INSURERS } from "../constants/config";
+import { INSURERS, STATUS_MIGRATION, STATUSES } from "../constants/config";
 
 export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
   if (!Array.isArray(claims) || claims.length === 0) return fallback || "Omniasig VIG";
@@ -235,7 +235,7 @@ export function fromDb(row) {
   if (!row) return emptyClaim();
   const rawStatus = row.status;
   const migratedStatus = STATUS_MIGRATION[rawStatus] || rawStatus;
-  const status = STATUSES.some((s) => s.key === migratedStatus) ? migratedStatus : "primit";
+  const status = STATUSES.some((s) => s.key === migratedStatus) ? migratedStatus : "deschidere";
 
   return sanitizeClaim({
     id: row.id,
