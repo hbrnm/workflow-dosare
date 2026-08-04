@@ -159,8 +159,8 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
 
-  // Fotografiere cu aparatul foto al telefonului
-  const handleMobilePhotoCapture = async (fileList) => {
+  // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
+  const handleMobilePhotoCapture = async (fileList, categorie = "generale") => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar din listă.", "error");
       return;
@@ -178,14 +178,16 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         }
         const compressed = await compressImage(file);
         const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
-        noiPoze.push(uploaded);
+        const itemWithCat = typeof uploaded === "object" ? { ...uploaded, categoria: categorie } : { url: uploaded, categoria: categorie };
+        noiPoze.push(itemWithCat);
       }
 
       if (noiPoze.length > 0) {
         const currentPoze = selectedClaim.poze || [];
         const updatedPoze = [...noiPoze, ...currentPoze];
         await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
-        onNotify(`📸 ${noiPoze.length} poze salvate pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
+        const labelCat = categorie === "receptie" ? "Recepție" : categorie === "reconstatare" ? "Reconstatare" : categorie === "predare" ? "Predare" : "Generale";
+        onNotify(`📸 ${noiPoze.length} poză/poze (${labelCat}) salvată/e automat pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
       onNotify("Eroare la încărcare poză: " + err.message, "error");
@@ -453,70 +455,113 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           </div>
         )}
 
-        {/* BUTOANE DOAR CU ICONIȚE MARI TACTILE */}
-        <div className="grid grid-cols-4 gap-2.5">
-          
-          {/* BUTON 1: CAMERA FOTO (DOAR ICONIȚĂ) */}
-          <label
-            className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-            title="Fă Poză cu Aparatul Foto"
-          >
-            <Camera size={26} />
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              className="hidden"
-              onChange={(e) => handleMobilePhotoCapture(e.target.files)}
-            />
-          </label>
+        {/* BUTOANE FOTO PE CATEGORII (SINCRONIZATE CU FOLDEREELE ZIP) */}
+        <div className="space-y-2">
+          <span className="text-[11px] font-extrabold text-[#6B6558] uppercase tracking-wider block">
+            📸 Fă poze pe categorii (Salvare automată pe dosar)
+          </span>
 
-          {/* BUTON 2: SCANNER DOCUMENTE (DOAR ICONIȚĂ) */}
-          <label
-            className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-            title="Scanează Document Acte"
-          >
-            <FileText size={26} />
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              className="hidden"
-              onChange={(e) => handleAddScanPages(e.target.files)}
-            />
-          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {/* 1. FOTO RECEPȚIE */}
+            <label
+              className="flex flex-col items-center justify-center p-3 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
+              title="Fă Poză Recepție Vehicul"
+            >
+              <Camera size={22} />
+              <span className="text-[11px] font-extrabold mt-1">Recepție</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={(e) => handleMobilePhotoCapture(e.target.files, "receptie")}
+              />
+            </label>
 
-          {/* BUTON 3: GALERIE POZE (DOAR ICONIȚĂ) */}
-          <label
-            className="flex flex-col items-center justify-center p-3.5 bg-[#FAF8F5] border-2 border-[#DAD4C6] text-[#3B5166] rounded-2xl cursor-pointer hover:bg-gray-100 active:scale-95 transition-all shadow-2xs"
-            title="Alege Poze din Galerie"
-          >
-            <ImageIcon size={24} />
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => handleMobilePhotoCapture(e.target.files)}
-            />
-          </label>
+            {/* 2. FOTO RECONSTATARE */}
+            <label
+              className="flex flex-col items-center justify-center p-3 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
+              title="Fă Poză Reconstatare"
+            >
+              <Camera size={22} />
+              <span className="text-[11px] font-extrabold mt-1">Reconstatare</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={(e) => handleMobilePhotoCapture(e.target.files, "reconstatare")}
+              />
+            </label>
 
-          {/* BUTON 4: FIȘIERE PDF (DOAR ICONIȚĂ) */}
-          <label
-            className="flex flex-col items-center justify-center p-3.5 bg-[#FAF8F5] border-2 border-[#DAD4C6] text-[#3B5166] rounded-2xl cursor-pointer hover:bg-gray-100 active:scale-95 transition-all shadow-2xs"
-            title="Încarcă PDF din Telefon"
-          >
-            <FolderOpen size={24} />
-            <input
-              type="file"
-              accept="application/pdf"
-              multiple
-              className="hidden"
-              onChange={(e) => handleMobileDocUpload(e.target.files)}
-            />
-          </label>
+            {/* 3. FOTO PREDARE */}
+            <label
+              className="flex flex-col items-center justify-center p-3 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
+              title="Fă Poză Predare / Auto Reparat"
+            >
+              <Camera size={22} />
+              <span className="text-[11px] font-extrabold mt-1">Predare</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={(e) => handleMobilePhotoCapture(e.target.files, "predare")}
+              />
+            </label>
+          </div>
+
+          {/* ALTE OPȚIUNI: SCANNER DOCUMENTE / GALERIE / PDF */}
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <label
+              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
+              title="Scanează Document Acte"
+            >
+              <FileText size={15} className="text-[#C98A2B]" />
+              <span>Scan Acte</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                className="hidden"
+                onChange={(e) => handleAddScanPages(e.target.files)}
+              />
+            </label>
+
+            <label
+              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
+              title="Alege Poze din Galerie"
+            >
+              <ImageIcon size={15} className="text-[#3B5166]" />
+              <span>Galerie</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleMobilePhotoCapture(e.target.files, "generale")}
+              />
+            </label>
+
+            <label
+              className="flex items-center justify-center gap-1 py-2 px-2 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-bold text-[11px] hover:bg-gray-100 shadow-2xs"
+              title="Încarcă PDF din Telefon"
+            >
+              <FolderOpen size={15} className="text-[#6B6558]" />
+              <span>PDF</span>
+              <input
+                type="file"
+                accept="application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => handleMobileDocUpload(e.target.files)}
+              />
+            </label>
+          </div>
         </div>
       </div>
 
@@ -543,30 +588,40 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-0.5 scrollbar-thin">
-                {selectedClaim.poze.map((p, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setPreviewMedia(p.url || p)}
-                    className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
-                  >
-                    <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
-                    
-                    {/* Overlay buton vizualizare */}
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                      <Eye size={16} />
-                    </div>
-
-                    {/* BUTON ROȘU DE ȘTERGERE POZĂ */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeletePhoto(e, idx)}
-                      className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
-                      title="Șterge fotografia"
+                {selectedClaim.poze.map((p, idx) => {
+                  const catLabel = p.categoria ? (p.categoria === "receptie" ? "RECEPȚIE" : p.categoria === "reconstatare" ? "RECONST." : p.categoria === "predare" ? "PREDARE" : "GENERAL") : null;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => setPreviewMedia(p.url || p)}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
                     >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                ))}
+                      <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
+                      
+                      {/* Categorie Badge */}
+                      {catLabel && (
+                        <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase font-mono z-10">
+                          {catLabel}
+                        </span>
+                      )}
+
+                      {/* Overlay buton vizualizare */}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <Eye size={16} />
+                      </div>
+
+                      {/* BUTON ROȘU DE ȘTERGERE POZĂ */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeletePhoto(e, idx)}
+                        className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
+                        title="Șterge fotografia"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
