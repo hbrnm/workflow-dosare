@@ -491,17 +491,10 @@ export default function App() {
         {/* Top Breadcrumb & Action Header */}
         <header className="relative h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
 
-          {/* Left Breadcrumb & Context */}
+          {/* Left Navigation / Segmented Switch */}
           <div className="flex items-center gap-2 text-[13px]">
-            <span className="font-extrabold text-[#23282E]">Workflow Dosare</span>
-            <ChevronRight size={14} className="text-[#8A8375]" />
-            <span className="font-bold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-2.5 py-1 rounded-lg">
-              {view === "dosare" ? "Dosare & Operational" : viewLabels[view] || "Aplicație"}
-            </span>
-
-            {/* COMUTATOR SIMPLU 3 CAI: TABLOU FLUX / BRIEF ALERTE / TABEL DOSARE */}
-            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
-              <div className="hidden sm:flex items-center bg-[#EFEAE1] border border-[#DAD4C6] p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px] ml-2">
+            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
+              <div className="flex items-center bg-[#EFEAE1] border border-[#DAD4C6] p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px]">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
@@ -546,6 +539,10 @@ export default function App() {
                   <span>Tabel Dosare</span>
                 </button>
               </div>
+            ) : (
+              <span className="font-extrabold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-3 py-1 rounded-xl text-[13px]">
+                {viewLabels[view] || "Aplicație"}
+              </span>
             )}
           </div>
 
