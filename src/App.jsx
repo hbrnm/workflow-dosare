@@ -852,7 +852,7 @@ export default function App() {
           <QuickCreateClaimModal
             isOpen={quickCreateOpen}
             onClose={closeQuickCreate}
-            onSave={handleCreateClaim}
+            onSave={handleSave}
           />
         )}
 
