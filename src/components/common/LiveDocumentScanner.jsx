@@ -1,76 +1,27 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText } from "lucide-react";
-import { detectCornersFromVideoFrame } from "../../utils/documentScanner";
+import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText, Camera } from "lucide-react";
 import DocumentCropModal from "./DocumentCropModal";
 
-/** Mapează punct din frame video (object-contain) → coordonate pe containerul de display. */
-function mapVideoPointToDisplay(px, py, videoW, videoH, displayW, displayH) {
-  const scale = Math.min(displayW / videoW, displayH / videoH);
-  const drawnW = videoW * scale;
-  const drawnH = videoH * scale;
-  const offsetX = (displayW - drawnW) / 2;
-  const offsetY = (displayH - drawnH) / 2;
-  return { x: px * scale + offsetX, y: py * scale + offsetY };
-}
-
-/** Colțurile rămân stabile între două frame-uri (nu „sărituri” pe obiecte random). */
-function cornersAreStable(a, b, videoW, videoH) {
-  if (!a || !b || a.length !== 4 || b.length !== 4) return false;
-  const tol = Math.max(videoW, videoH) * 0.035;
-  for (let i = 0; i < 4; i++) {
-    if (Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y) > tol) return false;
-  }
-  return true;
-}
-
-/** Frame-uri consecutive necesare pentru auto-capture (~3.5s la 220ms). */
-const AUTO_LOCK_FRAMES = 16;
-
 /**
- * Scanner document live tip CamScanner / QuickScan.
- * IMPORTANT: does NOT load OpenCV.js here — parsing ~9MB freezes mobile PWAs.
- * Live corners use the lightweight JS detector; warp/enhance stay in DocumentCropModal.
+ * Scanner documente — flux tip aplicație pro, fără overlay live (slab pe PWA):
+ * 1) Cameră + cadru-ghid A4
+ * 2) Captură foto
+ * 3) Detecție / ajustare colțuri pe poza statică (DocumentCropModal)
+ * 4) Warp + Pro enhance → pagină curată pentru PDF
  */
 export default function LiveDocumentScanner({ onComplete, onClose, initialPages = [] }) {
   const [pages, setPages] = useState(() => [...initialPages]);
-  const [liveCorners, setLiveCorners] = useState(null);
-  const [locked, setLocked] = useState(false);
   const [flash, setFlash] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [pendingCrop, setPendingCrop] = useState(null);
-  const [displaySize, setDisplaySize] = useState({ w: 1, h: 1 });
-  const [autoCapture, setAutoCapture] = useState(false);
-  const [lockStreak, setLockStreak] = useState(0);
+  const [capturing, setCapturing] = useState(false);
 
   const videoRef = useRef(null);
-  const stageRef = useRef(null);
   const streamRef = useRef(null);
-  const detectBusyRef = useRef(false);
-  const liveCornersRef = useRef(null);
-  const pausedRef = useRef(false);
   const capturingRef = useRef(false);
-  const lockStreakRef = useRef(0);
-  const prevCornersRef = useRef(null);
 
-  useEffect(() => {
-    liveCornersRef.current = liveCorners;
-  }, [liveCorners]);
-
-  const measureStage = useCallback(() => {
-    if (!stageRef.current) return;
-    const rect = stageRef.current.getBoundingClientRect();
-    setDisplaySize({ w: rect.width, h: rect.height });
-  }, []);
-
-  useEffect(() => {
-    measureStage();
-    window.addEventListener("resize", measureStage);
-    return () => window.removeEventListener("resize", measureStage);
-  }, [measureStage]);
-
-  // Camera only — never load OpenCV on open (main-thread parse freezes phones).
   useEffect(() => {
     let cancelled = false;
     let stream = null;
@@ -80,8 +31,8 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
           },
           audio: false,
         });
@@ -98,10 +49,9 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
-          measureStage();
         }
       } catch (err) {
-        console.warn("Live document scanner camera failed:", err);
+        console.warn("Document scanner camera failed:", err);
         if (!cancelled) setCameraError("Nu am putut deschide camera. Verifică permisiunile.");
       }
     }
@@ -116,97 +66,34 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
         stream.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [measureStage]);
+  }, []);
 
   const captureFrame = useCallback(() => {
-    if (capturingRef.current || pausedRef.current) return;
+    if (capturingRef.current || pendingCrop) return;
     const video = videoRef.current;
     if (!video || video.videoWidth < 2) return;
 
     capturingRef.current = true;
+    setCapturing(true);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 100);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
-    const imageSrc = canvas.toDataURL("image/jpeg", 0.92);
-    const corners = liveCornersRef.current
-      ? liveCornersRef.current.map((p) => ({ ...p }))
-      : null;
-
-    pausedRef.current = true;
-    lockStreakRef.current = 0;
-    prevCornersRef.current = null;
-    setLockStreak(0);
-    setPendingCrop({ imageSrc, corners });
-    capturingRef.current = false;
-  }, []);
-
-  // Continuous lightweight JS detection (~4–5 FPS) — strict paper lock
-  useEffect(() => {
-    let cancelled = false;
-    let timer = null;
-
-    const tick = () => {
-      if (cancelled) return;
-      const video = videoRef.current;
-      if (
-        video &&
-        !pausedRef.current &&
-        !detectBusyRef.current &&
-        video.readyState >= 2 &&
-        video.videoWidth > 0
-      ) {
-        detectBusyRef.current = true;
-        try {
-          const corners = detectCornersFromVideoFrame(video, 520);
-          if (!cancelled && !pausedRef.current) {
-            const found = Boolean(corners);
-            const stable =
-              found &&
-              cornersAreStable(
-                prevCornersRef.current,
-                corners,
-                video.videoWidth,
-                video.videoHeight
-              );
-            prevCornersRef.current = corners;
-            setLiveCorners(corners);
-            setLocked(found && stable);
-
-            if (found && stable) {
-              lockStreakRef.current += 1;
-              setLockStreak(lockStreakRef.current);
-              if (autoCapture && lockStreakRef.current >= AUTO_LOCK_FRAMES) {
-                captureFrame();
-              }
-            } else if (found) {
-              // Detectat dar încă se mișcă — nu crește streak-ul agresiv
-              lockStreakRef.current = Math.min(2, lockStreakRef.current);
-              setLockStreak(lockStreakRef.current);
-            } else {
-              lockStreakRef.current = 0;
-              setLockStreak(0);
-            }
-          }
-        } catch {
-          /* ignore frame errors */
-        } finally {
-          detectBusyRef.current = false;
-        }
-      }
-      if (!cancelled) timer = window.setTimeout(tick, 220);
-    };
-
-    timer = window.setTimeout(tick, 300);
-    return () => {
-      cancelled = true;
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [autoCapture, captureFrame]);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+      // Calitate mare pentru warp + enhance ulterior
+      const imageSrc = canvas.toDataURL("image/jpeg", 0.95);
+      setPendingCrop({ imageSrc });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      capturingRef.current = false;
+      setCapturing(false);
+    }
+  }, [pendingCrop]);
 
   const setTorch = async (on) => {
     const track = streamRef.current?.getVideoTracks?.()?.[0];
@@ -223,20 +110,10 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const handleCropConfirm = (croppedDataUrl) => {
     setPages((prev) => [...prev, croppedDataUrl]);
     setPendingCrop(null);
-    pausedRef.current = false;
-    setLiveCorners(null);
-    setLocked(false);
-    lockStreakRef.current = 0;
-    prevCornersRef.current = null;
-    setLockStreak(0);
   };
 
   const handleCropClose = () => {
     setPendingCrop(null);
-    pausedRef.current = false;
-    lockStreakRef.current = 0;
-    prevCornersRef.current = null;
-    setLockStreak(0);
   };
 
   const removeLastPage = () => {
@@ -255,19 +132,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     onComplete(pages);
   };
 
-  const video = videoRef.current;
-  const vw = video?.videoWidth || 1;
-  const vh = video?.videoHeight || 1;
-  const displayCorners =
-    liveCorners &&
-    liveCorners.map((p) =>
-      mapVideoPointToDisplay(p.x, p.y, vw, vh, displaySize.w, displaySize.h)
-    );
-
-  const polyPoints = displayCorners
-    ? displayCorners.map((p) => `${p.x},${p.y}`).join(" ")
-    : "";
-
   return (
     <>
       <div className="fixed inset-0 z-[10000] bg-black flex flex-col text-white overflow-hidden select-none">
@@ -278,24 +142,12 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
               <div className="text-[13px] font-extrabold truncate">Scanner documente</div>
               <div className="text-[10px] text-white/55 font-semibold">
                 {pages.length === 0
-                  ? "Pune foaia pe fundal contrastant · apasă declanșatorul"
+                  ? "Încadrează foaia în cadru → fotografiază → ajustează colțurile"
                   : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau Gata`}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setAutoCapture((v) => !v)}
-              className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold border transition-colors ${
-                autoCapture
-                  ? "bg-emerald-600/30 border-emerald-400/40 text-emerald-300"
-                  : "bg-white/10 border-white/15 text-white/60"
-              }`}
-              title="Captură automată când documentul e detectat stabil"
-            >
-              Auto {autoCapture ? "ON" : "OFF"}
-            </button>
             {torchSupported && (
               <button
                 type="button"
@@ -319,7 +171,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           </div>
         </div>
 
-        <div ref={stageRef} className="relative flex-1 w-full bg-black overflow-hidden">
+        <div className="relative flex-1 w-full bg-black overflow-hidden">
           {cameraError ? (
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-white/80 font-semibold">
               {cameraError}
@@ -331,70 +183,27 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
               playsInline
               muted
               className="absolute inset-0 w-full h-full object-contain bg-black"
-              onLoadedMetadata={measureStage}
             />
           )}
 
           {flash && <div className="absolute inset-0 bg-white z-30 pointer-events-none" />}
 
-          {/* Cadru-ghid A4 când încă nu e detectată pagina */}
-          {!displayCorners && !cameraError && (
-            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center p-8">
-              <div className="w-full max-w-[280px] aspect-[210/297] border-2 border-dashed border-white/35 rounded-sm" />
+          {/* Cadru-ghid fix A4 — fără detecție live */}
+          {!cameraError && (
+            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center p-6">
+              <div className="relative w-full max-w-[300px] aspect-[210/297]">
+                <div className="absolute inset-0 border-[2.5px] border-[#F5C451] rounded-sm shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+                {/* Corner marks */}
+                <div className="absolute -top-0.5 -left-0.5 w-7 h-7 border-t-[3px] border-l-[3px] border-white" />
+                <div className="absolute -top-0.5 -right-0.5 w-7 h-7 border-t-[3px] border-r-[3px] border-white" />
+                <div className="absolute -bottom-0.5 -left-0.5 w-7 h-7 border-b-[3px] border-l-[3px] border-white" />
+                <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 border-b-[3px] border-r-[3px] border-white" />
+              </div>
             </div>
           )}
 
-          {displayCorners && (
-            <svg
-              className="absolute inset-0 w-full h-full z-10 pointer-events-none"
-              viewBox={`0 0 ${Math.max(1, displaySize.w)} ${Math.max(1, displaySize.h)}`}
-              preserveAspectRatio="none"
-            >
-              <polygon
-                points={polyPoints}
-                fill={locked ? "rgba(52, 211, 153, 0.18)" : "rgba(201, 138, 43, 0.20)"}
-                stroke={locked ? "#34d399" : "#F5C451"}
-                strokeWidth="3"
-                strokeLinejoin="round"
-              />
-              {displayCorners.map((p, i) => (
-                <g key={i}>
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r="10"
-                    fill={locked ? "#34d399" : "#F5C451"}
-                    fillOpacity="0.35"
-                  />
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r="6"
-                    fill="#fff"
-                    stroke={locked ? "#34d399" : "#C98A2B"}
-                    strokeWidth="2.5"
-                  />
-                </g>
-              ))}
-            </svg>
-          )}
-
-          <div
-            className={`absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[11px] font-extrabold border backdrop-blur-md transition-colors ${
-              locked
-                ? "bg-emerald-500/25 border-emerald-400/50 text-emerald-300"
-                : displayCorners
-                  ? "bg-[#C98A2B]/25 border-[#C98A2B]/50 text-[#F5C451]"
-                  : "bg-black/55 border-white/15 text-white/70"
-            }`}
-          >
-            {locked
-              ? autoCapture && lockStreak > 0
-                ? `Pagină stabilă · auto ${Math.min(100, Math.round((lockStreak / AUTO_LOCK_FRAMES) * 100))}%`
-                : "Pagină detectată — apasă declanșatorul"
-              : displayCorners
-                ? "Aproape… ține telefonul stabil"
-                : "Încadrează foaia în cadru · fundal contrastant"}
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full text-[11px] font-extrabold border bg-black/60 border-white/20 text-white/85 backdrop-blur-md">
+            Aliniază pagina în chenar, apoi fotografiază
           </div>
 
           {pages.length > 0 && (
@@ -437,11 +246,13 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           <button
             type="button"
             onClick={captureFrame}
-            disabled={Boolean(cameraError) || Boolean(pendingCrop)}
+            disabled={Boolean(cameraError) || Boolean(pendingCrop) || capturing}
             className="w-[76px] h-[76px] rounded-full border-[4px] border-white flex items-center justify-center active:scale-90 transition-transform bg-white/10 disabled:opacity-40"
-            title="Capturează pagină"
+            title="Fotografiază pagina"
           >
-            <div className="w-[60px] h-[60px] rounded-full bg-white" />
+            <div className="w-[60px] h-[60px] rounded-full bg-white flex items-center justify-center">
+              <Camera size={22} className="text-black" />
+            </div>
           </button>
 
           <button
@@ -462,7 +273,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       {pendingCrop && (
         <DocumentCropModal
           imageSrc={pendingCrop.imageSrc}
-          initialCorners={pendingCrop.corners}
           onConfirm={handleCropConfirm}
           onClose={handleCropClose}
         />

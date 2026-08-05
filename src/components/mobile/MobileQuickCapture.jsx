@@ -8,7 +8,7 @@ import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
-import { fileToDataUrl } from "../../utils/documentScanner";
+import { fileToDataUrl, buildScanPdfBlob } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
@@ -353,23 +353,13 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     advanceScanCropQueue();
   };
 
-  // Salvare sesiunii de scanare PDF
+  // Salvare sesiunii de scanare PDF (pagini fit pe A4, fără stretch)
   const handleSaveScanPDF = async () => {
     if (!scanSession || !scanSession.pages.length || !selectedClaim) return;
     setUploading(true);
 
     try {
-      const { jsPDF } = await import("jspdf");
-      const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-      const pdfW = pdf.internal.pageSize.getWidth();
-      const pdfH = pdf.internal.pageSize.getHeight();
-
-      scanSession.pages.forEach((dataUrl, idx) => {
-        if (idx > 0) pdf.addPage();
-        pdf.addImage(dataUrl, "JPEG", 0, 0, pdfW, pdfH);
-      });
-
-      const pdfBlob = pdf.output("blob");
+      const pdfBlob = await buildScanPdfBlob(scanSession.pages, { marginMm: 5 });
       const fileName = `${scanSession.fileName.trim() || "Document_Scanat"}.pdf`;
       const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
 

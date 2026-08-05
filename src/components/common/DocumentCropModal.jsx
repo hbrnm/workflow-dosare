@@ -41,7 +41,7 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
         if (cancelled) return;
         setLoadedImage(img);
 
-        const canvas = imageToCanvas(img, 1200);
+        const canvas = imageToCanvas(img, 1600);
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const q = analyzeImageQuality(data, canvas.width, canvas.height);
@@ -50,7 +50,10 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
         if (initialCorners && initialCorners.length === 4) {
           scaled = orderCorners(initialCorners);
         } else {
-          const detected = detectDocumentCorners(data, canvas.width, canvas.height);
+          // Detecție pe poza statică (nu live) — mai fiabilă
+          const detected = detectDocumentCorners(data, canvas.width, canvas.height, {
+            allowDefault: true,
+          });
           const sx = (img.naturalWidth || img.width) / canvas.width;
           const sy = (img.naturalHeight || img.height) / canvas.height;
           scaled = orderCorners(detected.map((p) => ({ x: p.x * sx, y: p.y * sy })));
@@ -59,11 +62,10 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
         if (!cancelled) {
           setCorners(scaled);
           setQuality(q);
-          if (q.recommendPro) {
-            setProMode(true);
-            setProAuto(true);
-            setEnhance(true);
-          }
+          // Pro enhance mereu pentru aspect de scan profesional
+          setProMode(true);
+          setEnhance(true);
+          if (q.recommendPro) setProAuto(true);
         }
       } catch (err) {
         console.warn("Auto-detect corners failed:", err);
@@ -183,8 +185,8 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
     try {
       const usePro = enhance && proMode;
       const result = await applyCornerWarp(imageSrc, corners, {
-        maxDim: 2400,
-        outMaxDim: usePro ? 2200 : 2000,
+        maxDim: 2600,
+        outMaxDim: usePro ? 2400 : 2000,
         enhance,
         pro: usePro,
         forcePro: usePro,
@@ -213,9 +215,9 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
           <div className="flex items-center gap-2">
             <FileCheck className="w-5 h-5 text-[#C98A2B]" />
             <div>
-              <h3 className="text-sm font-extrabold text-white">Scanare document</h3>
+              <h3 className="text-sm font-extrabold text-white">Ajustează pagina</h3>
               <p className="text-[10.5px] text-white/50 font-medium">
-                Trage cele 4 colțuri pe colțurile albe ale paginii
+                Trage cele 4 colțuri pe colțurile foii, apoi Confirmă (Pro enhance activ)
               </p>
             </div>
           </div>
