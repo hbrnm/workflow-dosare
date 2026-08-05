@@ -12,7 +12,7 @@ import { processDocumentScan } from "../../utils/documentScanner";
 import Pill from "../common/Pill";
 
 async function processScanImage(file) {
-  const result = await processDocumentScan(file, { quality: 0.82 });
+  const result = await processDocumentScan(file, { pro: true });
   return result.dataUrl;
 }
 
