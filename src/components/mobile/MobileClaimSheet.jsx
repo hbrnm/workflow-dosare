@@ -272,8 +272,17 @@ export default function MobileClaimSheet({
           </div>
 
           {photos.length === 0 ? (
-            <div className="text-[12px] text-[#8A8375] italic text-center py-4 border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5]">
-              Nicio poză încă.
+            <div className="text-center py-4 px-2 border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5] space-y-2">
+              <p className="text-[12px] text-[#8A8375] font-semibold">Nicio poză încă pe acest dosar.</p>
+              {onCapturePhotos && !readOnly && (
+                <button
+                  type="button"
+                  onClick={() => onCapturePhotos(claim)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold active:scale-[0.98]"
+                >
+                  <Camera size={14} /> Fotografiază acum
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
@@ -291,11 +300,11 @@ export default function MobileClaimSheet({
             </div>
           )}
 
-          {onCapturePhotos && !readOnly && (
+          {onCapturePhotos && !readOnly && photos.length > 0 && (
             <button
               type="button"
               onClick={() => onCapturePhotos(claim)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6] text-[12.5px] font-extrabold text-[#3B5166] active:bg-[#EFEAE1]"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6] text-[12.5px] font-extrabold text-[#3B5166] active:bg-[#EFEAE1] active:scale-[0.98]"
             >
               <Camera size={16} /> Adaugă poze
             </button>

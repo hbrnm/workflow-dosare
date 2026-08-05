@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Settings, LogOut, Monitor,
+  Settings, LogOut, Monitor, X, Lightbulb,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import { getMobileTheme } from "../../constants/mobileThemes";
+import {
+  loadMobileTab,
+  saveMobileTab,
+  isMobileCoachDismissed,
+  dismissMobileCoach,
+  softHaptic,
+} from "../../utils/mobilePrefs";
 import "../../styles/mobileThemes.css";
 
 export default function MobileAppLayout({
@@ -30,10 +37,15 @@ export default function MobileAppLayout({
   onCaptureFocusConsumed,
   themeId = "atelier",
 }) {
-  const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare" | "programari"
+  const [activeTab, setActiveTab] = useState(() => loadMobileTab());
   const [focusClaimId, setFocusClaimId] = useState(null);
+  const [showCoach, setShowCoach] = useState(() => !isMobileCoachDismissed());
 
   const theme = useMemo(() => getMobileTheme(themeId), [themeId]);
+
+  useEffect(() => {
+    saveMobileTab(activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (!captureFocusClaimId) return;
@@ -55,6 +67,16 @@ export default function MobileAppLayout({
     { id: "dosare", label: theme.labels.dosare, Icon: theme.icons.dosare },
     { id: "programari", label: theme.labels.programari, Icon: theme.icons.programari },
   ]), [theme, totalAlertsCount]);
+
+  const handleTabChange = (id) => {
+    softHaptic(8);
+    setActiveTab(id);
+  };
+
+  const handleDismissCoach = () => {
+    dismissMobileCoach();
+    setShowCoach(false);
+  };
 
   return (
     <div
@@ -95,7 +117,7 @@ export default function MobileAppLayout({
             <button
               type="button"
               onClick={onSwitchToDesktop}
-              className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
+              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
               title="Mod desktop"
             >
               <Monitor size={16} />
@@ -105,7 +127,7 @@ export default function MobileAppLayout({
             <button
               type="button"
               onClick={onOpenSettings}
-              className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
+              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
               title="Setări"
             >
               <Settings size={16} />
@@ -114,7 +136,7 @@ export default function MobileAppLayout({
           <button
             type="button"
             onClick={onLogout}
-            className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
+            className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
             title="Deconectare"
           >
             <LogOut size={16} />
@@ -123,10 +145,37 @@ export default function MobileAppLayout({
       </header>
 
       <main className="flex-1 min-h-0 p-3 pb-24 overflow-y-auto scrollbar-thin">
+        {showCoach && (
+          <div className="m-coach mb-3 rounded-2xl border border-[#DAD4C6] bg-white p-3.5 shadow-sm flex gap-3 items-start">
+            <div
+              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white"
+              style={{ backgroundColor: "var(--m-accent)" }}
+            >
+              <Lightbulb size={16} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="m-display font-extrabold text-[13px] text-[#23282E]">Pe teren, rapid</p>
+              <p className="text-[11.5px] text-[#6B6558] mt-0.5 leading-snug">
+                Caută nr. auto → selectează dosarul → <strong>Fotografiază</strong>.
+                Deschide un dosar pentru status, telefon și pasul următor.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDismissCoach}
+              className="m-press shrink-0 p-1.5 rounded-lg text-[#8A8375] hover:bg-[#FAF8F5]"
+              aria-label="Închide tipul"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {activeTab === "capture" ? (
           <MobileQuickCapture
             claims={claims}
             onOpen={onOpenClaim}
+            onNew={onNewClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             onNotify={onNotify}
@@ -172,8 +221,8 @@ export default function MobileAppLayout({
             <button
               key={id}
               type="button"
-              onClick={() => setActiveTab(id)}
-              className={`m-nav-item relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
+              onClick={() => handleTabChange(id)}
+              className={`m-nav-item relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl ${
                 active ? "is-active scale-105" : "font-semibold opacity-80 hover:opacity-100"
               }`}
             >

@@ -145,9 +145,29 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
 
       <div className="space-y-2.5 flex-1 overflow-y-auto pr-0.5">
         {filteredProgramari.length === 0 ? (
-          <div className="p-8 text-center text-[12px] text-[#8A8375] bg-white border border-dashed border-[#DAD4C6] rounded-2xl font-bold space-y-1">
+          <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl font-bold space-y-2">
             <Calendar size={24} className="mx-auto text-[#8A8375]" />
-            <div>Nicio programare găsită pentru această filtrare.</div>
+            <div className="text-[13px] text-[#23282E]">
+              {filterMode === "azi"
+                ? "Nicio programare azi"
+                : filterMode === "viitoare"
+                  ? "Nicio programare viitoare"
+                  : "Nicio programare"}
+            </div>
+            <p className="text-[11.5px] text-[#8A8375] font-semibold">
+              {filterMode === "azi"
+                ? "Verifică „Viitoare” sau deschide un dosar ca să setezi data."
+                : "Programezi din dosar — pe teren poți trece rapid în lucru."}
+            </p>
+            {filterMode === "azi" && countViitoare > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterMode("viitoare")}
+                className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold"
+              >
+                Vezi viitoare ({countViitoare})
+              </button>
+            )}
           </div>
         ) : (
           filteredProgramari.map((c) => {

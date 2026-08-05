@@ -30,9 +30,11 @@ export default function NotificationQueue({ notice, defaultTimeout = 4000 }) {
   if (!queue.length) return null;
 
   return (
-    <div className="fixed z-[100001] right-4 bottom-4 flex flex-col items-end gap-3">
+    <div className="fixed z-[100001] left-3 right-3 bottom-[max(5.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] md:left-auto md:right-4 md:bottom-4 flex flex-col items-stretch md:items-end gap-2 pointer-events-none">
       {queue.map((n) => (
-        <Notification key={n.id} notice={{ message: n.message, type: n.type }} stacked={true} onClose={() => remove(n.id)} />
+        <div key={n.id} className="pointer-events-auto md:max-w-sm w-full md:w-auto">
+          <Notification notice={{ message: n.message, type: n.type }} stacked={true} onClose={() => remove(n.id)} />
+        </div>
       ))}
     </div>
   );
