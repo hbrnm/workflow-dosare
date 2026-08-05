@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { fromDb, toDb } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
+import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 
 export function useClaims(session, showNotice) {
   const [claims, setClaims] = useState([]);
@@ -146,15 +147,13 @@ export function useClaims(session, showNotice) {
         return false;
       }
       let effectivePatch = { ...patch };
-      // Statusul vechi „piese_sosite” e migrat la „piese_comandate”; folosim flag-ul pieseSosite.
-      const awaitingSchedule =
-        current.pieseSosite ||
-        current.status === "piese_comandate" ||
-        current.status === "piese_sosite";
-      if (patch.dataProgramare && awaitingSchedule && current.status !== "programat") {
-        effectivePatch = { ...effectivePatch, status: "programat", dataSchimbareStatus: nowISO() };
-        showNotice('Dosar mutat automat în „Programat".', "success");
-      }
+      const { patch: schedulePatch, notices: scheduleNotices } = applyScheduleStatusEffects(
+        current,
+        effectivePatch
+      );
+      effectivePatch = schedulePatch;
+      scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
       const { error } = await supabase.from("dosare").update(toDb(updated)).eq("id", id);
       if (error) {

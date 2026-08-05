@@ -356,9 +356,12 @@ export default function ClaimModal({
       effectiveStatus = "predat_client";
     } else if (form.gataDeRidicare && form.status !== "facturat" && form.status !== "predat_client") {
       effectiveStatus = "gata_de_ridicare";
+    } else if (form.adusaFizic && form.status === "programat") {
+      effectiveStatus = "in_lucru";
     } else if (
       form.dataProgramare &&
       form.status !== "programat" &&
+      !["in_lucru", "gata_de_ridicare", "predat_client", "facturat"].includes(form.status) &&
       (form.pieseSosite || form.status === "piese_comandate" || form.status === "piese_sosite")
     ) {
       effectiveStatus = "programat";
@@ -1163,11 +1166,19 @@ export default function ClaimModal({
                             <input
                               type="checkbox"
                               checked={!!form.adusaFizic}
-                              onChange={(e) => setForm((f) => ({
-                                ...f,
-                                adusaFizic: e.target.checked,
-                                dataAdusaFizic: e.target.checked ? nowISO() : null,
-                              }))}
+                              onChange={(e) => setForm((f) => {
+                                const checked = e.target.checked;
+                                const updates = {
+                                  adusaFizic: checked,
+                                  dataAdusaFizic: checked ? nowISO() : null,
+                                };
+                                // Side-effect: adus fizic pe Programat → În lucru
+                                if (checked && f.status === "programat") {
+                                  updates.status = "in_lucru";
+                                  updates.dataSchimbareStatus = nowISO();
+                                }
+                                return { ...f, ...updates };
+                              })}
                               className="rounded border-[#DAD4C6]"
                             />
                             <span className="font-bold text-[#23282E]">1. Vehicul adus fizic în service</span>
