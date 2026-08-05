@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Camera, List, Settings, LogOut,
-  BarChart3, Monitor, CalendarClock
+  Settings, LogOut, Monitor, Palette,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
+import MobileThemePicker from "./MobileThemePicker";
+import {
+  getMobileTheme,
+  loadMobileThemeId,
+  saveMobileThemeId,
+} from "../../constants/mobileThemes";
+import "../../styles/mobileThemes.css";
 
 export default function MobileAppLayout({
   claims,
@@ -30,6 +36,14 @@ export default function MobileAppLayout({
 }) {
   const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare" | "programari"
   const [focusClaimId, setFocusClaimId] = useState(null);
+  const [themeId, setThemeId] = useState(() => loadMobileThemeId());
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+
+  const theme = useMemo(() => getMobileTheme(themeId), [themeId]);
+
+  useEffect(() => {
+    saveMobileThemeId(themeId);
+  }, [themeId]);
 
   useEffect(() => {
     if (!captureFocusClaimId) return;
@@ -38,42 +52,69 @@ export default function MobileAppLayout({
     onCaptureFocusConsumed?.();
   }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
+  const shellStyle = useMemo(() => {
+    const vars = { ...(theme.vars || {}) };
+    if (theme.fonts?.body) vars["--m-font-body"] = theme.fonts.body;
+    if (theme.fonts?.display) vars["--m-font-display"] = theme.fonts.display;
+    return vars;
+  }, [theme]);
+
+  const tabs = useMemo(() => ([
+    { id: "capture", label: theme.labels.capture, Icon: theme.icons.capture },
+    { id: "brief", label: theme.labels.brief, Icon: theme.icons.brief, badge: totalAlertsCount },
+    { id: "dosare", label: theme.labels.dosare, Icon: theme.icons.dosare },
+    { id: "programari", label: theme.labels.programari, Icon: theme.icons.programari },
+  ]), [theme, totalAlertsCount]);
+
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#EFEAE1] overflow-hidden font-sans text-[#23282E]">
-      
-      {/* HEADER MOBIL SUPERIOR */}
-      <header className="bg-[#1C2127] text-white px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b border-white/10 select-none z-30">
-        <div className="flex items-center gap-2">
+    <div
+      className="mobile-shell fixed inset-0 flex flex-col overflow-hidden"
+      data-mtheme={theme.id}
+      data-nav={theme.navStyle}
+      data-header={theme.headerStyle}
+      style={shellStyle}
+    >
+      <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b select-none z-30">
+        <div className="flex items-center gap-2 min-w-0">
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              className="w-7 h-7 rounded-lg object-contain bg-white/10"
+              className="w-7 h-7 rounded-lg object-contain bg-white/10 shrink-0"
             />
           ) : (
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-white shadow-xs"
-              style={{ backgroundColor: branding?.accentColor || "#C98A2B" }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-white shadow-xs shrink-0"
+              style={{ backgroundColor: branding?.accentColor || "var(--m-accent)" }}
             >
               {(branding?.atelierShort || "WD").slice(0, 2)}
             </div>
           )}
-          <div>
-            <span className="font-extrabold text-[13.5px] tracking-tight block text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <div className="min-w-0">
+            <span className="m-display font-extrabold text-[13.5px] tracking-tight block truncate">
               {branding?.atelierNume || "Dosare Daună"}
             </span>
-            <span className="text-[10px] text-[#A69F91] block truncate max-w-[150px]">
+            <span className="text-[10px] opacity-70 block truncate max-w-[150px]">
               {userEmail || "Operator"}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setThemePickerOpen(true)}
+            className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
+            title="Temă vizuală"
+            aria-label="Alege tema vizuală"
+          >
+            <Palette size={16} />
+          </button>
           {onSwitchToDesktop && (
             <button
               type="button"
               onClick={onSwitchToDesktop}
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
               title="Mod desktop"
             >
               <Monitor size={16} />
@@ -83,7 +124,7 @@ export default function MobileAppLayout({
             <button
               type="button"
               onClick={onOpenSettings}
-              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
               title="Setări"
             >
               <Settings size={16} />
@@ -92,7 +133,7 @@ export default function MobileAppLayout({
           <button
             type="button"
             onClick={onLogout}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
             title="Deconectare"
           >
             <LogOut size={16} />
@@ -100,7 +141,6 @@ export default function MobileAppLayout({
         </div>
       </header>
 
-      {/* ZONA DE CONȚINUT MOBIL (SCROLLABILĂ CU PADDING INFERIOR PENTRU BARA DE JOS) */}
       <main className="flex-1 min-h-0 p-3 pb-24 overflow-y-auto scrollbar-thin">
         {activeTab === "capture" ? (
           <MobileQuickCapture
@@ -141,60 +181,45 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      {/* BARA DE NAVIGARE NATIVĂ PERMANENT FIXATĂ ÎN PARTEA DE JOS */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1C2127] text-white border-t border-white/10 px-2 py-2 flex items-center justify-around select-none shadow-2xl backdrop-blur-md">
-        
-        <button
-          type="button"
-          onClick={() => setActiveTab("capture")}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
-            activeTab === "capture" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
-          }`}
-        >
-          <Camera size={20} />
-          <span className="text-[10px]">Foto &amp; Doc</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("brief")}
-          className={`relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
-            activeTab === "brief" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
-          }`}
-        >
-          <BarChart3 size={20} />
-          <span className="text-[10px]">Brief Alerte</span>
-          {totalAlertsCount > 0 && (
-            <span className="absolute -top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#B23A2E] text-white text-[9px] font-black flex items-center justify-center">
-              {totalAlertsCount > 99 ? "99+" : totalAlertsCount}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("dosare")}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
-            activeTab === "dosare" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
-          }`}
-        >
-          <List size={20} />
-          <span className="text-[10px]">Dosare</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("programari")}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
-            activeTab === "programari" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
-          }`}
-        >
-          <CalendarClock size={20} />
-          <span className="text-[10px]">Programari</span>
-        </button>
-
+      <nav
+        className="m-nav-bar fixed bottom-0 left-0 right-0 z-50 border-t px-2 py-2 flex items-center justify-around select-none shadow-2xl backdrop-blur-md"
+        aria-label="Navigare mobilă"
+      >
+        {tabs.map(({ id, label, Icon, badge }) => {
+          const active = activeTab === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              className={`m-nav-item relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
+                active ? "is-active scale-105" : "font-semibold opacity-80 hover:opacity-100"
+              }`}
+            >
+              <Icon size={20} />
+              <span className="text-[10px]">{label}</span>
+              {badge > 0 && (
+                <span
+                  className="absolute -top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-white text-[9px] font-black flex items-center justify-center"
+                  style={{ backgroundColor: "var(--m-danger)" }}
+                >
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
+      <MobileThemePicker
+        open={themePickerOpen}
+        currentId={themeId}
+        onSelect={(nextId) => {
+          setThemeId(nextId);
+          setThemePickerOpen(false);
+        }}
+        onClose={() => setThemePickerOpen(false)}
+      />
     </div>
   );
 }
