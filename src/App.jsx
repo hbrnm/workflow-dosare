@@ -328,7 +328,7 @@ export default function App() {
   };
 
   const handlePatchClaim = async (id, patch) => {
-    await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
+    return patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
   };
 
   const { exportExcel } = useExportExcel(userClaims);
@@ -602,6 +602,17 @@ export default function App() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
+            {(displayMode === "desktop" || (displayMode === null && !isMobileScreen)) && (
+              <button
+                type="button"
+                onClick={() => toggleDisplayMode("mobile")}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#3B5166] text-[12px] font-bold hover:bg-[#EFEAE1] transition-all"
+                title="Comută la modul mobil"
+              >
+                <Smartphone size={14} />
+                <span className="hidden sm:inline">Mobil</span>
+              </button>
+            )}
             <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
@@ -883,13 +894,13 @@ export default function App() {
 
         {alerteModalTab && (
           <AlerteModal
-            claims={claims}
+            claims={userClaims}
             initialTab={alerteModalTab}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             onClose={closeAlerts}
             onOpenClaim={openExisting}
-            onPatchClaim={patchClaim}
+            onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
           />
         )}
