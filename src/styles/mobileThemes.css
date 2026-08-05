@@ -81,10 +81,30 @@
   bottom: max(10px, env(safe-area-inset-bottom));
   border-radius: 999px;
   border: none;
-  padding-top: 0.55rem;
-  padding-bottom: 0.55rem;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
   box-shadow: var(--m-shadow);
   z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  justify-items: stretch;
+  gap: 0;
+}
+.mobile-shell[data-nav="pill"] .m-nav-item {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  transform: none !important;
+}
+.mobile-shell[data-nav="pill"] .m-nav-icon {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+.mobile-shell[data-nav="pill"] .m-nav-label {
+  max-width: 100%;
 }
 .mobile-shell[data-nav="pill"] main {
   padding-bottom: 6.5rem !important;
@@ -447,11 +467,21 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   box-shadow: 0 10px 32px rgba(1, 4, 9, 0.55);
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+}
+.mobile-shell[data-mtheme="forge"][data-nav="pill"] .m-nav-item {
+  border-radius: 18px;
+  gap: 0.2rem;
 }
 .mobile-shell[data-mtheme="forge"][data-nav="pill"] .m-nav-item.is-active {
   background: rgba(88, 166, 255, 0.12);
-  border-radius: 16px;
   color: #58A6FF !important;
+  transform: none !important;
+}
+.mobile-shell[data-mtheme="forge"][data-nav="pill"] .m-nav-label {
+  font-size: 9px;
+  font-weight: 650;
 }
 
 .mobile-shell[data-mtheme="forge"] .m-hub-pills {

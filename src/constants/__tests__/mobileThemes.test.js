@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { FolderOpen } from 'lucide-react';
 import {
   MOBILE_THEMES,
   MOBILE_THEME_LIST,
@@ -49,7 +50,8 @@ describe('mobileThemes', () => {
     expect(forge.navStyle).toBe('pill');
     expect(forge.labels.brief).toBe('Brief');
     expect(forge.labels.dosare).toBe('Dosare');
-    expect(forge.labels.programari).toBe('Programator');
+    expect(forge.labels.programari).toBe('Programări');
+    expect(forge.icons.dosare).toBe(FolderOpen);
     expect(forge.vars['--m-bg']).toBe('#010409');
     expect(forge.vars['--m-nav-active']).toBe('#58A6FF');
   });

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
-  List, Plus, ArrowRight, ChevronRight, GitBranch, CalendarDays
+  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays
 } from "lucide-react";
 import { telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
@@ -99,8 +99,8 @@ export default function MobileBrief({
   if (homeStyle === "inbox") {
     const shortcuts = [
       { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-a)", action: () => go("capture") },
-      { id: "dosare", label: "Dosare", Icon: GitBranch, color: "var(--m-hub-b)", action: () => go("dosare") },
-      { id: "programari", label: "Programator", Icon: CalendarDays, color: "var(--m-hub-c)", action: () => go("programari") },
+      { id: "dosare", label: "Dosare", Icon: FolderOpen, color: "var(--m-hub-b)", action: () => go("dosare") },
+      { id: "programari", label: "Programări", Icon: CalendarDays, color: "var(--m-hub-c)", action: () => go("programari") },
       { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-hub-d)", action: () => (onNew ? onNew() : go("dosare")) },
     ];
 
