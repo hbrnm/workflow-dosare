@@ -186,7 +186,7 @@ export default function MobileClaimSheet({
           </div>
 
           {statusOpen && (
-            <div className="mt-3 space-y-1 max-h-52 overflow-y-auto border-t border-[#EFEAE1] pt-2">
+            <div className="m-status-menu mt-3 space-y-1 max-h-52 overflow-y-auto border-t border-[#EFEAE1] pt-2">
               {STATUSES.map((s) => {
                 const active = s.key === statusDef.key;
                 return (
@@ -194,8 +194,8 @@ export default function MobileClaimSheet({
                     key={s.key}
                     type="button"
                     onClick={() => handleStatusChange(s.key)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-[13px] font-bold transition-colors ${
-                      active ? "bg-[#1C2127] text-white" : "hover:bg-[#FAF8F5] text-[#23282E]"
+                    className={`m-status-option w-full text-left px-3 py-2 rounded-xl text-[13px] font-bold transition-colors ${
+                      active ? "is-active" : ""
                     }`}
                   >
                     {s.num}. {s.label}

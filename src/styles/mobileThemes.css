@@ -725,3 +725,47 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
   background: #238636 !important;
   color: #fff !important;
 }
+
+/* Status dropdown — default (atelier / light) */
+.m-status-option {
+  background: transparent;
+  color: #23282E;
+}
+.m-status-option:hover {
+  background: #FAF8F5;
+}
+.m-status-option.is-active {
+  background: #1C2127;
+  color: #fff;
+}
+
+/* Status dropdown — Forge / Pulse dark sheets */
+.m-claim-sheet[data-mtheme="forge"] .m-status-menu,
+.m-claim-sheet[data-mtheme="pulse"] .m-status-menu {
+  border-color: #30363D !important;
+}
+.m-claim-sheet[data-mtheme="forge"] .m-status-option,
+.m-claim-sheet[data-mtheme="pulse"] .m-status-option {
+  color: #E6EDF3 !important;
+}
+.m-claim-sheet[data-mtheme="forge"] .m-status-option:hover,
+.m-claim-sheet[data-mtheme="pulse"] .m-status-option:hover {
+  background: #21262D !important;
+  color: #fff !important;
+}
+.m-claim-sheet[data-mtheme="forge"] .m-status-option.is-active {
+  background: #1F6FEB !important;
+  color: #fff !important;
+}
+.m-claim-sheet[data-mtheme="pulse"] .m-status-option.is-active {
+  background: #1ED760 !important;
+  color: #000 !important;
+}
+.m-claim-sheet[data-mtheme="forge"] .text-\[\#23282E\],
+.m-claim-sheet[data-mtheme="pulse"] .text-\[\#23282E\] {
+  color: #E6EDF3 !important;
+}
+.m-claim-sheet[data-mtheme="forge"] .border-\[\#EFEAE1\],
+.m-claim-sheet[data-mtheme="pulse"] .border-\[\#EFEAE1\] {
+  border-color: #30363D !important;
+}
