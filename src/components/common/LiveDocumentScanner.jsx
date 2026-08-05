@@ -62,40 +62,38 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     return () => window.removeEventListener("resize", measureStage);
   }, [measureStage]);
 
-  // Load OpenCV engine (~9MB, cached after first time)
+  // Load OpenCV only inside scanner (not at login). Start camera after engine
+  // attempt so the ~9MB parse doesn't race the first interactive paint.
   useEffect(() => {
     let cancelled = false;
-    if (isOpenCvReady()) {
-      setEngineReady(true);
-      setEngineLoading(false);
-      return undefined;
-    }
-    setEngineLoading(true);
-    loadOpenCv()
-      .then(() => {
-        if (!cancelled) {
-          setEngineReady(true);
-          setEngineLoading(false);
-          setEngineError(null);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setEngineReady(false);
-          setEngineLoading(false);
-          setEngineError(err?.message || "OpenCV indisponibil — detecție redusă");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    let stream = null;
 
-  useEffect(() => {
-    let active = true;
-    async function startCamera() {
+    async function boot() {
+      if (!isOpenCvReady()) {
+        setEngineLoading(true);
+        try {
+          await loadOpenCv();
+          if (!cancelled) {
+            setEngineReady(true);
+            setEngineError(null);
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setEngineReady(false);
+            setEngineError(err?.message || "OpenCV indisponibil — detecție redusă");
+          }
+        } finally {
+          if (!cancelled) setEngineLoading(false);
+        }
+      } else if (!cancelled) {
+        setEngineReady(true);
+        setEngineLoading(false);
+      }
+
+      if (cancelled) return;
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
             width: { ideal: 1920 },
@@ -103,7 +101,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           },
           audio: false,
         });
-        if (!active) {
+        if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
@@ -120,15 +118,18 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
         }
       } catch (err) {
         console.warn("Live document scanner camera failed:", err);
-        if (active) setCameraError("Nu am putut deschide camera. Verifică permisiunile.");
+        if (!cancelled) setCameraError("Nu am putut deschide camera. Verifică permisiunile.");
       }
     }
-    startCamera();
+
+    boot();
     return () => {
-      active = false;
+      cancelled = true;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
+      } else if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
       }
     };
   }, [measureStage]);

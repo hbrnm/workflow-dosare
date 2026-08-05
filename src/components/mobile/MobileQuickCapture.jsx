@@ -8,7 +8,7 @@ import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
-import { fileToDataUrl, prefetchScanEngine } from "../../utils/documentScanner";
+import { fileToDataUrl } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
@@ -170,11 +170,6 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   const predareInputRef = useRef(null);
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
-
-  // Prefetch OpenCV (~9MB) early so Scan Acte starts with real detection ready
-  useEffect(() => {
-    prefetchScanEngine();
-  }, []);
 
   // Lista celor mai recente dosare
   const recentClaims = useMemo(
