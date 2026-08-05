@@ -5,6 +5,7 @@ import {
 import {
   todayISO, daysBetween
 } from "../../utils/dateUtils";
+import { isProgramatorClaim } from "../../constants/config";
 
 export const SLOTURI_ORARE = [
   "08:00 - 08:30",
@@ -167,12 +168,10 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   }, []);
 
   // Claims on the active date
-  const PROGRAMMED_OR_ACTIVE_STATUSES = ["programat", "in_lucru", "gata_de_ridicare", "predat_client", "facturat"];
-
   const activeDayClaims = useMemo(() => {
     if (!activeDateStr) return [];
     return claims
-      .filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === activeDateStr && PROGRAMMED_OR_ACTIVE_STATUSES.includes(c.status))
+      .filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === activeDateStr)
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims, activeDateStr]);
 
@@ -347,7 +346,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                 );
               }
 
-              const dayClaims = claims.filter(c => c.dataProgramare && c.dataProgramare.slice(0, 10) === cell.iso && PROGRAMMED_OR_ACTIVE_STATUSES.includes(c.status));
+              const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
               const isSelected = activeDateStr === cell.iso;
               const isToday = cell.iso === todayISO();
