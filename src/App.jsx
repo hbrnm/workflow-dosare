@@ -399,7 +399,7 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
+    return <div className="min-h-screen bg-[#010409] flex items-center justify-center text-[#8B949E] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (!session) {
     return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
@@ -473,6 +473,7 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
+              themeId={mobileThemeId}
             />
           </Suspense>
         )}
@@ -483,6 +484,7 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={closeQuickCreate}
               onSave={handleSave}
+              themeId={mobileThemeId}
             />
           </Suspense>
         )}
@@ -997,6 +999,7 @@ export default function App() {
               insurersList={customInsurers}
               onJumpTo={openExisting}
               onNotify={showNotice}
+              themeId={mobileThemeId}
             />
           </ErrorBoundary>
         )}
@@ -1012,6 +1015,7 @@ export default function App() {
             onOpenClaim={openExisting}
             onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
+            themeId={mobileThemeId}
           />
         )}
 
@@ -1049,6 +1053,7 @@ export default function App() {
             isOpen={quickCreateOpen}
             onClose={closeQuickCreate}
             onSave={handleSave}
+            themeId={mobileThemeId}
           />
         )}
 

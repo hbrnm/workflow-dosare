@@ -3,7 +3,7 @@ import { X, Plus, ShieldCheck, FileText, Phone, Car, Building2, Check, User } fr
 import { INSURERS } from "../../constants/config";
 import { emptyClaim, getMostFrequentInsurer } from "../../utils/claimUtils";
 
-export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [] }) {
+export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [], themeId = "atelier" }) {
   const defaultInsurer = getMostFrequentInsurer(allClaims, INSURERS[0]);
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
@@ -53,13 +53,13 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl border border-[#DAD4C6] w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="m-themed-modal fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" data-mtheme={themeId}>
+      <div className="m-modal-panel bg-white rounded-3xl shadow-2xl border border-[#DAD4C6] w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* HEADER MODAL */}
-        <div className="bg-[#1C2127] text-white px-5 py-4 flex items-center justify-between">
+        <div className="m-modal-header bg-[#1C2127] text-white px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#C98A2B] flex items-center justify-center font-extrabold text-white">
+            <div className="m-modal-header-icon w-8 h-8 rounded-xl bg-[#C98A2B] flex items-center justify-center font-extrabold text-white">
               <Plus size={20} />
             </div>
             <div>
@@ -77,7 +77,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
         </div>
 
         {/* FORMULAR EXPRSS */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-[#23282E]">
+        <form onSubmit={handleSubmit} className="m-modal-body p-5 space-y-4 text-[#23282E]">
           
           {/* 1. NUMĂR ÎNMATRICULARE */}
           <div>
@@ -172,14 +172,14 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl border border-[#DAD4C6] text-[#6B6558] font-bold text-[13px] hover:bg-gray-100 transition-colors"
+              className="m-modal-btn-secondary flex-1 py-3 px-4 rounded-xl border border-[#DAD4C6] text-[#6B6558] font-bold text-[13px] hover:bg-gray-100 transition-colors"
             >
               Anulează
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 py-3 px-4 rounded-xl bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[13.5px] shadow-md flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
+              className="m-modal-btn-primary flex-1 py-3 px-4 rounded-xl bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[13.5px] shadow-md flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
             >
               <Check size={18} />
               <span>{isSaving ? "Se salvează..." : "Creează Dosar"}</span>
