@@ -62,36 +62,13 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     return () => window.removeEventListener("resize", measureStage);
   }, [measureStage]);
 
-  // Load OpenCV only inside scanner (not at login). Start camera after engine
-  // attempt so the ~9MB parse doesn't race the first interactive paint.
+  // Start camera immediately. Load OpenCV in parallel with timeout —
+  // never block the scanner UI on CDN/init forever.
   useEffect(() => {
     let cancelled = false;
     let stream = null;
 
-    async function boot() {
-      if (!isOpenCvReady()) {
-        setEngineLoading(true);
-        try {
-          await loadOpenCv();
-          if (!cancelled) {
-            setEngineReady(true);
-            setEngineError(null);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            setEngineReady(false);
-            setEngineError(err?.message || "OpenCV indisponibil — detecție redusă");
-          }
-        } finally {
-          if (!cancelled) setEngineLoading(false);
-        }
-      } else if (!cancelled) {
-        setEngineReady(true);
-        setEngineLoading(false);
-      }
-
-      if (cancelled) return;
-
+    async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -122,7 +99,35 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       }
     }
 
-    boot();
+    async function startEngine() {
+      if (isOpenCvReady()) {
+        if (!cancelled) {
+          setEngineReady(true);
+          setEngineLoading(false);
+        }
+        return;
+      }
+      if (!cancelled) setEngineLoading(true);
+      try {
+        await loadOpenCv({ timeoutMs: 15000 });
+        if (!cancelled) {
+          setEngineReady(true);
+          setEngineError(null);
+        }
+      } catch (err) {
+        console.warn("OpenCV unavailable, using JS detection:", err);
+        if (!cancelled) {
+          setEngineReady(false);
+          setEngineError("OpenCV indisponibil — scanare cu detecție de rezervă");
+        }
+      } finally {
+        if (!cancelled) setEngineLoading(false);
+      }
+    }
+
+    startCamera();
+    startEngine();
+
     return () => {
       cancelled = true;
       if (streamRef.current) {
@@ -342,11 +347,13 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           {flash && <div className="absolute inset-0 bg-white z-30 pointer-events-none" />}
 
           {engineLoading && (
-            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[2px]">
-              <Loader2 className="w-8 h-8 text-[#C98A2B] animate-spin" />
-              <div className="text-sm font-extrabold">Se încarcă OpenCV…</div>
-              <div className="text-[11px] text-white/60 px-8 text-center font-semibold">
-                Prima dată durează câteva secunde (~9 MB). Apoi rămâne în cache.
+            <div className="absolute top-12 left-3 right-3 z-30 flex items-center gap-2 rounded-xl bg-black/70 border border-white/15 px-3 py-2 pointer-events-none">
+              <Loader2 className="w-4 h-4 text-[#C98A2B] animate-spin shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[11px] font-extrabold text-white">Se încarcă OpenCV…</div>
+                <div className="text-[10px] text-white/60 font-semibold">
+                  Poți scana acum; detecția se îmbunătățește când motorul e gata.
+                </div>
               </div>
             </div>
           )}
@@ -438,7 +445,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           <button
             type="button"
             onClick={captureFrame}
-            disabled={Boolean(cameraError) || Boolean(pendingCrop) || engineLoading}
+            disabled={Boolean(cameraError) || Boolean(pendingCrop)}
             className="w-[76px] h-[76px] rounded-full border-[4px] border-white flex items-center justify-center active:scale-90 transition-transform bg-white/10 disabled:opacity-40"
             title="Capturează pagină"
           >
