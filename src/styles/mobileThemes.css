@@ -769,3 +769,252 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
 .m-claim-sheet[data-mtheme="pulse"] .border-\[\#EFEAE1\] {
   border-color: #30363D !important;
 }
+
+/* ========== Login (Forge-inspired) ========== */
+.m-login {
+  position: relative;
+  background: #010409;
+  font-family: "IBM Plex Sans", "Inter", system-ui, sans-serif;
+  color: #E6EDF3;
+  overflow: hidden;
+}
+.m-login-glow {
+  position: absolute;
+  inset: -20% auto auto 50%;
+  width: 520px;
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(31, 111, 235, 0.22), transparent 68%);
+  pointer-events: none;
+}
+.m-login-card {
+  background: #161B22;
+  border: 1px solid #30363D;
+  border-radius: 16px;
+  padding: 1.35rem 1.25rem 1.2rem;
+  box-shadow: 0 16px 48px rgba(1, 4, 9, 0.55);
+  z-index: 1;
+}
+.m-login-logo {
+  background: #21262D;
+  border: 1px solid #30363D;
+}
+.m-login-mark {
+  background: #238636;
+  color: #fff;
+  border: 1px solid rgba(46, 160, 67, 0.45);
+}
+.m-login-title {
+  font-family: "IBM Plex Sans", "Space Grotesk", sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.m-login-sub {
+  font-size: 11.5px;
+  color: #8B949E;
+  font-weight: 600;
+}
+.m-login-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8B949E;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.m-login-input {
+  width: 100%;
+  background: #0D1117;
+  border: 1px solid #30363D;
+  border-radius: 10px;
+  color: #E6EDF3;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0.7rem 0.85rem;
+  outline: none;
+}
+.m-login-input::placeholder { color: #6E7681; }
+.m-login-input:focus {
+  border-color: #1F6FEB;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.25);
+}
+.m-login-error {
+  font-size: 12px;
+  font-weight: 700;
+  color: #F85149;
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.35);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+.m-login-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: #238636;
+  color: #fff;
+  border: 1px solid rgba(46, 160, 67, 0.5);
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 800;
+  padding: 0.75rem 1rem;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.m-login-submit:hover { background: #2EA043; }
+.m-login-submit:active { transform: scale(0.98); }
+.m-login-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.m-login-hint {
+  font-size: 11px;
+  color: #8B949E;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ========== Themed overlays (QuickCreate / Claim / Setari) ========== */
+.m-themed-modal[data-mtheme="forge"] .m-modal-panel,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-panel {
+  background: #0D1117 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-header,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-header {
+  background: #010409 !important;
+  border-color: #30363D !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-header-icon,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-header-icon {
+  background: #238636 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-body,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-body {
+  color: #E6EDF3 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-btn-primary,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-btn-primary {
+  background: #238636 !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-btn-primary:hover,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-btn-primary:hover {
+  background: #2EA043 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-btn-secondary,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-btn-secondary {
+  background: #21262D !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .m-modal-btn-secondary:hover,
+html[data-mtheme="forge"] .m-themed-modal .m-modal-btn-secondary:hover {
+  background: #30363D !important;
+}
+
+.m-themed-modal[data-mtheme="forge"] .bg-white,
+.m-themed-modal[data-mtheme="forge"] .bg-\[\#FAF8F5\],
+.m-themed-modal[data-mtheme="forge"] .bg-\[\#FCFAF5\],
+.m-themed-modal[data-mtheme="forge"] .bg-\[\#F4F1EA\],
+.m-themed-modal[data-mtheme="forge"] .bg-\[\#EFEAE1\],
+html[data-mtheme="forge"] .m-themed-modal .bg-white,
+html[data-mtheme="forge"] .m-themed-modal .bg-\[\#FAF8F5\],
+html[data-mtheme="forge"] .m-themed-modal .bg-\[\#FCFAF5\] {
+  background-color: #161B22 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .text-\[\#23282E\],
+.m-themed-modal[data-mtheme="forge"] .text-\[\#3B5166\],
+html[data-mtheme="forge"] .m-themed-modal .text-\[\#23282E\],
+html[data-mtheme="forge"] .m-themed-modal .text-\[\#3B5166\] {
+  color: #E6EDF3 !important;
+}
+.m-themed-modal[data-mtheme="forge"] .text-\[\#6B6558\],
+.m-themed-modal[data-mtheme="forge"] .text-\[\#8A8375\],
+html[data-mtheme="forge"] .m-themed-modal .text-\[\#6B6558\],
+html[data-mtheme="forge"] .m-themed-modal .text-\[\#8A8375\] {
+  color: #8B949E !important;
+}
+.m-themed-modal[data-mtheme="forge"] .border-\[\#DAD4C6\],
+.m-themed-modal[data-mtheme="forge"] .border-\[\#EFEAE1\],
+html[data-mtheme="forge"] .m-themed-modal .border-\[\#DAD4C6\],
+html[data-mtheme="forge"] .m-themed-modal .border-\[\#EFEAE1\] {
+  border-color: #30363D !important;
+}
+.m-themed-modal[data-mtheme="forge"] .bg-\[\#C98A2B\],
+.m-themed-modal[data-mtheme="forge"] .hover\:bg-\[\#B37A22\]:hover,
+html[data-mtheme="forge"] .m-themed-modal .bg-\[\#C98A2B\] {
+  background-color: #238636 !important;
+  color: #fff !important;
+}
+.m-themed-modal[data-mtheme="forge"] input,
+.m-themed-modal[data-mtheme="forge"] select,
+.m-themed-modal[data-mtheme="forge"] textarea,
+html[data-mtheme="forge"] .m-themed-modal input,
+html[data-mtheme="forge"] .m-themed-modal select,
+html[data-mtheme="forge"] .m-themed-modal textarea {
+  background-color: #0D1117 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+.m-themed-modal[data-mtheme="forge"] input:focus,
+.m-themed-modal[data-mtheme="forge"] select:focus,
+.m-themed-modal[data-mtheme="forge"] textarea:focus,
+html[data-mtheme="forge"] .m-themed-modal input:focus,
+html[data-mtheme="forge"] .m-themed-modal select:focus {
+  border-color: #1F6FEB !important;
+  background-color: #0D1117 !important;
+}
+.m-themed-modal[data-mtheme="forge"] option,
+html[data-mtheme="forge"] .m-themed-modal option {
+  background: #161B22;
+  color: #E6EDF3;
+}
+
+/* Pulse overlays (same family of dark windows) */
+.m-themed-modal[data-mtheme="pulse"] .m-modal-panel {
+  background: #121212 !important;
+  border-color: #282828 !important;
+  color: #fff !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .m-modal-header {
+  background: #000 !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .m-modal-header-icon,
+.m-themed-modal[data-mtheme="pulse"] .m-modal-btn-primary {
+  background: #1ED760 !important;
+  color: #000 !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .m-modal-btn-secondary {
+  background: #2A2A2A !important;
+  border-color: #404040 !important;
+  color: #fff !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .bg-white,
+.m-themed-modal[data-mtheme="pulse"] .bg-\[\#FAF8F5\],
+.m-themed-modal[data-mtheme="pulse"] .bg-\[\#FCFAF5\] {
+  background-color: #181818 !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .text-\[\#23282E\],
+.m-themed-modal[data-mtheme="pulse"] .text-\[\#3B5166\] {
+  color: #fff !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .text-\[\#6B6558\],
+.m-themed-modal[data-mtheme="pulse"] .text-\[\#8A8375\] {
+  color: #A7A7A7 !important;
+}
+.m-themed-modal[data-mtheme="pulse"] .border-\[\#DAD4C6\] {
+  border-color: #282828 !important;
+}
+.m-themed-modal[data-mtheme="pulse"] input,
+.m-themed-modal[data-mtheme="pulse"] select,
+.m-themed-modal[data-mtheme="pulse"] textarea {
+  background-color: #000 !important;
+  border-color: #282828 !important;
+  color: #fff !important;
+}
+

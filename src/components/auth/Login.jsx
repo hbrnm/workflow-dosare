@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Lock, Mail } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
-import { DEFAULT_BRANDING, darkenHex, loadCachedBranding } from "../../constants/branding";
+import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
+import { loadMobileThemeId } from "../../constants/mobileThemes";
+import "../../styles/mobileThemes.css";
 
 export default function Login({ onLoginSuccess, branding: brandingProp }) {
   const [email, setEmail] = useState("");
@@ -10,6 +12,7 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
+  const themeId = loadMobileThemeId();
 
   useEffect(() => {
     if (brandingProp) setBranding(brandingProp);
@@ -27,13 +30,12 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
   }, []);
 
   useEffect(() => {
-    if (branding?.accentColor) {
-      document.documentElement.style.setProperty("--brand-accent", branding.accentColor);
+    try {
+      document.documentElement.dataset.mtheme = themeId || "forge";
+    } catch {
+      /* ignore */
     }
-  }, [branding?.accentColor]);
-
-  const accent = branding?.accentColor || DEFAULT_BRANDING.accentColor;
-  const accentDark = darkenHex(accent);
+  }, [themeId]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -57,67 +59,77 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
     setError("Email sau parolă incorectă.");
   };
 
+  const short = (branding?.atelierShort || "WD").slice(0, 2);
+  const name = branding?.atelierNume || DEFAULT_BRANDING.atelierNume;
+
   return (
-    <div className="min-h-screen bg-[#EFEAE1] flex items-center justify-center p-4">
-      <form onSubmit={handleLogin} className="bg-white rounded-lg border border-[#DAD4C6] shadow-xl p-6 w-full max-w-sm space-y-3">
-        <div className="flex items-center gap-2 mb-1">
+    <div className="m-login min-h-screen flex items-center justify-center p-4" data-mtheme={themeId || "forge"}>
+      <div className="m-login-glow" aria-hidden />
+      <form onSubmit={handleLogin} className="m-login-card relative w-full max-w-sm space-y-4">
+        <div className="flex items-center gap-3">
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              className="w-8 h-8 rounded object-contain bg-[#FAF8F5] border border-[#DAD4C6]"
+              className="m-login-logo w-11 h-11 rounded-xl object-contain"
             />
           ) : (
-            <div
-              className="w-8 h-8 rounded flex items-center justify-center"
-              style={{ backgroundColor: accent }}
-            >
-              <ShieldCheck size={18} className="text-white" />
+            <div className="m-login-mark w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-[13px]">
+              {short}
             </div>
           )}
-          <div className="font-bold text-[15px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            {branding?.atelierNume || DEFAULT_BRANDING.atelierNume}
+          <div className="min-w-0">
+            <div className="m-login-title truncate">{name}</div>
+            <div className="m-login-sub">Autentificare atelier</div>
           </div>
         </div>
-        <div>
-          <label className="block text-[11px] text-[#6B6558] mb-0.5">Email</label>
+
+        <div className="space-y-1.5">
+          <label className="m-login-label">
+            <Mail size={12} /> Email
+          </label>
           <input
             type="email"
             required
-            className="in"
+            className="m-login-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
+            autoComplete="username"
+            placeholder="nume@atelier.ro"
           />
         </div>
-        <div>
-          <label className="block text-[11px] text-[#6B6558] mb-0.5">Parolă</label>
+
+        <div className="space-y-1.5">
+          <label className="m-login-label">
+            <Lock size={12} /> Parolă
+          </label>
           <input
             type="password"
             required
-            className="in"
+            className="m-login-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
           />
         </div>
-        {error && <div className="text-[12px] text-[#B23A2E]">{error}</div>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 rounded-md text-white text-[13px] font-semibold disabled:opacity-60"
-          style={{ backgroundColor: accent }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = accentDark;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = accent;
-          }}
-        >
-          {loading ? "Se conectează..." : "Conectare"}
+
+        {error && <div className="m-login-error">{error}</div>}
+
+        <button type="submit" disabled={loading} className="m-login-submit">
+          {loading ? (
+            "Se conectează..."
+          ) : (
+            <>
+              <ShieldCheck size={16} /> Conectare
+            </>
+          )}
         </button>
-        <div className="text-[11px] text-[#8A8375] text-center">
+
+        <p className="m-login-hint text-center">
           Cont nou? Cere administratorului să-ți creeze unul din Setări.
-        </div>
+        </p>
       </form>
     </div>
   );

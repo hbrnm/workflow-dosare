@@ -31,6 +31,7 @@ export default function AlerteModal({
   onOpenClaim,
   onPatchClaim,
   onNotify,
+  themeId = "atelier",
 }) {
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -63,10 +64,10 @@ export default function AlerteModal({
   const totalAlertsCount = buckets.totalAlertsCount;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+    <div className="m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" data-mtheme={themeId}>
+      <div className="m-modal-panel bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
 
-        <div className="flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0 shadow-md">
+        <div className="m-modal-header flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0 shadow-md">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#B23A2E] flex items-center justify-center text-white font-bold shadow-md">
               <Bell size={19} />
