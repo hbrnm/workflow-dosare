@@ -19,6 +19,7 @@ import {
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import { supabase } from "../../supabaseClient";
+import { fileToDataUrl } from "../../utils/documentScanner";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
@@ -93,49 +94,10 @@ export function compressColorImage(file) {
 }
 
 export function processScanImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-
-          const MAX_DIM = 1500;
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_DIM || h > MAX_DIM) {
-            if (w > h) {
-              h = Math.round((h * MAX_DIM) / w);
-              w = MAX_DIM;
-            } else {
-              w = Math.round((w * MAX_DIM) / h);
-              h = MAX_DIM;
-            }
-          }
-
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error("Eroare la procesarea documentului scanat."));
-              return;
-            }
-            resolve(canvas.toDataURL("image/jpeg", 0.85));
-          }, "image/jpeg", 0.85);
-        } catch (err) {
-          reject(new Error("Eroare la procesarea documentului."));
-        }
-      };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii pentru scanare."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Eroare la citirea fișierului."));
-    reader.readAsDataURL(file);
-  });
+  // Compat: procesare automată cu detecție 4 colțuri + perspectivă
+  return import("../../utils/documentScanner").then(({ processDocumentScan }) =>
+    processDocumentScan(file).then((r) => r.dataUrl)
+  );
 }
 
 export default function ClaimModal({
@@ -195,6 +157,8 @@ export default function ClaimModal({
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
   const [previewPoza, setPreviewPoza] = useState(null);
   const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [cropQueue, setCropQueue] = useState([]);
+  const [cropMode, setCropMode] = useState("document"); // "document" | "scan"
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
 
@@ -580,24 +544,23 @@ export default function ClaimModal({
   };
 
   const handleStartScanSession = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
     if (files.length === 0) return;
 
     setUploadingDocumente(true);
     try {
-      const pageDataUrls = [];
-      for (const file of files) {
-        const dataUrl = await processScanImage(file);
-        pageDataUrls.push(dataUrl);
-      }
-
+      const urls = [];
+      for (const file of files) urls.push(await fileToDataUrl(file));
       const defaultName = `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`;
       setScanSession({
         fileName: defaultName,
-        pages: pageDataUrls,
+        pages: [],
         saveAsPdf: true,
         saveAsPhotos: false,
       });
+      setCropMode("scan");
+      setCropImageSrc(urls[0]);
+      setCropQueue(urls.slice(1));
     } catch (err) {
       onNotify(err.message, "error");
     } finally {
@@ -606,19 +569,15 @@ export default function ClaimModal({
   };
 
   const handleAddPageToScan = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
     if (files.length === 0) return;
 
     try {
-      const newPages = [];
-      for (const file of files) {
-        const dataUrl = await processScanImage(file);
-        newPages.push(dataUrl);
-      }
-      setScanSession(prev => ({
-        ...prev,
-        pages: [...prev.pages, ...newPages]
-      }));
+      const urls = [];
+      for (const file of files) urls.push(await fileToDataUrl(file));
+      setCropMode("scan");
+      setCropImageSrc(urls[0]);
+      setCropQueue(urls.slice(1));
     } catch (err) {
       onNotify(err.message, "error");
     }
@@ -1374,7 +1333,7 @@ export default function ClaimModal({
                       </label>
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
                         {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => setCropImageSrc(ev.target.result); reader.readAsDataURL(file); } }} />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setCropMode("document"); const reader = new FileReader(); reader.onload = (ev) => setCropImageSrc(ev.target.result); reader.readAsDataURL(file); } e.target.value = ""; }} />
                       </label>
                     </div>
 
@@ -1738,8 +1697,36 @@ export default function ClaimModal({
               {cropImageSrc && (
                 <DocumentCropModal
                   imageSrc={cropImageSrc}
-                  onClose={() => setCropImageSrc(null)}
+                  onClose={() => {
+                    if (cropQueue.length > 0) {
+                      setCropImageSrc(cropQueue[0]);
+                      setCropQueue((q) => q.slice(1));
+                    } else {
+                      setCropImageSrc(null);
+                      setCropMode("document");
+                    }
+                  }}
                   onConfirm={async (croppedDataUrl) => {
+                    if (cropMode === "scan") {
+                      setScanSession((prev) =>
+                        prev
+                          ? { ...prev, pages: [...prev.pages, croppedDataUrl] }
+                          : {
+                              fileName: `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`,
+                              pages: [croppedDataUrl],
+                              saveAsPdf: true,
+                              saveAsPhotos: false,
+                            }
+                      );
+                      if (cropQueue.length > 0) {
+                        setCropImageSrc(cropQueue[0]);
+                        setCropQueue((q) => q.slice(1));
+                      } else {
+                        setCropImageSrc(null);
+                        setCropMode("document");
+                      }
+                      return;
+                    }
                     setCropImageSrc(null);
                     const res = await fetch(croppedDataUrl);
                     const blob = await res.blob();
