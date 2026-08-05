@@ -43,10 +43,13 @@ describe('mobileThemes', () => {
     expect(accents.size).toBe(6);
   });
 
-  it('pulse uses hub home style with dark green accent', () => {
+  it('pulse uses hub home, floating dock, and workshop nav labels', () => {
     const pulse = getMobileTheme('pulse');
     expect(pulse.homeStyle).toBe('hub');
-    expect(pulse.labels.brief).toBe('Acasă');
+    expect(pulse.navStyle).toBe('pill');
+    expect(pulse.labels.brief).toBe('Brief');
+    expect(pulse.labels.dosare).toBe('Dosare');
+    expect(pulse.labels.programari).toBe('Programator');
     expect(pulse.vars['--m-bg']).toBe('#000000');
     expect(pulse.vars['--m-accent']).toBe('#1ED760');
   });

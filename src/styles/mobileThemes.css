@@ -90,6 +90,21 @@
   padding-bottom: 6.5rem !important;
 }
 
+/* Pulse floating dock polish */
+.mobile-shell[data-mtheme="pulse"][data-nav="pill"] .m-nav-bar {
+  left: 14px;
+  right: 14px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  border-radius: 28px;
+  background: rgba(18, 18, 18, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
 .mobile-shell[data-nav="underline"] .m-nav-bar {
   position: relative;
   left: auto;
@@ -257,6 +272,7 @@
   padding: 0.55rem 1rem;
 }
 .mobile-shell[data-mtheme="pulse"] .bg-white { background-color: var(--m-surface) !important; }
+.mobile-shell[data-mtheme="pulse"] .bg-white\/80,
 .mobile-shell[data-mtheme="pulse"] .bg-\[\#FAF8F5\],
 .mobile-shell[data-mtheme="pulse"] .bg-green-50,
 .mobile-shell[data-mtheme="pulse"] .bg-red-50\/60,
@@ -282,6 +298,26 @@
 .mobile-shell[data-mtheme="pulse"] .border-red-100,
 .mobile-shell[data-mtheme="pulse"] .border-red-200 {
   border-color: var(--m-border) !important;
+}
+
+/* Stacked / merged claim groups under Pulse */
+.mobile-shell[data-mtheme="pulse"] .m-stack-group {
+  background: #181818 !important;
+  border-color: #404040 !important;
+}
+.mobile-shell[data-mtheme="pulse"] .m-stack-head,
+.mobile-shell[data-mtheme="pulse"] .m-stack-item {
+  background: #121212 !important;
+  border-color: #282828 !important;
+  color: #fff !important;
+}
+.mobile-shell[data-mtheme="pulse"] .m-stack-hint {
+  background: #2A2A2A !important;
+  border-color: #404040 !important;
+  color: #EAEAEA !important;
+}
+.mobile-shell[data-mtheme="pulse"] .m-stack-meta {
+  color: #A7A7A7 !important;
 }
 
 /* WhatsApp + Call — default (atelier) */

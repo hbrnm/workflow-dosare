@@ -212,11 +212,11 @@ function MobileStackedGroupCard({ group, onOpen }) {
   const first = group[0];
 
   return (
-    <div className="border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
+    <div className="m-stack-group border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
       {/* Header Comasat Mobil */}
       <div 
         onClick={() => setExpanded(!expanded)} 
-        className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
+        className="m-stack-head flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
       >
         <div className="flex items-center gap-2">
           <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
@@ -226,7 +226,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
             {group.length} dosare
           </span>
         </div>
-        <div className="flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
+        <div className="m-stack-meta flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
           <span>{expanded ? "Restrânge" : "Extinde"}</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
@@ -236,7 +236,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
       {!expanded && (
         <div 
           onClick={() => setExpanded(true)}
-          className="bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+          className="m-stack-hint bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
         >
           <span>Apasă pentru a deschide cele {group.length} dosare comasate</span>
           <ChevronDown size={14} />
@@ -254,7 +254,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
               <div
                 key={c.id}
                 onClick={() => onOpen(c)}
-                className="bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
+                className="m-stack-item bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
