@@ -264,7 +264,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                             <WhatsAppButton phone={phone} claim={c} size={11} />
                             <a
                               href={telLink(phone)}
-                              className="flex items-center gap-1 px-2 py-1 rounded bg-[#EEF1F3] hover:bg-[#3B5166] text-[#3B5166] hover:text-white text-[10.5px] font-bold transition-colors"
+                              className="m-call-btn flex items-center gap-1 px-2 py-1 text-[10.5px] font-bold"
                               title={`Sună la ${phone}`}
                             >
                               <Phone size={11} /> Apel

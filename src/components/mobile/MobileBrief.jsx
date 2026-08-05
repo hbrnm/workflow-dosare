@@ -207,8 +207,7 @@ export default function MobileBrief({
                           <WhatsAppButton phone={phone} claim={c} size={12} />
                           <a
                             href={telLink(phone)}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11.5px] font-bold"
-                            style={{ background: "var(--m-surface-2)", color: "var(--m-text)" }}
+                            className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
                           >
                             <Phone size={12} /> Apel
                           </a>
@@ -300,12 +299,12 @@ export default function MobileBrief({
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={12} />
-                        <a
-                          href={telLink(phone)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#EEF1F3] text-[#3B5166] text-[11.5px] font-bold"
-                        >
-                          <Phone size={12} /> Apel
-                        </a>
+                          <a
+                            href={telLink(phone)}
+                            className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
+                          >
+                            <Phone size={12} /> Apel
+                          </a>
                       </>
                     )}
                   </div>

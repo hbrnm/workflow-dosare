@@ -179,7 +179,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
                       {phone && (
                         <>
                           <WhatsAppButton phone={phone} claim={c} size={11} />
-                          <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                          <a href={telLink(phone)} className="m-call-btn p-1.5">
                             <Phone size={12} />
                           </a>
                         </>
@@ -289,7 +289,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={11} />
-                        <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                        <a href={telLink(phone)} className="m-call-btn p-1.5">
                           <Phone size={12} />
                         </a>
                       </>
