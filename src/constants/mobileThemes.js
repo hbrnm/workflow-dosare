@@ -4,7 +4,7 @@ import {
   Image, Files, Flame, CalendarRange,
   Code2, GitBranch, Inbox, Calendar,
   BookOpen, ClipboardList, Lightbulb, CalendarCheck,
-  Palette
+  Home, Library, Search, Palette
 } from "lucide-react";
 
 export const MOBILE_THEME_STORAGE_KEY = "workflow_dosare_mobile_theme";
@@ -232,6 +232,55 @@ export const MOBILE_THEMES = {
       "--m-radius": "18px",
       "--m-radius-sm": "12px",
       "--m-shadow": "0 4px 14px rgba(107,142,35,0.12)",
+    },
+  },
+  pulse: {
+    id: "pulse",
+    label: "Pulse",
+    blurb: "Hub dark — verde, pastile, shortcut-uri rapide",
+    inspiredNote: "Inspirat de player-e muzicale",
+    navStyle: "dock",
+    headerStyle: "dark",
+    homeStyle: "hub",
+    fonts: {
+      display: "'Plus Jakarta Sans', 'Space Grotesk', sans-serif",
+      body: "'Plus Jakarta Sans', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: Search,
+      brief: Home,
+      dosare: Library,
+      programari: CalendarDays,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Caută",
+      brief: "Acasă",
+      dosare: "Bibliotecă",
+      programari: "Agenda",
+    },
+    vars: {
+      "--m-bg": "#000000",
+      "--m-surface": "#121212",
+      "--m-surface-2": "#181818",
+      "--m-text": "#FFFFFF",
+      "--m-muted": "#A7A7A7",
+      "--m-border": "#282828",
+      "--m-header": "#000000",
+      "--m-header-text": "#FFFFFF",
+      "--m-nav": "#000000",
+      "--m-nav-text": "#B3B3B3",
+      "--m-nav-active": "#1ED760",
+      "--m-accent": "#1ED760",
+      "--m-accent-text": "#000000",
+      "--m-danger": "#F15E6C",
+      "--m-radius": "12px",
+      "--m-radius-sm": "999px",
+      "--m-shadow": "none",
+      "--m-hub-a": "#F5C451",
+      "--m-hub-b": "#E91E8C",
+      "--m-hub-c": "#509BF5",
+      "--m-hub-d": "#A960EE",
     },
   },
 };

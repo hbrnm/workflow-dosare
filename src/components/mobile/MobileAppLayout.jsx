@@ -186,11 +186,15 @@ export default function MobileAppLayout({
           <MobileBrief
             claims={claims}
             onOpen={onOpenClaim}
+            onNew={onNewClaim}
+            onGoTab={handleTabChange}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
             onPatchClaim={onPatchClaim}
             onNotify={onNotify}
+            homeStyle={theme.homeStyle || "list"}
+            atelierNume={branding?.atelierNume}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
