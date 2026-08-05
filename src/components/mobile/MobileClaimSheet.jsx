@@ -8,6 +8,7 @@ import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
 import { refreshStorageUrls } from "../../utils/claimUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
+import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
 /**
  * Thin field sheet for mobile — plate, client, phone, status, photos, next step.
@@ -205,6 +206,25 @@ export default function MobileClaimSheet({
             </div>
           )}
         </section>
+
+        {claim.status === "piese_comandate" && (
+          <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm">
+            <MobilePieseSositeRow
+              claim={claim}
+              canEdit={!readOnly}
+              onToggle={async (c, val) => {
+                const ok = await onPatch?.(c.id, { pieseSosite: val });
+                if (ok === false) return;
+                onNotify?.(
+                  val
+                    ? "Piese marcate ca sosite — apar la alerte dacă nu au programare."
+                    : "Bifa „Piese sosite” a fost stearsă.",
+                  val ? "success" : "info"
+                );
+              }}
+            />
+          </section>
+        )}
 
         {/* Client + phone */}
         <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">

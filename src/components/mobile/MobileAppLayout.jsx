@@ -201,8 +201,10 @@ export default function MobileAppLayout({
             claims={claims}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
+            onPatch={onPatchClaim}
             canEditFn={canEditFn}
             atelierNume={branding?.atelierNume}
+            onNotify={onNotify}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari

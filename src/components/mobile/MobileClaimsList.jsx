@@ -1,18 +1,27 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Filter, ChevronRight, User, Phone, X, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Plus, ChevronRight, User, Phone, X, ChevronDown, ChevronUp } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
-import Pill from "../common/Pill";
 import { telLink } from "../../utils/dateUtils";
+import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
-export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, atelierNume = "Dosare Daună" }) {
+export default function MobileClaimsList({
+  claims,
+  onOpen,
+  onNew,
+  onPatch,
+  canEditFn,
+  atelierNume = "Dosare Daună",
+  onNotify,
+}) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "gata_de_ridicare" | "facturat" | "blocate"
+  const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "piese_sosite" | "gata_de_ridicare" | "facturat" | "blocate"
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {
       if (statusFilter === "in_lucru" && c.status !== "in_lucru") return false;
       if (statusFilter === "piese_comandate" && c.status !== "piese_comandate") return false;
+      if (statusFilter === "piese_sosite" && !(c.pieseSosite && !c.dataProgramare)) return false;
       if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
       if (statusFilter === "facturat" && c.status !== "facturat") return false;
       if (statusFilter === "blocate" && !c.blocat) return false;
@@ -28,6 +37,25 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
     });
   }, [claims, query, statusFilter]);
 
+  const pieseSositeCount = useMemo(
+    () => claims.filter((c) => c.pieseSosite && !c.dataProgramare).length,
+    [claims]
+  );
+
+  const handleTogglePieseSosite = async (claim, val) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return;
+    }
+    const ok = await onPatch?.(claim.id, { pieseSosite: val });
+    if (ok === false) return;
+    onNotify?.(
+      val
+        ? "Piese marcate ca sosite — apar la alerte dacă nu au programare."
+        : "Bifa „Piese sosite” a fost stearsă.",
+      val ? "success" : "info"
+    );
+  };
   // Group claims by vehicle registration if multiple exist in the same status (Point 15)
   const groupedClaims = useMemo(() => {
     const map = new Map();
@@ -95,6 +123,12 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
             Piese Comandate
           </button>
           <button
+            onClick={() => setStatusFilter("piese_sosite")}
+            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "piese_sosite" ? "bg-[#2F8F5B] text-white border-[#2F8F5B]" : "bg-emerald-50 text-[#2F8F5B] border-emerald-200"}`}
+          >
+            Piese sosite ({pieseSositeCount})
+          </button>
+          <button
             onClick={() => setStatusFilter("gata_de_ridicare")}
             className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "gata_de_ridicare" ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-emerald-50 text-[#3E6B45] border-emerald-200"}`}
           >
@@ -158,11 +192,12 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
                     </span>
                   </div>
 
-                  {c.status === "piese_comandate" && c.dataComandaPiese && (
-                    <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
-                      <span>📦 Piese Comandate la:</span>
-                      <span className="font-mono">{c.dataComandaPiese}</span>
-                    </div>
+                  {c.status === "piese_comandate" && (
+                    <MobilePieseSositeRow
+                      claim={c}
+                      canEdit={!canEditFn || canEditFn(c)}
+                      onToggle={handleTogglePieseSosite}
+                    />
                   )}
 
                   <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
@@ -197,6 +232,8 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
                 key={group[0].id}
                 group={group}
                 onOpen={onOpen}
+                canEditFn={canEditFn}
+                onTogglePieseSosite={handleTogglePieseSosite}
               />
             );
           })
@@ -207,7 +244,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
   );
 }
 
-function MobileStackedGroupCard({ group, onOpen }) {
+function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite }) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
 
@@ -268,11 +305,13 @@ function MobileStackedGroupCard({ group, onOpen }) {
                   </span>
                 </div>
 
-                {c.status === "piese_comandate" && c.dataComandaPiese && (
-                  <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1 rounded-lg border border-amber-200 flex items-center justify-between">
-                    <span>📦 Piese Comandate la:</span>
-                    <span className="font-mono">{c.dataComandaPiese}</span>
-                  </div>
+                {c.status === "piese_comandate" && (
+                  <MobilePieseSositeRow
+                    claim={c}
+                    canEdit={!canEditFn || canEditFn(c)}
+                    onToggle={onTogglePieseSosite}
+                    compact
+                  />
                 )}
 
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[#6B6558]">
