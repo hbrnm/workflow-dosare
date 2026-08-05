@@ -112,8 +112,26 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
       {/* LISTĂ TACTILĂ DOSARE */}
       <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
         {groupedClaims.length === 0 ? (
-          <div className="p-8 text-center text-[12px] text-[#8A8375] italic bg-white border border-[#DAD4C6] rounded-2xl">
-            Niciun dosar găsit pentru criteriul selectat.
+          <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl space-y-3">
+            <p className="text-[13px] font-extrabold text-[#23282E]">
+              {query.trim() || statusFilter !== "toate"
+                ? "Niciun dosar pentru filtrele alese"
+                : "Niciun dosar încă"}
+            </p>
+            <p className="text-[11.5px] text-[#8A8375] font-semibold">
+              {query.trim() || statusFilter !== "toate"
+                ? "Șterge căutarea sau schimbă filtrul de status."
+                : "Creează un dosar nou ca să poți fotografia pe teren."}
+            </p>
+            {onNew && (!query.trim() && statusFilter === "toate") && (
+              <button
+                type="button"
+                onClick={onNew}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#C98A2B] text-white text-[12px] font-extrabold shadow-sm"
+              >
+                <Plus size={14} /> Dosar Nou
+              </button>
+            )}
           </div>
         ) : (
           groupedClaims.map((group) => {
@@ -126,7 +144,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, ate
                 <div
                   key={c.id}
                   onClick={() => onOpen(c)}
-                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2"
+                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2 active:scale-[0.99]"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

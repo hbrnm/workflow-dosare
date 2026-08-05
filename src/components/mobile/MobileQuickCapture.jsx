@@ -12,6 +12,7 @@ import { fileToDataUrl, buildScanPdfBlob } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
+import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
 
 // MODAL CAMERĂ STIL IPHONE/SAMSUNG - FĂRĂ BUTOANE DE OK, SALVARE AUTOMATĂ LIVE
 function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
@@ -50,6 +51,11 @@ function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePho
 
   const capturePhotoInstantly = async () => {
     if (!videoRef.current) return;
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(10);
+      }
+    } catch { /* ignore */ }
     setFlash(true);
     setTimeout(() => setFlash(false), 120);
 
@@ -156,6 +162,7 @@ function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePho
 export default function MobileQuickCapture({
   claims,
   onOpen,
+  onNew,
   onPatch,
   canEditFn,
   onNotify,
@@ -163,7 +170,7 @@ export default function MobileQuickCapture({
   onFocusClaimConsumed,
 }) {
   const [query, setQuery] = useState("");
-  const [selectedClaimId, setSelectedClaimId] = useState(null);
+  const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
@@ -181,9 +188,30 @@ export default function MobileQuickCapture({
   useEffect(() => {
     if (!focusClaimId) return;
     setSelectedClaimId(focusClaimId);
+    saveLastCaptureClaimId(focusClaimId);
     setShowLiveCamera(true);
     onFocusClaimConsumed?.();
   }, [focusClaimId, onFocusClaimConsumed]);
+
+  useEffect(() => {
+    if (selectedClaimId) saveLastCaptureClaimId(selectedClaimId);
+  }, [selectedClaimId]);
+
+  // Drop stale last-claim if it no longer exists / isn't editable
+  useEffect(() => {
+    if (!selectedClaimId || !claims?.length) return;
+    const stillThere = claims.some((c) => c.id === selectedClaimId && (!canEditFn || canEditFn(c)));
+    if (!stillThere) setSelectedClaimId(null);
+  }, [claims, selectedClaimId, canEditFn]);
+
+  const selectClaim = (id) => {
+    softHaptic(8);
+    setSelectedClaimId((prev) => {
+      const next = prev === id ? null : id;
+      saveLastCaptureClaimId(next);
+      return next;
+    });
+  };
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
@@ -490,11 +518,36 @@ export default function MobileQuickCapture({
       
       {/* 1. SELECTARE & CĂUTARE DOSAR */}
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-extrabold text-[14px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Dosar pentru foto
+          </h2>
+          {onNew && (
+            <button
+              type="button"
+              onClick={() => { softHaptic(8); onNew(); }}
+              className="m-press flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11.5px] font-extrabold shadow-sm"
+            >
+              <Plus size={14} /> Dosar
+            </button>
+          )}
+        </div>
+
         {selectedClaim && (
-          <div className="flex items-center justify-end">
-            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-              <Check size={11} /> Selectat: {selectedClaim.numarDosar || selectedClaim.numarInmatriculare}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1 min-w-0">
+              <Check size={11} className="shrink-0" />
+              <span className="truncate">Selectat: {selectedClaim.numarInmatriculare || selectedClaim.numarDosar}</span>
             </span>
+            {onOpen && (
+              <button
+                type="button"
+                onClick={() => onOpen(selectedClaim)}
+                className="m-press text-[10.5px] font-extrabold text-[#3B5166] shrink-0"
+              >
+                Deschide
+              </button>
+            )}
           </div>
         )}
 
@@ -518,15 +571,28 @@ export default function MobileQuickCapture({
         {/* Listă cu afișare: Stânga (Număr Dosar) | Dreapta (Număr Înmatriculare) */}
         <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
-            <div className="text-center py-4 text-[11px] text-[#8A8375] italic">Niciun dosar găsit.</div>
+            <div className="text-center py-4 px-2 space-y-2">
+              <p className="text-[12px] text-[#8A8375] font-semibold">
+                {query.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
+              </p>
+              {onNew && (
+                <button
+                  type="button"
+                  onClick={() => { softHaptic(8); onNew(); }}
+                  className="m-press inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold"
+                >
+                  <Plus size={14} /> Creează dosar nou
+                </button>
+              )}
+            </div>
           ) : (
             searchResults.map((c) => {
               const isSelected = selectedClaimId === c.id;
               return (
                 <div
                   key={c.id}
-                  onClick={() => setSelectedClaimId((prev) => (prev === c.id ? null : c.id))}
-                  className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                  onClick={() => selectClaim(c.id)}
+                  className={`m-press p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
                     isSelected
                       ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
                       : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
@@ -559,6 +625,11 @@ export default function MobileQuickCapture({
       </div>
 
       {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
+      {!selectedClaim && (
+        <div className="rounded-xl border border-dashed border-[#DAD4C6] bg-[#FAF8F5] px-3 py-2.5 text-[11.5px] font-semibold text-[#6B6558] text-center">
+          Selectează un dosar de mai sus ca să fotografiezi.
+        </div>
+      )}
       <div className={`bg-white rounded-2xl border p-3.5 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
         
         {uploading && (
@@ -593,8 +664,8 @@ export default function MobileQuickCapture({
           {/* Declanșator principal */}
           <button
             type="button"
-            onClick={() => setShowLiveCamera(true)}
-            className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-[#1C2127] text-white shadow-md active:scale-[0.98] transition-transform"
+            onClick={() => { softHaptic(12); setShowLiveCamera(true); }}
+            className="m-press w-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-[#1C2127] text-white shadow-md active:scale-[0.98] transition-transform"
             title="Deschide camera"
           >
             <Camera size={32} className="text-[#C98A2B]" />
