@@ -8,62 +8,12 @@ import { getStatusDefinition, MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZ
 import { uid } from "../../utils/dateUtils";
 import { refreshStorageUrls, uploadStorageItem } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
+import { processDocumentScan } from "../../utils/documentScanner";
 import Pill from "../common/Pill";
 
-// Procesează fotografia unei pagini de document pentru contrast sporit (aspect scanat alb-negru clar)
-function processScanImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-
-          const MAX_DIM = 1500;
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_DIM || h > MAX_DIM) {
-            if (w > h) {
-              h = Math.round((h * MAX_DIM) / w);
-              w = MAX_DIM;
-            } else {
-              w = Math.round((w * MAX_DIM) / h);
-              h = MAX_DIM;
-            }
-          }
-
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          const imgData = ctx.getImageData(0, 0, w, h);
-          const data = imgData.data;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            let v = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-            v = v > 130 ? Math.min(255, v * 1.2) : Math.max(0, v * 0.8);
-            data[i] = v;
-            data[i + 1] = v;
-            data[i + 2] = v;
-          }
-          ctx.putImageData(imgData, 0, 0);
-
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.70);
-          resolve(dataUrl);
-        } catch (err) {
-          reject(new Error("Eroare la procesarea imaginii."));
-        }
-      };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
-    reader.readAsDataURL(file);
-  });
+async function processScanImage(file) {
+  const result = await processDocumentScan(file, { quality: 0.82 });
+  return result.dataUrl;
 }
 
 export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNotify }) {

@@ -8,125 +8,9 @@ import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
+import { fileToDataUrl } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
-
-// Function to process scanned document page with CamScanner auto-crop, contrast enhancement and high compression
-function processScanImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const rawCanvas = document.createElement("canvas");
-          const rawCtx = rawCanvas.getContext("2d");
-
-          const MAX_DIM = 1600;
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_DIM || h > MAX_DIM) {
-            if (w > h) {
-              h = Math.round((h * MAX_DIM) / w);
-              w = MAX_DIM;
-            } else {
-              w = Math.round((w * MAX_DIM) / h);
-              h = MAX_DIM;
-            }
-          }
-
-          rawCanvas.width = w;
-          rawCanvas.height = h;
-          rawCtx.drawImage(img, 0, 0, w, h);
-
-          const imgData = rawCtx.getImageData(0, 0, w, h);
-          const data = imgData.data;
-
-          // 1. Edge & paper bounding box detection (CamScanner style Auto-Crop)
-          let top = 0, bottom = h - 1, left = 0, right = w - 1;
-          const rowBright = new Array(h).fill(0);
-          const colBright = new Array(w).fill(0);
-          const step = 4;
-
-          for (let y = 0; y < h; y += step) {
-            let sum = 0, cnt = 0;
-            for (let x = 0; x < w; x += step) {
-              const idx = (y * w + x) * 4;
-              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              cnt++;
-            }
-            rowBright[y] = sum / cnt;
-          }
-
-          for (let x = 0; x < w; x += step) {
-            let sum = 0, cnt = 0;
-            for (let y = 0; y < h; y += step) {
-              const idx = (y * w + x) * 4;
-              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              cnt++;
-            }
-            colBright[x] = sum / cnt;
-          }
-
-          const validRows = [...rowBright].filter(v => v > 0).sort((a, b) => a - b);
-          const medianVal = validRows[Math.floor(validRows.length / 2)] || 128;
-          const cutoff = Math.max(70, medianVal * 0.7);
-
-          while (top < h * 0.25 && rowBright[top] < cutoff) top += step;
-          while (bottom > h * 0.75 && rowBright[bottom] < cutoff) bottom -= step;
-          while (left < w * 0.25 && colBright[left] < cutoff) left += step;
-          while (right > w * 0.75 && colBright[right] < cutoff) right -= step;
-
-          const cropX = Math.max(0, left);
-          const cropY = Math.max(0, top);
-          const cropW = Math.max(100, right - left + 1);
-          const cropH = Math.max(100, bottom - top + 1);
-
-          // 2. Render cropped & enhanced document page
-          const finalCanvas = document.createElement("canvas");
-          finalCanvas.width = cropW;
-          finalCanvas.height = cropH;
-          const finalCtx = finalCanvas.getContext("2d");
-
-          finalCtx.drawImage(rawCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-          // 3. CamScanner High-Contrast Scanner Filter (White paper, black text)
-          const croppedData = finalCtx.getImageData(0, 0, cropW, cropH);
-          const pixels = croppedData.data;
-          for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-            // Thresholding: paper becomes clean white, text becomes sharp black
-            if (lum > 120) {
-              lum = Math.min(255, lum * 1.25);
-            } else {
-              lum = Math.max(0, lum * 0.75);
-            }
-
-            pixels[i] = lum;
-            pixels[i + 1] = lum;
-            pixels[i + 2] = lum;
-          }
-          finalCtx.putImageData(croppedData, 0, 0);
-
-          // 4. Maximum compression JPEG output (65% quality)
-          const dataUrl = finalCanvas.toDataURL("image/jpeg", 0.65);
-          resolve(dataUrl);
-        } catch (err) {
-          reject(new Error("Eroare la autocropare și procesare scan."));
-        }
-      };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
-    reader.readAsDataURL(file);
-  });
-}
-
-
+import DocumentCropModal from "../common/DocumentCropModal";
 
 // MODAL CAMERĂ STIL IPHONE/SAMSUNG - FĂRĂ BUTOANE DE OK, SALVARE AUTOMATĂ LIVE
 function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
@@ -276,6 +160,8 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
+  const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit
+  const [activeScanCrop, setActiveScanCrop] = useState(null); // current dataURL in DocumentCropModal
 
   const receptieInputRef = useRef(null);
   const reconstatareInputRef = useRef(null);
@@ -384,40 +270,64 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     }
   };
 
-  // Scanare pagini noi (sau adăugare pagini la sesiunea de scanare)
+  // Scanare: deschide editorul tip CamScanner (4 colțuri) pentru fiecare pagină
   const handleAddScanPages = async (fileList) => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar.", "error");
       return;
     }
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f && f.type && f.type.startsWith("image/"));
     if (files.length === 0) return;
 
     setUploading(true);
     try {
-      const newPages = [];
+      const urls = [];
       for (const file of files) {
-        const dataUrl = await processScanImage(file);
-        newPages.push(dataUrl);
+        urls.push(await fileToDataUrl(file));
       }
-
-      if (scanSession) {
-        setScanSession((prev) => ({
-          ...prev,
-          pages: [...prev.pages, ...newPages],
-        }));
-      } else {
+      setActiveScanCrop(urls[0]);
+      setScanCropQueue(urls.slice(1));
+      if (!scanSession) {
         const defaultName = `Scan_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
-        setScanSession({
-          fileName: defaultName,
-          pages: newPages,
-        });
+        setScanSession({ fileName: defaultName, pages: [] });
       }
     } catch (err) {
       onNotify("Eroare scanare document: " + err.message, "error");
     } finally {
       setUploading(false);
     }
+  };
+
+  const appendScannedPage = (croppedDataUrl) => {
+    setScanSession((prev) => {
+      if (prev) {
+        return { ...prev, pages: [...prev.pages, croppedDataUrl] };
+      }
+      const defaultName = `Scan_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
+      return { fileName: defaultName, pages: [croppedDataUrl] };
+    });
+  };
+
+  const advanceScanCropQueue = () => {
+    setScanCropQueue((queue) => {
+      if (queue.length === 0) {
+        setActiveScanCrop(null);
+        return [];
+      }
+      const [next, ...rest] = queue;
+      setActiveScanCrop(next);
+      return rest;
+    });
+  };
+
+  const handleScanCropConfirm = (croppedDataUrl) => {
+    appendScannedPage(croppedDataUrl);
+    advanceScanCropQueue();
+  };
+
+  const handleScanCropClose = () => {
+    // Skip current page, continue with remaining queue
+    advanceScanCropQueue();
   };
 
   // Salvare sesiunii de scanare PDF
@@ -926,6 +836,15 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           initialCategorie={cameraCategory}
           onSavePhoto={handleMobilePhotoCapture}
           onClose={() => setShowLiveCamera(false)}
+        />
+      )}
+
+      {/* Editor 4 colțuri tip CamScanner — câte o pagină din coadă */}
+      {activeScanCrop && (
+        <DocumentCropModal
+          imageSrc={activeScanCrop}
+          onConfirm={handleScanCropConfirm}
+          onClose={handleScanCropClose}
         />
       )}
 
