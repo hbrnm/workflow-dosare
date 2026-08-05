@@ -22,6 +22,7 @@ export default function MobileClaimSheet({
   canEdit,
   onNotify,
   onCapturePhotos,
+  themeId = "atelier",
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -124,7 +125,10 @@ export default function MobileClaimSheet({
   if (!claim) return null;
 
   return (
-    <div className="fixed inset-0 z-[9000] bg-[#EFEAE1] flex flex-col text-[#23282E] font-sans">
+    <div
+      className="m-claim-sheet fixed inset-0 z-[9000] bg-[#EFEAE1] flex flex-col text-[#23282E] font-sans"
+      data-mtheme={themeId}
+    >
       {/* Header */}
       <header className="bg-[#1C2127] text-white px-3.5 py-3 flex items-center justify-between shrink-0 shadow-md border-b border-white/10">
         <div className="min-w-0 flex-1">
@@ -157,7 +161,7 @@ export default function MobileClaimSheet({
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-28">
         {/* Status */}
-        <section className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm">
+        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
@@ -203,7 +207,7 @@ export default function MobileClaimSheet({
         </section>
 
         {/* Client + phone */}
-        <section className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
+        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <User size={15} className="text-[#8A8375] shrink-0" />
             <input
@@ -231,7 +235,7 @@ export default function MobileClaimSheet({
               <div className="flex items-center gap-1.5 shrink-0">
                 <a
                   href={telLink(phone)}
-                  className="p-2 rounded-xl bg-[#EEF1F3] text-[#3B5166] border border-[#DAD4C6]"
+                  className="m-call-btn p-2"
                   title="Sună"
                 >
                   <Phone size={16} />
@@ -260,7 +264,7 @@ export default function MobileClaimSheet({
         )}
 
         {/* Photos strip */}
-        <section className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
+        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="font-extrabold text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <Camera size={15} className="text-[#C98A2B]" />
@@ -312,7 +316,7 @@ export default function MobileClaimSheet({
         </section>
 
         {/* Quick note */}
-        <section className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
+        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
           <h3 className="font-extrabold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Notiță rapidă
           </h3>

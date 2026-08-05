@@ -91,6 +91,21 @@ export default function App() {
     saveMobileThemeId(id);
   }, []);
 
+  useEffect(() => {
+    try {
+      document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      try {
+        delete document.documentElement.dataset.mtheme;
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [mobileThemeId]);
+
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
@@ -434,6 +449,7 @@ export default function App() {
               onMoveToStatus={handleMoveToStatus}
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
+              themeId={mobileThemeId}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
                 closeFieldClaim();
