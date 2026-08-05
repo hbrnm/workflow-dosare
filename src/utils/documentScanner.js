@@ -809,7 +809,8 @@ export function imageToCanvas(img, maxDim = 2000) {
  * Pipeline complet: detect → warp → enhance (auto Pro) → JPEG dataURL
  */
 export async function processDocumentScan(file, options = {}) {
-  await loadOpenCv().catch(() => null);
+  // Do not load OpenCV here — it freezes mobile PWAs. Use JS pipeline;
+  // OpenCV warp is used only if the engine was already loaded elsewhere.
   const dataUrl = await fileToDataUrl(file);
   const img = await loadImageElement(dataUrl);
   const canvas = imageToCanvas(img, options.maxDim || 2200);
@@ -845,7 +846,7 @@ export async function processDocumentScan(file, options = {}) {
  * corners sunt în coordonate relative 0–1 sau absolute pe sourceWidth/Height.
  */
 export async function applyCornerWarp(imageSrc, corners, options = {}) {
-  await loadOpenCv().catch(() => null);
+  // Never auto-load OpenCV on confirm — keeps crop UI responsive on phones.
   const img = await loadImageElement(imageSrc);
   const canvas = imageToCanvas(img, options.maxDim || 2400);
   const absCorners = corners.map((c) => {

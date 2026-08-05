@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText, Loader2 } from "lucide-react";
-import {
-  detectCornersFromVideoFrame,
-  isOpenCvReady,
-  loadOpenCv,
-} from "../../utils/documentScanner";
+import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText } from "lucide-react";
+import { detectCornersFromVideoFrame } from "../../utils/documentScanner";
 import DocumentCropModal from "./DocumentCropModal";
 
 /** Mapează punct din frame video (object-cover) → coordonate pe containerul de display. */
@@ -18,8 +14,9 @@ function mapVideoPointToDisplay(px, py, videoW, videoH, displayW, displayH) {
 }
 
 /**
- * Scanner document live tip CamScanner / QuickScan:
- * OpenCV edge detect + overlay + multi-pagină + crop după shutter.
+ * Scanner document live tip CamScanner / QuickScan.
+ * IMPORTANT: does NOT load OpenCV.js here — parsing ~9MB freezes mobile PWAs.
+ * Live corners use the lightweight JS detector; warp/enhance stay in DocumentCropModal.
  */
 export default function LiveDocumentScanner({ onComplete, onClose, initialPages = [] }) {
   const [pages, setPages] = useState(() => [...initialPages]);
@@ -31,9 +28,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const [cameraError, setCameraError] = useState(null);
   const [pendingCrop, setPendingCrop] = useState(null);
   const [displaySize, setDisplaySize] = useState({ w: 1, h: 1 });
-  const [engineReady, setEngineReady] = useState(isOpenCvReady());
-  const [engineError, setEngineError] = useState(null);
-  const [engineLoading, setEngineLoading] = useState(!isOpenCvReady());
   const [autoCapture, setAutoCapture] = useState(true);
   const [lockStreak, setLockStreak] = useState(0);
 
@@ -62,8 +56,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     return () => window.removeEventListener("resize", measureStage);
   }, [measureStage]);
 
-  // Start camera immediately. Load OpenCV in parallel with timeout —
-  // never block the scanner UI on CDN/init forever.
+  // Camera only — never load OpenCV on open (main-thread parse freezes phones).
   useEffect(() => {
     let cancelled = false;
     let stream = null;
@@ -73,8 +66,8 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: "environment" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
           },
           audio: false,
         });
@@ -99,35 +92,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       }
     }
 
-    async function startEngine() {
-      if (isOpenCvReady()) {
-        if (!cancelled) {
-          setEngineReady(true);
-          setEngineLoading(false);
-        }
-        return;
-      }
-      if (!cancelled) setEngineLoading(true);
-      try {
-        await loadOpenCv({ timeoutMs: 15000 });
-        if (!cancelled) {
-          setEngineReady(true);
-          setEngineError(null);
-        }
-      } catch (err) {
-        console.warn("OpenCV unavailable, using JS detection:", err);
-        if (!cancelled) {
-          setEngineReady(false);
-          setEngineError("OpenCV indisponibil — scanare cu detecție de rezervă");
-        }
-      } finally {
-        if (!cancelled) setEngineLoading(false);
-      }
-    }
-
     startCamera();
-    startEngine();
-
     return () => {
       cancelled = true;
       if (streamRef.current) {
@@ -153,7 +118,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
-    const imageSrc = canvas.toDataURL("image/jpeg", 0.94);
+    const imageSrc = canvas.toDataURL("image/jpeg", 0.92);
     const corners = liveCornersRef.current
       ? liveCornersRef.current.map((p) => ({ ...p }))
       : null;
@@ -165,12 +130,12 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     capturingRef.current = false;
   }, []);
 
-  // Continuous detection ~7 FPS
+  // Continuous lightweight JS detection (~5 FPS) — no OpenCV
   useEffect(() => {
     let cancelled = false;
     let timer = null;
 
-    const tick = async () => {
+    const tick = () => {
       if (cancelled) return;
       const video = videoRef.current;
       if (
@@ -182,7 +147,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       ) {
         detectBusyRef.current = true;
         try {
-          const corners = detectCornersFromVideoFrame(video, engineReady ? 720 : 420);
+          const corners = detectCornersFromVideoFrame(video, 360);
           if (!cancelled && !pausedRef.current) {
             const found = Boolean(corners);
             setLiveCorners(corners);
@@ -190,8 +155,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
             if (found) {
               lockStreakRef.current += 1;
               setLockStreak(lockStreakRef.current);
-              // Auto-capture after ~1s of stable lock (CamScanner-like)
-              if (autoCapture && engineReady && lockStreakRef.current >= 7) {
+              if (autoCapture && lockStreakRef.current >= 8) {
                 captureFrame();
               }
             } else {
@@ -205,15 +169,15 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           detectBusyRef.current = false;
         }
       }
-      if (!cancelled) timer = window.setTimeout(tick, 140);
+      if (!cancelled) timer = window.setTimeout(tick, 200);
     };
 
-    timer = window.setTimeout(tick, 200);
+    timer = window.setTimeout(tick, 250);
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, [autoCapture, captureFrame, engineReady]);
+  }, [autoCapture, captureFrame]);
 
   const setTorch = async (on) => {
     const track = streamRef.current?.getVideoTracks?.()?.[0];
@@ -282,13 +246,9 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
             <div className="min-w-0">
               <div className="text-[13px] font-extrabold truncate">Scanner documente</div>
               <div className="text-[10px] text-white/55 font-semibold">
-                {engineLoading
-                  ? "Se încarcă motorul OpenCV…"
-                  : engineReady
-                    ? pages.length === 0
-                      ? "Încadrează pagina — detectare OpenCV activă"
-                      : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau Gata`
-                    : "Mod redus (fără OpenCV) — verifică rețeaua"}
+                {pages.length === 0
+                  ? "Încadrează pagina și apasă declanșatorul"
+                  : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau Gata`}
               </div>
             </div>
           </div>
@@ -346,18 +306,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
 
           {flash && <div className="absolute inset-0 bg-white z-30 pointer-events-none" />}
 
-          {engineLoading && (
-            <div className="absolute top-12 left-3 right-3 z-30 flex items-center gap-2 rounded-xl bg-black/70 border border-white/15 px-3 py-2 pointer-events-none">
-              <Loader2 className="w-4 h-4 text-[#C98A2B] animate-spin shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[11px] font-extrabold text-white">Se încarcă OpenCV…</div>
-                <div className="text-[10px] text-white/60 font-semibold">
-                  Poți scana acum; detecția se îmbunătățește când motorul e gata.
-                </div>
-              </div>
-            </div>
-          )}
-
           {displayCorners && (
             <svg
               className="absolute inset-0 w-full h-full z-10 pointer-events-none"
@@ -394,16 +342,10 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           >
             {locked
               ? autoCapture && lockStreak > 0
-                ? `Document detectat · auto ${Math.min(100, Math.round((lockStreak / 7) * 100))}%`
+                ? `Document detectat · auto ${Math.min(100, Math.round((lockStreak / 8) * 100))}%`
                 : "Document detectat"
               : "Caută marginile documentului…"}
           </div>
-
-          {engineError && !engineLoading && (
-            <div className="absolute top-12 left-3 right-3 z-20 text-center text-[10px] font-bold text-amber-300/90 bg-black/50 rounded-lg px-2 py-1">
-              {engineError}
-            </div>
-          )}
 
           {pages.length > 0 && (
             <div className="absolute bottom-3 left-0 right-0 z-20 px-3 flex gap-2 overflow-x-auto scrollbar-thin">

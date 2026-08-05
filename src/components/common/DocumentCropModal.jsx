@@ -8,7 +8,6 @@ import {
   applyCornerWarp,
   analyzeImageQuality,
   recommendedJpegQuality,
-  loadOpenCv,
 } from "../../utils/documentScanner";
 
 /**
@@ -38,7 +37,6 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
       let img = null;
       try {
         setDetecting(true);
-        await loadOpenCv().catch(() => null);
         img = await loadImageElement(imageSrc);
         if (cancelled) return;
         setLoadedImage(img);
@@ -146,7 +144,6 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
     if (!loadedImage) return;
     setDetecting(true);
     try {
-      await loadOpenCv().catch(() => null);
       const canvas = imageToCanvas(loadedImage, 1400);
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
