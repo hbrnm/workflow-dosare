@@ -44,7 +44,26 @@ export default function MobileAppLayout({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Delogare */}
+          {onSwitchToDesktop && (
+            <button
+              type="button"
+              onClick={onSwitchToDesktop}
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              title="Mod desktop"
+            >
+              <Monitor size={16} />
+            </button>
+          )}
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+              title="Setări"
+            >
+              <Settings size={16} />
+            </button>
+          )}
           <button
             type="button"
             onClick={onLogout}

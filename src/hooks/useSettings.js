@@ -26,11 +26,59 @@ export function useSettings(session, showNotice) {
         console.warn("Invalid local settings in localStorage", err);
       }
 
-      const { data } = await supabase
+      // Prefer public view; fall back progressively if columns/view missing
+      let publicData = null;
+      let publicErr = null;
+      {
+        const res = await supabase
+          .from("setari_publice")
+          .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
+          .eq("id", 1)
+          .maybeSingle();
+        publicData = res.data;
+        publicErr = res.error;
+        if (publicErr) {
+          const res2 = await supabase
+            .from("setari_publice")
+            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori")
+            .eq("id", 1)
+            .maybeSingle();
+          if (!res2.error) {
+            publicData = res2.data;
+            publicErr = null;
+          }
+        }
+      }
+
+      const { data: adminData } = await supabase
         .from("setari")
-        .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, admin_emails, utilizatori, asiguratori")
+        .select("admin_emails")
         .eq("id", 1)
         .maybeSingle();
+
+      let settingsFromTable = null;
+      if (publicErr || !publicData) {
+        const res = await supabase
+          .from("setari")
+          .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
+          .eq("id", 1)
+          .maybeSingle();
+        if (res.error) {
+          const res2 = await supabase
+            .from("setari")
+            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori")
+            .eq("id", 1)
+            .maybeSingle();
+          settingsFromTable = res2.data;
+        } else {
+          settingsFromTable = res.data;
+        }
+      }
+
+      const data = {
+        ...(publicData || settingsFromTable || {}),
+        admin_emails: adminData?.admin_emails,
+      };
 
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
@@ -144,24 +192,49 @@ export function useSettings(session, showNotice) {
       throw new Error("Acest utilizator există deja în lista echipei.");
     }
 
-    if (password && password.trim()) {
-      try {
-        const { error } = await supabase.auth.signUp({ email: cleanEmail, password: password.trim() });
-        if (error && !error.message.toLowerCase().includes("already registered")) {
-          console.warn("Supabase Auth notice:", error.message);
-        }
-      } catch (err) {
-        console.warn("Supabase Auth error:", err);
-      }
+    const cleanPassword = password?.trim() || "";
+    if (!cleanPassword || cleanPassword.length < 6) {
+      throw new Error("Parola trebuie să aibă cel puțin 6 caractere.");
     }
 
-    const newUserObj = { email: cleanEmail, role: role || "operator" };
-    const updatedUsers = [...usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail), newUserObj];
-    const updatedAdmins = role === "admin"
+    const { data, error } = await supabase.functions.invoke("invite-user", {
+      body: {
+        email: cleanEmail,
+        password: cleanPassword,
+        role: role || "operator",
+      },
+    });
+
+    if (error || data?.error) {
+      let detail = data?.error || null;
+      try {
+        if (!detail && error?.context && typeof error.context.json === "function") {
+          const body = await error.context.json();
+          detail = body?.error || null;
+        }
+      } catch (_) {
+        /* ignore parse errors */
+      }
+      throw new Error(detail || error?.message || "Eroare la invitarea utilizatorului.");
+    }
+
+    const updatedUsers = Array.isArray(data?.utilizatori)
+      ? sanitizeUsers(data.utilizatori)
+      : [...usersList.filter((u) => u.email?.toLowerCase() !== cleanEmail), { email: cleanEmail, role: role || "operator" }];
+    const updatedAdmins = Array.isArray(data?.admin_emails)
+      ? data.admin_emails
+      : role === "admin"
       ? [...new Set([...adminEmails, cleanEmail])]
       : adminEmails.filter((e) => e.toLowerCase() !== cleanEmail);
 
-    await saveUsersAndAdmins(updatedUsers, updatedAdmins);
+    setUsersList(updatedUsers);
+    setAdminEmails(updatedAdmins);
+    try {
+      localStorage.setItem("workflow_dosare_users", JSON.stringify(updatedUsers));
+      localStorage.setItem("workflow_dosare_admins", JSON.stringify(updatedAdmins));
+    } catch (err) {
+      console.warn("Unable to persist users/admins to localStorage", err);
+    }
   };
 
   const handleDeleteUser = async (emailToDelete) => {

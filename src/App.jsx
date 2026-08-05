@@ -133,11 +133,14 @@ export default function App() {
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
-    if (adminEmails.length === 0) return true; // Default admin mode for single-user/initial setup
-    return (
-      adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase()) ||
-      usersList.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin")
+    const fromAdmins = adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase());
+    const fromUsers = usersList.some(
+      (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
+    if (fromAdmins || fromUsers) return true;
+    // Bootstrap: primul setup când nu există încă utilizatori configurați
+    if (usersList.length === 0 && adminEmails.length === 0) return true;
+    return false;
   }, [myEmail, adminEmails, usersList]);
 
   const {
@@ -162,7 +165,6 @@ export default function App() {
     userClaims,
     filteredClaims,
     activeFilterCount,
-    totalAlertsCount,
   } = useClaimFilters({
     claims,
     myId,
@@ -178,6 +180,7 @@ export default function App() {
     gataNeridicateCount,
     acceptPlataNoPartsCount,
     inactiveCount,
+    totalAlertsCount,
   } = useAlerts(userClaims, pragRidicare, pragInactivitate);
 
   const {
@@ -305,8 +308,10 @@ export default function App() {
     setSaving(true);
     const result = await saveClaim(claim, options);
     setSaving(false);
-    if (!result.success) return;
+    if (!result?.success) return result;
     closeClaimModal();
+    closeQuickCreate();
+    return result;
   };
 
   const handleDelete = (id) => {
@@ -322,8 +327,8 @@ export default function App() {
     });
   };
 
-  const handlePatchClaim = async (id, patch, skipOwnershipCheck = false) => {
-    await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck });
+  const handlePatchClaim = async (id, patch) => {
+    await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
   };
 
   const { exportExcel } = useExportExcel(userClaims);
@@ -378,9 +383,19 @@ export default function App() {
               onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openExisting(c), 150); }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
               insurersList={customInsurers}
-              canEdit={canEdit(modalClaim)}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
+            />
+          </Suspense>
+        )}
+
+        {quickCreateOpen && (
+          <Suspense fallback={null}>
+            <QuickCreateClaimModal
+              isOpen={quickCreateOpen}
+              onClose={closeQuickCreate}
+              onSave={handleSave}
             />
           </Suspense>
         )}
@@ -699,7 +714,7 @@ export default function App() {
                   claims={filteredClaims}
                   onOpen={openExisting}
                   onMoveToStatus={handleMoveToStatus}
-                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val }, true)}
+                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
                   onAddInStatus={openNew}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
@@ -711,7 +726,7 @@ export default function App() {
             ) : view === "dashboard" ? (
               <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
             ) : view === "programator" ? (
-              <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch, true)} canEditFn={() => true} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+              <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch)} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
             ) : (
               <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
             )}

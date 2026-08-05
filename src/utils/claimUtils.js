@@ -43,6 +43,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null,
     incasat: false, dataIncasarii: null,
     alerteAck: false,
+    pieseSosite: false,
   };
 }
 
@@ -130,6 +131,8 @@ export function sanitizeClaim(c) {
     termenAlertaZile: parseNumber(c.termenAlertaZile, 3),
     incasat: !!c.incasat,
     dataIncasarii: c.dataIncasarii || null,
+    alerteAck: !!c.alerteAck,
+    pieseSosite: !!c.pieseSosite,
     note: Array.isArray(c.note) ? c.note : [],
     documente: Array.isArray(c.documente) ? c.documente : [],
     poze: Array.isArray(c.poze) ? c.poze : [],
@@ -231,6 +234,7 @@ export function toDb(c) {
     incasat: c.incasat || false,
     data_incasarii: c.dataIncasarii || null,
     alerte_ack: c.alerteAck || false,
+    piese_sosite: !!c.pieseSosite,
   };
 }
 
@@ -286,6 +290,7 @@ export function fromDb(row) {
     incasat: !!row.incasat,
     dataIncasarii: row.data_incasarii || null,
     alerteAck: !!row.alerte_ack,
+    pieseSosite: !!row.piese_sosite,
   });
 }
 

@@ -71,8 +71,6 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     setFluxFilter("toate");
   }, []);
 
-  const totalAlertsCount = 0;
-
   return {
     search,
     setSearch,
@@ -95,6 +93,5 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     userClaims,
     filteredClaims,
     activeFilterCount,
-    totalAlertsCount,
   };
 }

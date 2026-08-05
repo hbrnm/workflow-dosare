@@ -61,13 +61,6 @@ export default function AlerteModal({
         <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-5 gap-2.5 shrink-0 text-center">
 
           {/* Card 1: Depășite */}
-                        <button
-                          type="button"
-                          onClick={async (e) => { e.stopPropagation(); if (!onPatchClaim) return; const ok = await onPatchClaim(c.id, { alerteAck: true }); if (onNotify) onNotify(ok ? 'Alerta marcată ca rezolvată.' : 'Eroare la marcarea alertei.', ok ? 'success' : 'error'); }}
-                          className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]"
-                        >
-                          Marchează rezolvat
-                        </button>
           <button
             onClick={() => setActiveTab("depasite")}
             className={`p-2.5 rounded-xl border transition-all ${

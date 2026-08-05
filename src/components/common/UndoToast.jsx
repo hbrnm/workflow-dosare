@@ -13,13 +13,17 @@ export default function UndoToast({ item, onDone }) {
   const commitFiredRef = useRef(false);
   const startRef = useRef(Date.now());
   const rafRef = useRef(null);
+  const onDoneRef = useRef(onDone);
   const timeoutMs = item?.timeoutMs ?? 5000;
+
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!item) return;
 
     commitFiredRef.current = false;
     startRef.current = Date.now();
+    const currentItem = item;
 
     const tick = () => {
       const elapsed = Date.now() - startRef.current;
@@ -29,8 +33,8 @@ export default function UndoToast({ item, onDone }) {
       if (elapsed >= timeoutMs) {
         if (!commitFiredRef.current) {
           commitFiredRef.current = true;
-          item.onCommit?.();
-          onDone?.();
+          currentItem.onCommit?.();
+          onDoneRef.current?.();
         }
         return;
       }
@@ -40,15 +44,20 @@ export default function UndoToast({ item, onDone }) {
     rafRef.current = requestAnimationFrame(tick);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      // If toast is replaced/unmounted before timeout/undo, commit pending DB work
+      if (!commitFiredRef.current) {
+        commitFiredRef.current = true;
+        currentItem.onCommit?.();
+      }
     };
-  }, [item, timeoutMs, onDone]);
+  }, [item, timeoutMs]);
 
   const handleUndo = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (!commitFiredRef.current) {
       commitFiredRef.current = true;
       item?.onUndo?.();
-      onDone?.();
+      onDoneRef.current?.();
     }
   };
 
@@ -57,7 +66,7 @@ export default function UndoToast({ item, onDone }) {
     if (!commitFiredRef.current) {
       commitFiredRef.current = true;
       item?.onCommit?.();
-      onDone?.();
+      onDoneRef.current?.();
     }
   };
 

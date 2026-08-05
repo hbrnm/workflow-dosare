@@ -1,2 +1,8 @@
 node_modules/
 dist/
+.env
+.env.local
+.env.*.local
+debug-*.log
+.cursor/
+vendor-inspect*.txt

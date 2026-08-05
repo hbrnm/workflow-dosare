@@ -87,7 +87,7 @@ export function useClaims(session, showNotice) {
 
       const commitDelete = async () => {
         pendingDeletes.current.delete(id);
-        const { error } = await supabase.from("dosare").delete().eq("id", id);
+        const { error } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
         if (error) {
           showNotice(error.message, "error");
           // Restore on error
@@ -137,7 +137,7 @@ export function useClaims(session, showNotice) {
         showNotice('Dosar mutat automat în „Programat".', "success");
       }
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-      const { error } = await supabase.from("dosare").upsert(toDb(updated));
+      const { error } = await supabase.from("dosare").update(toDb(updated)).eq("id", id);
       if (error) {
         showNotice(error.message, "error");
         await loadAll();

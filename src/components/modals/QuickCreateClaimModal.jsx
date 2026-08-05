@@ -27,7 +27,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
     setIsSaving(true);
     try {
       const baseClaim = emptyClaim("deschidere");
-      await onSave({
+      const result = await onSave({
         ...baseClaim,
         numarInmatriculare: numarInmatriculare.trim().toUpperCase(),
         numarDosar: numarDosar.trim(),
@@ -36,7 +36,9 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
         asigurator: selectedInsurer,
         status: "deschidere",
       });
-      // Reset form
+      if (result && result.success === false) {
+        return;
+      }
       setNumarInmatriculare("");
       setNumarDosar("");
       setClient("");
