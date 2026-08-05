@@ -1,22 +1,27 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, RotateCcw, Check, Sun, FileCheck, Sparkles, Move } from "lucide-react";
+import { X, RotateCcw, Check, Sun, FileCheck, Sparkles, Move, Zap, AlertTriangle } from "lucide-react";
 import {
   detectDocumentCorners,
   orderCorners,
   imageToCanvas,
   loadImageElement,
   applyCornerWarp,
+  analyzeImageQuality,
+  recommendedJpegQuality,
 } from "../../utils/documentScanner";
 
 /**
- * Editor tip CamScanner: 4 colțuri tragabile + perspectivă + filtru scan.
+ * Editor tip CamScanner: 4 colțuri + Pro mode auto (lumină / blur / contrast).
  */
 export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
   const [loadedImage, setLoadedImage] = useState(null);
-  const [corners, setCorners] = useState(null); // [{x,y}x4] in natural image coords
-  const [dragging, setDragging] = useState(null); // corner index
+  const [corners, setCorners] = useState(null);
+  const [dragging, setDragging] = useState(null);
   const [busy, setBusy] = useState(false);
   const [enhance, setEnhance] = useState(true);
+  const [proMode, setProMode] = useState(true);
+  const [proAuto, setProAuto] = useState(false);
+  const [quality, setQuality] = useState(null);
   const [detecting, setDetecting] = useState(true);
   const stageRef = useRef(null);
   const [viewSize, setViewSize] = useState({ w: 1, h: 1 });
@@ -36,13 +41,21 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const detected = detectDocumentCorners(data, canvas.width, canvas.height);
-        // Scale corners to natural image size
+        const q = analyzeImageQuality(data, canvas.width, canvas.height);
         const sx = (img.naturalWidth || img.width) / canvas.width;
         const sy = (img.naturalHeight || img.height) / canvas.height;
         const scaled = orderCorners(
           detected.map((p) => ({ x: p.x * sx, y: p.y * sy }))
         );
-        if (!cancelled) setCorners(scaled);
+        if (!cancelled) {
+          setCorners(scaled);
+          setQuality(q);
+          if (q.recommendPro) {
+            setProMode(true);
+            setProAuto(true);
+            setEnhance(true);
+          }
+        }
       } catch (err) {
         console.warn("Auto-detect corners failed:", err);
         if (!cancelled && img) {
@@ -64,7 +77,6 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageSrc]);
 
   const measureView = useCallback(() => {
@@ -110,10 +122,7 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     if (dragging === null || !corners) return;
     e.preventDefault();
     const pt = fromClient(e.clientX, e.clientY);
-    setCorners((prev) => {
-      const next = prev.map((c, i) => (i === dragging ? pt : c));
-      return next;
-    });
+    setCorners((prev) => prev.map((c, i) => (i === dragging ? pt : c)));
   };
 
   const onPointerUp = (e) => {
@@ -130,9 +139,16 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const detected = detectDocumentCorners(data, canvas.width, canvas.height);
+      const q = analyzeImageQuality(data, canvas.width, canvas.height);
       const sx = (loadedImage.naturalWidth || loadedImage.width) / canvas.width;
       const sy = (loadedImage.naturalHeight || loadedImage.height) / canvas.height;
       setCorners(orderCorners(detected.map((p) => ({ x: p.x * sx, y: p.y * sy }))));
+      setQuality(q);
+      if (q.recommendPro) {
+        setProMode(true);
+        setProAuto(true);
+        setEnhance(true);
+      }
     } finally {
       setDetecting(false);
     }
@@ -156,16 +172,20 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     if (!imageSrc || !corners) return;
     setBusy(true);
     try {
-      const dataUrl = await applyCornerWarp(imageSrc, corners, {
-        maxDim: 2200,
-        outMaxDim: 1800,
+      const usePro = enhance && proMode;
+      const result = await applyCornerWarp(imageSrc, corners, {
+        maxDim: 2400,
+        outMaxDim: usePro ? 2200 : 2000,
         enhance,
+        pro: usePro,
+        forcePro: usePro,
+        qualityHints: quality || undefined,
         mode: "document",
-        quality: 0.85,
+        quality: recommendedJpegQuality({ pro: usePro }),
         sourceWidth: loadedImage?.naturalWidth || loadedImage?.width,
         sourceHeight: loadedImage?.naturalHeight || loadedImage?.height,
       });
-      onConfirm(dataUrl);
+      onConfirm(typeof result === "string" ? result : result.dataUrl);
     } catch (err) {
       console.error(err);
       alert("Nu am putut procesa pagina: " + (err.message || "eroare"));
@@ -174,7 +194,8 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     }
   };
 
-  const labels = ["ST", "DR", "DJ", "SJ"]; // sus-stânga, sus-dreapta, jos-dreapta, jos-stânga
+  const labels = ["ST", "DR", "DJ", "SJ"];
+  const jpegHint = Math.round(recommendedJpegQuality({ pro: enhance && proMode }) * 100);
 
   return (
     <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/85 p-2 sm:p-4 backdrop-blur-sm">
@@ -198,18 +219,30 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
           </button>
         </div>
 
+        {quality?.issues?.length > 0 && (
+          <div className="px-3 py-2 bg-[#3A2A12] border-b border-[#C98A2B]/40 flex items-start gap-2">
+            <AlertTriangle size={14} className="text-[#C98A2B] shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-extrabold text-[#F3D9A8]">
+                Calitate scăzută detectată (scor {Math.round(quality.score)}/100)
+                {proAuto ? " — Pro mode activat automat" : ""}
+              </div>
+              <div className="text-[10.5px] text-[#E8C98A]/90 font-medium">
+                {quality.issues.map((i) => i.label).join(" · ")}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           ref={stageRef}
-          className="relative flex-1 min-h-[320px] sm:min-h-[420px] bg-[#0B0E11] flex items-center justify-center overflow-hidden touch-none"
+          className="relative flex-1 min-h-[300px] sm:min-h-[400px] bg-[#0B0E11] flex items-center justify-center overflow-hidden touch-none"
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
           {loadedImage ? (
-            <div
-              className="relative"
-              style={{ width: viewSize.w, height: viewSize.h }}
-            >
+            <div className="relative" style={{ width: viewSize.w, height: viewSize.h }}>
               <img
                 src={imageSrc}
                 alt="Document"
@@ -217,7 +250,6 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
                 className="absolute inset-0 w-full h-full object-fill select-none pointer-events-none"
               />
 
-              {/* Dark overlay outside quad via SVG mask */}
               {corners && viewSize.scale && (
                 <svg
                   className="absolute inset-0 w-full h-full pointer-events-none"
@@ -228,49 +260,20 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
                       <rect width="100%" height="100%" fill="white" />
                       <polygon
                         fill="black"
-                        points={corners
-                          .map(toView)
-                          .map((p) => `${p.x},${p.y}`)
-                          .join(" ")}
+                        points={corners.map(toView).map((p) => `${p.x},${p.y}`).join(" ")}
                       />
                     </mask>
                   </defs>
-                  <rect
-                    width="100%"
-                    height="100%"
-                    fill="rgba(0,0,0,0.55)"
-                    mask="url(#doc-quad-mask)"
-                  />
+                  <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#doc-quad-mask)" />
                   <polygon
                     fill="none"
                     stroke="#C98A2B"
                     strokeWidth="2.5"
-                    points={corners
-                      .map(toView)
-                      .map((p) => `${p.x},${p.y}`)
-                      .join(" ")}
+                    points={corners.map(toView).map((p) => `${p.x},${p.y}`).join(" ")}
                   />
-                  {corners.map((c, i) => {
-                    const next = corners[(i + 1) % 4];
-                    const a = toView(c);
-                    const b = toView(next);
-                    return (
-                      <line
-                        key={`edge-${i}`}
-                        x1={a.x}
-                        y1={a.y}
-                        x2={b.x}
-                        y2={b.y}
-                        stroke="#C98A2B"
-                        strokeWidth="2"
-                        strokeOpacity="0.9"
-                      />
-                    );
-                  })}
                 </svg>
               )}
 
-              {/* Corner handles */}
               {corners &&
                 corners.map((c, idx) => {
                   const v = toView(c);
@@ -299,7 +302,11 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
           {(detecting || busy) && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
               <div className="px-4 py-2 rounded-xl bg-[#1C2127] border border-white/10 text-[12px] font-bold text-white">
-                {busy ? "Se aplică perspectiva..." : "Detectez colțurile paginii..."}
+                {busy
+                  ? proMode
+                    ? "Pro mode: perspectivă + îmbunătățire calitate..."
+                    : "Se aplică perspectiva..."
+                  : "Detectez colțurile și calitatea pozei..."}
               </div>
             </div>
           )}
@@ -313,7 +320,7 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
               disabled={detecting || busy}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C98A2B] hover:bg-[#B37A22] text-white text-[11.5px] font-extrabold disabled:opacity-50"
             >
-              <Sparkles size={13} /> Auto-detect colțuri
+              <Sparkles size={13} /> Auto-detect
             </button>
             <button
               type="button"
@@ -332,10 +339,27 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
                   : "bg-white/5 border-white/15 text-white/70"
               }`}
             >
-              <Sun size={13} /> {enhance ? "Filtru scan ON" : "Filtru scan OFF"}
+              <Sun size={13} /> {enhance ? "Filtru ON" : "Filtru OFF"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setProMode((v) => !v);
+                setProAuto(false);
+                if (!proMode) setEnhance(true);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-extrabold border transition ${
+                proMode
+                  ? "bg-[#C98A2B]/25 border-[#C98A2B] text-[#F3D9A8]"
+                  : "bg-white/5 border-white/15 text-white/70"
+              }`}
+              title="Lumină + sharpen + contrast + JPEG maxim"
+            >
+              <Zap size={13} /> Pro {proMode ? "ON" : "OFF"}
+              {proAuto ? " · auto" : ""}
             </button>
             <div className="flex items-center gap-1 text-[10.5px] text-white/45 font-medium ml-auto">
-              <Move size={12} /> Ajustează colțurile pe hârtie
+              <Move size={12} /> Salvare JPEG {jpegHint}%
             </div>
           </div>
 
@@ -354,7 +378,8 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
               disabled={busy || !corners}
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12.5px] font-extrabold shadow disabled:opacity-50"
             >
-              <Check size={15} /> {busy ? "Se procesează..." : "Confirmă pagina"}
+              <Check size={15} />{" "}
+              {busy ? "Se salvează..." : proMode ? "Confirmă (Pro)" : "Confirmă pagina"}
             </button>
           </div>
         </div>

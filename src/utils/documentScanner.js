@@ -519,6 +519,190 @@ export function enhanceScan(canvas, { mode = "document" } = {}) {
   return canvas;
 }
 
+/**
+ * Analizează calitatea pozei: lumină slabă, blur/mișcare, contrast slab.
+ * Returnează issues + recomandare Pro mode.
+ */
+export function analyzeImageQuality(imageData, width, height) {
+  const data = imageData.data;
+  const w = width;
+  const h = height;
+  const step = Math.max(1, Math.floor(Math.min(w, h) / 220));
+
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  let dark = 0;
+  let bright = 0;
+  let lapSum = 0;
+  let lapSumSq = 0;
+  let lapCount = 0;
+
+  for (let y = 1; y < h - 1; y += step) {
+    for (let x = 1; x < w - 1; x += step) {
+      const i = (y * w + x) * 4;
+      const lum = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      sum += lum;
+      sumSq += lum * lum;
+      count++;
+      if (lum < 70) dark++;
+      if (lum > 210) bright++;
+
+      const iUp = ((y - 1) * w + x) * 4;
+      const iDn = ((y + 1) * w + x) * 4;
+      const iLf = (y * w + (x - 1)) * 4;
+      const iRt = (y * w + (x + 1)) * 4;
+      const up = 0.2126 * data[iUp] + 0.7152 * data[iUp + 1] + 0.0722 * data[iUp + 2];
+      const dn = 0.2126 * data[iDn] + 0.7152 * data[iDn + 1] + 0.0722 * data[iDn + 2];
+      const lf = 0.2126 * data[iLf] + 0.7152 * data[iLf + 1] + 0.0722 * data[iLf + 2];
+      const rt = 0.2126 * data[iRt] + 0.7152 * data[iRt + 1] + 0.0722 * data[iRt + 2];
+      const lap = Math.abs(4 * lum - up - dn - lf - rt);
+      lapSum += lap;
+      lapSumSq += lap * lap;
+      lapCount++;
+    }
+  }
+
+  const mean = count ? sum / count : 128;
+  const variance = count ? Math.max(0, sumSq / count - mean * mean) : 0;
+  const contrast = Math.sqrt(variance);
+  const darkRatio = count ? dark / count : 0;
+  const brightRatio = count ? bright / count : 0;
+  const lapMean = lapCount ? lapSum / lapCount : 0;
+  const lapVar = lapCount ? Math.max(0, lapSumSq / lapCount - lapMean * lapMean) : 0;
+
+  const issues = [];
+  if (mean < 95 || darkRatio > 0.42) {
+    issues.push({
+      code: "dark",
+      label: "Lumină slabă",
+      detail: "Documentul sau poza e prea întunecată",
+    });
+  }
+  if (lapVar < 180 || lapMean < 8) {
+    issues.push({
+      code: "blur",
+      label: "Posibilă mișcare / blur",
+      detail: "Imaginea pare neclară — Pro mode aplică sharpen",
+    });
+  }
+  if (contrast < 38) {
+    issues.push({
+      code: "low_contrast",
+      label: "Contrast slab",
+      detail: "Textul și hârtia nu sunt suficient de distincte",
+    });
+  }
+  if (brightRatio > 0.55 && mean > 190) {
+    issues.push({
+      code: "overexposed",
+      label: "Prea luminos",
+      detail: "Zone albe arse — Pro mode recuperează textul",
+    });
+  }
+
+  const score = Math.max(
+    0,
+    100 -
+      (issues.some((i) => i.code === "dark") ? 28 : 0) -
+      (issues.some((i) => i.code === "blur") ? 32 : 0) -
+      (issues.some((i) => i.code === "low_contrast") ? 22 : 0) -
+      (issues.some((i) => i.code === "overexposed") ? 18 : 0)
+  );
+
+  return {
+    meanBrightness: mean,
+    contrast,
+    blurMetric: lapVar,
+    darkRatio,
+    brightRatio,
+    issues,
+    score,
+    recommendPro: issues.length > 0 || score < 75,
+  };
+}
+
+/**
+ * Pro mode: lumină + contrast adaptiv + unsharp (anti-blur) + albire hârtie.
+ */
+export function enhanceScanPro(canvas, qualityHints = {}) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const w = canvas.width;
+  const h = canvas.height;
+  const img = ctx.getImageData(0, 0, w, h);
+  const p = img.data;
+  const n = w * h;
+
+  const mean = qualityHints.meanBrightness ?? 128;
+  const needsBrighten = mean < 105 || (qualityHints.darkRatio || 0) > 0.35;
+  const needsExtraContrast = (qualityHints.contrast ?? 50) < 45;
+  const needsSharpen =
+    (qualityHints.blurMetric ?? 999) < 220 ||
+    (qualityHints.issues || []).some((i) => i.code === "blur");
+  const overexposed = (qualityHints.issues || []).some((i) => i.code === "overexposed");
+
+  const brightGain = needsBrighten ? clamp(1.15 + (105 - mean) / 180, 1.12, 1.55) : 1.06;
+  const contrastGain = needsExtraContrast ? 1.55 : 1.38;
+  const paperLift = needsBrighten ? 28 : overexposed ? 6 : 16;
+
+  const gray = new Float32Array(n);
+  for (let i = 0, px = 0; i < p.length; i += 4, px++) {
+    let lum = 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
+    lum *= brightGain;
+    lum = (lum - 128) * contrastGain + 128 + paperLift;
+    if (overexposed && lum > 200) lum = 200 + (lum - 200) * 0.45;
+    if (lum > 170) lum = Math.min(255, lum * 1.1);
+    else if (lum < 105) lum = Math.max(0, lum * 0.78);
+    gray[px] = clamp(lum, 0, 255);
+  }
+
+  const out = new Float32Array(n);
+  if (needsSharpen) {
+    const amount = 1.35;
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        const blur =
+          (gray[i - w - 1] +
+            gray[i - w] +
+            gray[i - w + 1] +
+            gray[i - 1] +
+            gray[i] * 2 +
+            gray[i + 1] +
+            gray[i + w - 1] +
+            gray[i + w] +
+            gray[i + w + 1]) /
+          10;
+        out[i] = clamp(gray[i] + (gray[i] - blur) * amount, 0, 255);
+      }
+    }
+    for (let x = 0; x < w; x++) {
+      out[x] = gray[x];
+      out[(h - 1) * w + x] = gray[(h - 1) * w + x];
+    }
+    for (let y = 0; y < h; y++) {
+      out[y * w] = gray[y * w];
+      out[y * w + w - 1] = gray[y * w + w - 1];
+    }
+  } else {
+    out.set(gray);
+  }
+
+  for (let px = 0, i = 0; px < n; px++, i += 4) {
+    const v = out[px];
+    p[i] = v;
+    p[i + 1] = v;
+    p[i + 2] = v;
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+/** Calitate JPEG: Pro → aproape lossless vizual */
+export function recommendedJpegQuality({ pro = false } = {}) {
+  return pro ? 0.94 : 0.9;
+}
+
 export function loadImageElement(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -552,23 +736,30 @@ export function imageToCanvas(img, maxDim = 2000) {
 }
 
 /**
- * Pipeline complet: detect → warp → enhance → JPEG dataURL
- * (folosit când nu e nevoie de UI de ajustare)
+ * Pipeline complet: detect → warp → enhance (auto Pro) → JPEG dataURL
  */
 export async function processDocumentScan(file, options = {}) {
   const dataUrl = await fileToDataUrl(file);
   const img = await loadImageElement(dataUrl);
-  const canvas = imageToCanvas(img, options.maxDim || 2000);
+  const canvas = imageToCanvas(img, options.maxDim || 2200);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const corners = detectDocumentCorners(imageData, canvas.width, canvas.height);
-  const warped = warpPerspective(canvas, corners, { maxDim: options.outMaxDim || 1800 });
-  enhanceScan(warped, { mode: options.mode || "document" });
+  const quality = analyzeImageQuality(imageData, canvas.width, canvas.height);
+  const pro = options.pro === true || (options.pro !== false && quality.recommendPro);
+  const warped = warpPerspective(canvas, corners, { maxDim: options.outMaxDim || 2000 });
+  if (options.enhance !== false) {
+    if (pro) enhanceScanPro(warped, quality);
+    else enhanceScan(warped, { mode: options.mode || "document" });
+  }
+  const qualityJpeg = options.quality ?? recommendedJpegQuality({ pro });
   return {
-    dataUrl: warped.toDataURL("image/jpeg", options.quality ?? 0.82),
+    dataUrl: warped.toDataURL("image/jpeg", qualityJpeg),
     corners,
     width: warped.width,
     height: warped.height,
+    quality,
+    pro,
   };
 }
 
@@ -578,12 +769,11 @@ export async function processDocumentScan(file, options = {}) {
  */
 export async function applyCornerWarp(imageSrc, corners, options = {}) {
   const img = await loadImageElement(imageSrc);
-  const canvas = imageToCanvas(img, options.maxDim || 2200);
+  const canvas = imageToCanvas(img, options.maxDim || 2400);
   const absCorners = corners.map((c) => {
     if (c.x <= 1 && c.y <= 1 && c.x >= 0 && c.y >= 0 && options.normalized) {
       return { x: c.x * canvas.width, y: c.y * canvas.height };
     }
-    // scale from original display size if provided
     if (options.sourceWidth && options.sourceHeight) {
       return {
         x: (c.x / options.sourceWidth) * canvas.width,
@@ -592,9 +782,27 @@ export async function applyCornerWarp(imageSrc, corners, options = {}) {
     }
     return { x: c.x, y: c.y };
   });
-  const warped = warpPerspective(canvas, absCorners, { maxDim: options.outMaxDim || 1800 });
-  if (options.enhance !== false) {
-    enhanceScan(warped, { mode: options.mode || "document" });
+
+  let quality = options.qualityHints || null;
+  if (!quality) {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    quality = analyzeImageQuality(imageData, canvas.width, canvas.height);
   }
-  return warped.toDataURL("image/jpeg", options.quality ?? 0.85);
+
+  const pro =
+    options.pro === true ||
+    (options.pro !== false && (options.forcePro || quality.recommendPro));
+
+  const warped = warpPerspective(canvas, absCorners, { maxDim: options.outMaxDim || 2000 });
+  if (options.enhance !== false) {
+    if (pro) enhanceScanPro(warped, quality);
+    else enhanceScan(warped, { mode: options.mode || "document" });
+  }
+  const qualityJpeg = options.quality ?? recommendedJpegQuality({ pro });
+  return {
+    dataUrl: warped.toDataURL("image/jpeg", qualityJpeg),
+    quality,
+    pro,
+  };
 }
