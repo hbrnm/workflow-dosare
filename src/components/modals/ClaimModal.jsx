@@ -11,7 +11,7 @@ import {
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
-  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber
+  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber, SIGNED_URL_TTL_SECONDS
 } from "../../utils/claimUtils";
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
@@ -228,9 +228,11 @@ export default function ClaimModal({
     let cancelled = false;
     const loadStorageUrls = async () => {
       if (!claim?.id) return;
-      const pozeNeedRefresh = (claim.poze || []).some((p) => p && p.path && !p.url);
-      const docsNeedRefresh = (claim.documente || []).some((d) => d && d.path && !d.url);
-      if (!pozeNeedRefresh && !docsNeedRefresh) return;
+      // Mereu regenerăm URL-urile semnate — cele din DB expiră după TTL
+      const hasMedia =
+        (claim.poze || []).some((p) => p && (p.path || p.url)) ||
+        (claim.documente || []).some((d) => d && (d.path || d.url));
+      if (!hasMedia) return;
 
       const [poze, documente] = await Promise.all([
         refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
@@ -242,7 +244,7 @@ export default function ClaimModal({
     };
     loadStorageUrls();
     return () => { cancelled = true; };
-  }, [claim?.id]);
+  }, [claim?.id, claim?.poze, claim?.documente]);
 
   useEffect(() => {
     if (isNew || !claim?.id) { setIstoric([]); return; }
@@ -477,7 +479,7 @@ export default function ClaimModal({
       const path = storagePath(claimId, file);
       const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: false });
       if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
-      const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60);
+      const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
         await supabase.storage.from("poze-dosare").remove([path]);
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
@@ -534,7 +536,7 @@ export default function ClaimModal({
       const path = storagePath(claimId, file);
       const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
       if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
-      const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60);
+      const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
         await supabase.storage.from("documente-dosare").remove([path]);
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");

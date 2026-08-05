@@ -211,6 +211,38 @@ export default function MobileQuickCapture({
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
 
+  // URL-uri semnate proaspete pentru thumbnails (cele din DB expiră)
+  const [displayPoze, setDisplayPoze] = useState([]);
+  const [displayDocs, setDisplayDocs] = useState([]);
+  const mediaFingerprint = useMemo(() => {
+    if (!selectedClaim) return "";
+    const p = (selectedClaim.poze || []).map((x) => x?.path || x?.id || "").join(",");
+    const d = (selectedClaim.documente || []).map((x) => x?.path || x?.id || "").join(",");
+    return `${selectedClaim.id}|${p}|${d}|${selectedClaim.poze?.length || 0}|${selectedClaim.documente?.length || 0}`;
+  }, [selectedClaim]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!selectedClaim) {
+        setDisplayPoze([]);
+        setDisplayDocs([]);
+        return;
+      }
+      const [p, d] = await Promise.all([
+        refreshStorageUrls(selectedClaim.poze || [], "poze-dosare", supabase),
+        refreshStorageUrls(selectedClaim.documente || [], "documente-dosare", supabase),
+      ]);
+      if (!cancelled) {
+        setDisplayPoze(p);
+        setDisplayDocs(d);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaFingerprint]);
+
   // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
   const handleMobilePhotoCapture = async (fileList, categorie = "generale", targetInputRef = null) => {
     if (!selectedClaim) {
@@ -630,26 +662,26 @@ export default function MobileQuickCapture({
               <FileCheck size={16} className="text-[#3E6B45]" /> Fișiere Atașate pe {selectedClaim.numarInmatriculare}
             </h3>
             <span className="text-[10.5px] font-bold text-[#8A8375] font-mono">
-              {(selectedClaim.poze?.length || 0)} poze · {(selectedClaim.documente?.length || 0)} doc
+              {(displayPoze.length || selectedClaim.poze?.length || 0)} poze · {(displayDocs.length || selectedClaim.documente?.length || 0)} doc
             </span>
           </div>
 
           {/* GALERIE THUMBNAILS POZE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5">
             <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📸 Fotografii Daună / Vehicul ({selectedClaim.poze?.length || 0})
+              📸 Fotografii Daună / Vehicul ({displayPoze.length})
             </span>
-            {(!selectedClaim.poze || selectedClaim.poze.length === 0) ? (
+            {displayPoze.length === 0 ? (
               <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
                 Nicio fotografie atașată încă.
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-0.5 scrollbar-thin">
-                {selectedClaim.poze.map((p, idx) => {
+                {displayPoze.map((p, idx) => {
                   const catLabel = p.categoria ? (p.categoria === "receptie" ? "RECEPȚIE" : p.categoria === "reconstatare" ? "RECONST." : p.categoria === "predare" ? "PREDARE" : "GENERAL") : null;
                   return (
                     <div
-                      key={idx}
+                      key={p.path || p.id || idx}
                       onClick={() => setPreviewMedia(p.url || p)}
                       className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
                     >
@@ -686,17 +718,17 @@ export default function MobileQuickCapture({
           {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
             <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📄 Documente Acte ({selectedClaim.documente?.length || 0})
+              📄 Documente Acte ({displayDocs.length})
             </span>
-            {(!selectedClaim.documente || selectedClaim.documente.length === 0) ? (
+            {displayDocs.length === 0 ? (
               <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
                 Niciun document PDF atașat.
               </div>
             ) : (
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
-                {selectedClaim.documente.map((doc, idx) => (
+                {displayDocs.map((doc, idx) => (
                   <div
-                    key={idx}
+                    key={doc.path || doc.id || idx}
                     className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[11.5px] font-semibold text-[#23282E]"
                   >
                     <a
@@ -706,7 +738,7 @@ export default function MobileQuickCapture({
                       className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[#23282E]"
                     >
                       <FileText size={15} className="text-[#3B5166] shrink-0" />
-                      <span className="truncate">{doc.name || `Document_${idx + 1}.pdf`}</span>
+                      <span className="truncate">{doc.name || doc.nume || `Document_${idx + 1}.pdf`}</span>
                     </a>
 
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">

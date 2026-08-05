@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
+import { refreshStorageUrls } from "../../utils/claimUtils";
+import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
 
 /**
@@ -28,6 +30,8 @@ export default function MobileClaimSheet({
   const [noteDraft, setNoteDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [photos, setPhotos] = useState(() => (Array.isArray(claim?.poze) ? claim.poze : []));
+  const [docs, setDocs] = useState(() => (Array.isArray(claim?.documente) ? claim.documente : []));
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -35,6 +39,28 @@ export default function MobileClaimSheet({
     setClient(claim?.client || "");
     setPhone(claim?.telefonClient || "");
   }, [claim?.id, claim?.numarInmatriculare, claim?.client, claim?.telefonClient]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!claim?.id) {
+        setPhotos([]);
+        setDocs([]);
+        return;
+      }
+      const [p, d] = await Promise.all([
+        refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
+        refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
+      ]);
+      if (!cancelled) {
+        setPhotos(p);
+        setDocs(d);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [claim?.id, claim?.poze, claim?.documente]);
 
   const statusDef = getStatusDefinition(claim?.status);
   const phaseColors = getPhaseColors(claim?.status);
@@ -45,8 +71,6 @@ export default function MobileClaimSheet({
     return STATUSES[idx + 1];
   }, [statusDef.key]);
 
-  const photos = Array.isArray(claim?.poze) ? claim.poze : [];
-  const docs = Array.isArray(claim?.documente) ? claim.documente : [];
   const latestNote = Array.isArray(claim?.note) && claim.note.length > 0 ? claim.note[0] : null;
 
   const persistField = async (patch) => {
