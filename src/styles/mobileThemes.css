@@ -166,3 +166,115 @@
 .mobile-shell .m-nav-item:active {
   transform: scale(0.94);
 }
+
+/* Pulse hub — Spotify-inspired home layout */
+.mobile-shell[data-mtheme="pulse"] .m-hub-greeting {
+  font-family: var(--m-font-display);
+  font-weight: 800;
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+  color: var(--m-text);
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-pills {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-pills::-webkit-scrollbar { display: none; }
+.mobile-shell[data-mtheme="pulse"] .m-hub-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: none;
+  background: #2A2A2A;
+  color: #fff;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-pill.is-active {
+  background: var(--m-accent);
+  color: var(--m-accent-text);
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-pill:active { transform: scale(0.96); }
+.mobile-shell[data-mtheme="pulse"] .m-hub-featured {
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  color: #111;
+  background: linear-gradient(135deg, var(--m-hub-a), #f8e08a 55%, #fff3c4);
+  box-shadow: none;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 3.4rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  border: none;
+  background: #2A2A2A;
+  color: #fff;
+  text-align: left;
+  font-weight: 700;
+  font-size: 12px;
+  overflow: hidden;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-tile:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-tile-icon {
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: 12px;
+  padding: 0.9rem;
+}
+.mobile-shell[data-mtheme="pulse"] .m-hub-cta {
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 0.55rem 1rem;
+}
+.mobile-shell[data-mtheme="pulse"] .bg-white { background-color: var(--m-surface) !important; }
+.mobile-shell[data-mtheme="pulse"] .bg-\[\#FAF8F5\],
+.mobile-shell[data-mtheme="pulse"] .bg-green-50,
+.mobile-shell[data-mtheme="pulse"] .bg-red-50\/60,
+.mobile-shell[data-mtheme="pulse"] .bg-amber-50,
+.mobile-shell[data-mtheme="pulse"] .bg-emerald-50,
+.mobile-shell[data-mtheme="pulse"] .bg-blue-50,
+.mobile-shell[data-mtheme="pulse"] .bg-orange-50,
+.mobile-shell[data-mtheme="pulse"] .bg-yellow-50,
+.mobile-shell[data-mtheme="pulse"] .bg-slate-50 {
+  background-color: var(--m-surface-2) !important;
+}
+.mobile-shell[data-mtheme="pulse"] .text-\[\#23282E\],
+.mobile-shell[data-mtheme="pulse"] .text-\[\#3B5166\],
+.mobile-shell[data-mtheme="pulse"] .text-\[\#3E6B45\] {
+  color: var(--m-text) !important;
+}
+.mobile-shell[data-mtheme="pulse"] .border-green-200,
+.mobile-shell[data-mtheme="pulse"] .border-red-100,
+.mobile-shell[data-mtheme="pulse"] .border-red-200 {
+  border-color: var(--m-border) !important;
+}

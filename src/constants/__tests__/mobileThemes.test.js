@@ -29,17 +29,26 @@ describe('mobileThemes', () => {
     installMemoryStorage().clear();
   });
 
-  it('exposes five named themes with distinct palettes', () => {
-    expect(MOBILE_THEME_LIST).toHaveLength(5);
+  it('exposes six named themes with distinct palettes', () => {
+    expect(MOBILE_THEME_LIST).toHaveLength(6);
     expect(Object.keys(MOBILE_THEMES).sort()).toEqual([
       'agora',
       'atelier',
       'forge',
       'guide',
+      'pulse',
       'sport',
     ]);
     const accents = new Set(MOBILE_THEME_LIST.map((t) => t.vars['--m-accent']));
-    expect(accents.size).toBe(5);
+    expect(accents.size).toBe(6);
+  });
+
+  it('pulse uses hub home style with dark green accent', () => {
+    const pulse = getMobileTheme('pulse');
+    expect(pulse.homeStyle).toBe('hub');
+    expect(pulse.labels.brief).toBe('Acasă');
+    expect(pulse.vars['--m-bg']).toBe('#000000');
+    expect(pulse.vars['--m-accent']).toBe('#1ED760');
   });
 
   it('returns atelier for unknown ids', () => {
