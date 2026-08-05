@@ -67,11 +67,13 @@ function isConvexQuad(pts) {
   return true;
 }
 
-function scoreQuad(pts, w, h) {
+function scoreQuad(pts, w, h, options = {}) {
   if (!isConvexQuad(pts)) return -1;
   const area = quadArea(pts);
   const imgArea = w * h;
-  if (area < imgArea * 0.12 || area > imgArea * 0.98) return -1;
+  const minArea = options.minAreaRatio ?? 0.12;
+  const maxArea = options.maxAreaRatio ?? 0.98;
+  if (area < imgArea * minArea || area > imgArea * maxArea) return -1;
 
   // Prefer roughly document-shaped aspect (A4-ish, but allow landscape)
   const wTop = dist(pts[0], pts[1]);
@@ -82,7 +84,15 @@ function scoreQuad(pts, w, h) {
   const avgH = (hLeft + hRight) / 2;
   if (avgW < 40 || avgH < 40) return -1;
   const aspect = Math.max(avgW, avgH) / Math.min(avgW, avgH);
-  if (aspect > 3.5) return -1;
+  const maxAspect = options.maxAspect ?? 3.5;
+  if (aspect > maxAspect) return -1;
+
+  // Reject quads that hug the full frame (common false lock on walls/floors)
+  if (options.strict) {
+    const marginX = Math.min(pts[0].x, pts[3].x, w - pts[1].x, w - pts[2].x);
+    const marginY = Math.min(pts[0].y, pts[1].y, h - pts[2].y, h - pts[3].y);
+    if (marginX < w * 0.02 || marginY < h * 0.02) return -1;
+  }
 
   // Parallelism bonus
   const topAng = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
@@ -93,6 +103,8 @@ function scoreQuad(pts, w, h) {
     1 -
     Math.min(1, Math.abs(topAng - botAng) / (Math.PI / 2)) * 0.5 -
     Math.min(1, Math.abs(leftAng - rightAng) / (Math.PI / 2)) * 0.5;
+
+  if (options.strict && parallel < 0.55) return -1;
 
   return (area / imgArea) * 0.7 + parallel * 0.3;
 }
@@ -159,7 +171,7 @@ function simplifyRdp(points, epsilon) {
   return [points[0], points[end]];
 }
 
-function pickBestQuadFromHull(hull, w, h) {
+function pickBestQuadFromHull(hull, w, h, scoreOptions = {}) {
   if (!hull || hull.length < 4) return null;
 
   // Close ring for RDP
@@ -174,11 +186,12 @@ function pickBestQuadFromHull(hull, w, h) {
 
   let best = null;
   let bestScore = -1;
+  const minScore = scoreOptions.minScore ?? 0.15;
 
   const n = simplified.length;
   if (n === 4) {
     const ordered = orderCorners(simplified);
-    const s = scoreQuad(ordered, w, h);
+    const s = scoreQuad(ordered, w, h, scoreOptions);
     if (s > bestScore) {
       bestScore = s;
       best = ordered;
@@ -197,7 +210,7 @@ function pickBestQuadFromHull(hull, w, h) {
               simplified[k],
               simplified[l],
             ]);
-            const s = scoreQuad(ordered, w, h);
+            const s = scoreQuad(ordered, w, h, scoreOptions);
             if (s > bestScore) {
               bestScore = s;
               best = ordered;
@@ -209,17 +222,63 @@ function pickBestQuadFromHull(hull, w, h) {
   }
 
   // Fallback: take 4 extreme points of hull
-  if (!best && hull.length >= 4) {
+  if (!best && hull.length >= 4 && !scoreOptions.strict) {
     const ordered = orderCorners([
       hull.reduce((a, b) => (a.x + a.y < b.x + b.y ? a : b)),
       hull.reduce((a, b) => (a.x - a.y > b.x - b.y ? a : b)),
       hull.reduce((a, b) => (a.x + a.y > b.x + b.y ? a : b)),
       hull.reduce((a, b) => (-a.x + a.y > -b.x + b.y ? a : b)),
     ]);
-    if (scoreQuad(ordered, w, h) > 0) best = ordered;
+    if (scoreQuad(ordered, w, h, scoreOptions) > 0) best = ordered;
   }
 
-  return bestScore > 0.15 ? best : null;
+  return bestScore >= minScore ? best : null;
+}
+
+/** Point-in-quad (barycentric via cross signs) for paper brightness check. */
+function pointInQuad(px, py, pts) {
+  let sign = 0;
+  for (let i = 0; i < 4; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % 4];
+    const cross = (b.x - a.x) * (py - a.y) - (b.y - a.y) * (px - a.x);
+    if (cross !== 0) {
+      const s = cross > 0 ? 1 : -1;
+      if (sign === 0) sign = s;
+      else if (sign !== s) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Verifică dacă quad-ul arată a hârtie: interior deschis, contrast față de exterior.
+ * Previne lock pe pereți, birou, haine etc.
+ */
+function looksLikePaperSheet(gray, w, h, corners, step = 4) {
+  let inSum = 0;
+  let inN = 0;
+  let outSum = 0;
+  let outN = 0;
+  for (let y = 0; y < h; y += step) {
+    for (let x = 0; x < w; x += step) {
+      const g = gray[y * w + x];
+      if (pointInQuad(x, y, corners)) {
+        inSum += g;
+        inN += 1;
+      } else {
+        outSum += g;
+        outN += 1;
+      }
+    }
+  }
+  if (inN < 20 || outN < 20) return false;
+  const inMean = inSum / inN;
+  const outMean = outSum / outN;
+  // Hârtia tipic e deschisă și clar mai luminoasă decât fundalul
+  if (inMean < 135) return false;
+  if (inMean - outMean < 22) return false;
+  return true;
 }
 
 /**
@@ -254,6 +313,7 @@ export function detectDocumentCorners(imageData, width, height, options = {}) {
 /** Fallback detecție fără OpenCV (Sobel / blob). */
 function detectDocumentCornersJs(imageData, width, height, options = {}) {
   const allowDefault = options.allowDefault !== false;
+  const live = Boolean(options.live);
   const data = imageData.data;
   const w = width;
   const h = height;
@@ -269,10 +329,14 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
   const mean = sum / (w * h);
 
   // 2) Sobel pe subsample pentru muchii
-  const step = Math.max(1, Math.floor(Math.min(w, h) / 280));
+  const step = Math.max(1, Math.floor(Math.min(w, h) / (live ? 220 : 280)));
   const edgePts = [];
   const brightPts = [];
-  const paperThresh = Math.max(mean + 12, mean * 1.05, 110);
+  // Live: prag mai agresiv — doar zone clar mai albe decât media scenei
+  const paperThresh = live
+    ? Math.max(mean + 28, mean * 1.12, 145)
+    : Math.max(mean + 12, mean * 1.05, 110);
+  const edgeMag = live ? 120 : 90;
 
   for (let y = 1; y < h - 1; y += step) {
     for (let x = 1; x < w - 1; x += step) {
@@ -293,7 +357,7 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
         gray[i + w + 1];
       const mag = Math.abs(gx) + Math.abs(gy);
 
-      if (mag > 90) {
+      if (mag > edgeMag) {
         edgePts.push({ x, y });
       }
       if (gray[i] >= paperThresh) {
@@ -302,19 +366,29 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
     }
   }
 
-  // 3) Încearcă din muchii, apoi din blob hârtie
+  const scoreOpts = live
+    ? {
+        strict: true,
+        minAreaRatio: 0.18,
+        maxAreaRatio: 0.88,
+        maxAspect: 2.6,
+        minScore: 0.38,
+      }
+    : {};
+
+  // 3) Preferă muchii; blob hârtie doar ca fallback (și doar dacă trece testul de hârtie)
   let corners = null;
-  if (edgePts.length > 40) {
+  if (edgePts.length > (live ? 60 : 40)) {
     const hull = convexHull(edgePts);
-    corners = pickBestQuadFromHull(hull, w, h);
+    corners = pickBestQuadFromHull(hull, w, h, scoreOpts);
   }
-  if (!corners && brightPts.length > 80) {
+  if (!corners && brightPts.length > (live ? 120 : 80)) {
     const hull = convexHull(brightPts);
-    corners = pickBestQuadFromHull(hull, w, h);
+    corners = pickBestQuadFromHull(hull, w, h, scoreOpts);
   }
 
-  // 4) Fallback: bounding box pe hârtie (axis-aligned) — mai bun decât tot cadrul
-  if (!corners) {
+  // 4) Bounding box — util la crop static, dar produce false lock pe live
+  if (!corners && !live) {
     let top = h,
       bottom = 0,
       left = w,
@@ -342,20 +416,35 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
     }
   }
 
+  if (corners && live && !looksLikePaperSheet(gray, w, h, corners, step)) {
+    return null;
+  }
+
   if (corners) return corners;
   return allowDefault ? defaultCorners(w, h, 0.06) : null;
 }
 
 /**
- * Detectează colțuri pe un frame video downscalat (overlay live tip CamScanner).
- * Preferă OpenCV; fallback JS.
+ * Detectează colțuri pe un frame video downscalat (overlay live).
+ * Mod strict: doar pagini deschise pe fundal contrastant; fără fallback bbox.
  */
 export function detectCornersFromVideoFrame(video, maxDim = 480) {
   if (!video || !video.videoWidth || !video.videoHeight) return null;
 
   if (isOpenCvReady()) {
     const oc = detectCornersFromVideoOpenCv(video, Math.max(maxDim, 640));
-    if (oc) return oc;
+    // OpenCV live still needs paper check — fall through to JS if weak
+    if (oc) {
+      // Keep OpenCV result only if not hugging the full frame
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const marginOk =
+        Math.min(oc[0].x, oc[3].x) > vw * 0.02 &&
+        Math.min(oc[0].y, oc[1].y) > vh * 0.02 &&
+        Math.max(oc[1].x, oc[2].x) < vw * 0.98 &&
+        Math.max(oc[2].y, oc[3].y) < vh * 0.98;
+      if (marginOk) return oc;
+    }
   }
 
   const vw = video.videoWidth;
@@ -370,7 +459,10 @@ export function detectCornersFromVideoFrame(video, maxDim = 480) {
   if (!ctx) return null;
   ctx.drawImage(video, 0, 0, w, h);
   const data = ctx.getImageData(0, 0, w, h);
-  const corners = detectDocumentCornersJs(data, w, h, { allowDefault: false });
+  const corners = detectDocumentCornersJs(data, w, h, {
+    allowDefault: false,
+    live: true,
+  });
   if (!corners) return null;
   const sx = vw / w;
   const sy = vh / h;
