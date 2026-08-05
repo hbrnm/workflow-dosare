@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   CalendarClock, Clock, Car, User, Phone,
-  Calendar, ChevronRight, Edit3, Save
+  Calendar, ChevronRight, Edit3, Save, Wrench, XCircle
 } from "lucide-react";
 import { telLink, todayISO } from "../../utils/dateUtils";
 import { getStatusDefinition, isProgramatorClaim } from "../../constants/config";
@@ -10,10 +10,10 @@ import WhatsAppButton from "../common/WhatsAppButton";
 /**
  * Aceeași sursă de adevăr ca Programatorul desktop:
  * doar dosare cu dataProgramare + status în PROGRAMATOR_VISIBLE_STATUSES.
+ * Status side-effects (programat / în lucru / anulare) vin din patchClaim.
  */
 export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, onNotify }) {
   const todayStr = todayISO();
-  // Implicit „viitoare” ca pe calendarul desktop (azi + zilele următoare)
   const [filterMode, setFilterMode] = useState("viitoare"); // "azi" | "viitoare" | "toate"
   const [editingClaimId, setEditingClaimId] = useState(null);
   const [editDate, setEditDate] = useState("");
@@ -66,13 +66,33 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
     }
     try {
       const fullIso = `${editDate}T${editTime || "09:00"}:00`;
-      const ok = await onPatch(claimId, { dataProgramare: fullIso, status: "programat" });
+      // Doar data — side-effect status (programat / păstrează în lucru) e în patchClaim
+      const ok = await onPatch(claimId, { dataProgramare: fullIso });
       if (ok === false) return;
       setEditingClaimId(null);
       if (onNotify) onNotify(`Programare salvată: ${editDate} ${editTime || "09:00"}`, "success");
     } catch (err) {
       if (onNotify) onNotify("Eroare la salvare programare: " + err.message, "error");
     }
+  };
+
+  const handleMarkInLucru = async (claim) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return;
+    }
+    const ok = await onPatch(claim.id, { status: "in_lucru", adusaFizic: true });
+    if (ok !== false) onNotify?.('Dosar mutat în „În lucru".', "success");
+  };
+
+  const handleClearProgramare = async (claim) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return;
+    }
+    if (!window.confirm("Anulezi programarea pentru acest dosar?")) return;
+    const ok = await onPatch(claim.id, { dataProgramare: null });
+    if (ok !== false) onNotify?.("Programare anulată.", "success");
   };
 
   return (
@@ -89,7 +109,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
           </span>
         </div>
         <p className="text-[11.5px] text-[#A69F91]">
-          Aceleași programări ca pe desktop (doar dosare programate / în flux după programare).
+          Programare → status automat. Reprogramarea nu coboară un dosar deja în lucru.
         </p>
       </div>
 
@@ -135,6 +155,8 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
             const phone = c.telefonClient || "";
             const statusLabel = getStatusDefinition(c.status).label;
             const canEdit = !canEditFn || canEditFn(c);
+            const showInLucru = canEdit && c.status === "programat";
+            const showClear = canEdit && c.status === "programat";
 
             return (
               <div
@@ -214,39 +236,64 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                     </div>
                   </div>
                 ) : (
-                  <div className="pt-2 border-t border-[#EFEAE1] flex items-center justify-between gap-1.5">
-                    <div className="flex items-center gap-1">
-                      {phone && (
-                        <>
-                          <WhatsAppButton phone={phone} claim={c} size={11} />
-                          <a
-                            href={telLink(phone)}
-                            className="flex items-center gap-1 px-2 py-1 rounded bg-[#EEF1F3] hover:bg-[#3B5166] text-[#3B5166] hover:text-white text-[10.5px] font-bold transition-colors"
-                            title={`Sună la ${phone}`}
+                  <div className="pt-2 border-t border-[#EFEAE1] space-y-2">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {phone && (
+                          <>
+                            <WhatsAppButton phone={phone} claim={c} size={11} />
+                            <a
+                              href={telLink(phone)}
+                              className="flex items-center gap-1 px-2 py-1 rounded bg-[#EEF1F3] hover:bg-[#3B5166] text-[#3B5166] hover:text-white text-[10.5px] font-bold transition-colors"
+                              title={`Sună la ${phone}`}
+                            >
+                              <Phone size={11} /> Apel
+                            </a>
+                          </>
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(c)}
+                            className="flex items-center gap-1 px-2 py-1 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-gray-100 text-[#6B6558] text-[10.5px] font-bold transition-colors"
                           >
-                            <Phone size={11} /> Apel
-                          </a>
-                        </>
-                      )}
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={() => handleStartEdit(c)}
-                          className="flex items-center gap-1 px-2 py-1 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-gray-100 text-[#6B6558] text-[10.5px] font-bold transition-colors"
-                        >
-                          <Edit3 size={11} /> Data
-                        </button>
-                      )}
+                            <Edit3 size={11} /> Data
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onOpen(c)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2C4160] text-white hover:bg-[#1E2D44] text-[11px] font-bold transition-colors shadow-2xs"
+                      >
+                        <span>Deschide</span>
+                        <ChevronRight size={13} />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => onOpen(c)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2C4160] text-white hover:bg-[#1E2D44] text-[11px] font-bold transition-colors shadow-2xs"
-                    >
-                      <span>Deschide</span>
-                      <ChevronRight size={13} />
-                    </button>
+                    {(showInLucru || showClear) && (
+                      <div className="flex items-center gap-1.5">
+                        {showInLucru && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkInLucru(c)}
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11px] font-extrabold"
+                          >
+                            <Wrench size={12} /> În lucru
+                          </button>
+                        )}
+                        {showClear && (
+                          <button
+                            type="button"
+                            onClick={() => handleClearProgramare(c)}
+                            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] text-[11px] font-bold"
+                          >
+                            <XCircle size={12} /> Anulează prog.
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

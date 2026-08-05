@@ -637,7 +637,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                                 type="button"
                                 onClick={() => {
                                   if (onPatch) {
-                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot), status: "programat" });
+                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
                                     setActiveSlotForScheduling(null);
                                     setSelectingFromArrived(false);
                                   }
