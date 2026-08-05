@@ -6,7 +6,7 @@ import {
   CheckSquare, Square, Download, Calendar, Eye, Layers
 } from "lucide-react";
 import {
-  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors,
+  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
@@ -904,8 +904,8 @@ export default function ClaimModal({
                         </div>
                       </div>
 
-                      {/* Dată Comandă Piese */}
-                      {form.status === "piese_comandate" && (
+                      {/* Dată Comandă Piese — detalii în coloana Date Dosar */}
+                      {isPieseComandateStatus(form.status) && (
                         <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
                           <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
                             <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
@@ -917,19 +917,6 @@ export default function ClaimModal({
                             placeholder="zi/lună/an"
                           />
                         </div>
-                      )}
-
-                      {/* Piese sosite checkbox */}
-                      {form.status === "piese_comandate" && (
-                        <label className="flex items-center gap-2 text-[11.5px] font-bold text-[#3E6B45] cursor-pointer bg-[#EEF5EE] p-2 rounded-xl border border-[#3E6B45]/20">
-                          <input
-                            type="checkbox"
-                            checked={!!form.pieseSosite}
-                            onChange={(e) => set("pieseSosite", e.target.checked)}
-                            className="rounded accent-[#3E6B45] w-4 h-4"
-                          />
-                          <span>Confirmare: Toate piesele au sosit în service</span>
-                        </label>
                       )}
 
                       {/* Linii reparații */}
@@ -1146,6 +1133,36 @@ export default function ClaimModal({
                           ))}
                         </select>
                       </div>
+
+                      {isPieseComandateStatus(form.status) && (
+                        <label
+                          className={`m-piese-sosite-toggle flex items-center justify-between gap-2 text-[13px] font-extrabold cursor-pointer select-none py-2.5 px-3 rounded-xl border-2 transition-all ${
+                            form.pieseSosite
+                              ? "is-checked bg-emerald-50 text-[#1F7A45] border-emerald-400"
+                              : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2.5 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={!!form.pieseSosite}
+                              onChange={(e) => set("pieseSosite", e.target.checked)}
+                              className="rounded accent-[#2F8F5B] w-[18px] h-[18px] shrink-0 cursor-pointer"
+                            />
+                            <span className="flex items-center gap-1.5">
+                              <PackageCheck size={16} className="shrink-0 opacity-80" aria-hidden />
+                              Au sosit piesele în service?
+                            </span>
+                          </span>
+                          {form.pieseSosite ? (
+                            <span className="text-[10px] font-extrabold bg-[#2F8F5B] text-white px-2 py-0.5 rounded-md shrink-0">
+                              DA · SOSITE
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-[#9A7A30] shrink-0">Bifează</span>
+                          )}
+                        </label>
+                      )}
                     </div>
                   </div>
 

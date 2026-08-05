@@ -136,7 +136,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       </div>
 
       {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (Etapa Piese comandate) */}
-      {claim.status === "piese_comandate" && (
+      {(claim.status === "piese_comandate" || claim.status === "piese_sosite") && (
         <div className="space-y-1">
           {claim.dataComandaPiese && (
             <div className="text-[10px] text-[#7A5316] font-bold bg-[#FDF8EE] border border-[#F5E2C4] px-2 py-0.5 rounded-md flex items-center justify-between">
@@ -148,10 +148,10 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           )}
           <label
             onClick={(e) => e.stopPropagation()}
-            className={`flex items-center justify-between gap-1.5 text-[10.5px] font-bold cursor-pointer select-none py-0.5 px-2 rounded-md border transition-all ${
+            className={`m-piese-sosite-toggle flex items-center justify-between gap-1.5 text-[11px] font-extrabold cursor-pointer select-none py-1.5 px-2 rounded-lg border-2 transition-all ${
               claim.pieseSosite
-                ? "bg-[#E9F5EE] text-[#2F8F5B] border-[#B9D9C6]"
-                : "bg-[#F3F2EE] text-[#5B6572] border-[#E4E1D9] hover:border-[#1B2430]"
+                ? "is-checked bg-[#E9F5EE] text-[#2F8F5B] border-[#2F8F5B]/50"
+                : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
             }`}
           >
             <div className="flex items-center gap-1.5">
@@ -163,7 +163,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
                 }}
                 className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
               />
-              <span>Piese sosite</span>
+              <span>Au sosit piesele?</span>
             </div>
             {claim.pieseSosite && <span className="text-[9px] font-extrabold bg-[#2F8F5B] text-white px-1.5 py-0.2 rounded">✓ SOSITE</span>}
           </label>

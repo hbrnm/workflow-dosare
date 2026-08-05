@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Search, Plus, ChevronRight, User, Phone, X, ChevronDown, ChevronUp } from "lucide-react";
-import { getStatusDefinition } from "../../constants/config";
+import { getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { telLink } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
@@ -20,7 +20,7 @@ export default function MobileClaimsList({
   const filtered = useMemo(() => {
     return claims.filter((c) => {
       if (statusFilter === "in_lucru" && c.status !== "in_lucru") return false;
-      if (statusFilter === "piese_comandate" && c.status !== "piese_comandate") return false;
+      if (statusFilter === "piese_comandate" && !isPieseComandateStatus(c.status)) return false;
       if (statusFilter === "piese_sosite" && !(c.pieseSosite && !c.dataProgramare)) return false;
       if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
       if (statusFilter === "facturat" && c.status !== "facturat") return false;
@@ -192,7 +192,7 @@ export default function MobileClaimsList({
                     </span>
                   </div>
 
-                  {c.status === "piese_comandate" && (
+                  {isPieseComandateStatus(c.status) && (
                     <MobilePieseSositeRow
                       claim={c}
                       canEdit={!canEditFn || canEditFn(c)}
@@ -305,7 +305,7 @@ function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite 
                   </span>
                 </div>
 
-                {c.status === "piese_comandate" && (
+                {isPieseComandateStatus(c.status) && (
                   <MobilePieseSositeRow
                     claim={c}
                     canEdit={!canEditFn || canEditFn(c)}

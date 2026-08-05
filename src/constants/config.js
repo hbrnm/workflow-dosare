@@ -70,6 +70,11 @@ export function getStatusDefinition(statusKey) {
   return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
 }
 
+/** True for pipeline step „Piese comandate” (incl. legacy status piese_sosite). */
+export function isPieseComandateStatus(statusKey) {
+  return getStatusDefinition(statusKey).key === "piese_comandate";
+}
+
 export function getPhaseColors(statusKey) {
   return PHASE_COLORS[getStatusDefinition(statusKey).phase] || PHASE_COLORS.start;
 }
