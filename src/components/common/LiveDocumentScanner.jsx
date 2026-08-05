@@ -3,9 +3,9 @@ import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText } from "lucide-react
 import { detectCornersFromVideoFrame } from "../../utils/documentScanner";
 import DocumentCropModal from "./DocumentCropModal";
 
-/** Mapează punct din frame video (object-cover) → coordonate pe containerul de display. */
+/** Mapează punct din frame video (object-contain) → coordonate pe containerul de display. */
 function mapVideoPointToDisplay(px, py, videoW, videoH, displayW, displayH) {
-  const scale = Math.max(displayW / videoW, displayH / videoH);
+  const scale = Math.min(displayW / videoW, displayH / videoH);
   const drawnW = videoW * scale;
   const drawnH = videoH * scale;
   const offsetX = (displayW - drawnW) / 2;
@@ -162,7 +162,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       ) {
         detectBusyRef.current = true;
         try {
-          const corners = detectCornersFromVideoFrame(video, 360);
+          const corners = detectCornersFromVideoFrame(video, 520);
           if (!cancelled && !pausedRef.current) {
             const found = Boolean(corners);
             const stable =
@@ -330,36 +330,51 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
               autoPlay
               playsInline
               muted
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain bg-black"
               onLoadedMetadata={measureStage}
             />
           )}
 
           {flash && <div className="absolute inset-0 bg-white z-30 pointer-events-none" />}
 
+          {/* Cadru-ghid A4 când încă nu e detectată pagina */}
+          {!displayCorners && !cameraError && (
+            <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center p-8">
+              <div className="w-full max-w-[280px] aspect-[210/297] border-2 border-dashed border-white/35 rounded-sm" />
+            </div>
+          )}
+
           {displayCorners && (
             <svg
               className="absolute inset-0 w-full h-full z-10 pointer-events-none"
-              viewBox={`0 0 ${displaySize.w} ${displaySize.h}`}
+              viewBox={`0 0 ${Math.max(1, displaySize.w)} ${Math.max(1, displaySize.h)}`}
               preserveAspectRatio="none"
             >
               <polygon
                 points={polyPoints}
-                fill="rgba(201, 138, 43, 0.18)"
-                stroke={locked ? "#34d399" : "#C98A2B"}
+                fill={locked ? "rgba(52, 211, 153, 0.18)" : "rgba(201, 138, 43, 0.20)"}
+                stroke={locked ? "#34d399" : "#F5C451"}
                 strokeWidth="3"
                 strokeLinejoin="round"
               />
               {displayCorners.map((p, i) => (
-                <circle
-                  key={i}
-                  cx={p.x}
-                  cy={p.y}
-                  r="7"
-                  fill="#fff"
-                  stroke={locked ? "#34d399" : "#C98A2B"}
-                  strokeWidth="2.5"
-                />
+                <g key={i}>
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r="10"
+                    fill={locked ? "#34d399" : "#F5C451"}
+                    fillOpacity="0.35"
+                  />
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r="6"
+                    fill="#fff"
+                    stroke={locked ? "#34d399" : "#C98A2B"}
+                    strokeWidth="2.5"
+                  />
+                </g>
               ))}
             </svg>
           )}
@@ -368,14 +383,18 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
             className={`absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[11px] font-extrabold border backdrop-blur-md transition-colors ${
               locked
                 ? "bg-emerald-500/25 border-emerald-400/50 text-emerald-300"
-                : "bg-black/55 border-white/15 text-white/70"
+                : displayCorners
+                  ? "bg-[#C98A2B]/25 border-[#C98A2B]/50 text-[#F5C451]"
+                  : "bg-black/55 border-white/15 text-white/70"
             }`}
           >
             {locked
               ? autoCapture && lockStreak > 0
                 ? `Pagină stabilă · auto ${Math.min(100, Math.round((lockStreak / AUTO_LOCK_FRAMES) * 100))}%`
-                : "Pagină detectată"
-              : "Caută o foaie albă pe fundal mai închis…"}
+                : "Pagină detectată — apasă declanșatorul"
+              : displayCorners
+                ? "Aproape… ține telefonul stabil"
+                : "Încadrează foaia în cadru · fundal contrastant"}
           </div>
 
           {pages.length > 0 && (

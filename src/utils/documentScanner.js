@@ -104,7 +104,7 @@ function scoreQuad(pts, w, h, options = {}) {
     Math.min(1, Math.abs(topAng - botAng) / (Math.PI / 2)) * 0.5 -
     Math.min(1, Math.abs(leftAng - rightAng) / (Math.PI / 2)) * 0.5;
 
-  if (options.strict && parallel < 0.55) return -1;
+  if (options.strict && parallel < 0.4) return -1;
 
   return (area / imgArea) * 0.7 + parallel * 0.3;
 }
@@ -222,14 +222,18 @@ function pickBestQuadFromHull(hull, w, h, scoreOptions = {}) {
   }
 
   // Fallback: take 4 extreme points of hull
-  if (!best && hull.length >= 4 && !scoreOptions.strict) {
+  if (!best && hull.length >= 4) {
     const ordered = orderCorners([
       hull.reduce((a, b) => (a.x + a.y < b.x + b.y ? a : b)),
       hull.reduce((a, b) => (a.x - a.y > b.x - b.y ? a : b)),
       hull.reduce((a, b) => (a.x + a.y > b.x + b.y ? a : b)),
       hull.reduce((a, b) => (-a.x + a.y > -b.x + b.y ? a : b)),
     ]);
-    if (scoreQuad(ordered, w, h, scoreOptions) > 0) best = ordered;
+    const s = scoreQuad(ordered, w, h, scoreOptions);
+    if (s > bestScore) {
+      bestScore = s;
+      best = ordered;
+    }
   }
 
   return bestScore >= minScore ? best : null;
@@ -252,8 +256,8 @@ function pointInQuad(px, py, pts) {
 }
 
 /**
- * Verifică dacă quad-ul arată a hârtie: interior deschis, contrast față de exterior.
- * Previne lock pe pereți, birou, haine etc.
+ * Verifică dacă quad-ul arată a hârtie: interior relativ deschis vs exterior.
+ * Praguri moderate — pe telefon lumina variază mult.
  */
 function looksLikePaperSheet(gray, w, h, corners, step = 4) {
   let inSum = 0;
@@ -272,12 +276,12 @@ function looksLikePaperSheet(gray, w, h, corners, step = 4) {
       }
     }
   }
-  if (inN < 20 || outN < 20) return false;
+  if (inN < 12 || outN < 12) return false;
   const inMean = inSum / inN;
   const outMean = outSum / outN;
-  // Hârtia tipic e deschisă și clar mai luminoasă decât fundalul
-  if (inMean < 135) return false;
-  if (inMean - outMean < 22) return false;
+  // Interiorul trebuie să fie rezonabil deschis și mai luminos decât fundalul
+  if (inMean < 105) return false;
+  if (inMean - outMean < 10) return false;
   return true;
 }
 
@@ -328,15 +332,25 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
   }
   const mean = sum / (w * h);
 
+  // Percentilă ~70 pentru hârtie (mai robust decât mean+offset pe scene întunecate)
+  const sample = [];
+  const sampleStep = Math.max(2, Math.floor(Math.min(w, h) / 80));
+  for (let y = 0; y < h; y += sampleStep) {
+    for (let x = 0; x < w; x += sampleStep) {
+      sample.push(gray[y * w + x]);
+    }
+  }
+  sample.sort((a, b) => a - b);
+  const p70 = sample[Math.floor(sample.length * 0.7)] || mean;
+
   // 2) Sobel pe subsample pentru muchii
-  const step = Math.max(1, Math.floor(Math.min(w, h) / (live ? 220 : 280)));
+  const step = Math.max(1, Math.floor(Math.min(w, h) / (live ? 240 : 280)));
   const edgePts = [];
   const brightPts = [];
-  // Live: prag mai agresiv — doar zone clar mai albe decât media scenei
   const paperThresh = live
-    ? Math.max(mean + 28, mean * 1.12, 145)
+    ? Math.max(mean + 14, p70 * 0.98, 118)
     : Math.max(mean + 12, mean * 1.05, 110);
-  const edgeMag = live ? 120 : 90;
+  const edgeMag = live ? 85 : 90;
 
   for (let y = 1; y < h - 1; y += step) {
     for (let x = 1; x < w - 1; x += step) {
@@ -369,26 +383,26 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
   const scoreOpts = live
     ? {
         strict: true,
-        minAreaRatio: 0.18,
-        maxAreaRatio: 0.88,
-        maxAspect: 2.6,
-        minScore: 0.38,
+        minAreaRatio: 0.12,
+        maxAreaRatio: 0.92,
+        maxAspect: 3.0,
+        minScore: 0.22,
       }
     : {};
 
-  // 3) Preferă muchii; blob hârtie doar ca fallback (și doar dacă trece testul de hârtie)
+  // 3) Preferă muchii, apoi blob hârtie
   let corners = null;
-  if (edgePts.length > (live ? 60 : 40)) {
+  if (edgePts.length > (live ? 35 : 40)) {
     const hull = convexHull(edgePts);
     corners = pickBestQuadFromHull(hull, w, h, scoreOpts);
   }
-  if (!corners && brightPts.length > (live ? 120 : 80)) {
+  if (!corners && brightPts.length > (live ? 60 : 80)) {
     const hull = convexHull(brightPts);
     corners = pickBestQuadFromHull(hull, w, h, scoreOpts);
   }
 
-  // 4) Bounding box — util la crop static, dar produce false lock pe live
-  if (!corners && !live) {
+  // 4) Bounding box pe zonă deschisă — OK și pe live dacă trece testul de hârtie
+  if (!corners) {
     let top = h,
       bottom = 0,
       left = w,
@@ -405,14 +419,27 @@ function detectDocumentCornersJs(imageData, width, height, options = {}) {
         }
       }
     }
-    if (found && right - left > w * 0.25 && bottom - top > h * 0.25) {
+    const minFrac = live ? 0.18 : 0.25;
+    const maxFrac = live ? 0.92 : 1;
+    const bw = right - left;
+    const bh = bottom - top;
+    if (
+      found &&
+      bw > w * minFrac &&
+      bh > h * minFrac &&
+      bw < w * maxFrac &&
+      bh < h * maxFrac
+    ) {
       const pad = Math.round(Math.min(w, h) * 0.01);
-      corners = orderCorners([
+      const box = orderCorners([
         { x: clamp(left - pad, 0, w - 1), y: clamp(top - pad, 0, h - 1) },
         { x: clamp(right + pad, 0, w - 1), y: clamp(top - pad, 0, h - 1) },
         { x: clamp(right + pad, 0, w - 1), y: clamp(bottom + pad, 0, h - 1) },
         { x: clamp(left - pad, 0, w - 1), y: clamp(bottom + pad, 0, h - 1) },
       ]);
+      if (!live || looksLikePaperSheet(gray, w, h, box, step)) {
+        corners = box;
+      }
     }
   }
 
