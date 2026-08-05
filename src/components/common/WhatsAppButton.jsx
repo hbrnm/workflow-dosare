@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, ChevronDown } from "lucide-react";
 import { WA_TEMPLATES, getWaTemplateLink, waLink } from "../../utils/dateUtils";
+import { loadCachedBranding } from "../../constants/branding";
 
-export default function WhatsAppButton({ phone, claim, size = 13, className = "" }) {
+export default function WhatsAppButton({ phone, claim, size = 13, className = "", brandName }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const buttonRef = useRef(null);
+  const atelierName = brandName || loadCachedBranding()?.atelierNume || "service";
 
   useEffect(() => {
     if (open && buttonRef.current) {
@@ -76,7 +78,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
                 {WA_TEMPLATES.map((tmpl) => (
                   <a
                     key={tmpl.key}
-                    href={getWaTemplateLink(phone, tmpl.key, claim)}
+                    href={getWaTemplateLink(phone, tmpl.key, claim, atelierName)}
                     target="_blank"
                     rel="noreferrer"
                     onClick={() => setOpen(false)}

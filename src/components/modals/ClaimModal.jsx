@@ -16,6 +16,7 @@ import {
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
 } from "../../utils/pdfGenerator";
+import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import { supabase } from "../../supabaseClient";
@@ -730,7 +731,7 @@ export default function ClaimModal({
                 <select
                   onChange={async (e) => {
                     const val = e.target.value;
-                    if (val === "pdf") await generateazaPDF(form, istoric);
+                    if (val === "pdf") await generateazaPDF(form, istoric, loadCachedBranding());
                     if (val === "fisa") await generateazaFisaIntrareService(form);
                     if (val === "schimb" && form.masinaSchimb) generateazaProcesVerbalMasinaSchimb(form);
                     e.target.value = "";
@@ -1078,7 +1079,7 @@ export default function ClaimModal({
                           {form.telefonClient && (
                             <>
                               <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
                             </>
                           )}
                         </div>

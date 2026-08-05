@@ -18,12 +18,15 @@ function stripDiacritics(str) {
 
 const sd = (t) => stripDiacritics(t || "—");
 
-export async function generateazaPDF(claim, istoric = []) {
+export async function generateazaPDF(claim, istoric = [], branding = null) {
   const doc = await createPdf();
   const s = getStatusDefinition(claim.status);
+  const atelier = branding?.atelierNume || "Dosare Daună";
   let y = 20;
 
   doc.setFontSize(16);
+  doc.text(sd(atelier), 14, y); y += 8;
+  doc.setFontSize(13);
   doc.text(sd("Proces-verbal / Fișă dosar"), 14, y); y += 10;
   doc.setFontSize(10); doc.setTextColor(120);
   doc.text(`Generat la ${fmtDateTime(new Date())}`, 14, y); y += 10;

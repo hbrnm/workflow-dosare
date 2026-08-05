@@ -17,6 +17,9 @@ export default function SetariModal({
   onSavePragInactivitate,
   insurersList: initialInsurersList = INSURERS,
   onSaveInsurers,
+  branding: brandingProp = null,
+  onSaveBranding,
+  onUploadBrandingLogo,
   onClose,
   onNotify,
   userEmail,
@@ -40,12 +43,25 @@ export default function SetariModal({
   const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
   const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "Dosare Daună");
+  const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
+  const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
+  const [accentColor, setAccentColor] = useState(brandingProp?.accentColor || "#C98A2B");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (initialInsurersList && initialInsurersList.length > 0) {
       setInsurersList(initialInsurersList);
     }
   }, [initialInsurersList]);
+
+  useEffect(() => {
+    if (!brandingProp) return;
+    setAtelierNume(brandingProp.atelierNume || "Dosare Daună");
+    setAtelierShort(brandingProp.atelierShort || "WD");
+    setLogoUrl(brandingProp.logoUrl || "");
+    setAccentColor(brandingProp.accentColor || "#C98A2B");
+  }, [brandingProp]);
 
   // New user management states
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -78,12 +94,36 @@ export default function SetariModal({
       if (onSaveInsurers) {
         await onSaveInsurers(insurersList);
       }
-      onNotify("Setările și pragurile au fost salvate cu succes!", "success");
+      if (onSaveBranding) {
+        await onSaveBranding({
+          atelierNume,
+          atelierShort,
+          logoUrl,
+          accentColor,
+        });
+      }
+      onNotify("Setările și branding-ul au fost salvate cu succes!", "success");
       onClose();
     } catch (err) {
       onNotify("Eroare la salvarea setărilor: " + err.message, "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLogoFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !onUploadBrandingLogo) return;
+    setUploadingLogo(true);
+    try {
+      const url = await onUploadBrandingLogo(file);
+      setLogoUrl(url);
+      onNotify("Logo încărcat. Apasă Salvează pentru a confirma.", "success");
+    } catch (err) {
+      onNotify(err.message || "Eroare la încărcarea logo-ului.", "error");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -239,6 +279,109 @@ export default function SetariModal({
           {/* TAB 1: PARAMETRI GENERALI & ATELIER */}
           {activeTab === "general" && (
             <form onSubmit={handleSaveConfig} className="space-y-4">
+              {/* Identitate atelier / white-label */}
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
+                  <Building size={16} className="text-[#C98A2B]" /> Identitate atelier (white-label)
+                </h3>
+                <p className="text-[11.5px] text-[#8A8375]">
+                  Numele, inițialele, logo-ul și culoarea apar în header, login, PDF și mesaje WhatsApp.
+                  {isAdmin ? "" : " Doar administratorul poate salva permanent în cloud."}
+                </p>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1C2127] text-white">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px]"
+                      style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
+                    >
+                      {(atelierShort || "WD").slice(0, 3)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="font-extrabold text-[14px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      {atelierNume || "Dosare Daună"}
+                    </div>
+                    <div className="text-[11px] text-white/60">Previzualizare header</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-bold text-[#23282E]">Nume atelier</label>
+                    <input
+                      type="text"
+                      value={atelierNume}
+                      onChange={(e) => setAtelierNume(e.target.value)}
+                      disabled={!isAdmin}
+                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60"
+                      placeholder="ex. AutoService Popescu"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-bold text-[#23282E]">Inițiale (max 4)</label>
+                    <input
+                      type="text"
+                      value={atelierShort}
+                      onChange={(e) => setAtelierShort(e.target.value.slice(0, 4).toUpperCase())}
+                      disabled={!isAdmin}
+                      maxLength={4}
+                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 uppercase"
+                      placeholder="WD"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[12px] font-bold text-[#23282E]">URL logo (public)</label>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        type="url"
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        disabled={!isAdmin}
+                        className="flex-1 min-w-[180px] p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60"
+                        placeholder="https://… sau lasă gol pentru inițiale"
+                      />
+                      {isAdmin && onUploadBrandingLogo && (
+                        <label className="px-3 py-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] text-[12px] font-bold cursor-pointer hover:bg-[#EFEAE1]">
+                          {uploadingLogo ? "Se încarcă…" : "Încarcă fișier"}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} disabled={uploadingLogo} />
+                        </label>
+                      )}
+                      {logoUrl && isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setLogoUrl("")}
+                          className="px-3 py-2 rounded-lg border border-[#DAD4C6] text-[12px] font-bold text-[#B23A2E]"
+                        >
+                          Șterge logo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[12px] font-bold text-[#23282E]">Culoare accent</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={accentColor}
+                        onChange={(e) => setAccentColor(e.target.value)}
+                        disabled={!isAdmin}
+                        className="w-12 h-10 rounded-lg border border-[#DAD4C6] bg-white disabled:opacity-60"
+                      />
+                      <input
+                        type="text"
+                        value={accentColor}
+                        onChange={(e) => setAccentColor(e.target.value)}
+                        disabled={!isAdmin}
+                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-mono font-bold bg-white disabled:opacity-60"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
                   <Wrench size={16} className="text-[#C98A2B]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
@@ -722,7 +865,7 @@ export default function SetariModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[#DAD4C6] shrink-0 text-[12px]">
-          <span className="text-[#8A8375]">Workflow Dosare Daună v1.4</span>
+          <span className="text-[#8A8375]">{atelierNume || "Workflow Dosare"} · setări v1.5</span>
           <button
             type="button"
             onClick={onClose}

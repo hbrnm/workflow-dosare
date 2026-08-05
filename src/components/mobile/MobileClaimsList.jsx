@@ -5,7 +5,7 @@ import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 import { telLink } from "../../utils/dateUtils";
 
-export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
+export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn, atelierNume = "Dosare Daună" }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "gata_de_ridicare" | "facturat" | "blocate"
 
@@ -47,7 +47,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-extrabold text-[15px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Dosare Daună ({filtered.length})
+            {atelierNume} ({filtered.length})
           </h2>
           <button
             onClick={onNew}
