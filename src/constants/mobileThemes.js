@@ -237,9 +237,9 @@ export const MOBILE_THEMES = {
   pulse: {
     id: "pulse",
     label: "Pulse",
-    blurb: "Hub dark — verde, pastile, shortcut-uri rapide",
+    blurb: "Hub dark — verde, pastile, dock plutitor",
     inspiredNote: "Inspirat de player-e muzicale",
-    navStyle: "dock",
+    navStyle: "pill",
     headerStyle: "dark",
     homeStyle: "hub",
     fonts: {
@@ -255,9 +255,9 @@ export const MOBILE_THEMES = {
     },
     labels: {
       capture: "Caută",
-      brief: "Acasă",
-      dosare: "Bibliotecă",
-      programari: "Agenda",
+      brief: "Brief",
+      dosare: "Dosare",
+      programari: "Programator",
     },
     vars: {
       "--m-bg": "#000000",
@@ -268,7 +268,7 @@ export const MOBILE_THEMES = {
       "--m-border": "#282828",
       "--m-header": "#000000",
       "--m-header-text": "#FFFFFF",
-      "--m-nav": "#000000",
+      "--m-nav": "rgba(18, 18, 18, 0.92)",
       "--m-nav-text": "#B3B3B3",
       "--m-nav-active": "#1ED760",
       "--m-accent": "#1ED760",
@@ -276,7 +276,7 @@ export const MOBILE_THEMES = {
       "--m-danger": "#F15E6C",
       "--m-radius": "12px",
       "--m-radius-sm": "999px",
-      "--m-shadow": "none",
+      "--m-shadow": "0 8px 28px rgba(0,0,0,0.55)",
       "--m-hub-a": "#F5C451",
       "--m-hub-b": "#E91E8C",
       "--m-hub-c": "#509BF5",
