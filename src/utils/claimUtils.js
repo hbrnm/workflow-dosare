@@ -159,32 +159,92 @@ export function storagePath(claimId, file, folder = "poze") {
   return `${claimId || "temp"}/${folder}/${uid()}.${ext}`;
 }
 
-export async function refreshStorageUrls(items = [], bucketName, supabase) {
-  if (!items || !items.length || !supabase) return items || [];
-  return Promise.all(
-    items.map(async (item) => {
-      if (!item || !item.path) return item;
-      // Skip network call if item already has a valid working URL
-      if (item.url && (item.url.startsWith("http") || item.url.startsWith("data:"))) {
-        return item;
-      }
+/** TTL pentru URL-uri semnate Storage (24h). Se regenerează la deschiderea dosarului. */
+export const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24;
+
+/**
+ * Regenerates signed URLs for storage items that have a path.
+ * Always refreshes http(s) signed URLs (they expire). Keeps data: URLs as-is.
+ */
+export async function refreshStorageUrls(items = [], bucketName, supabaseClient) {
+  if (!items || !items.length || !supabaseClient) return items || [];
+
+  const result = items.map((item) => (item && typeof item === "object" ? { ...item } : item));
+  const toSign = [];
+
+  result.forEach((item, index) => {
+    if (!item || typeof item !== "object") return;
+    const url = item.url ? String(item.url) : "";
+    if (url.startsWith("data:")) return;
+    if (!item.path) return;
+    toSign.push({ index, path: item.path });
+  });
+
+  if (toSign.length === 0) return result;
+
+  try {
+    const { data, error } = await supabaseClient.storage
+      .from(bucketName)
+      .createSignedUrls(
+        toSign.map((t) => t.path),
+        SIGNED_URL_TTL_SECONDS
+      );
+
+    if (!error && Array.isArray(data)) {
+      data.forEach((signed, i) => {
+        const target = toSign[i];
+        if (!target) return;
+        if (signed?.signedUrl) {
+          result[target.index] = { ...result[target.index], url: signed.signedUrl };
+        }
+      });
+      return result;
+    }
+  } catch (err) {
+    console.warn("createSignedUrls batch failed, falling back", err);
+  }
+
+  // Fallback: one-by-one
+  await Promise.all(
+    toSign.map(async ({ index, path }) => {
       try {
-        const { data: signed } = await supabase.storage.from(bucketName).createSignedUrl(item.path, 60 * 60);
-        return { ...item, url: signed?.signedUrl || item.url || "" };
+        const { data: signed } = await supabaseClient.storage
+          .from(bucketName)
+          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+        if (signed?.signedUrl) {
+          result[index] = { ...result[index], url: signed.signedUrl };
+        }
       } catch (err) {
-        return item;
+        /* keep previous url */
       }
     })
   );
+
+  return result;
 }
 
-export async function uploadStorageItem(supabase, bucketName, claimId, file, folder) {
+/** Don't persist expired signed URLs — only path (+ metadata). data: URLs kept. */
+export function stripEphemeralMediaUrls(items = []) {
+  if (!Array.isArray(items)) return items || [];
+  return items.map((item) => {
+    if (!item || typeof item !== "object") return item;
+    const url = item.url ? String(item.url) : "";
+    if (url.startsWith("data:")) return item;
+    if (!item.path) return item;
+    const { url: _drop, ...rest } = item;
+    return rest;
+  });
+}
+
+export async function uploadStorageItem(supabaseClient, bucketName, claimId, file, folder) {
   const path = storagePath(claimId, file, folder);
-  const { error } = await supabase.storage.from(bucketName).upload(path, file, { upsert: false });
+  const { error } = await supabaseClient.storage.from(bucketName).upload(path, file, { upsert: false });
   if (error) throw error;
-  const { data: signed, error: signedError } = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60);
+  const { data: signed, error: signedError } = await supabaseClient.storage
+    .from(bucketName)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
   if (signedError) {
-    await supabase.storage.from(bucketName).remove([path]);
+    await supabaseClient.storage.from(bucketName).remove([path]);
     throw signedError;
   }
   return { id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() };
@@ -210,8 +270,8 @@ export function toDb(c) {
     data_programare: c.dataProgramare || null,
     data_comanda_piese: c.dataComandaPiese || null,
     note: c.note,
-    documente: c.documente,
-    poze: c.poze || [],
+    documente: stripEphemeralMediaUrls(c.documente),
+    poze: stripEphemeralMediaUrls(c.poze || []),
     adusa_fizic: c.adusaFizic,
     ce_este_de_reparat: c.ceEsteDeReparat,
     operatiuni: c.operatiuni || { inl: false, rev: false, rep: false, uni: false },
