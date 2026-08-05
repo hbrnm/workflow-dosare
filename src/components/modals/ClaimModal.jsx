@@ -94,9 +94,9 @@ export function compressColorImage(file) {
 }
 
 export function processScanImage(file) {
-  // Compat: procesare automată cu detecție 4 colțuri + perspectivă
+  // Compat: detecție 4 colțuri + Pro mode auto dacă poza e slabă
   return import("../../utils/documentScanner").then(({ processDocumentScan }) =>
-    processDocumentScan(file).then((r) => r.dataUrl)
+    processDocumentScan(file, { pro: true }).then((r) => r.dataUrl)
   );
 }
 
