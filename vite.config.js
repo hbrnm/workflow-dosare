@@ -34,7 +34,24 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"]
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
+        runtimeCaching: [
+          {
+            // OpenCV.js document-scan engine (~9MB) — cache after first load
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/jscanify@[\d.]+\/src\/opencv\.js$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "opencv-js-engine",
+              expiration: {
+                maxEntries: 2,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
+        ],
       }
     })
   ],

@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText } from "lucide-react";
-import { detectCornersFromVideoFrame } from "../../utils/documentScanner";
+import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText, Loader2 } from "lucide-react";
+import {
+  detectCornersFromVideoFrame,
+  isOpenCvReady,
+  loadOpenCv,
+} from "../../utils/documentScanner";
 import DocumentCropModal from "./DocumentCropModal";
 
 /** Mapează punct din frame video (object-cover) → coordonate pe containerul de display. */
@@ -15,11 +19,7 @@ function mapVideoPointToDisplay(px, py, videoW, videoH, displayW, displayH) {
 
 /**
  * Scanner document live tip CamScanner / QuickScan:
- * cameră continuă + overlay 4 colțuri + multi-pagină + crop după shutter.
- *
- * @param {(pages: string[]) => void} onComplete — pagini cropate (dataURL JPEG)
- * @param {() => void} onClose
- * @param {string[]} [initialPages]
+ * OpenCV edge detect + overlay + multi-pagină + crop după shutter.
  */
 export default function LiveDocumentScanner({ onComplete, onClose, initialPages = [] }) {
   const [pages, setPages] = useState(() => [...initialPages]);
@@ -29,8 +29,13 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [cameraError, setCameraError] = useState(null);
-  const [pendingCrop, setPendingCrop] = useState(null); // { imageSrc, corners }
+  const [pendingCrop, setPendingCrop] = useState(null);
   const [displaySize, setDisplaySize] = useState({ w: 1, h: 1 });
+  const [engineReady, setEngineReady] = useState(isOpenCvReady());
+  const [engineError, setEngineError] = useState(null);
+  const [engineLoading, setEngineLoading] = useState(!isOpenCvReady());
+  const [autoCapture, setAutoCapture] = useState(true);
+  const [lockStreak, setLockStreak] = useState(0);
 
   const videoRef = useRef(null);
   const stageRef = useRef(null);
@@ -38,6 +43,8 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const detectBusyRef = useRef(false);
   const liveCornersRef = useRef(null);
   const pausedRef = useRef(false);
+  const capturingRef = useRef(false);
+  const lockStreakRef = useRef(0);
 
   useEffect(() => {
     liveCornersRef.current = liveCorners;
@@ -54,6 +61,35 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     window.addEventListener("resize", measureStage);
     return () => window.removeEventListener("resize", measureStage);
   }, [measureStage]);
+
+  // Load OpenCV engine (~9MB, cached after first time)
+  useEffect(() => {
+    let cancelled = false;
+    if (isOpenCvReady()) {
+      setEngineReady(true);
+      setEngineLoading(false);
+      return undefined;
+    }
+    setEngineLoading(true);
+    loadOpenCv()
+      .then(() => {
+        if (!cancelled) {
+          setEngineReady(true);
+          setEngineLoading(false);
+          setEngineError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setEngineReady(false);
+          setEngineLoading(false);
+          setEngineError(err?.message || "OpenCV indisponibil — detecție redusă");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -97,7 +133,33 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     };
   }, [measureStage]);
 
-  // Detectare continuă ~6–7 FPS pe frame downscalat
+  const captureFrame = useCallback(() => {
+    if (capturingRef.current || pausedRef.current) return;
+    const video = videoRef.current;
+    if (!video || video.videoWidth < 2) return;
+
+    capturingRef.current = true;
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 100);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    const imageSrc = canvas.toDataURL("image/jpeg", 0.94);
+    const corners = liveCornersRef.current
+      ? liveCornersRef.current.map((p) => ({ ...p }))
+      : null;
+
+    pausedRef.current = true;
+    lockStreakRef.current = 0;
+    setLockStreak(0);
+    setPendingCrop({ imageSrc, corners });
+    capturingRef.current = false;
+  }, []);
+
+  // Continuous detection ~7 FPS
   useEffect(() => {
     let cancelled = false;
     let timer = null;
@@ -114,10 +176,22 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       ) {
         detectBusyRef.current = true;
         try {
-          const corners = detectCornersFromVideoFrame(video, 420);
+          const corners = detectCornersFromVideoFrame(video, engineReady ? 720 : 420);
           if (!cancelled && !pausedRef.current) {
+            const found = Boolean(corners);
             setLiveCorners(corners);
-            setLocked(Boolean(corners));
+            setLocked(found);
+            if (found) {
+              lockStreakRef.current += 1;
+              setLockStreak(lockStreakRef.current);
+              // Auto-capture after ~1s of stable lock (CamScanner-like)
+              if (autoCapture && engineReady && lockStreakRef.current >= 7) {
+                captureFrame();
+              }
+            } else {
+              lockStreakRef.current = 0;
+              setLockStreak(0);
+            }
           }
         } catch {
           /* ignore frame errors */
@@ -133,7 +207,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, []);
+  }, [autoCapture, captureFrame, engineReady]);
 
   const setTorch = async (on) => {
     const track = streamRef.current?.getVideoTracks?.()?.[0];
@@ -147,38 +221,21 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     }
   };
 
-  const captureFrame = () => {
-    const video = videoRef.current;
-    if (!video || video.videoWidth < 2) return;
-
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 100);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
-    const imageSrc = canvas.toDataURL("image/jpeg", 0.92);
-    const corners = liveCornersRef.current
-      ? liveCornersRef.current.map((p) => ({ ...p }))
-      : null;
-
-    pausedRef.current = true;
-    setPendingCrop({ imageSrc, corners });
-  };
-
   const handleCropConfirm = (croppedDataUrl) => {
     setPages((prev) => [...prev, croppedDataUrl]);
     setPendingCrop(null);
     pausedRef.current = false;
     setLiveCorners(null);
     setLocked(false);
+    lockStreakRef.current = 0;
+    setLockStreak(0);
   };
 
   const handleCropClose = () => {
     setPendingCrop(null);
     pausedRef.current = false;
+    lockStreakRef.current = 0;
+    setLockStreak(0);
   };
 
   const removeLastPage = () => {
@@ -213,20 +270,35 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   return (
     <>
       <div className="fixed inset-0 z-[10000] bg-black flex flex-col text-white overflow-hidden select-none">
-        {/* Header */}
         <div className="w-full flex items-center justify-between px-3 py-2.5 bg-black/90 z-20 shrink-0 border-b border-white/10">
           <div className="flex items-center gap-2 min-w-0">
             <FileText size={18} className="text-[#C98A2B] shrink-0" />
             <div className="min-w-0">
               <div className="text-[13px] font-extrabold truncate">Scanner documente</div>
               <div className="text-[10px] text-white/55 font-semibold">
-                {pages.length === 0
-                  ? "Încadrează pagina — colțurile apar automat"
-                  : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau apasă Gata`}
+                {engineLoading
+                  ? "Se încarcă motorul OpenCV…"
+                  : engineReady
+                    ? pages.length === 0
+                      ? "Încadrează pagina — detectare OpenCV activă"
+                      : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau Gata`
+                    : "Mod redus (fără OpenCV) — verifică rețeaua"}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setAutoCapture((v) => !v)}
+              className={`px-2 py-1.5 rounded-lg text-[10px] font-extrabold border transition-colors ${
+                autoCapture
+                  ? "bg-emerald-600/30 border-emerald-400/40 text-emerald-300"
+                  : "bg-white/10 border-white/15 text-white/60"
+              }`}
+              title="Captură automată când documentul e detectat stabil"
+            >
+              Auto {autoCapture ? "ON" : "OFF"}
+            </button>
             {torchSupported && (
               <button
                 type="button"
@@ -250,7 +322,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           </div>
         </div>
 
-        {/* Vizor + overlay */}
         <div ref={stageRef} className="relative flex-1 w-full bg-black overflow-hidden">
           {cameraError ? (
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-white/80 font-semibold">
@@ -269,7 +340,16 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
 
           {flash && <div className="absolute inset-0 bg-white z-30 pointer-events-none" />}
 
-          {/* Overlay document */}
+          {engineLoading && (
+            <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/55 backdrop-blur-[2px]">
+              <Loader2 className="w-8 h-8 text-[#C98A2B] animate-spin" />
+              <div className="text-sm font-extrabold">Se încarcă OpenCV…</div>
+              <div className="text-[11px] text-white/60 px-8 text-center font-semibold">
+                Prima dată durează câteva secunde (~9 MB). Apoi rămâne în cache.
+              </div>
+            </div>
+          )}
+
           {displayCorners && (
             <svg
               className="absolute inset-0 w-full h-full z-10 pointer-events-none"
@@ -297,7 +377,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
             </svg>
           )}
 
-          {/* Status lock */}
           <div
             className={`absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full text-[11px] font-extrabold border backdrop-blur-md transition-colors ${
               locked
@@ -305,10 +384,19 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
                 : "bg-black/55 border-white/15 text-white/70"
             }`}
           >
-            {locked ? "Document detectat" : "Caută marginile documentului…"}
+            {locked
+              ? autoCapture && lockStreak > 0
+                ? `Document detectat · auto ${Math.min(100, Math.round((lockStreak / 7) * 100))}%`
+                : "Document detectat"
+              : "Caută marginile documentului…"}
           </div>
 
-          {/* Strip pagini capturate */}
+          {engineError && !engineLoading && (
+            <div className="absolute top-12 left-3 right-3 z-20 text-center text-[10px] font-bold text-amber-300/90 bg-black/50 rounded-lg px-2 py-1">
+              {engineError}
+            </div>
+          )}
+
           {pages.length > 0 && (
             <div className="absolute bottom-3 left-0 right-0 z-20 px-3 flex gap-2 overflow-x-auto scrollbar-thin">
               {pages.map((url, idx) => (
@@ -334,7 +422,6 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           )}
         </div>
 
-        {/* Footer shutter */}
         <div className="w-full py-5 px-5 bg-black/95 z-20 flex items-center justify-between shrink-0 border-t border-white/10">
           <button
             type="button"
@@ -350,7 +437,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           <button
             type="button"
             onClick={captureFrame}
-            disabled={Boolean(cameraError) || Boolean(pendingCrop)}
+            disabled={Boolean(cameraError) || Boolean(pendingCrop) || engineLoading}
             className="w-[76px] h-[76px] rounded-full border-[4px] border-white flex items-center justify-center active:scale-90 transition-transform bg-white/10 disabled:opacity-40"
             title="Capturează pagină"
           >
