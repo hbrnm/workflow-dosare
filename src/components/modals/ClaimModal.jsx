@@ -392,7 +392,11 @@ export default function ClaimModal({
       effectiveStatus = "predat_client";
     } else if (form.gataDeRidicare && form.status !== "facturat" && form.status !== "predat_client") {
       effectiveStatus = "gata_de_ridicare";
-    } else if (form.dataProgramare && form.status === "piese_sosite") {
+    } else if (
+      form.dataProgramare &&
+      form.status !== "programat" &&
+      (form.pieseSosite || form.status === "piese_comandate" || form.status === "piese_sosite")
+    ) {
       effectiveStatus = "programat";
     }
 

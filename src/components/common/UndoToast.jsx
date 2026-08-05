@@ -4,13 +4,17 @@ import { Undo2, X, Trash2, ArrowRightLeft } from "lucide-react";
 /**
  * UndoToast — notificare cu countdown și buton Anulează.
  *
+ * Commit-ul DB e responsabilitatea caller-ului (timer în useClaims).
+ * Toast-ul doar afișează countdown + apelează onUndo / onCommit(dismiss) / onDone.
+ * Nu face commit în cleanup — Strict Mode remount ar declanșa commit prematur.
+ *
  * Props:
  *   item   — { id, message, icon, onUndo, onCommit, timeoutMs }
  *   onDone — apelat când s-a finalizat (commit sau undo)
  */
 export default function UndoToast({ item, onDone }) {
   const [progress, setProgress] = useState(100);
-  const commitFiredRef = useRef(false);
+  const settledRef = useRef(false);
   const startRef = useRef(Date.now());
   const rafRef = useRef(null);
   const onDoneRef = useRef(onDone);
@@ -21,41 +25,40 @@ export default function UndoToast({ item, onDone }) {
   useEffect(() => {
     if (!item) return;
 
-    commitFiredRef.current = false;
+    settledRef.current = false;
     startRef.current = Date.now();
     const currentItem = item;
 
+    const settleCommit = () => {
+      if (settledRef.current) return;
+      settledRef.current = true;
+      currentItem.onCommit?.();
+      onDoneRef.current?.();
+    };
+
+    const timeoutId = setTimeout(settleCommit, timeoutMs);
+
     const tick = () => {
       const elapsed = Date.now() - startRef.current;
-      const remaining = Math.max(0, 1 - elapsed / timeoutMs);
-      setProgress(remaining * 100);
-
-      if (elapsed >= timeoutMs) {
-        if (!commitFiredRef.current) {
-          commitFiredRef.current = true;
-          currentItem.onCommit?.();
-          onDoneRef.current?.();
-        }
-        return;
+      setProgress(Math.max(0, 1 - elapsed / timeoutMs) * 100);
+      if (elapsed < timeoutMs) {
+        rafRef.current = requestAnimationFrame(tick);
       }
-      rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => {
+      clearTimeout(timeoutId);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      // If toast is replaced/unmounted before timeout/undo, commit pending DB work
-      if (!commitFiredRef.current) {
-        commitFiredRef.current = true;
-        currentItem.onCommit?.();
-      }
+      // Nu commit aici — Strict Mode / switch mobile↔desktop ar dubla sau grăbi commit-ul.
+      // Timer-ul din useClaims rămâne sursa de adevăr pentru persistare.
     };
   }, [item, timeoutMs]);
 
   const handleUndo = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (!commitFiredRef.current) {
-      commitFiredRef.current = true;
+    if (!settledRef.current) {
+      settledRef.current = true;
       item?.onUndo?.();
       onDoneRef.current?.();
     }
@@ -63,8 +66,8 @@ export default function UndoToast({ item, onDone }) {
 
   const handleDismiss = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    if (!commitFiredRef.current) {
-      commitFiredRef.current = true;
+    if (!settledRef.current) {
+      settledRef.current = true;
       item?.onCommit?.();
       onDoneRef.current?.();
     }
@@ -84,7 +87,6 @@ export default function UndoToast({ item, onDone }) {
         className="relative overflow-hidden rounded-2xl shadow-2xl border border-white/10"
         style={{ background: "#1C2127" }}
       >
-        {/* Progress bar — fills from right to left */}
         <div
           className="absolute bottom-0 left-0 h-[3px] transition-none"
           style={{
@@ -95,7 +97,6 @@ export default function UndoToast({ item, onDone }) {
         />
 
         <div className="flex items-center gap-3 px-4 py-3.5">
-          {/* Icon */}
           <div
             className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
             style={{ background: `${accentColor}22` }}
@@ -103,12 +104,10 @@ export default function UndoToast({ item, onDone }) {
             <Icon size={16} style={{ color: accentColor }} />
           </div>
 
-          {/* Message */}
           <span className="flex-1 text-[13px] font-semibold text-white/90 leading-snug">
             {item.message}
           </span>
 
-          {/* Undo button */}
           <button
             onClick={handleUndo}
             className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-extrabold transition-all hover:scale-105 active:scale-95 cursor-pointer"
@@ -122,7 +121,6 @@ export default function UndoToast({ item, onDone }) {
             Anulează
           </button>
 
-          {/* Dismiss */}
           <button
             onClick={handleDismiss}
             className="shrink-0 p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors cursor-pointer"
