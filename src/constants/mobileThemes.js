@@ -2,7 +2,7 @@ import {
   Camera, List, BarChart3, CalendarClock,
   Aperture, Newspaper, AlertTriangle, CalendarDays,
   Image, Files, Flame, CalendarRange,
-  GitBranch, Inbox, Calendar,
+  Inbox, Calendar, FolderOpen,
   BookOpen, ClipboardList, Lightbulb, CalendarCheck,
   Home, Library, Search, Palette
 } from "lucide-react";
@@ -161,7 +161,7 @@ export const MOBILE_THEMES = {
     icons: {
       capture: Search,
       brief: Inbox,
-      dosare: GitBranch,
+      dosare: FolderOpen,
       programari: Calendar,
       theme: Palette,
     },
@@ -169,7 +169,7 @@ export const MOBILE_THEMES = {
       capture: "Caută",
       brief: "Brief",
       dosare: "Dosare",
-      programari: "Programator",
+      programari: "Programări",
     },
     vars: {
       "--m-bg": "#010409",

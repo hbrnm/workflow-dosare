@@ -216,7 +216,7 @@ export default function MobileAppLayout({
       </main>
 
       <nav
-        className="m-nav-bar fixed bottom-0 left-0 right-0 z-50 border-t px-2 py-2 flex items-center justify-around select-none shadow-2xl backdrop-blur-md"
+        className="m-nav-bar fixed bottom-0 left-0 right-0 z-50 border-t px-1.5 py-1.5 grid grid-cols-4 gap-0 select-none shadow-2xl backdrop-blur-md"
         aria-label="Navigare mobilă"
       >
         {tabs.map(({ id, label, Icon, badge }) => {
@@ -226,20 +226,24 @@ export default function MobileAppLayout({
               key={id}
               type="button"
               onClick={() => handleTabChange(id)}
-              className={`m-nav-item relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl ${
-                active ? "is-active scale-105" : "font-semibold opacity-80 hover:opacity-100"
+              className={`m-nav-item relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 ${
+                active ? "is-active" : "font-semibold opacity-80 hover:opacity-100"
               }`}
             >
-              <Icon size={20} />
-              <span className="text-[10px]">{label}</span>
-              {badge > 0 && (
-                <span
-                  className="absolute -top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full text-white text-[9px] font-black flex items-center justify-center"
-                  style={{ backgroundColor: "var(--m-danger)" }}
-                >
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
+              <span className="m-nav-icon relative inline-flex h-5 w-5 items-center justify-center">
+                <Icon size={20} strokeWidth={active ? 2.25 : 2} />
+                {badge > 0 && (
+                  <span
+                    className="absolute -right-2.5 -top-1.5 min-w-[14px] h-3.5 px-1 rounded-full text-white text-[8px] font-black flex items-center justify-center leading-none"
+                    style={{ backgroundColor: "var(--m-danger)" }}
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </span>
+              <span className="m-nav-label w-full truncate text-center text-[9.5px] leading-tight tracking-tight">
+                {label}
+              </span>
             </button>
           );
         })}
