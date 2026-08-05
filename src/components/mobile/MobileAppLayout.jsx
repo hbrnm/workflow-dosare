@@ -20,6 +20,9 @@ export default function MobileAppLayout({
   onLogout,
   onOpenSettings,
   pragRidicare,
+  pragInactivitate = 7,
+  alertBuckets = null,
+  totalAlertsCount = 0,
   onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
@@ -102,6 +105,10 @@ export default function MobileAppLayout({
             claims={claims}
             onOpen={onOpenClaim}
             pragRidicare={pragRidicare}
+            pragInactivitate={pragInactivitate}
+            alertBuckets={alertBuckets}
+            onPatchClaim={onPatchClaim}
+            onNotify={onNotify}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
@@ -138,12 +145,17 @@ export default function MobileAppLayout({
         <button
           type="button"
           onClick={() => setActiveTab("brief")}
-          className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
+          className={`relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all ${
             activeTab === "brief" ? "text-[#C98A2B] font-extrabold scale-105" : "text-white/60 font-semibold hover:text-white"
           }`}
         >
           <BarChart3 size={20} />
           <span className="text-[10px]">Brief Alerte</span>
+          {totalAlertsCount > 0 && (
+            <span className="absolute -top-0.5 right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#B23A2E] text-white text-[9px] font-black flex items-center justify-center">
+              {totalAlertsCount > 99 ? "99+" : totalAlertsCount}
+            </span>
+          )}
         </button>
 
         <button
