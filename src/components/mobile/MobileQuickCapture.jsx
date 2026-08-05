@@ -11,6 +11,7 @@ import { compressImage } from "../../utils/imageUtils";
 import { fileToDataUrl } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
+import LiveDocumentScanner from "../common/LiveDocumentScanner";
 
 // MODAL CAMERĂ STIL IPHONE/SAMSUNG - FĂRĂ BUTOANE DE OK, SALVARE AUTOMATĂ LIVE
 function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
@@ -160,7 +161,8 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
-  const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit
+  const [showLiveScanner, setShowLiveScanner] = useState(false);
+  const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
   const [activeScanCrop, setActiveScanCrop] = useState(null); // current dataURL in DocumentCropModal
 
   const receptieInputRef = useRef(null);
@@ -298,13 +300,34 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
     }
   };
 
+  const defaultScanFileName = () =>
+    `Scan_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
+
   const appendScannedPage = (croppedDataUrl) => {
     setScanSession((prev) => {
       if (prev) {
         return { ...prev, pages: [...prev.pages, croppedDataUrl] };
       }
-      const defaultName = `Scan_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
-      return { fileName: defaultName, pages: [croppedDataUrl] };
+      return { fileName: defaultScanFileName(), pages: [croppedDataUrl] };
+    });
+  };
+
+  const openLiveDocumentScanner = () => {
+    if (!selectedClaim) {
+      onNotify("Selectează mai întâi un dosar.", "error");
+      return;
+    }
+    setShowLiveScanner(true);
+  };
+
+  const handleLiveScannerComplete = (pages) => {
+    setShowLiveScanner(false);
+    if (!pages || pages.length === 0) return;
+    setScanSession((prev) => {
+      if (prev) {
+        return { ...prev, pages: [...prev.pages, ...pages] };
+      }
+      return { fileName: defaultScanFileName(), pages: [...pages] };
     });
   };
 
@@ -555,23 +578,15 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
 
           {/* 2 OPȚIUNI UTILITARE (SCANNER ACTE PRO / GALERIE & PDF) */}
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#EFEAE1]">
-            <label
+            <button
+              type="button"
+              onClick={openLiveDocumentScanner}
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
-              title="Scanează Acte cu Auto-Crop CamScanner"
+              title="Scanner live tip CamScanner — multi-pagină cu detectare colțuri"
             >
               <FileText size={16} className="text-[#C98A2B]" />
               <span>Scan Acte</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  handleAddScanPages(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            </button>
 
             <label
               className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
@@ -765,19 +780,31 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           {/* Bară inferioară acțiuni scanare cu fundal solid */}
           <div className="border-t border-white/15 pt-3 space-y-3 shrink-0 bg-[#12161A]">
             
-            {/* Buton adăugare altă pagină */}
-            <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold cursor-pointer transition-colors">
-              <Camera size={18} className="text-[#C98A2B]" />
-              <span>Adaugă încă o pagină</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                onChange={(e) => handleAddScanPages(e.target.files)}
-              />
-            </label>
+            {/* Buton adăugare altă pagină — redeschide scannerul live */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLiveScanner(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold transition-colors"
+              >
+                <Camera size={18} className="text-[#C98A2B]" />
+                <span>Scanner live</span>
+              </button>
+              <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold cursor-pointer transition-colors">
+                <ImageIcon size={18} className="text-[#C98A2B]" />
+                <span>Din galerie</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleAddScanPages(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
 
             {/* Nume fișier scanat */}
             <div>
@@ -839,7 +866,15 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         />
       )}
 
-      {/* Editor 4 colțuri tip CamScanner — câte o pagină din coadă */}
+      {/* Scanner documente live tip CamScanner / QuickScan */}
+      {showLiveScanner && selectedClaim && (
+        <LiveDocumentScanner
+          onComplete={handleLiveScannerComplete}
+          onClose={() => setShowLiveScanner(false)}
+        />
+      )}
+
+      {/* Editor 4 colțuri tip CamScanner — câte o pagină din coadă (galerie) */}
       {activeScanCrop && (
         <DocumentCropModal
           imageSrc={activeScanCrop}

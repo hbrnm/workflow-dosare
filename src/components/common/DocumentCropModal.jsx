@@ -12,8 +12,12 @@ import {
 
 /**
  * Editor tip CamScanner: 4 colțuri + Pro mode auto (lumină / blur / contrast).
+ * @param {string} imageSrc
+ * @param {(dataUrl: string) => void} onConfirm
+ * @param {() => void} onClose
+ * @param {[{x:number,y:number}]|null} [initialCorners] — colțuri din detectarea live (coordonate imagine full-res)
  */
-export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
+export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initialCorners = null }) {
   const [loadedImage, setLoadedImage] = useState(null);
   const [corners, setCorners] = useState(null);
   const [dragging, setDragging] = useState(null);
@@ -40,13 +44,18 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
         const canvas = imageToCanvas(img, 1200);
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const detected = detectDocumentCorners(data, canvas.width, canvas.height);
         const q = analyzeImageQuality(data, canvas.width, canvas.height);
-        const sx = (img.naturalWidth || img.width) / canvas.width;
-        const sy = (img.naturalHeight || img.height) / canvas.height;
-        const scaled = orderCorners(
-          detected.map((p) => ({ x: p.x * sx, y: p.y * sy }))
-        );
+
+        let scaled;
+        if (initialCorners && initialCorners.length === 4) {
+          scaled = orderCorners(initialCorners);
+        } else {
+          const detected = detectDocumentCorners(data, canvas.width, canvas.height);
+          const sx = (img.naturalWidth || img.width) / canvas.width;
+          const sy = (img.naturalHeight || img.height) / canvas.height;
+          scaled = orderCorners(detected.map((p) => ({ x: p.x * sx, y: p.y * sy })));
+        }
+
         if (!cancelled) {
           setCorners(scaled);
           setQuality(q);
@@ -77,7 +86,7 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [imageSrc]);
+  }, [imageSrc, initialCorners]);
 
   const measureView = useCallback(() => {
     if (!stageRef.current || !loadedImage) return;

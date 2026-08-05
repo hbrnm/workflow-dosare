@@ -218,8 +218,10 @@ function pickBestQuadFromHull(hull, w, h) {
 /**
  * Detectează cele 4 colțuri ale paginii pe ImageData.
  * Returnează [{x,y} x4] în coordonatele imaginii (TL,TR,BR,BL).
+ * @param {{ allowDefault?: boolean }} [options] — allowDefault=false returnează null dacă nu găsește document (pentru overlay live).
  */
-export function detectDocumentCorners(imageData, width, height) {
+export function detectDocumentCorners(imageData, width, height, options = {}) {
+  const allowDefault = options.allowDefault !== false;
   const data = imageData.data;
   const w = width;
   const h = height;
@@ -308,7 +310,33 @@ export function detectDocumentCorners(imageData, width, height) {
     }
   }
 
-  return corners || defaultCorners(w, h, 0.06);
+  if (corners) return corners;
+  return allowDefault ? defaultCorners(w, h, 0.06) : null;
+}
+
+/**
+ * Detectează colțuri pe un frame video downscalat (overlay live tip CamScanner).
+ * Returnează colțuri în coordonatele frame-ului sursă (nu display), sau null.
+ */
+export function detectCornersFromVideoFrame(video, maxDim = 480) {
+  if (!video || !video.videoWidth || !video.videoHeight) return null;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const scale = Math.min(1, maxDim / Math.max(vw, vh));
+  const w = Math.max(32, Math.round(vw * scale));
+  const h = Math.max(32, Math.round(vh * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(video, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  const corners = detectDocumentCorners(data, w, h, { allowDefault: false });
+  if (!corners) return null;
+  const sx = vw / w;
+  const sy = vh / h;
+  return orderCorners(corners.map((p) => ({ x: p.x * sx, y: p.y * sy })));
 }
 
 /** Rezolvă sistem Ax=b (Gaussian elimination). A e n x n flat row-major. */
