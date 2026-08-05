@@ -43,15 +43,15 @@ describe('mobileThemes', () => {
     expect(accents.size).toBe(6);
   });
 
-  it('pulse uses hub home, floating dock, and workshop nav labels', () => {
-    const pulse = getMobileTheme('pulse');
-    expect(pulse.homeStyle).toBe('hub');
-    expect(pulse.navStyle).toBe('pill');
-    expect(pulse.labels.brief).toBe('Brief');
-    expect(pulse.labels.dosare).toBe('Dosare');
-    expect(pulse.labels.programari).toBe('Programator');
-    expect(pulse.vars['--m-bg']).toBe('#000000');
-    expect(pulse.vars['--m-accent']).toBe('#1ED760');
+  it('forge uses GitHub-like inbox home and floating dock', () => {
+    const forge = getMobileTheme('forge');
+    expect(forge.homeStyle).toBe('inbox');
+    expect(forge.navStyle).toBe('pill');
+    expect(forge.labels.brief).toBe('Brief');
+    expect(forge.labels.dosare).toBe('Dosare');
+    expect(forge.labels.programari).toBe('Programator');
+    expect(forge.vars['--m-bg']).toBe('#010409');
+    expect(forge.vars['--m-nav-active']).toBe('#58A6FF');
   });
 
   it('returns atelier for unknown ids', () => {
