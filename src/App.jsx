@@ -33,6 +33,7 @@ import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
+import { darkenHex } from "./constants/branding";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -119,15 +120,23 @@ export default function App() {
     adminEmails,
     usersList,
     customInsurers,
+    branding,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
+    saveBranding,
+    uploadBrandingLogo,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
   } = useSettings(session, showNotice);
+
+  useEffect(() => {
+    if (!branding?.accentColor) return;
+    document.documentElement.style.setProperty("--brand-accent", branding.accentColor);
+  }, [branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -371,7 +380,7 @@ export default function App() {
     return <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (!session) {
-    return <Login onLoginSuccess={(s) => setSession(s)} />;
+    return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
   }
 
   if (activeMode === "mobile") {
@@ -397,6 +406,7 @@ export default function App() {
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
             totalAlertsCount={totalAlertsCount}
+            branding={branding}
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
@@ -465,6 +475,9 @@ export default function App() {
               onSavePragInactivitate={savePragInactivitate}
               insurersList={customInsurers}
               onSaveInsurers={saveInsurers}
+              branding={branding}
+              onSaveBranding={saveBranding}
+              onUploadBrandingLogo={uploadBrandingLogo}
               onClose={closeSettings}
               onNotify={showNotice}
               userEmail={myEmail}
@@ -500,8 +513,20 @@ export default function App() {
           className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
           title="Revenire la ecranul principal (Brief Zilnic)"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform">
-            WD
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform overflow-hidden"
+            style={{
+              background: branding?.logoUrl
+                ? "#fff"
+                : `linear-gradient(135deg, ${branding?.accentColor || "#C98A2B"}, ${darkenHex(branding?.accentColor || "#C98A2B")})`,
+            }}
+            title={branding?.atelierNume || "Dosare Daună"}
+          >
+            {branding?.logoUrl ? (
+              <img src={branding.logoUrl} alt="" className="w-full h-full object-contain" />
+            ) : (
+              branding?.atelierShort || "WD"
+            )}
           </div>
         </button>
 
@@ -975,6 +1000,9 @@ export default function App() {
             onSaveCapacitate={saveCapacitate}
             onSavePrag={savePragRidicare}
             onSavePragInactivitate={savePragInactivitate}
+            branding={branding}
+            onSaveBranding={saveBranding}
+            onUploadBrandingLogo={uploadBrandingLogo}
             onClose={closeSettings}
             onNotify={showNotice}
             userEmail={myEmail}

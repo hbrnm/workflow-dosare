@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  ShieldCheck, Camera, List, Settings, LogOut,
+  Camera, List, Settings, LogOut,
   BarChart3, Monitor, CalendarClock
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
@@ -23,6 +23,7 @@ export default function MobileAppLayout({
   pragInactivitate = 7,
   alertBuckets = null,
   totalAlertsCount = 0,
+  branding = null,
   onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
@@ -43,12 +44,23 @@ export default function MobileAppLayout({
       {/* HEADER MOBIL SUPERIOR */}
       <header className="bg-[#1C2127] text-white px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b border-white/10 select-none z-30">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#C98A2B] flex items-center justify-center font-extrabold text-[12px] text-white shadow-xs">
-            <ShieldCheck size={16} />
-          </div>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt=""
+              className="w-7 h-7 rounded-lg object-contain bg-white/10"
+            />
+          ) : (
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-white shadow-xs"
+              style={{ backgroundColor: branding?.accentColor || "#C98A2B" }}
+            >
+              {(branding?.atelierShort || "WD").slice(0, 2)}
+            </div>
+          )}
           <div>
             <span className="font-extrabold text-[13.5px] tracking-tight block text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Dosare Daună
+              {branding?.atelierNume || "Dosare Daună"}
             </span>
             <span className="text-[10px] text-[#A69F91] block truncate max-w-[150px]">
               {userEmail || "Operator"}
@@ -116,6 +128,7 @@ export default function MobileAppLayout({
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             canEditFn={canEditFn}
+            atelierNume={branding?.atelierNume}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari

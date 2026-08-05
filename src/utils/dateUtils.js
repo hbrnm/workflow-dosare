@@ -104,27 +104,32 @@ export const WA_TEMPLATES = [
   {
     key: "gata",
     label: "📦 Mașină Gata de Ridicare",
-    text: (c) => `Buna ziua! Masina dvs. ${c.numarInmatriculare || ""} (dosar ${c.numarDosar || ""}) este gata de ridicare. Va asteptam la service!`
+    text: (c, brandName = "service") =>
+      `Buna ziua! Masina dvs. ${c.numarInmatriculare || ""} (dosar ${c.numarDosar || ""}) este gata de ridicare. Va asteptam la ${brandName}!`
   },
   {
     key: "piese",
     label: "🛠️ Piese Sosite / Programare",
-    text: (c) => `Buna ziua! Piesele pentru dosarul dvs. ${c.numarDosar || ""} (${c.numarInmatriculare || ""}) au sosit. Va asteptam la service.`
+    text: (c, brandName = "service") =>
+      `Buna ziua! Piesele pentru dosarul dvs. ${c.numarDosar || ""} (${c.numarInmatriculare || ""}) au sosit. Va asteptam la ${brandName}.`
   },
   {
     key: "acte",
     label: "📋 Solicitare Acte / Talon",
-    text: (c) => `Buna ziua! Referitor la dosarul de dauna ${c.numarDosar || ""} (${c.numarInmatriculare || ""}), va rugam sa ne trimiteti o copie dupa talon / buletin.`
+    text: (c, brandName = "service") =>
+      `Buna ziua! Referitor la dosarul de dauna ${c.numarDosar || ""} (${c.numarInmatriculare || ""}), va rugam sa ne trimiteti o copie dupa talon / buletin. (${brandName})`
   },
   {
     key: "auto_schimb",
     label: "🚗 Returnare Auto la Schimb",
-    text: (c) => `Buna ziua! Va rugam sa returnati autovehiculul la schimb oferit pentru dosarul ${c.numarDosar || ""} (${c.numarInmatriculare || ""}).`
+    text: (c, brandName = "service") =>
+      `Buna ziua! Va rugam sa returnati autovehiculul la schimb oferit pentru dosarul ${c.numarDosar || ""} (${c.numarInmatriculare || ""}). Va asteptam la ${brandName}.`
   }
 ];
 
-export function getWaTemplateLink(phone, templateKey, claim) {
+export function getWaTemplateLink(phone, templateKey, claim, brandName) {
   const tmpl = WA_TEMPLATES.find((t) => t.key === templateKey);
-  const msg = tmpl && claim ? tmpl.text(claim) : "";
+  const name = brandName || "service";
+  const msg = tmpl && claim ? tmpl.text(claim, name) : "";
   return waLink(phone, msg);
 }

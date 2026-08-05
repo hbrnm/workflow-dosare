@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
 import { INSURERS } from "../constants/config";
+import {
+  DEFAULT_BRANDING,
+  normalizeBranding,
+  loadCachedBranding,
+  cacheBranding,
+} from "../constants/branding";
+
+const BRANDING_SELECT =
+  "atelier_nume, atelier_short, logo_url, accent_color";
 
 export function useSettings(session, showNotice) {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
@@ -9,6 +18,7 @@ export function useSettings(session, showNotice) {
   const [adminEmails, setAdminEmails] = useState([]);
   const [usersList, setUsersList] = useState([]);
   const [customInsurers, setCustomInsurers] = useState(INSURERS);
+  const [branding, setBranding] = useState(() => loadCachedBranding());
 
   const myEmail = session?.user?.email || "";
 
@@ -26,13 +36,12 @@ export function useSettings(session, showNotice) {
         console.warn("Invalid local settings in localStorage", err);
       }
 
-      // Prefer public view; fall back progressively if columns/view missing
       let publicData = null;
       let publicErr = null;
       {
         const res = await supabase
           .from("setari_publice")
-          .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
+          .select(`capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori, ${BRANDING_SELECT}`)
           .eq("id", 1)
           .maybeSingle();
         publicData = res.data;
@@ -40,7 +49,7 @@ export function useSettings(session, showNotice) {
         if (publicErr) {
           const res2 = await supabase
             .from("setari_publice")
-            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori")
+            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
             .eq("id", 1)
             .maybeSingle();
           if (!res2.error) {
@@ -60,13 +69,13 @@ export function useSettings(session, showNotice) {
       if (publicErr || !publicData) {
         const res = await supabase
           .from("setari")
-          .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
+          .select(`capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori, ${BRANDING_SELECT}`)
           .eq("id", 1)
           .maybeSingle();
         if (res.error) {
           const res2 = await supabase
             .from("setari")
-            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori")
+            .select("capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, utilizatori, asiguratori")
             .eq("id", 1)
             .maybeSingle();
           settingsFromTable = res2.data;
@@ -90,6 +99,12 @@ export function useSettings(session, showNotice) {
         } catch (err) {
           console.warn("Unable to persist insurers to localStorage", err);
         }
+      }
+
+      if (data?.atelier_nume || data?.atelier_short || data?.logo_url || data?.accent_color) {
+        const nextBrand = normalizeBranding(data);
+        setBranding(nextBrand);
+        cacheBranding(nextBrand);
       }
 
       const loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
@@ -186,6 +201,52 @@ export function useSettings(session, showNotice) {
     if (error) showNotice(error.message, "error");
   };
 
+  const saveBranding = async (nextRaw) => {
+    const next = normalizeBranding(nextRaw);
+    setBranding(next);
+    cacheBranding(next);
+
+    const payload = {
+      id: 1,
+      atelier_nume: next.atelierNume,
+      atelier_short: next.atelierShort,
+      logo_url: next.logoUrl || null,
+      accent_color: next.accentColor,
+    };
+    const { error } = await supabase.from("setari").upsert(payload);
+    if (error) {
+      showNotice(
+        "Branding salvat local. Rulează migrarea 20 în Supabase pentru sync cloud: " + error.message,
+        "warning"
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const uploadBrandingLogo = async (file) => {
+    if (!file) throw new Error("Niciun fișier selectat.");
+    if (!file.type.startsWith("image/")) throw new Error("Încarcă o imagine (PNG, JPG, WebP, SVG).");
+    if (file.size > 2 * 1024 * 1024) throw new Error("Logo-ul trebuie să aibă maxim 2 MB.");
+
+    const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+    const path = `atelier/logo.${ext}`;
+    const { error } = await supabase.storage.from("branding").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+      cacheControl: "3600",
+    });
+    if (error) {
+      throw new Error(
+        error.message.includes("Bucket not found")
+          ? "Bucket-ul „branding” lipsește — rulează migrarea 20 sau lipește un URL public."
+          : error.message
+      );
+    }
+    const { data } = supabase.storage.from("branding").getPublicUrl(path);
+    return `${data.publicUrl}?v=${Date.now()}`;
+  };
+
   const handleAddUser = async ({ email, role, password }) => {
     const cleanEmail = email.trim().toLowerCase();
     if (usersList.some((u) => u.email?.toLowerCase() === cleanEmail)) {
@@ -275,13 +336,36 @@ export function useSettings(session, showNotice) {
     adminEmails,
     usersList,
     customInsurers,
+    branding,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
+    saveBranding,
+    uploadBrandingLogo,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
   };
+}
+
+/** Public branding for Login (anon-readable view + local cache). */
+export async function fetchPublicBranding() {
+  const cached = loadCachedBranding();
+  try {
+    const { data, error } = await supabase
+      .from("atelier_branding")
+      .select(BRANDING_SELECT)
+      .eq("id", 1)
+      .maybeSingle();
+    if (!error && data) {
+      const next = normalizeBranding(data);
+      cacheBranding(next);
+      return next;
+    }
+  } catch {
+    /* ignore */
+  }
+  return cached || { ...DEFAULT_BRANDING };
 }
