@@ -377,15 +377,9 @@ export function detectCornersFromVideoFrame(video, maxDim = 480) {
   return orderCorners(corners.map((p) => ({ x: p.x * sx, y: p.y * sy })));
 }
 
-/** Prefetch OpenCV in background (call when user opens capture screen). */
-export function prefetchScanEngine() {
-  return loadOpenCv().catch((err) => {
-    console.warn("OpenCV prefetch failed:", err);
-    return null;
-  });
-}
+/** Re-export OpenCV helpers (load only on Scan Acte — never at login). */
+export { isOpenCvReady, loadOpenCv, prefetchScanEngine } from "./opencvLoader";
 
-export { isOpenCvReady, loadOpenCv };
 
 /** Rezolvă sistem Ax=b (Gaussian elimination). A e n x n flat row-major. */
 function solveLinearSystem(A, b, n) {
