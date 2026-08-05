@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
-  List, Plus, ArrowRight
+  List, Plus, ArrowRight, ChevronRight, GitBranch, CalendarDays
 } from "lucide-react";
 import { telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
@@ -82,6 +82,137 @@ export default function MobileBrief({
     softHaptic(8);
     onGoTab?.(tab);
   };
+
+  const alertIconColor = (type) => {
+    switch (type) {
+      case "blocate": return "#F85149";
+      case "piese": return "#F0883E";
+      case "neridicate": return "#3FB950";
+      case "stagnate": return "#58A6FF";
+      case "accept_plata": return "#A371F7";
+      case "masini_schimb": return "#D29922";
+      case "inactivitate": return "#8B949E";
+      default: return "#58A6FF";
+    }
+  };
+
+  if (homeStyle === "inbox") {
+    const shortcuts = [
+      { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-a)", action: () => go("capture") },
+      { id: "dosare", label: "Dosare", Icon: GitBranch, color: "var(--m-hub-b)", action: () => go("dosare") },
+      { id: "programari", label: "Programator", Icon: CalendarDays, color: "var(--m-hub-c)", action: () => go("programari") },
+      { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-hub-d)", action: () => (onNew ? onNew() : go("dosare")) },
+    ];
+
+    return (
+      <div className="m-inbox space-y-4 flex flex-col flex-1 min-h-0 pb-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold m-muted">{atelierNume}</p>
+            <h1 className="m-inbox-title mt-0.5">Brief</h1>
+          </div>
+          <span className="m-inbox-count">{totalAlertsCount} alerte</span>
+        </div>
+
+        <section className="m-inbox-card">
+          <div className="m-inbox-section-label">Favorites</div>
+          <div className="m-inbox-favs">
+            {shortcuts.map((item, idx) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`m-inbox-row m-press ${idx < shortcuts.length - 1 ? "has-divider" : ""}`}
+                onClick={item.action}
+              >
+                <span className="m-inbox-icon" style={{ background: item.color }}>
+                  <item.Icon size={16} />
+                </span>
+                <span className="m-inbox-row-label">{item.label}</span>
+                <ChevronRight size={16} className="m-inbox-chevron" />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h2 className="m-inbox-section-label" style={{ margin: 0 }}>Inbox alerte</h2>
+            {onNew && (
+              <button type="button" className="m-inbox-ghost-btn" onClick={onNew}>
+                + Dosar
+              </button>
+            )}
+          </div>
+
+          <div className="m-hub-pills">
+            {HUB_PILLS.map((pill) => (
+              <button
+                key={pill.key}
+                type="button"
+                className={`m-hub-pill ${activeAlertTab === pill.key ? "is-active" : ""}`}
+                onClick={() => { softHaptic(8); setActiveAlertTab(pill.key); }}
+              >
+                {pill.label}
+                {chipCount(pill.key) > 0 ? ` · ${chipCount(pill.key)}` : ""}
+              </button>
+            ))}
+          </div>
+
+          <div className="m-inbox-card overflow-hidden">
+            {alertsList.length === 0 ? (
+              <div className="text-center py-8 px-4 space-y-2">
+                <CheckCircle2 size={26} className="mx-auto" style={{ color: "var(--m-hub-a)" }} />
+                <div className="font-bold text-[13px]">Inbox gol pe filtrul ăsta</div>
+                <p className="text-[11.5px] m-muted">Schimbă filtrul sau treci la Foto.</p>
+              </div>
+            ) : (
+              alertsList.map((item, idx) => {
+                const c = item.claim;
+                const phone = c.telefonClient || "";
+                return (
+                  <div
+                    key={item.id}
+                    className={`m-inbox-alert ${idx < alertsList.length - 1 ? "has-divider" : ""}`}
+                  >
+                    <button type="button" className="m-inbox-alert-main m-press" onClick={() => onOpen(c)}>
+                      <span className="m-inbox-icon" style={{ background: alertIconColor(item.type) }}>
+                        <AlertTriangle size={14} />
+                      </span>
+                      <span className="min-w-0 flex-1 text-left">
+                        <span className="m-inbox-meta">
+                          {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
+                        </span>
+                        <span className="m-inbox-alert-title">{item.title}</span>
+                        <span className="m-inbox-alert-reason">{item.reason}</span>
+                      </span>
+                      <ChevronRight size={16} className="m-inbox-chevron shrink-0" />
+                    </button>
+                    {phone && (
+                      <div className="m-inbox-alert-actions">
+                        <WhatsAppButton phone={phone} claim={c} size={12} />
+                        <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
+                          <Phone size={11} /> Apel
+                        </a>
+                        {onPatchClaim && canAck(item.type) && (
+                          <button
+                            type="button"
+                            onClick={(e) => ackAlert(e, c.id)}
+                            className="m-inbox-ghost-btn"
+                          >
+                            Rezolvat
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (homeStyle === "hub") {
     return (
