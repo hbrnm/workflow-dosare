@@ -1,7 +1,14 @@
 /**
  * Document scanner — detecție 4 colțuri + perspectivă (stil CamScanner).
- * Fără OpenCV: edge/blob pe canvas + homografie + warp invers.
+ * Preferă OpenCV.js când e disponibil; fallback JS edge/blob + homografie.
  */
+
+import { isOpenCvReady, loadOpenCv } from "./opencvLoader";
+import {
+  detectCornersOpenCv,
+  detectCornersFromVideoOpenCv,
+  warpWithOpenCv,
+} from "./opencvDocumentDetect";
 
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
@@ -217,10 +224,35 @@ function pickBestQuadFromHull(hull, w, h) {
 
 /**
  * Detectează cele 4 colțuri ale paginii pe ImageData.
+ * Preferă OpenCV (Canny + approxPolyDP). Fallback JS dacă OpenCV nu e gata.
  * Returnează [{x,y} x4] în coordonatele imaginii (TL,TR,BR,BL).
- * @param {{ allowDefault?: boolean }} [options] — allowDefault=false returnează null dacă nu găsește document (pentru overlay live).
+ * @param {{ allowDefault?: boolean }} [options]
  */
 export function detectDocumentCorners(imageData, width, height, options = {}) {
+  const allowDefault = options.allowDefault !== false;
+
+  if (isOpenCvReady() && typeof document !== "undefined") {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d").putImageData(imageData, 0, 0);
+      const ocCorners = detectCornersOpenCv(canvas, {
+        minAreaRatio: options.minAreaRatio,
+        maxAreaRatio: options.maxAreaRatio,
+      });
+      if (ocCorners) return ocCorners;
+      if (!allowDefault) return null;
+    } catch (err) {
+      console.warn("OpenCV corner detect fallback to JS:", err);
+    }
+  }
+
+  return detectDocumentCornersJs(imageData, width, height, options);
+}
+
+/** Fallback detecție fără OpenCV (Sobel / blob). */
+function detectDocumentCornersJs(imageData, width, height, options = {}) {
   const allowDefault = options.allowDefault !== false;
   const data = imageData.data;
   const w = width;
@@ -316,10 +348,16 @@ export function detectDocumentCorners(imageData, width, height, options = {}) {
 
 /**
  * Detectează colțuri pe un frame video downscalat (overlay live tip CamScanner).
- * Returnează colțuri în coordonatele frame-ului sursă (nu display), sau null.
+ * Preferă OpenCV; fallback JS.
  */
 export function detectCornersFromVideoFrame(video, maxDim = 480) {
   if (!video || !video.videoWidth || !video.videoHeight) return null;
+
+  if (isOpenCvReady()) {
+    const oc = detectCornersFromVideoOpenCv(video, Math.max(maxDim, 640));
+    if (oc) return oc;
+  }
+
   const vw = video.videoWidth;
   const vh = video.videoHeight;
   const scale = Math.min(1, maxDim / Math.max(vw, vh));
@@ -332,12 +370,22 @@ export function detectCornersFromVideoFrame(video, maxDim = 480) {
   if (!ctx) return null;
   ctx.drawImage(video, 0, 0, w, h);
   const data = ctx.getImageData(0, 0, w, h);
-  const corners = detectDocumentCorners(data, w, h, { allowDefault: false });
+  const corners = detectDocumentCornersJs(data, w, h, { allowDefault: false });
   if (!corners) return null;
   const sx = vw / w;
   const sy = vh / h;
   return orderCorners(corners.map((p) => ({ x: p.x * sx, y: p.y * sy })));
 }
+
+/** Prefetch OpenCV in background (call when user opens capture screen). */
+export function prefetchScanEngine() {
+  return loadOpenCv().catch((err) => {
+    console.warn("OpenCV prefetch failed:", err);
+    return null;
+  });
+}
+
+export { isOpenCvReady, loadOpenCv };
 
 /** Rezolvă sistem Ax=b (Gaussian elimination). A e n x n flat row-major. */
 function solveLinearSystem(A, b, n) {
@@ -767,6 +815,7 @@ export function imageToCanvas(img, maxDim = 2000) {
  * Pipeline complet: detect → warp → enhance (auto Pro) → JPEG dataURL
  */
 export async function processDocumentScan(file, options = {}) {
+  await loadOpenCv().catch(() => null);
   const dataUrl = await fileToDataUrl(file);
   const img = await loadImageElement(dataUrl);
   const canvas = imageToCanvas(img, options.maxDim || 2200);
@@ -775,7 +824,13 @@ export async function processDocumentScan(file, options = {}) {
   const corners = detectDocumentCorners(imageData, canvas.width, canvas.height);
   const quality = analyzeImageQuality(imageData, canvas.width, canvas.height);
   const pro = options.pro === true || (options.pro !== false && quality.recommendPro);
-  const warped = warpPerspective(canvas, corners, { maxDim: options.outMaxDim || 2000 });
+  let warped =
+    (isOpenCvReady() &&
+      warpWithOpenCv(canvas, corners, {
+        maxWidth: options.outMaxDim || 2000,
+        maxHeight: options.outMaxDim || 2800,
+      })) ||
+    warpPerspective(canvas, corners, { maxDim: options.outMaxDim || 2000 });
   if (options.enhance !== false) {
     if (pro) enhanceScanPro(warped, quality);
     else enhanceScan(warped, { mode: options.mode || "document" });
@@ -796,6 +851,7 @@ export async function processDocumentScan(file, options = {}) {
  * corners sunt în coordonate relative 0–1 sau absolute pe sourceWidth/Height.
  */
 export async function applyCornerWarp(imageSrc, corners, options = {}) {
+  await loadOpenCv().catch(() => null);
   const img = await loadImageElement(imageSrc);
   const canvas = imageToCanvas(img, options.maxDim || 2400);
   const absCorners = corners.map((c) => {
@@ -822,7 +878,13 @@ export async function applyCornerWarp(imageSrc, corners, options = {}) {
     options.pro === true ||
     (options.pro !== false && (options.forcePro || quality.recommendPro));
 
-  const warped = warpPerspective(canvas, absCorners, { maxDim: options.outMaxDim || 2000 });
+  let warped =
+    (isOpenCvReady() &&
+      warpWithOpenCv(canvas, absCorners, {
+        maxWidth: options.outMaxDim || 2000,
+        maxHeight: Math.round((options.outMaxDim || 2000) * 1.45),
+      })) ||
+    warpPerspective(canvas, absCorners, { maxDim: options.outMaxDim || 2000 });
   if (options.enhance !== false) {
     if (pro) enhanceScanPro(warped, quality);
     else enhanceScan(warped, { mode: options.mode || "document" });
