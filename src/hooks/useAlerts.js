@@ -1,33 +1,28 @@
 import { useMemo } from "react";
-import { isReadyForPickupOverdue, isStageOverdue, isAcceptPlataWithoutParts, isInactiveClaim } from "../utils/alertUtils";
+import { buildAlertBuckets } from "../utils/alertUtils";
 
+/**
+ * Shared operational alerts for desktop Brief, mobile Brief, AlerteModal, and nav badges.
+ */
 export function useAlerts(userClaims = [], pragRidicare, pragInactivitate) {
-  const alertCount = useMemo(() => userClaims.filter(isStageOverdue).length, [userClaims]);
-  const blockedCount = useMemo(() => userClaims.filter((c) => c.blocat).length, [userClaims]);
-  const gataNeridicateCount = useMemo(
-    () => userClaims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length,
-    [userClaims, pragRidicare]
-  );
-  const acceptPlataNoPartsCount = useMemo(
-    () => userClaims.filter(isAcceptPlataWithoutParts).length,
-    [userClaims]
-  );
-  const inactiveCount = useMemo(
-    () => userClaims.filter((c) => isInactiveClaim(c, pragInactivitate)).length,
-    [userClaims, pragInactivitate]
-  );
-
-  const totalAlertsCount = useMemo(
-    () => alertCount + blockedCount + gataNeridicateCount + acceptPlataNoPartsCount + inactiveCount,
-    [alertCount, blockedCount, gataNeridicateCount, acceptPlataNoPartsCount, inactiveCount]
+  const buckets = useMemo(
+    () => buildAlertBuckets(userClaims, { pragRidicare, pragInactivitate }),
+    [userClaims, pragRidicare, pragInactivitate]
   );
 
   return {
-    alertCount,
-    blockedCount,
-    gataNeridicateCount,
-    acceptPlataNoPartsCount,
-    inactiveCount,
-    totalAlertsCount,
+    buckets,
+    items: buckets.items,
+    byType: buckets.byType,
+    counts: buckets.counts,
+    // Legacy count keys (kept for existing App.jsx / badges)
+    alertCount: buckets.counts.stagnate,
+    blockedCount: buckets.counts.blocate,
+    gataNeridicateCount: buckets.counts.neridicate,
+    acceptPlataNoPartsCount: buckets.counts.accept_plata,
+    inactiveCount: buckets.counts.inactivitate,
+    loanerOverdueCount: buckets.counts.masini_schimb,
+    partsUnscheduledCount: buckets.counts.piese,
+    totalAlertsCount: buckets.totalAlertsCount,
   };
 }

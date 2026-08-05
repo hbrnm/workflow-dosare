@@ -1,5 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { isReadyForPickupOverdue, isStageOverdue, isInactiveClaim } from '../alertUtils';
+import {
+  isReadyForPickupOverdue,
+  isStageOverdue,
+  isInactiveClaim,
+  isBlocked,
+  isLoanerOverdue,
+  isPartsArrivedUnscheduled,
+  buildAlertBuckets,
+  filterAlertItems,
+  normalizeAlertTab,
+} from '../alertUtils';
 
 function isoDaysAgo(days) {
   const d = new Date(Date.now() - days * 86400000);
@@ -8,7 +18,6 @@ function isoDaysAgo(days) {
 
 describe('alertUtils', () => {
   beforeEach(() => {
-    // freeze time to a known timestamp
     vi.setSystemTime(new Date('2026-08-05T12:00:00.000Z'));
   });
   afterEach(() => {
@@ -35,5 +44,95 @@ describe('alertUtils', () => {
     expect(isInactiveClaim(old, 7)).toBe(true);
     const closed = { status: 'facturat', dataUltimeiActualizari: isoDaysAgo(30) };
     expect(isInactiveClaim(closed, 7)).toBe(false);
+  });
+
+  it('isBlocked respects alerteAck', () => {
+    expect(isBlocked({ blocat: true })).toBe(true);
+    expect(isBlocked({ blocat: true, alerteAck: true })).toBe(false);
+  });
+
+  it('isLoanerOverdue detects Audatex overrun', () => {
+    const claim = {
+      masinaSchimb: 'Dacia Logan',
+      status: 'in_lucru',
+      zileChirieAudatex: 5,
+      dataDariiLaSchimb: isoDaysAgo(8),
+    };
+    expect(isLoanerOverdue(claim)).toBe(true);
+    expect(isLoanerOverdue({ ...claim, zileChirieAudatex: 10 })).toBe(false);
+  });
+
+  it('isPartsArrivedUnscheduled detects missing schedule', () => {
+    expect(isPartsArrivedUnscheduled({ pieseSosite: true, dataProgramare: null })).toBe(true);
+    expect(isPartsArrivedUnscheduled({ pieseSosite: true, dataProgramare: '2026-08-01' })).toBe(false);
+  });
+
+  it('normalizeAlertTab maps depasite → stagnate', () => {
+    expect(normalizeAlertTab('depasite')).toBe('stagnate');
+    expect(normalizeAlertTab('blocate')).toBe('blocate');
+  });
+
+  it('buildAlertBuckets returns unified counts and items', () => {
+    const claims = [
+      { id: '1', blocat: true, motivBlocare: 'Litigiu', status: 'in_lucru' },
+      {
+        id: '2',
+        status: 'in_lucru',
+        dataSchimbareStatus: isoDaysAgo(5),
+        termenAlertaZile: 3,
+      },
+      {
+        id: '3',
+        status: 'accept_plata',
+        blocat: false,
+      },
+      {
+        id: '4',
+        gataDeRidicare: true,
+        ridicata: false,
+        dataGataRidicare: isoDaysAgo(4),
+        status: 'gata_de_ridicare',
+      },
+      {
+        id: '5',
+        pieseSosite: true,
+        dataProgramare: null,
+        status: 'piese_comandate',
+      },
+      {
+        id: '6',
+        masinaSchimb: 'VW Golf',
+        zileChirieAudatex: 3,
+        dataDariiLaSchimb: isoDaysAgo(6),
+        status: 'in_lucru',
+      },
+      {
+        id: '7',
+        status: 'in_lucru',
+        dataUltimeiActualizari: isoDaysAgo(10),
+        dataSchimbareStatus: isoDaysAgo(1),
+        termenAlertaZile: 3,
+      },
+    ];
+
+    const buckets = buildAlertBuckets(claims, { pragRidicare: 3, pragInactivitate: 7 });
+    expect(buckets.counts.blocate).toBe(1);
+    expect(buckets.counts.stagnate).toBe(1);
+    expect(buckets.counts.depasite).toBe(1);
+    expect(buckets.counts.accept_plata).toBe(1);
+    expect(buckets.counts.neridicate).toBe(1);
+    expect(buckets.counts.piese).toBe(1);
+    expect(buckets.counts.masini_schimb).toBe(1);
+    expect(buckets.counts.inactivitate).toBe(1);
+    expect(buckets.totalAlertsCount).toBe(7);
+    expect(buckets.items).toHaveLength(7);
+
+    const onlyBlocked = filterAlertItems(buckets.items, 'blocate');
+    expect(onlyBlocked).toHaveLength(1);
+    expect(onlyBlocked[0].type).toBe('blocate');
+
+    const viaAlias = filterAlertItems(buckets.items, 'depasite');
+    expect(viaAlias).toHaveLength(1);
+    expect(viaAlias[0].type).toBe('stagnate');
   });
 });

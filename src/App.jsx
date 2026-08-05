@@ -176,11 +176,7 @@ export default function App() {
   });
 
   const {
-    alertCount,
-    blockedCount,
-    gataNeridicateCount,
-    acceptPlataNoPartsCount,
-    inactiveCount,
+    buckets: alertBuckets,
     totalAlertsCount,
   } = useAlerts(userClaims, pragRidicare, pragInactivitate);
 
@@ -398,6 +394,9 @@ export default function App() {
             onLogout={handleLogout}
             onOpenSettings={openSettings}
             pragRidicare={pragRidicare}
+            pragInactivitate={pragInactivitate}
+            alertBuckets={alertBuckets}
+            totalAlertsCount={totalAlertsCount}
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
@@ -494,7 +493,10 @@ export default function App() {
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
           type="button"
-          onClick={() => setView("brief")}
+          onClick={() => {
+            setView("dosare");
+            setDosareSubView("brief");
+          }}
           className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
           title="Revenire la ecranul principal (Brief Zilnic)"
         >
@@ -761,12 +763,14 @@ export default function App() {
             ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
               dosareSubView === "brief" ? (
                 <BriefZilnic
-                  claims={claims}
+                  claims={userClaims}
                   onOpen={openExisting}
                   onMoveToStatus={handleMoveToStatus}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
+                  pragInactivitate={pragInactivitate}
+                  alertBuckets={alertBuckets}
                   onSelectStatusFilter={(statusKey) => {
                     setFilterStatus(statusKey);
                     setDosareSubView("list");
@@ -949,6 +953,7 @@ export default function App() {
         {alerteModalTab && (
           <AlerteModal
             claims={userClaims}
+            alertBuckets={alertBuckets}
             initialTab={alerteModalTab}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
