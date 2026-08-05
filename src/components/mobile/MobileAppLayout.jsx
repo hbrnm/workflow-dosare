@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Settings, LogOut, Monitor, Palette,
+  Settings, LogOut, Monitor,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
-import MobileThemePicker from "./MobileThemePicker";
-import {
-  getMobileTheme,
-  loadMobileThemeId,
-  saveMobileThemeId,
-} from "../../constants/mobileThemes";
+import { getMobileTheme } from "../../constants/mobileThemes";
 import "../../styles/mobileThemes.css";
 
 export default function MobileAppLayout({
@@ -33,17 +28,12 @@ export default function MobileAppLayout({
   onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
+  themeId = "atelier",
 }) {
   const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare" | "programari"
   const [focusClaimId, setFocusClaimId] = useState(null);
-  const [themeId, setThemeId] = useState(() => loadMobileThemeId());
-  const [themePickerOpen, setThemePickerOpen] = useState(false);
 
   const theme = useMemo(() => getMobileTheme(themeId), [themeId]);
-
-  useEffect(() => {
-    saveMobileThemeId(themeId);
-  }, [themeId]);
 
   useEffect(() => {
     if (!captureFocusClaimId) return;
@@ -101,15 +91,6 @@ export default function MobileAppLayout({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setThemePickerOpen(true)}
-            className="p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-            title="Temă vizuală"
-            aria-label="Alege tema vizuală"
-          >
-            <Palette size={16} />
-          </button>
           {onSwitchToDesktop && (
             <button
               type="button"
@@ -210,16 +191,6 @@ export default function MobileAppLayout({
           );
         })}
       </nav>
-
-      <MobileThemePicker
-        open={themePickerOpen}
-        currentId={themeId}
-        onSelect={(nextId) => {
-          setThemeId(nextId);
-          setThemePickerOpen(false);
-        }}
-        onClose={() => setThemePickerOpen(false)}
-      />
     </div>
   );
 }
