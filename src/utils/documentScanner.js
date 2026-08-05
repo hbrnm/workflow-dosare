@@ -889,7 +889,47 @@ export function enhanceScanPro(canvas, qualityHints = {}) {
 
 /** Calitate JPEG: Pro → aproape lossless vizual */
 export function recommendedJpegQuality({ pro = false } = {}) {
-  return pro ? 0.94 : 0.9;
+  return pro ? 0.95 : 0.9;
+}
+
+/**
+ * Adaugă o pagină scanată în PDF A4, păstrând proporțiile (stil scaner pro).
+ * Nu întinde imaginea pe tot A4 — o centrează cu margini albe mici.
+ */
+export async function addScannedPageToPdf(pdf, dataUrl, options = {}) {
+  const marginMm = options.marginMm ?? 4;
+  const pdfW = pdf.internal.pageSize.getWidth();
+  const pdfH = pdf.internal.pageSize.getHeight();
+  const maxW = pdfW - marginMm * 2;
+  const maxH = pdfH - marginMm * 2;
+
+  const img = await loadImageElement(dataUrl);
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  if (!iw || !ih) {
+    pdf.addImage(dataUrl, "JPEG", marginMm, marginMm, maxW, maxH);
+    return;
+  }
+
+  const scale = Math.min(maxW / iw, maxH / ih);
+  const drawW = iw * scale;
+  const drawH = ih * scale;
+  const x = (pdfW - drawW) / 2;
+  const y = (pdfH - drawH) / 2;
+  pdf.addImage(dataUrl, "JPEG", x, y, drawW, drawH);
+}
+
+/**
+ * Construiește un Blob PDF A4 din pagini scanate (dataURL JPEG).
+ */
+export async function buildScanPdfBlob(pages, options = {}) {
+  const { jsPDF } = await import("jspdf");
+  const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4", compress: true });
+  for (let i = 0; i < pages.length; i++) {
+    if (i > 0) pdf.addPage();
+    await addScannedPageToPdf(pdf, pages[i], options);
+  }
+  return pdf.output("blob");
 }
 
 export function loadImageElement(src) {
