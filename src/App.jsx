@@ -24,6 +24,7 @@ const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/Qu
 const SetariModal = lazyWithRetry(() => import("./components/modals/SetariModal"));
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
+const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
@@ -202,6 +203,19 @@ export default function App() {
     closeQuickCreate,
   } = useClaimModal(showNotice);
 
+  // Mobile field sheet (thin claim view) — full ClaimModal only via "Detalii complete"
+  const [fieldClaimId, setFieldClaimId] = useState(null);
+  const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+
+  const openMobileClaim = useCallback((claim) => {
+    if (!claim?.id) return;
+    setFieldClaimId(claim.id);
+  }, []);
+
+  const closeFieldClaim = useCallback(() => {
+    setFieldClaimId(null);
+  }, []);
+
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -245,6 +259,8 @@ export default function App() {
       isNavigatingHistoryRef.current = true;
       if (modalClaim) {
         closeClaimModal();
+      } else if (fieldClaimId) {
+        closeFieldClaim();
       } else if (setariOpen) {
         closeSettings();
       } else if (quickCaptureOpen) {
@@ -264,9 +280,9 @@ export default function App() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [modalClaim, closeClaimModal, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
+  }, [modalClaim, closeClaimModal, fieldClaimId, closeFieldClaim, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
 
-  // Deschidere modal adaugă stare în istoric pentru închidere prin butonul Back
+  // Deschidere modal / field sheet — stare în istoric pentru Back
   useEffect(() => {
     if (modalClaim && !isNavigatingHistoryRef.current) {
       window.history.pushState(
@@ -277,6 +293,15 @@ export default function App() {
     }
   }, [modalClaim, view]);
 
+  useEffect(() => {
+    if (fieldClaimId && !modalClaim && !isNavigatingHistoryRef.current) {
+      window.history.pushState(
+        { view, fieldSheet: true, claimId: fieldClaimId },
+        "",
+        `#field-${fieldClaimId}`
+      );
+    }
+  }, [fieldClaimId, modalClaim, view]);
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -309,6 +334,9 @@ export default function App() {
     const result = await saveClaim(claim, options);
     setSaving(false);
     if (!result?.success) return result;
+    if (activeMode === "mobile" && claim?.id) {
+      setFieldClaimId(claim.id);
+    }
     closeClaimModal();
     closeQuickCreate();
     return result;
@@ -319,6 +347,7 @@ export default function App() {
       onUndoToast: (item) => setUndoToastItem(item),
     });
     closeClaimModal();
+    if (fieldClaimId === id) closeFieldClaim();
   };
 
   const handleMoveToStatus = (claim, newStatusKey) => {
@@ -350,6 +379,8 @@ export default function App() {
   }
 
   if (activeMode === "mobile") {
+    const fieldClaim = fieldClaimId ? claims.find((c) => c.id === fieldClaimId) : null;
+
     return (
       <ErrorBoundary>
         <NotificationQueue notice={notice} />
@@ -359,7 +390,7 @@ export default function App() {
             claims={claims}
             session={session}
             userEmail={myEmail}
-            onOpenClaim={openExisting}
+            onOpenClaim={openMobileClaim}
             onNewClaim={openNew}
             onPatchClaim={handlePatchClaim}
             canEditFn={canEdit}
@@ -368,8 +399,31 @@ export default function App() {
             onOpenSettings={openSettings}
             pragRidicare={pragRidicare}
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
+            captureFocusClaimId={captureFocusClaimId}
+            onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
           />
         </Suspense>
+
+        {fieldClaim && !modalClaim && (
+          <Suspense fallback={null}>
+            <MobileClaimSheet
+              claim={fieldClaim}
+              onClose={closeFieldClaim}
+              onOpenFull={(c) => {
+                // Full editor on top of sheet; closing modal returns to sheet
+                openExisting(c);
+              }}
+              onPatch={handlePatchClaim}
+              onMoveToStatus={handleMoveToStatus}
+              canEdit={canEdit(fieldClaim)}
+              onNotify={showNotice}
+              onCapturePhotos={(c) => {
+                setCaptureFocusClaimId(c.id);
+                closeFieldClaim();
+              }}
+            />
+          </Suspense>
+        )}
 
         {modalClaim && (
           <Suspense fallback={null}>
@@ -380,7 +434,7 @@ export default function App() {
               onDelete={handleDelete}
               onClose={closeClaimModal}
               onNotify={showNotice}
-              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openExisting(c), 150); }}
+              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openMobileClaim(c), 150); }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
               insurersList={customInsurers}
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}

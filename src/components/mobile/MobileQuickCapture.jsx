@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
   CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
-  Eye, FileCheck, RefreshCw, Check
+  Eye, FileCheck, RefreshCw, Check, ChevronDown
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
@@ -153,7 +153,15 @@ function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePho
   );
 }
 
-export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn, onNotify }) {
+export default function MobileQuickCapture({
+  claims,
+  onOpen,
+  onPatch,
+  canEditFn,
+  onNotify,
+  focusClaimId = null,
+  onFocusClaimConsumed,
+}) {
   const [query, setQuery] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -164,10 +172,18 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
   const [showLiveScanner, setShowLiveScanner] = useState(false);
   const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
   const [activeScanCrop, setActiveScanCrop] = useState(null); // current dataURL in DocumentCropModal
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   const receptieInputRef = useRef(null);
   const reconstatareInputRef = useRef(null);
   const predareInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!focusClaimId) return;
+    setSelectedClaimId(focusClaimId);
+    setShowLiveCamera(true);
+    onFocusClaimConsumed?.();
+  }, [focusClaimId, onFocusClaimConsumed]);
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
@@ -510,7 +526,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
         </div>
       </div>
 
-      {/* 3. BARA DE BUTOANE EXCLUSIV CU ICONIȚE (FĂRĂ TEXT "2. ACȚIUNE TEREN") */}
+      {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
       <div className={`bg-white rounded-2xl border p-3.5 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
         
         {uploading && (
@@ -519,86 +535,89 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
           </div>
         )}
 
-        {/* SECTIUNE SIMPLIFICATĂ FOTO & DOCUMENT (3 CATEGORII PRINCIPALE + UTILS) */}
-        <div className="space-y-2.5">
-          {/* Cele 3 Butoane Principale pe Categorii (Deschid Camera Live Fără Nicio Confirmare "OK") */}
-          <div className="grid grid-cols-3 gap-2.5">
-            {/* 1. RECEPȚIE */}
-            <button
-              type="button"
-              onClick={() => {
-                setCameraCategory("receptie");
-                setShowLiveCamera(true);
-              }}
-              className="flex flex-col items-center justify-center p-3.5 bg-[#C98A2B] text-white rounded-2xl cursor-pointer hover:bg-[#B37A22] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto Live Recepție"
-            >
-              <Camera size={24} />
-              <span className="text-[12px] font-extrabold mt-1">Recepție</span>
-            </button>
-
-            {/* 2. RECONSTATARE */}
-            <button
-              type="button"
-              onClick={() => {
-                setCameraCategory("reconstatare");
-                setShowLiveCamera(true);
-              }}
-              className="flex flex-col items-center justify-center p-3.5 bg-[#3B5166] text-white rounded-2xl cursor-pointer hover:bg-[#2C4160] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto Live Reconstatare"
-            >
-              <Camera size={24} />
-              <span className="text-[12px] font-extrabold mt-1">Reconstatare</span>
-            </button>
-
-            {/* 3. PREDARE */}
-            <button
-              type="button"
-              onClick={() => {
-                setCameraCategory("predare");
-                setShowLiveCamera(true);
-              }}
-              className="flex flex-col items-center justify-center p-3.5 bg-[#3E6B45] text-white rounded-2xl cursor-pointer hover:bg-[#2F5234] active:scale-95 transition-all shadow-md"
-              title="Deschide Camera Foto Live Predare"
-            >
-              <Camera size={24} />
-              <span className="text-[12px] font-extrabold mt-1">Predare</span>
-            </button>
+        <div className="space-y-3">
+          {/* Selector categorie (nu deschide camera) */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "receptie", label: "Recepție", active: "bg-[#C98A2B] text-white border-[#C98A2B]" },
+              { key: "reconstatare", label: "Reconstatare", active: "bg-[#3B5166] text-white border-[#3B5166]" },
+              { key: "predare", label: "Predare", active: "bg-[#3E6B45] text-white border-[#3E6B45]" },
+            ].map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => setCameraCategory(cat.key)}
+                className={`py-2 px-1 rounded-xl border text-[11.5px] font-extrabold transition-all ${
+                  cameraCategory === cat.key
+                    ? cat.active + " shadow-sm"
+                    : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
 
-          {/* 2 OPȚIUNI UTILITARE (SCANNER ACTE PRO / GALERIE & PDF) */}
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#EFEAE1]">
+          {/* Declanșator principal */}
+          <button
+            type="button"
+            onClick={() => setShowLiveCamera(true)}
+            className="w-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-[#1C2127] text-white shadow-md active:scale-[0.98] transition-transform"
+            title="Deschide camera"
+          >
+            <Camera size={32} className="text-[#C98A2B]" />
+            <span className="text-[15px] font-extrabold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Fotografiază
+            </span>
+            <span className="text-[11px] font-semibold text-white/60 capitalize">{cameraCategory}</span>
+          </button>
+
+          {/* Mai mult: Scan Acte / Galerie */}
+          <div className="border-t border-[#EFEAE1] pt-2">
             <button
               type="button"
-              onClick={openLiveDocumentScanner}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
-              title="Scanner live tip CamScanner — multi-pagină cu detectare colțuri"
+              onClick={() => setShowMoreActions((v) => !v)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold text-[#6B6558]"
             >
-              <FileText size={16} className="text-[#C98A2B]" />
-              <span>Scan Acte</span>
+              Mai mult
+              <ChevronDown size={14} className={`transition-transform ${showMoreActions ? "rotate-180" : ""}`} />
             </button>
 
-            <label
-              className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
-              title="Alege Poze din Galerie sau Fișiere PDF"
-            >
-              <ImageIcon size={16} className="text-[#3B5166]" />
-              <span>Galerie / PDF</span>
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  const images = files.filter((f) => f.type.startsWith("image/"));
-                  const pdfs = files.filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
-                  if (images.length > 0) handleMobilePhotoCapture(images, "generale");
-                  if (pdfs.length > 0) handleMobileDocUpload(pdfs);
-                  e.target.value = "";
-                }}
-              />
-            </label>
+            {showMoreActions && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={openLiveDocumentScanner}
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  title="Scanner documente"
+                >
+                  <FileText size={16} className="text-[#C98A2B]" />
+                  <span>Scan Acte</span>
+                </button>
+
+                <label
+                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  title="Alege Poze din Galerie sau Fișiere PDF"
+                >
+                  <ImageIcon size={16} className="text-[#3B5166]" />
+                  <span>Galerie / PDF</span>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      const images = files.filter((f) => f.type.startsWith("image/"));
+                      const pdfs = files.filter((f) => f.type === "application/pdf" || f.name.endsWith(".pdf"));
+                      if (images.length > 0) handleMobilePhotoCapture(images, "generale");
+                      if (pdfs.length > 0) handleMobileDocUpload(pdfs);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            )}
           </div>
         </div>
       </div>

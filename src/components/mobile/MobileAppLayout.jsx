@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  ShieldCheck, Camera, FileText, List, Settings, LogOut,
-  BarChart3, Plus, User, Smartphone, Monitor, CalendarClock
+  ShieldCheck, Camera, List, Settings, LogOut,
+  BarChart3, Monitor, CalendarClock
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -21,8 +21,18 @@ export default function MobileAppLayout({
   onOpenSettings,
   pragRidicare,
   onSwitchToDesktop,
+  captureFocusClaimId = null,
+  onCaptureFocusConsumed,
 }) {
   const [activeTab, setActiveTab] = useState("capture"); // "capture" | "brief" | "dosare" | "programari"
+  const [focusClaimId, setFocusClaimId] = useState(null);
+
+  useEffect(() => {
+    if (!captureFocusClaimId) return;
+    setFocusClaimId(captureFocusClaimId);
+    setActiveTab("capture");
+    onCaptureFocusConsumed?.();
+  }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
   return (
     <div className="fixed inset-0 flex flex-col bg-[#EFEAE1] overflow-hidden font-sans text-[#23282E]">
@@ -84,6 +94,8 @@ export default function MobileAppLayout({
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             onNotify={onNotify}
+            focusClaimId={focusClaimId}
+            onFocusClaimConsumed={() => setFocusClaimId(null)}
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
@@ -109,10 +121,9 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      {/* BARA DE NAVIGARE NATIVĂ PERMANENT FIXATĂ ÎN PARTEA DE JOS (ALWAYS VISIBLE FIXED BOTTOM DOCK) */}
+      {/* BARA DE NAVIGARE NATIVĂ PERMANENT FIXATĂ ÎN PARTEA DE JOS */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1C2127] text-white border-t border-white/10 px-2 py-2 flex items-center justify-around select-none shadow-2xl backdrop-blur-md">
         
-        {/* TAB 1: CAPTURĂ & SCANER */}
         <button
           type="button"
           onClick={() => setActiveTab("capture")}
@@ -124,7 +135,6 @@ export default function MobileAppLayout({
           <span className="text-[10px]">Foto &amp; Doc</span>
         </button>
 
-        {/* TAB 2: BRIEF MOBIL */}
         <button
           type="button"
           onClick={() => setActiveTab("brief")}
@@ -136,7 +146,6 @@ export default function MobileAppLayout({
           <span className="text-[10px]">Brief Alerte</span>
         </button>
 
-        {/* TAB 3: DOSARE */}
         <button
           type="button"
           onClick={() => setActiveTab("dosare")}
@@ -148,7 +157,6 @@ export default function MobileAppLayout({
           <span className="text-[10px]">Dosare</span>
         </button>
 
-        {/* TAB 4: PROGRAMĂRI */}
         <button
           type="button"
           onClick={() => setActiveTab("programari")}
