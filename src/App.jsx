@@ -34,6 +34,7 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { darkenHex } from "./constants/branding";
+import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -83,6 +84,12 @@ export default function App() {
       console.warn("Failed saving display mode to localStorage", err);
     }
   };
+
+  const [mobileThemeId, setMobileThemeId] = useState(() => loadMobileThemeId());
+  const handleMobileThemeChange = useCallback((id) => {
+    setMobileThemeId(id);
+    saveMobileThemeId(id);
+  }, []);
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -410,6 +417,7 @@ export default function App() {
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
+            themeId={mobileThemeId}
           />
         </Suspense>
 
@@ -488,6 +496,8 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
+              mobileThemeId={mobileThemeId}
+              onMobileThemeChange={handleMobileThemeChange}
             />
           </Suspense>
         )}
@@ -1013,6 +1023,8 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
+            mobileThemeId={mobileThemeId}
+            onMobileThemeChange={handleMobileThemeChange}
           />
         )}
 
