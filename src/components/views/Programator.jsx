@@ -136,6 +136,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   const calendarCells = useMemo(() => {
     const cells = [];
     const baseDate = new Date();
+    baseDate.setHours(12, 0, 0, 0);
     baseDate.setDate(baseDate.getDate() + weekOffset * 7);
 
     for (let i = 0; i < 35; i++) {
@@ -149,23 +150,21 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
         dayNum: d.getDate(),
         monthNum: d.getMonth() + 1,
         iso,
-        isCurrentMonth: true
+        weekday: d.getDay(),
       });
     }
     return cells;
   }, [weekOffset]);
 
-  // Rolling weekday headers starting from today's weekday
+  // Weekday headers follow the rolling window (not stuck on "today" when navigating)
   const headers = useMemo(() => {
-    const list = [];
-    const todayDay = new Date().getDay(); // 0 (Sunday) to 6 (Saturday)
-    for (let i = 0; i < 7; i++) {
-      const idx = (todayDay + i) % 7;
-      const name = WEEKDAYS_RO[idx];
-      list.push(i === 0 ? `${name} (Azi)` : name);
-    }
-    return list;
-  }, []);
+    if (calendarCells.length === 0) return WEEKDAYS_RO;
+    return calendarCells.slice(0, 7).map((cell, i) => {
+      const name = WEEKDAYS_RO[cell.weekday];
+      const isTodayCol = cell.iso === todayISO();
+      return isTodayCol ? `${name} (Azi)` : name;
+    });
+  }, [calendarCells]);
 
   // Claims on the active date
   const activeDayClaims = useMemo(() => {
@@ -174,6 +173,13 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       .filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === activeDateStr)
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims, activeDateStr]);
+
+  const upcomingClaims = useMemo(() => {
+    const today = todayISO();
+    return claims
+      .filter((c) => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) >= today)
+      .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
+  }, [claims]);
 
   const activeDayFormatted = useMemo(() => {
     if (!activeDateStr) return "";
@@ -186,17 +192,24 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   }, [claims]);
 
   const dateRangeLabel = useMemo(() => {
-    if (calendarCells.length === 0 || !activeDateStr) return "";
-    const activeMonth = Number(activeDateStr.slice(5, 7)) - 1;
-    const visibleCells = calendarCells.filter(cell => {
-      const cellMonth = Number(cell.iso.slice(5, 7)) - 1;
-      return cellMonth === activeMonth;
-    });
-    if (visibleCells.length === 0) return "";
-    const start = visibleCells[0].iso.split("-").reverse().slice(0, 2).join("/");
-    const end = visibleCells[visibleCells.length - 1].iso.split("-").reverse().slice(0, 2).join("/");
+    if (calendarCells.length === 0) return "";
+    const start = calendarCells[0].iso.split("-").reverse().slice(0, 2).join("/");
+    const end = calendarCells[calendarCells.length - 1].iso.split("-").reverse().slice(0, 2).join("/");
     return `${start} — ${end}`;
-  }, [calendarCells, activeDateStr]);
+  }, [calendarCells]);
+
+  const jumpToProgramare = (claim) => {
+    const iso = claim?.dataProgramare?.slice(0, 10);
+    if (!iso) return;
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const target = new Date(`${iso}T12:00:00`);
+    const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+    setWeekOffset(Math.floor(diffDays / 7));
+    setActiveDateStr(iso);
+    setActiveSlotForScheduling(null);
+    setSelectingFromArrived(false);
+  };
 
   const handleCopyList = () => {
     if (activeDayClaims.length === 0) return;
@@ -321,6 +334,44 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
         <PendingBanner claims={claims} onOpen={onOpen} />
       </div>
 
+      {/* Listă viitoare — aceeași logică ca pe mobil */}
+      {upcomingClaims.length > 0 && (
+        <div className="shrink-0 bg-white border border-[#DAD4C6] rounded-xl px-3 py-2.5 shadow-sm">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="text-[12px] font-extrabold text-[#23282E]">
+              Programări viitoare ({upcomingClaims.length})
+            </div>
+            <div className="text-[10.5px] text-[#8A8375] font-medium">
+              Click pe o mașină ca să sari la ziua ei în calendar
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5 max-h-[88px] overflow-y-auto">
+            {upcomingClaims.map((c) => {
+              const day = c.dataProgramare.slice(0, 10);
+              const time = c.dataProgramare.slice(11, 16) || "08:00";
+              const isActive = day === activeDateStr;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => jumpToProgramare(c)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
+                    isActive
+                      ? "bg-[#3B5166] text-white border-[#3B5166]"
+                      : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-[#FBF3E6]"
+                  }`}
+                  title={`${c.client || ""} · ${c.marcaModel || ""} · dosar ${c.numarDosar || "—"}`}
+                >
+                  <span className="font-mono">{day.slice(8, 10)}/{day.slice(5, 7)} {time}</span>
+                  <span className="uppercase font-mono">{c.numarInmatriculare || "—"}</span>
+                  {c.numarDosar ? <span className="opacity-70">#{c.numarDosar}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Main Grid View */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-stretch">
         
@@ -328,30 +379,22 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
         <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
           {/* Days names */}
           <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
-            {headers.map(d => (
-              <span key={d} className="text-[13.5px] font-bold text-[#6B6558] py-2.5">{d}</span>
+            {headers.map((d, i) => (
+              <span key={`${d}-${i}`} className="text-[13.5px] font-bold text-[#6B6558] py-2.5">{d}</span>
             ))}
           </div>
 
-          {/* Days cells */}
+          {/* Days cells — toate zilele din fereastra rolling (nu ascunde luna următoare) */}
           <div className="grid grid-cols-7 auto-rows-fr gap-px bg-[#DAD4C6] flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
-              const activeMonth = Number(activeDateStr.slice(5, 7)) - 1;
-              const cellMonth = Number(cell.iso.slice(5, 7)) - 1;
-              const isDifferentMonth = cellMonth !== activeMonth;
-
-              if (isDifferentMonth) {
-                return (
-                  <div key={idx} className="bg-[#FAF8F5]/35 border-0 select-none pointer-events-none" />
-                );
-              }
-
               const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
               const isSelected = activeDateStr === cell.iso;
               const isToday = cell.iso === todayISO();
+              const crossesMonth =
+                idx > 0 && calendarCells[idx - 1] && calendarCells[idx - 1].monthNum !== cell.monthNum;
               
-              let capClass = "bg-white text-[#23282E]";
+              let capClass = crossesMonth ? "bg-[#FAF8F5] text-[#23282E]" : "bg-white text-[#23282E]";
               let badgeColor = "bg-[#FAF8F5] text-[#6B6558]";
               
               if (total > 0) {
@@ -369,7 +412,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
 
               return (
                 <div
-                  key={idx}
+                  key={cell.iso}
                   onClick={() => {
                     setActiveDateStr(cell.iso);
                     setActiveSlotForScheduling(null);
@@ -399,9 +442,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                   }}
                   className={`p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
-                  } ${
-                    cell.isCurrentMonth ? capClass : "bg-[#FAF8F5] text-[#C2BCB0]"
-                  }`}
+                  } ${capClass}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className={`text-[14px] font-mono font-bold px-1.5 py-0.5 rounded ${isToday ? "bg-[#C98A2B] text-white" : "text-[#23282E]"}`}>
