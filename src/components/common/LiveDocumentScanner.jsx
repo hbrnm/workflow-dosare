@@ -13,6 +13,19 @@ function mapVideoPointToDisplay(px, py, videoW, videoH, displayW, displayH) {
   return { x: px * scale + offsetX, y: py * scale + offsetY };
 }
 
+/** Colțurile rămân stabile între două frame-uri (nu „sărituri” pe obiecte random). */
+function cornersAreStable(a, b, videoW, videoH) {
+  if (!a || !b || a.length !== 4 || b.length !== 4) return false;
+  const tol = Math.max(videoW, videoH) * 0.035;
+  for (let i = 0; i < 4; i++) {
+    if (Math.hypot(a[i].x - b[i].x, a[i].y - b[i].y) > tol) return false;
+  }
+  return true;
+}
+
+/** Frame-uri consecutive necesare pentru auto-capture (~3.5s la 220ms). */
+const AUTO_LOCK_FRAMES = 16;
+
 /**
  * Scanner document live tip CamScanner / QuickScan.
  * IMPORTANT: does NOT load OpenCV.js here — parsing ~9MB freezes mobile PWAs.
@@ -28,7 +41,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const [cameraError, setCameraError] = useState(null);
   const [pendingCrop, setPendingCrop] = useState(null);
   const [displaySize, setDisplaySize] = useState({ w: 1, h: 1 });
-  const [autoCapture, setAutoCapture] = useState(true);
+  const [autoCapture, setAutoCapture] = useState(false);
   const [lockStreak, setLockStreak] = useState(0);
 
   const videoRef = useRef(null);
@@ -39,6 +52,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const pausedRef = useRef(false);
   const capturingRef = useRef(false);
   const lockStreakRef = useRef(0);
+  const prevCornersRef = useRef(null);
 
   useEffect(() => {
     liveCornersRef.current = liveCorners;
@@ -125,12 +139,13 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
 
     pausedRef.current = true;
     lockStreakRef.current = 0;
+    prevCornersRef.current = null;
     setLockStreak(0);
     setPendingCrop({ imageSrc, corners });
     capturingRef.current = false;
   }, []);
 
-  // Continuous lightweight JS detection (~5 FPS) — no OpenCV
+  // Continuous lightweight JS detection (~4–5 FPS) — strict paper lock
   useEffect(() => {
     let cancelled = false;
     let timer = null;
@@ -150,14 +165,28 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           const corners = detectCornersFromVideoFrame(video, 360);
           if (!cancelled && !pausedRef.current) {
             const found = Boolean(corners);
+            const stable =
+              found &&
+              cornersAreStable(
+                prevCornersRef.current,
+                corners,
+                video.videoWidth,
+                video.videoHeight
+              );
+            prevCornersRef.current = corners;
             setLiveCorners(corners);
-            setLocked(found);
-            if (found) {
+            setLocked(found && stable);
+
+            if (found && stable) {
               lockStreakRef.current += 1;
               setLockStreak(lockStreakRef.current);
-              if (autoCapture && lockStreakRef.current >= 8) {
+              if (autoCapture && lockStreakRef.current >= AUTO_LOCK_FRAMES) {
                 captureFrame();
               }
+            } else if (found) {
+              // Detectat dar încă se mișcă — nu crește streak-ul agresiv
+              lockStreakRef.current = Math.min(2, lockStreakRef.current);
+              setLockStreak(lockStreakRef.current);
             } else {
               lockStreakRef.current = 0;
               setLockStreak(0);
@@ -169,10 +198,10 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           detectBusyRef.current = false;
         }
       }
-      if (!cancelled) timer = window.setTimeout(tick, 200);
+      if (!cancelled) timer = window.setTimeout(tick, 220);
     };
 
-    timer = window.setTimeout(tick, 250);
+    timer = window.setTimeout(tick, 300);
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
@@ -198,6 +227,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     setLiveCorners(null);
     setLocked(false);
     lockStreakRef.current = 0;
+    prevCornersRef.current = null;
     setLockStreak(0);
   };
 
@@ -205,6 +235,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
     setPendingCrop(null);
     pausedRef.current = false;
     lockStreakRef.current = 0;
+    prevCornersRef.current = null;
     setLockStreak(0);
   };
 
@@ -247,7 +278,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
               <div className="text-[13px] font-extrabold truncate">Scanner documente</div>
               <div className="text-[10px] text-white/55 font-semibold">
                 {pages.length === 0
-                  ? "Încadrează pagina și apasă declanșatorul"
+                  ? "Pune foaia pe fundal contrastant · apasă declanșatorul"
                   : `${pages.length} pagin${pages.length === 1 ? "ă" : "i"} · continuă sau Gata`}
               </div>
             </div>
@@ -342,9 +373,9 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
           >
             {locked
               ? autoCapture && lockStreak > 0
-                ? `Document detectat · auto ${Math.min(100, Math.round((lockStreak / 8) * 100))}%`
-                : "Document detectat"
-              : "Caută marginile documentului…"}
+                ? `Pagină stabilă · auto ${Math.min(100, Math.round((lockStreak / AUTO_LOCK_FRAMES) * 100))}%`
+                : "Pagină detectată"
+              : "Caută o foaie albă pe fundal mai închis…"}
           </div>
 
           {pages.length > 0 && (
