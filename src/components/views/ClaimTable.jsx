@@ -7,8 +7,13 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import FluxStageStrip from "../common/FluxStageStrip";
+import {
+  isSearchHighlighted,
+  groupHasSearchHighlight,
+  scrollToFirstHighlight,
+} from "../../utils/searchUtils";
 
-export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimId = null }) {
+export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimIds = null }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
   const [focusedStage, setFocusedStage] = useState(null);
@@ -27,16 +32,6 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
     if (!focusedStage) return claims;
     return claims.filter((c) => c.status === focusedStage);
   }, [claims, focusedStage]);
-
-  useEffect(() => {
-    if (!highlightClaimId) return;
-    const claim = claims.find((c) => c.id === highlightClaimId);
-    if (claim) setFocusedStage(claim.status);
-    const t = window.setTimeout(() => {
-      document.getElementById(`claim-row-${highlightClaimId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 120);
-    return () => window.clearTimeout(t);
-  }, [highlightClaimId, claims]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -68,13 +63,20 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
   }, [sorted]);
 
   useEffect(() => {
-    if (!highlightClaimId) return;
+    if (!highlightClaimIds?.size) return;
+    setFocusedStage(null);
+    const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-row"), 120);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimIds]);
+
+  useEffect(() => {
+    if (!highlightClaimIds?.size) return;
     groupedRows.forEach(({ key, group }) => {
-      if (group.length > 1 && group.some((c) => c.id === highlightClaimId)) {
+      if (group.length > 1 && groupHasSearchHighlight(group, highlightClaimIds)) {
         setExpandedGroups((prev) => ({ ...prev, [key]: true }));
       }
     });
-  }, [highlightClaimId, groupedRows]);
+  }, [highlightClaimIds, groupedRows]);
 
   const cols = [
     { key: "numarDosar", label: "Nr. dosar", width: "6.5rem" },
@@ -110,7 +112,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
         key={c.id}
         id={`claim-row-${c.id}`}
         onClick={() => onOpen(c)}
-        className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${c.id === highlightClaimId ? "is-search-highlight" : ""}`}
+        className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
       >
         <td className={`${cell} font-mono font-semibold whitespace-nowrap`}>
           {inGroup && <span className="text-[var(--app-muted)] mr-1">↳</span>}

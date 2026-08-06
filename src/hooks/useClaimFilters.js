@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { claimMatchesSearch } from "../utils/searchUtils";
 
 export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, pragInactivitate }) {
   const [search, setSearch] = useState("");
@@ -31,13 +32,7 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
       if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
       if (onlyBlocked && !c.blocat) return false;
       if (!query) return true;
-      return (
-        (c.numarInmatriculare || "").toLowerCase().includes(query) ||
-        (c.client || "").toLowerCase().includes(query) ||
-        (c.numarDosar || "").toLowerCase().includes(query) ||
-        (c.asigurator || "").toLowerCase().includes(query) ||
-        (c.vin || "").toLowerCase().includes(query)
-      );
+      return claimMatchesSearch(c, query);
     });
 
     if (mobileSort === "numar") {

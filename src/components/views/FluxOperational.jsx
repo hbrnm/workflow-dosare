@@ -9,6 +9,11 @@ import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import StageTabLabel from "../common/StageTabLabel";
 import FluxStageStrip from "../common/FluxStageStrip";
+import {
+  isSearchHighlighted,
+  groupHasSearchHighlight,
+  scrollToFirstHighlight,
+} from "../../utils/searchUtils";
 
 const STAGE_SORT_KEY = "alerte";
 
@@ -219,10 +224,10 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimId) {
+function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimIds) {
   return groupAndSortStageClaims(stageClaims, STAGE_SORT_KEY, pieseAlertDays).map(([groupKey, groupClaims]) => (
     <div key={groupKey} className="min-w-0 h-full">
-      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} highlightClaimId={highlightClaimId} hideStatusSelect {...props} />
+      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} highlightClaimIds={highlightClaimIds} hideStatusSelect {...props} />
     </div>
   ));
 }
@@ -236,14 +241,13 @@ function getClaimAgingMeta(claim) {
   return { days, agingClass, alertThreshold: getClaimAlertDays(claim), overdue };
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect, highlightClaimId }) {
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect, highlightClaimIds }) {
   const [expanded, setExpanded] = useState(false);
+  const groupHighlighted = groupHasSearchHighlight(groupClaims, highlightClaimIds);
 
   useEffect(() => {
-    if (highlightClaimId && groupClaims.some((c) => c.id === highlightClaimId)) {
-      setExpanded(true);
-    }
-  }, [highlightClaimId, groupClaims]);
+    if (groupHighlighted) setExpanded(true);
+  }, [groupHighlighted]);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
   const subline = first.marcaModel || first.client || "";
@@ -270,7 +274,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         pragRidicare={pragRidicare}
         onNotify={onNotify}
         hideStatusSelect={hideStatusSelect}
-        isSearchHighlight={first.id === highlightClaimId}
+        isSearchHighlight={isSearchHighlighted(first.id, highlightClaimIds)}
       />
     );
   }
@@ -316,7 +320,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               pragRidicare={pragRidicare}
               onNotify={onNotify}
               hideStatusSelect={hideStatusSelect}
-              isSearchHighlight={c.id === highlightClaimId}
+              isSearchHighlight={isSearchHighlighted(c.id, highlightClaimIds)}
             />
           ))}
         </div>
@@ -328,7 +332,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
     <button
       type="button"
       onClick={() => setExpanded(true)}
-      className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""}`}
+      className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}
       title={`${groupClaims.length} dosare — click pentru detalii`}
     >
@@ -375,7 +379,7 @@ export default function TablouPeFazeRedesign({
   canEditFn,
   pragRidicare,
   onNotify,
-  highlightClaimId = null,
+  highlightClaimIds = null,
 }) {
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
   const [focusedStage, setFocusedStage] = useState(null);
@@ -383,14 +387,11 @@ export default function TablouPeFazeRedesign({
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   useEffect(() => {
-    if (!highlightClaimId) return;
-    const claim = claims.find((c) => c.id === highlightClaimId);
-    if (claim) setFocusedStage(claim.status);
-    const t = window.setTimeout(() => {
-      document.getElementById(`claim-card-${highlightClaimId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 120);
+    if (!highlightClaimIds?.size) return;
+    setFocusedStage(null);
+    const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-card"), 120);
     return () => window.clearTimeout(t);
-  }, [highlightClaimId, claims]);
+  }, [highlightClaimIds]);
 
   const overduePartClaims = useMemo(() => {
     return claims.filter((c) => isPartsOrderOverdue(c, pieseAlertDays));
@@ -535,7 +536,7 @@ export default function TablouPeFazeRedesign({
                   </div>
                 ) : (
                   <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 items-stretch auto-rows-fr">
-                    {renderClaimGroups(stageClaims, cardProps, pieseAlertDays, highlightClaimId)}
+                    {renderClaimGroups(stageClaims, cardProps, pieseAlertDays, highlightClaimIds)}
                   </div>
                 )}
               </section>

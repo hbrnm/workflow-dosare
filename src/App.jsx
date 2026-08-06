@@ -34,6 +34,7 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { applyAppTokens } from "./constants/appTokens";
+import { getSearchHighlightIds } from "./utils/searchUtils";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -191,11 +192,10 @@ export default function App() {
     pragInactivitate,
   });
 
-  const highlightClaimId = useMemo(() => {
-    const q = search.trim();
-    if (!q || !filteredClaims.length) return null;
-    return filteredClaims[0]?.id ?? null;
-  }, [search, filteredClaims]);
+  const highlightClaimIds = useMemo(
+    () => getSearchHighlightIds(userClaims, search),
+    [userClaims, search]
+  );
 
   const {
     buckets: alertBuckets,
@@ -810,7 +810,7 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimId={highlightClaimId} />
+                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
@@ -833,7 +833,7 @@ export default function App() {
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
                   onNotify={showNotice}
-                  highlightClaimId={highlightClaimId}
+                  highlightClaimIds={highlightClaimIds}
                 />
               )
             ) : view === "dashboard" ? (
