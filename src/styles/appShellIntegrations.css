@@ -909,6 +909,17 @@
   border: 1px solid var(--app-border);
 }
 
+.app-shell .app-table {
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.app-shell .app-table-cell {
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .app-shell .app-table-head {
   background: var(--app-surface-2);
   color: var(--app-text);
@@ -944,6 +955,25 @@
   background: var(--app-surface-2);
   border-top: 1px solid var(--app-border);
   color: var(--app-text);
+}
+
+.app-shell .app-table-group-header td {
+  border-bottom: 1px solid var(--app-border-soft, var(--app-border));
+}
+
+.app-shell .app-table-group-toggle {
+  color: var(--app-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.375rem;
+  transition: color 0.15s, background 0.15s;
+}
+
+.app-shell .app-table-group-toggle:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-muted);
 }
 
 .app-shell .app-table-group-badge {
