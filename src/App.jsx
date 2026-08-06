@@ -439,6 +439,9 @@ export default function App() {
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
+            search={search}
+            setSearch={setSearch}
+            highlightClaimIds={highlightClaimIds}
           />
         </Suspense>
 

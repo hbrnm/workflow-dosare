@@ -71,6 +71,35 @@
   color: var(--app-text);
 }
 
+/* Bottom chrome: căutare + nav (thumb zone) */
+.mobile-shell.app-shell {
+  --mobile-bottom-chrome: 8.25rem;
+}
+
+.mobile-shell.app-shell .mobile-main {
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome {
+  background: var(--app-chrome);
+  border-top: 1px solid var(--app-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.mobile-shell.app-shell .mobile-search-dock {
+  background: var(--app-chrome);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .mobile-search-input {
+  min-height: 2.75rem;
+}
+
+.mobile-shell.app-shell .mobile-search-input:focus {
+  border-color: var(--app-accent);
+  outline: none;
+}
+
 /* Login — același stil ca shell desktop */
 .app-login {
   position: relative;

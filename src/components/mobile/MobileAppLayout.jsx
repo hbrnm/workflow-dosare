@@ -7,6 +7,7 @@ import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
+import MobileSearchBar from "./MobileSearchBar";
 import {
   loadMobileTab,
   saveMobileTab,
@@ -14,6 +15,7 @@ import {
   dismissMobileCoach,
   softHaptic,
 } from "../../utils/mobilePrefs";
+import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
 
 const MOBILE_TABS = [
   { id: "capture", label: "Foto & Doc", Icon: Camera },
@@ -41,6 +43,9 @@ export default function MobileAppLayout({
   onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
+  search = "",
+  setSearch,
+  highlightClaimIds = null,
 }) {
   const [activeTab, setActiveTab] = useState(() => loadMobileTab());
   const [focusClaimId, setFocusClaimId] = useState(null);
@@ -61,6 +66,22 @@ export default function MobileAppLayout({
     ...t,
     badge: t.id === "brief" ? totalAlertsCount : 0,
   })), [totalAlertsCount]);
+
+  const filteredClaims = useMemo(() => {
+    const q = search.trim();
+    if (!q) return claims;
+    return claims.filter((c) => claimMatchesSearch(c, q));
+  }, [claims, search]);
+
+  const handleSearchChange = (value) => {
+    setSearch?.(value);
+  };
+
+  useEffect(() => {
+    if (!highlightClaimIds?.size) return;
+    const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "mobile-claim"), 150);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimIds]);
 
   const handleTabChange = (id) => {
     softHaptic(8);
@@ -134,7 +155,7 @@ export default function MobileAppLayout({
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 p-3 pb-24 overflow-y-auto scrollbar-thin">
+      <main className="mobile-main flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
         {showCoach && (
           <div className="m-coach mb-3 rounded-2xl border border-[#DAD4C6] bg-white p-3.5 shadow-sm flex gap-3 items-start">
             <div
@@ -163,7 +184,8 @@ export default function MobileAppLayout({
 
         {activeTab === "capture" ? (
           <MobileQuickCapture
-            claims={claims}
+            claims={filteredClaims}
+            searchQuery={search}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onPatch={onPatchClaim}
@@ -171,10 +193,11 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             focusClaimId={focusClaimId}
             onFocusClaimConsumed={() => setFocusClaimId(null)}
+            highlightClaimIds={highlightClaimIds}
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
-            claims={claims}
+            claims={filteredClaims}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onGoTab={handleTabChange}
@@ -183,34 +206,41 @@ export default function MobileAppLayout({
             alertBuckets={alertBuckets}
             onPatchClaim={onPatchClaim}
             onNotify={onNotify}
-            homeStyle={theme.homeStyle || "list"}
+            homeStyle="list"
             atelierNume={branding?.atelierNume}
+            searchActive={Boolean(search.trim())}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
-            claims={claims}
+            claims={filteredClaims}
+            allClaimsCount={claims.length}
+            searchQuery={search}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             atelierNume={branding?.atelierNume}
             onNotify={onNotify}
+            highlightClaimIds={highlightClaimIds}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari
-            claims={claims}
+            claims={filteredClaims}
             onOpen={onOpenClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             onNotify={onNotify}
+            searchActive={Boolean(search.trim())}
           />
         ) : null}
       </main>
 
-      <nav
-        className="m-nav-bar fixed bottom-0 left-0 right-0 z-50 border-t px-1.5 py-1.5 grid grid-cols-4 gap-0 select-none shadow-2xl backdrop-blur-md"
-        aria-label="Navigare mobilă"
-      >
+      <div className="mobile-bottom-chrome fixed bottom-0 left-0 right-0 z-50 flex flex-col">
+        <MobileSearchBar value={search} onChange={handleSearchChange} />
+        <nav
+          className="m-nav-bar border-t px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] grid grid-cols-4 gap-0 select-none"
+          aria-label="Navigare mobilă"
+        >
         {tabs.map(({ id, label, Icon, badge }) => {
           const active = activeTab === id;
           return (
@@ -239,7 +269,8 @@ export default function MobileAppLayout({
             </button>
           );
         })}
-      </nav>
+        </nav>
+      </div>
     </div>
   );
 }

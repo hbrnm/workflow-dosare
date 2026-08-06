@@ -39,7 +39,8 @@ export function scrollToFirstHighlight(highlightClaimIds, idPrefix = "claim-card
   for (const id of highlightClaimIds) {
     const el =
       document.getElementById(`${idPrefix}-${id}`) ||
-      document.getElementById(`claim-row-${id}`);
+      document.getElementById(`claim-row-${id}`) ||
+      document.getElementById(`mobile-claim-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
       break;

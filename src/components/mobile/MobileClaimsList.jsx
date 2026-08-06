@@ -1,21 +1,24 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, ChevronRight, User, Phone, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronRight, User, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import { getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { telLink } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
+import { isSearchHighlighted } from "../../utils/searchUtils";
 
 export default function MobileClaimsList({
   claims,
+  allClaimsCount,
+  searchQuery = "",
   onOpen,
   onNew,
   onPatch,
   canEditFn,
   atelierNume = "Dosare Daună",
   onNotify,
+  highlightClaimIds = null,
 }) {
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "piese_sosite" | "gata_de_ridicare" | "facturat" | "blocate"
+  const [statusFilter, setStatusFilter] = useState("toate");
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {
@@ -25,17 +28,9 @@ export default function MobileClaimsList({
       if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
       if (statusFilter === "facturat" && c.status !== "facturat") return false;
       if (statusFilter === "blocate" && !c.blocat) return false;
-
-      const q = query.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        (c.numarDosar || "").toLowerCase().includes(q) ||
-        (c.client || "").toLowerCase().includes(q) ||
-        (c.numarInmatriculare || "").toLowerCase().includes(q) ||
-        (c.vin || "").toLowerCase().includes(q)
-      );
+      return true;
     });
-  }, [claims, query, statusFilter]);
+  }, [claims, statusFilter]);
 
   const pieseSositeCount = useMemo(
     () => claims.filter((c) => c.pieseSosite && !c.dataProgramare).length,
@@ -99,30 +94,13 @@ export default function MobileClaimsList({
           </button>
         </div>
 
-        {/* Căutare rapidă */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-2.5 text-[#8A8375]" />
-          <input
-            type="text"
-            className="w-full pl-9 pr-8 py-2 border border-[#DAD4C6] rounded-xl text-[13px] font-bold bg-[#FAF8F5] focus:bg-white focus:outline-hidden"
-            placeholder="Caută nr. auto, client sau nr. dosar..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button onClick={() => setQuery("")} className="absolute right-2.5 top-2.5 text-[#8A8375]">
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
         {/* Filtre rapide pe statusuri (Punctul 18) */}
         <div className="flex gap-1 text-[10.5px] font-bold overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setStatusFilter("toate")}
             className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "toate" ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"}`}
           >
-            Toate ({claims.length})
+            Toate ({allClaimsCount ?? claims.length})
           </button>
           <button
             onClick={() => setStatusFilter("in_lucru")}
@@ -162,16 +140,16 @@ export default function MobileClaimsList({
         {groupedClaims.length === 0 ? (
           <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl space-y-3">
             <p className="text-[13px] font-extrabold text-[#23282E]">
-              {query.trim() || statusFilter !== "toate"
+              {searchQuery.trim() || statusFilter !== "toate"
                 ? "Niciun dosar pentru filtrele alese"
                 : "Niciun dosar încă"}
             </p>
             <p className="text-[11.5px] text-[#8A8375] font-semibold">
-              {query.trim() || statusFilter !== "toate"
-                ? "Șterge căutarea sau schimbă filtrul de status."
+              {searchQuery.trim() || statusFilter !== "toate"
+                ? "Șterge căutarea (bară jos) sau schimbă filtrul de status."
                 : "Creează un dosar nou ca să poți fotografia pe teren."}
             </p>
-            {onNew && (!query.trim() && statusFilter === "toate") && (
+            {onNew && (!searchQuery.trim() && statusFilter === "toate") && (
               <button
                 type="button"
                 onClick={onNew}
@@ -191,8 +169,9 @@ export default function MobileClaimsList({
               return (
                 <div
                   key={c.id}
+                  id={`mobile-claim-${c.id}`}
                   onClick={() => onOpen(c)}
-                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2 active:scale-[0.99]"
+                  className={`bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
