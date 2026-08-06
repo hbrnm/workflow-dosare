@@ -436,6 +436,41 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-text);
 }
 
+/* Comutator temă — Setări */
+.m-themed-modal .m-theme-choice,
+.mobile-shell.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-theme-choice.is-active,
+.mobile-shell.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice:hover:not(.is-active) {
+  border-color: var(--app-muted);
+  color: var(--app-text);
+}
+
 /* Dosare — listă mobil */
 .mobile-shell.app-shell .m-btn-primary {
   background: var(--app-accent);

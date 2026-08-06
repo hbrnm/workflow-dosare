@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   X, Settings, User, Building, Database, Bell, Wrench, Download,
-  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock
+  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock,
+  Sun, Moon,
 } from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
 import * as XLSX from "xlsx";
@@ -12,6 +13,11 @@ import {
   modalPanelClass,
   modalHeaderClass,
 } from "../common/modalShellClasses";
+import {
+  loadThemePreference,
+  saveThemePreference,
+  THEME_PREF_EVENT,
+} from "../../utils/themePrefs";
 
 export default function SetariModal({
   claims = [],
@@ -61,6 +67,7 @@ export default function SetariModal({
   const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
   const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [themePref, setThemePref] = useState(() => loadThemePreference());
 
   useEffect(() => {
     if (initialInsurersList && initialInsurersList.length > 0) {
@@ -74,6 +81,12 @@ export default function SetariModal({
     setAtelierShort(brandingProp.atelierShort || "WD");
     setLogoUrl(brandingProp.logoUrl || "");
   }, [brandingProp]);
+
+  useEffect(() => {
+    const onThemeChange = () => setThemePref(loadThemePreference());
+    window.addEventListener(THEME_PREF_EVENT, onThemeChange);
+    return () => window.removeEventListener(THEME_PREF_EVENT, onThemeChange);
+  }, []);
 
   useEffect(() => {
     setAlertDaysByStatus((prev) => {
@@ -602,6 +615,42 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
+              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
+                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
+                  <Sun size={16} className="text-[#C98A2B]" /> Aspect &amp; temă
+                </h3>
+                <p className="text-[11.5px] text-[#8A8375] leading-relaxed">
+                  <strong className="text-[#23282E]">Automat</strong> — fundal alb între 07:00–19:00, negru noaptea.
+                  Poți forța manual tema deschisă sau întunecată.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    { id: "auto", label: "Automat", hint: "Zi / noapte", Icon: Clock },
+                    { id: "light", label: "Deschis", hint: "Alb", Icon: Sun },
+                    { id: "dark", label: "Întunecat", hint: "Negru", Icon: Moon },
+                  ].map(({ id, label, hint, Icon }) => {
+                    const active = themePref === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => {
+                          saveThemePreference(id);
+                          setThemePref(id);
+                        }}
+                        className={`m-theme-choice flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all ${
+                          active ? "is-active" : ""
+                        }`}
+                      >
+                        <Icon size={20} strokeWidth={active ? 2.25 : 2} />
+                        <span className="text-[12px] font-extrabold">{label}</span>
+                        <span className="text-[10px] font-semibold opacity-80">{hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <p className="text-[12px] text-[var(--app-muted)] px-1">
                 Notificările și alertele folosesc aceleași reguli ca în modul desktop.
               </p>
