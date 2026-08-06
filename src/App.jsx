@@ -156,8 +156,6 @@ export default function App() {
       (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
     if (fromAdmins || fromUsers) return true;
-    // Bootstrap: primul setup când nu există încă utilizatori configurați
-    if (usersList.length === 0 && adminEmails.length === 0) return true;
     return false;
   }, [myEmail, adminEmails, usersList]);
 
@@ -472,6 +470,7 @@ export default function App() {
               claim={activeModalClaim}
               isNew={!activeModalClaim?.numarDosar}
               onSave={handleSave}
+              onPatch={handlePatchClaim}
               onDelete={handleDelete}
               onClose={closeClaimModal}
               onNotify={showNotice}
@@ -996,6 +995,7 @@ export default function App() {
               claim={activeModalClaim}
               onClose={closeClaimModal}
               onSave={handleSave}
+              onPatch={handlePatchClaim}
               onDelete={handleDelete}
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}

@@ -142,6 +142,7 @@ export default function ClaimModal({
   insurersList = INSURERS,
   onClose,
   onSave,
+  onPatch,
   onDelete,
   onNotify,
   onJumpTo,
@@ -255,6 +256,11 @@ export default function ClaimModal({
   };
 
   const isNew = useMemo(() => !Array.isArray(allClaims) || !allClaims.some((c) => c && c.id === claim?.id), [allClaims, claim?.id]);
+
+  const persistMediaPatch = async (patch) => {
+    if (readOnly || !onPatch || isNew || !form.id) return;
+    await onPatch(form.id, patch);
+  };
 
   useEffect(() => {
     setForm(sanitizeClaim(claim));
@@ -535,9 +541,13 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
+    const mergedPoze = [...noi, ...form.poze];
+    setForm((f) => ({ ...f, poze: mergedPoze }));
     setUploadingPoze(false);
-    if (noi.length) onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}”.`, "success");
+    if (noi.length) {
+      onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}".`, "success");
+      await persistMediaPatch({ poze: mergedPoze });
+    }
   };
 
   const handleDownloadZip = async () => {
@@ -594,7 +604,11 @@ export default function ClaimModal({
     }
     setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
     setUploadingDocumente(false);
-    if (noi.length) onNotify(`${noi.length} document(e) încărcat(e).`, "success");
+    if (noi.length) {
+      onNotify(`${noi.length} document(e) încărcat(e).`, "success");
+      const mergedDocs = [...noi, ...form.documente];
+      await persistMediaPatch({ documente: mergedDocs });
+    }
   };
 
   const handleStartScanSession = async (fileList) => {
@@ -705,7 +719,9 @@ export default function ClaimModal({
         return;
       }
     }
-    setForm((f) => ({ ...f, poze: f.poze.filter((p) => p.id !== poza.id) }));
+    const nextPoze = form.poze.filter((p) => p.id !== poza.id);
+    setForm((f) => ({ ...f, poze: nextPoze }));
+    await persistMediaPatch({ poze: nextPoze });
   };
 
   return (

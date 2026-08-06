@@ -100,9 +100,11 @@ export function applyScheduleStatusEffects(current, patch = {}) {
     !hasOwn(next, "adusaFizic")
   ) {
     next.adusaFizic = true;
-    if (!hasOwn(next, "dataAdusaFizic")) {
-      next.dataAdusaFizic = nowISO();
-    }
+    next.financiar = {
+      ...(current.financiar || {}),
+      ...(next.financiar || {}),
+      dataAdusaFizic: nowISO(),
+    };
   }
 
   return { patch: next, notices };

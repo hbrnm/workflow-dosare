@@ -140,6 +140,9 @@ export function sanitizeClaim(c) {
     valoareAchizitiePiese: parseNumber(c.valoareAchizitiePiese, 0),
     valoareAcceptataReglata: parseNumber(c.valoareAcceptataReglata ?? c.financiar?.valoareAcceptPlata, 0),
     financiar: {
+      ...(c.financiar || {}),
+      valoareDevizAudatex: parseNumber(c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
+      ...(c.dataAdusaFizic ? { dataAdusaFizic: c.dataAdusaFizic } : {}),
       valoareAcceptPlata: parseNumber(c.financiar?.valoareAcceptPlata ?? c.valoareAcceptataReglata, 0),
       valoareFransiza: parseNumber(c.financiar?.valoareFransiza, 0),
       manoperaTinichigerie: parseNumber(c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
@@ -322,7 +325,21 @@ export function toDb(c) {
     zile_chirie_audatex: c.zileChirieAudatex,
     valoare_piese_audatex: c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex,
     valoare_achizitie_piese: c.valoareAchizitiePiese,
-    financiar: c.financiar,
+    financiar: {
+      ...(c.financiar || {}),
+      valoareDevizAudatex: parseNumber(c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
+      ...(c.dataAdusaFizic ? { dataAdusaFizic: c.dataAdusaFizic } : {}),
+      valoareAcceptPlata: parseNumber(c.financiar?.valoareAcceptPlata ?? c.valoareAcceptataReglata, 0),
+      valoareFransiza: parseNumber(c.financiar?.valoareFransiza, 0),
+      manoperaTinichigerie: parseNumber(c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
+      manoperaVopsitorie: parseNumber(c.financiar?.manoperaVopsitorie ?? c.manopera?.vopsitorie?.facturat, 0),
+      cheltuieliDiverse: parseNumber(c.financiar?.cheltuieliDiverse ?? c.financiar?.costuriExterne, 0),
+      costMasinaSchimb: parseNumber(c.financiar?.costMasinaSchimb, 0),
+      tvaProc: parseNumber(c.financiar?.tvaProc, 21),
+      pieseFacturateFaraTva: parseNumber(c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex, 0),
+      numarFactura: c.financiar?.numarFactura || "",
+      dataFactura: c.financiar?.dataFactura || null,
+    },
     blocat: c.blocat,
     motiv_blocare: c.motivBlocare,
     created_by: c.createdBy,
@@ -348,6 +365,17 @@ export function toDb(c) {
 
 /** Mapare câmp app → coloană DB pentru patch-uri parțiale. */
 const PATCH_FIELD_MAP = {
+  numarDosar: "numar_dosar",
+  tipAsigurare: "tip_asigurare",
+  asigurator: "asigurator",
+  client: "client",
+  delegat: "delegat",
+  telefonClient: "telefon_client",
+  numarInmatriculare: "numar_inmatriculare",
+  vin: "vin",
+  marca: "marca",
+  model: "model",
+  marcaModel: "marca_model",
   dataComandaPiese: "data_comanda_piese",
   termenLivrarePiese: "termen_livrare_piese",
   programareStatus: "programare_status",
@@ -356,7 +384,6 @@ const PATCH_FIELD_MAP = {
   status: "status",
   dataSchimbareStatus: "data_schimbare_status",
   adusaFizic: "adusa_fizic",
-  dataAdusaFizic: "data_adusa_fizic",
   gataDeRidicare: "gata_de_ridicare",
   dataGataRidicare: "data_gata_ridicare",
   ridicata: "ridicata",
@@ -383,6 +410,8 @@ const PATCH_FIELD_MAP = {
   ceEsteDeReparat: "ce_este_de_reparat",
   valoarePieseAudatex: "valoare_piese_audatex",
   valoareAchizitiePiese: "valoare_achizitie_piese",
+  financiar: "financiar",
+  manopera: "manopera",
   poze: "poze",
   documente: "documente",
   note: "note",
@@ -397,8 +426,22 @@ export function toDbPatch(claim, patch, { updatedByEmail } = {}) {
   for (const appKey of Object.keys(patch)) {
     const dbKey = PATCH_FIELD_MAP[appKey];
     if (!dbKey) continue;
-    if (dbKey === "programare_status" && !fullDb.programare_status) continue;
+    if (dbKey === "programare_status") {
+      if (patch.programareStatus === null || patch.programareStatus === "") {
+        db.programare_status = null;
+      } else if (fullDb.programare_status) {
+        db.programare_status = fullDb.programare_status;
+      }
+      continue;
+    }
     if (dbKey in fullDb) db[dbKey] = fullDb[dbKey];
+  }
+
+  if (
+    (patch.valoareDevizAudatex !== undefined || patch.dataAdusaFizic !== undefined) &&
+    fullDb.financiar
+  ) {
+    db.financiar = fullDb.financiar;
   }
 
   db.data_ultimei_actualizari = nowISO();
@@ -459,6 +502,8 @@ export function fromDb(row) {
     zileChirieAudatex: row.zile_chirie_audatex || 0,
     valoarePieseAudatex: row.valoare_piese_audatex || 0,
     valoareAchizitiePiese: row.valoare_achizitie_piese || 0,
+    valoareDevizAudatex: row.financiar?.valoareDevizAudatex ?? 0,
+    dataAdusaFizic: row.financiar?.dataAdusaFizic || null,
     financiar: row.financiar || undefined,
     blocat: !!row.blocat,
     motivBlocare: row.motiv_blocare || "",
