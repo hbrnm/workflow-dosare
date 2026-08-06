@@ -637,6 +637,24 @@
 }
 .app-shell .app-brief-tab--lucru:not(.is-active) { color: var(--app-success); }
 
+.app-shell .app-brief-tab--sort_alerte.is-active {
+  background: color-mix(in srgb, var(--app-danger) 70%, var(--app-surface-muted));
+  border-color: var(--app-danger);
+  color: var(--app-text-strong);
+}
+.app-shell .app-brief-tab--sort_alerte:not(.is-active) { color: var(--app-danger); }
+
+.app-shell .app-brief-tab--sort_vechime.is-active {
+  background: var(--app-surface-muted);
+  border-color: var(--app-muted-2);
+  color: var(--app-text-strong);
+}
+.app-shell .app-brief-tab--sort_vechime:not(.is-active) { color: var(--app-muted); }
+
+.app-shell .app-flux-stage-sort-hint {
+  font-variant-numeric: tabular-nums;
+}
+
 .app-shell .app-brief-tab--subetapa.is-active {
   background: var(--app-danger);
   border-color: var(--app-danger);

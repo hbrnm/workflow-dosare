@@ -17,6 +17,58 @@ const FLUX_QUICK_FILTERS = [
   { key: "lucru", tabKey: "lucru", label: "În lucru", dot: "var(--app-success)" },
 ];
 
+const FLUX_STAGE_SORTS = [
+  { key: "alerte", tabKey: "sort_alerte", label: "Alerte" },
+  { key: "vechime", tabKey: "sort_vechime", label: "Vechime" },
+];
+
+function getClaimStageDays(claim) {
+  return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
+}
+
+/** Scor alertă — mai mare = mai urgent (blocat > termen > piese > stagnare). */
+function getClaimAlertScore(claim, pieseAlertDays) {
+  let score = 0;
+  if (claim.blocat) score += 10_000;
+  if (isDeliveryDeadlineOverdue(claim)) score += 5_000 + getDaysPastDeliveryDeadline(claim);
+  if (isPartsOrderOverdue(claim, pieseAlertDays)) score += 2_000 + getClaimStageDays(claim);
+  if (isStageOverdue(claim)) score += 1_000 + getClaimStageDays(claim);
+  return score;
+}
+
+function getGroupSortValue(groupClaims, sortKey, pieseAlertDays) {
+  if (sortKey === "vechime") {
+    return Math.max(...groupClaims.map(getClaimStageDays));
+  }
+  return Math.max(...groupClaims.map((c) => getClaimAlertScore(c, pieseAlertDays)));
+}
+
+function groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays) {
+  const groupedMap = new Map();
+  stageClaims.forEach((c) => {
+    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
+    if (!groupedMap.has(key)) groupedMap.set(key, []);
+    groupedMap.get(key).push(c);
+  });
+
+  const compareClaims = (a, b) => {
+    if (sortKey === "vechime") return getClaimStageDays(b) - getClaimStageDays(a);
+    const diff = getClaimAlertScore(b, pieseAlertDays) - getClaimAlertScore(a, pieseAlertDays);
+    return diff !== 0 ? diff : getClaimStageDays(b) - getClaimStageDays(a);
+  };
+
+  groupedMap.forEach((group) => group.sort(compareClaims));
+
+  return Array.from(groupedMap.entries()).sort(([, ga], [, gb]) => {
+    const diff = getGroupSortValue(gb, sortKey, pieseAlertDays) - getGroupSortValue(ga, sortKey, pieseAlertDays);
+    if (diff !== 0) return diff;
+    const plateA = (ga[0]?.numarInmatriculare || "").trim();
+    const plateB = (gb[0]?.numarInmatriculare || "").trim();
+    return plateA.localeCompare(plateB, "ro");
+  });
+}
+
 // Culori oficiale per fază — sursă unică config.js
 
 const copyClaimNumber = async (numarDosar, onNotify) => {
@@ -177,16 +229,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function renderClaimGroups(stageClaims, props) {
-  const groupedMap = new Map();
-  stageClaims.forEach((c) => {
-    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
-    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
-    if (!groupedMap.has(key)) groupedMap.set(key, []);
-    groupedMap.get(key).push(c);
-  });
-
-  return Array.from(groupedMap.entries()).map(([groupKey, groupClaims]) => (
+function renderClaimGroups(stageClaims, props, sortKey, pieseAlertDays) {
+  return groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays).map(([groupKey, groupClaims]) => (
     <div key={groupKey} className="min-w-0">
       <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} hideStatusSelect {...props} />
     </div>
@@ -284,6 +328,7 @@ export default function TablouPeFazeRedesign({
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
   const [focusedStage, setFocusedStage] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
+  const [stageSort, setStageSort] = useState("alerte");
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   const overduePartClaims = useMemo(() => {
@@ -424,6 +469,23 @@ export default function TablouPeFazeRedesign({
         </div>
       </div>
 
+      {/* Sortare carduri în secțiune */}
+      <div className="app-brief-panel rounded-xl px-2 py-1.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="text-[var(--app-muted)] font-medium px-1">Sortare:</span>
+          {FLUX_STAGE_SORTS.map(({ key, tabKey, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStageSort(key)}
+              className={alertTabClass(tabKey, stageSort === key ? tabKey : "")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 4. Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
         {visibleStages.length === 0 ? (
@@ -468,15 +530,20 @@ export default function TablouPeFazeRedesign({
                 style={{ "--flux-phase-accent": phaseAccent }}
               >
                 <div
-                  className="app-flux-stage-header p-2 border-b border-[var(--app-border-soft)]"
+                  className="app-flux-stage-header flex flex-wrap items-center justify-between gap-2 p-2 border-b border-[var(--app-border-soft)]"
                   style={{ borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
                 >
                   <StageTabLabel
                     num={status.num}
                     label={status.label}
                     count={totalAll}
-                    className="w-full pointer-events-none"
+                    className="flex-1 min-w-0 pointer-events-none"
                   />
+                  {stageClaims.length > 0 && (
+                    <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
+                      {stageSort === "alerte" ? "Urgent sus" : "Vechi sus"}
+                    </span>
+                  )}
                 </div>
 
                 {stageClaims.length === 0 ? (
@@ -485,7 +552,7 @@ export default function TablouPeFazeRedesign({
                   </div>
                 ) : (
                   <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 auto-rows-min">
-                    {renderClaimGroups(stageClaims, cardProps)}
+                    {renderClaimGroups(stageClaims, cardProps, stageSort, pieseAlertDays)}
                   </div>
                 )}
               </section>
