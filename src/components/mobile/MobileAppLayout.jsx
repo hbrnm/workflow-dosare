@@ -199,11 +199,11 @@ export default function MobileAppLayout({
               type="button"
               onClick={() => handleTabChange(id)}
               className={`m-nav-item relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 ${
-                active ? "is-active" : "font-semibold opacity-80 hover:opacity-100"
+                active ? "is-active" : "opacity-80 hover:opacity-100"
               }`}
             >
-              <span className="m-nav-icon relative inline-flex h-5 w-5 items-center justify-center">
-                <Icon size={20} strokeWidth={active ? 2.25 : 2} />
+              <span className="m-nav-icon relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
+                <Icon size={20} strokeWidth={2} aria-hidden />
                 {badge > 0 && (
                   <span
                     className="absolute -right-2.5 -top-1.5 min-w-[14px] h-3.5 px-1 rounded-full text-white text-[8px] font-black flex items-center justify-center leading-none"

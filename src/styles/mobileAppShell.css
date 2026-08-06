@@ -39,21 +39,28 @@
 .mobile-shell.app-shell .m-nav-item {
   color: var(--app-muted);
   border: 1.5px solid transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .mobile-shell.app-shell .m-nav-item.is-active {
   color: var(--app-text-strong);
   background: var(--app-bg);
   border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
   font-weight: 700;
   opacity: 1;
 }
 
-.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon {
-  border-radius: 9999px;
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--app-text-strong) 38%, transparent);
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon,
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-label {
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-nav-icon {
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-nav-item:active {
+  transform: none;
 }
 
 .mobile-shell.app-shell .m-content {
@@ -99,6 +106,10 @@
 .mobile-shell.app-shell .mobile-bottom-chrome {
   background: var(--app-chrome);
   border-top: 1px solid var(--app-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -422,6 +433,41 @@
 .m-themed-modal .flex.items-center.justify-between.px-4.py-2\.5.bg-white.border-t button {
   background: var(--app-surface-2);
   border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Comutator temă — Setări */
+.m-themed-modal .m-theme-choice,
+.mobile-shell.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-theme-choice.is-active,
+.mobile-shell.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice:hover:not(.is-active) {
+  border-color: var(--app-muted);
   color: var(--app-text);
 }
 

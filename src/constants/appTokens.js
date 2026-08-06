@@ -1,8 +1,23 @@
-/**
- * Tokeni desktop — dark confortabil (inspirat GitHub dark: off-black, text moale).
- * Contrast redus față de negru pur + alb strident — mai puțin obositor la citire lungă.
- */
-export const APP_TOKEN_DEFAULTS = {
+/** Ore locale — zi: fundal deschis, noapte: fundal întunecat. */
+export const DAY_START_HOUR = 7;
+export const NIGHT_START_HOUR = 19;
+
+const SHARED_TOKENS = {
+  "--app-danger": "#f85149",
+  "--app-danger-muted": "#3d1f1f",
+  "--app-success": "#3fb950",
+  "--app-success-muted": "#1a2e1f",
+  "--app-radius": "8px",
+  "--app-radius-sm": "6px",
+  "--app-radius-lg": "12px",
+  "--app-shadow": "none",
+  "--app-font-body": "'Inter', system-ui, sans-serif",
+  "--app-font-display": "'Inter', system-ui, sans-serif",
+};
+
+/** Noapte — dark confortabil (GitHub-inspired). */
+export const APP_TOKEN_DARK = {
+  ...SHARED_TOKENS,
   "--app-bg": "#0d1117",
   "--app-surface": "#161b22",
   "--app-surface-2": "#1c2128",
@@ -19,23 +34,77 @@ export const APP_TOKEN_DEFAULTS = {
   "--app-accent": "#e6edf3",
   "--app-accent-hover": "#c9d1d9",
   "--app-accent-text": "#0d1117",
-  "--app-danger": "#f85149",
-  "--app-danger-muted": "#3d1f1f",
-  "--app-success": "#3fb950",
-  "--app-success-muted": "#1a2e1f",
-  "--app-radius": "8px",
-  "--app-radius-sm": "6px",
-  "--app-radius-lg": "12px",
-  "--app-shadow": "none",
-  "--app-font-body": "'Inter', system-ui, sans-serif",
-  "--app-font-display": "'Inter', system-ui, sans-serif",
 };
 
-/** Aplică tokeni pe root (documentElement) — temă fixă neagră, fără accent personalizabil. */
-export function applyAppTokens(element) {
+/** Zi — alb curat, ca aplicațiile native light. */
+export const APP_TOKEN_LIGHT = {
+  ...SHARED_TOKENS,
+  "--app-bg": "#f6f8fa",
+  "--app-surface": "#ffffff",
+  "--app-surface-2": "#f6f8fa",
+  "--app-surface-muted": "#eaeef2",
+  "--app-text": "#24292f",
+  "--app-text-strong": "#1f2328",
+  "--app-muted": "#656d76",
+  "--app-muted-2": "#8c959f",
+  "--app-border": "#d0d7de",
+  "--app-border-soft": "#eaeef2",
+  "--app-chrome": "#ffffff",
+  "--app-chrome-text": "#1f2328",
+  "--app-chrome-muted": "#656d76",
+  "--app-accent": "#1f2328",
+  "--app-accent-hover": "#424a53",
+  "--app-accent-text": "#ffffff",
+};
+
+/** @deprecated — folosește APP_TOKEN_DARK */
+export const APP_TOKEN_DEFAULTS = APP_TOKEN_DARK;
+
+export const COLOR_SCHEME_META = {
+  light: "#ffffff",
+  dark: "#010409",
+};
+
+/** @returns {"light"|"dark"} */
+export function resolveColorScheme(date = new Date()) {
+  const hour = date.getHours();
+  if (hour >= DAY_START_HOUR && hour < NIGHT_START_HOUR) return "light";
+  return "dark";
+}
+
+/** Milisecunde până la următoarea schimbare automată de temă. */
+export function msUntilNextSchemeChange(date = new Date()) {
+  const hour = date.getHours();
+  const next = new Date(date);
+
+  if (hour >= DAY_START_HOUR && hour < NIGHT_START_HOUR) {
+    next.setHours(NIGHT_START_HOUR, 0, 0, 0);
+  } else if (hour >= NIGHT_START_HOUR) {
+    next.setDate(next.getDate() + 1);
+    next.setHours(DAY_START_HOUR, 0, 0, 0);
+  } else {
+    next.setHours(DAY_START_HOUR, 0, 0, 0);
+  }
+
+  return Math.max(1000, next.getTime() - date.getTime());
+}
+
+export function getTokensForScheme(scheme = "dark") {
+  return scheme === "light" ? APP_TOKEN_LIGHT : APP_TOKEN_DARK;
+}
+
+/** Aplică tokeni pe root — temă zi/noapte automată sau forțată. */
+export function applyAppTokens(element, scheme = resolveColorScheme()) {
   if (!element) return;
-  Object.entries(APP_TOKEN_DEFAULTS).forEach(([key, val]) => {
+  const tokens = getTokensForScheme(scheme);
+  Object.entries(tokens).forEach(([key, val]) => {
     element.style.setProperty(key, val);
   });
-  element.style.setProperty("--brand-accent", APP_TOKEN_DEFAULTS["--app-accent"]);
+  element.style.setProperty("--brand-accent", tokens["--app-accent"]);
+  element.dataset.appTheme = scheme;
+  element.style.colorScheme = scheme;
+
+  const metaColor = COLOR_SCHEME_META[scheme] || COLOR_SCHEME_META.dark;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", metaColor);
 }

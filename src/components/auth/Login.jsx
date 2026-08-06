@@ -3,7 +3,7 @@ import { ShieldCheck, Lock, Mail } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
 import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
-import { applyAppTokens } from "../../constants/appTokens";
+import { useDayNightTheme } from "../../hooks/useDayNightTheme";
 
 export default function Login({ onLoginSuccess, branding: brandingProp }) {
   const [email, setEmail] = useState("");
@@ -27,9 +27,7 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
     };
   }, []);
 
-  useEffect(() => {
-    applyAppTokens(document.documentElement);
-  }, []);
+  useDayNightTheme();
 
   const handleLogin = async (e) => {
     e.preventDefault();
