@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Settings, LogOut, Monitor, X, Lightbulb,
+  Camera, BarChart3, List, CalendarClock,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
-import { getMobileTheme } from "../../constants/mobileThemes";
 import {
   loadMobileTab,
   saveMobileTab,
@@ -14,7 +14,13 @@ import {
   dismissMobileCoach,
   softHaptic,
 } from "../../utils/mobilePrefs";
-import "../../styles/mobileThemes.css";
+
+const MOBILE_TABS = [
+  { id: "capture", label: "Foto & Doc", Icon: Camera },
+  { id: "brief", label: "Brief", Icon: BarChart3 },
+  { id: "dosare", label: "Dosare", Icon: List },
+  { id: "programari", label: "Programări", Icon: CalendarClock },
+];
 
 export default function MobileAppLayout({
   claims,
@@ -35,13 +41,10 @@ export default function MobileAppLayout({
   onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
-  themeId = "atelier",
 }) {
   const [activeTab, setActiveTab] = useState(() => loadMobileTab());
   const [focusClaimId, setFocusClaimId] = useState(null);
   const [showCoach, setShowCoach] = useState(() => !isMobileCoachDismissed());
-
-  const theme = useMemo(() => getMobileTheme(themeId), [themeId]);
 
   useEffect(() => {
     saveMobileTab(activeTab);
@@ -54,19 +57,10 @@ export default function MobileAppLayout({
     onCaptureFocusConsumed?.();
   }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
-  const shellStyle = useMemo(() => {
-    const vars = { ...(theme.vars || {}) };
-    if (theme.fonts?.body) vars["--m-font-body"] = theme.fonts.body;
-    if (theme.fonts?.display) vars["--m-font-display"] = theme.fonts.display;
-    return vars;
-  }, [theme]);
-
-  const tabs = useMemo(() => ([
-    { id: "capture", label: theme.labels.capture, Icon: theme.icons.capture },
-    { id: "brief", label: theme.labels.brief, Icon: theme.icons.brief, badge: totalAlertsCount },
-    { id: "dosare", label: theme.labels.dosare, Icon: theme.icons.dosare },
-    { id: "programari", label: theme.labels.programari, Icon: theme.icons.programari },
-  ]), [theme, totalAlertsCount]);
+  const tabs = useMemo(() => MOBILE_TABS.map((t) => ({
+    ...t,
+    badge: t.id === "brief" ? totalAlertsCount : 0,
+  })), [totalAlertsCount]);
 
   const handleTabChange = (id) => {
     softHaptic(8);
@@ -80,11 +74,7 @@ export default function MobileAppLayout({
 
   return (
     <div
-      className="mobile-shell fixed inset-0 flex flex-col overflow-hidden"
-      data-mtheme={theme.id}
-      data-nav={theme.navStyle}
-      data-header={theme.headerStyle}
-      style={shellStyle}
+      className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden"
     >
       <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b select-none z-30">
         <div className="flex items-center gap-2 min-w-0">

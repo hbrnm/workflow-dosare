@@ -34,7 +34,6 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { applyAppTokens } from "./constants/appTokens";
-import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -86,11 +85,6 @@ export default function App() {
     }
   };
 
-  const [mobileThemeId, setMobileThemeId] = useState(() => loadMobileThemeId());
-  const handleMobileThemeChange = useCallback((id) => {
-    setMobileThemeId(id);
-    saveMobileThemeId(id);
-  }, []);
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -143,28 +137,13 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    if (activeMode === "mobile") {
-      try {
-        document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
-      } catch {
-        /* ignore */
-      }
-      return () => {
-        try {
-          delete document.documentElement.dataset.mtheme;
-        } catch {
-          /* ignore */
-        }
-      };
-    }
+    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
     try {
       delete document.documentElement.dataset.mtheme;
     } catch {
       /* ignore */
     }
-    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
-    return undefined;
-  }, [activeMode, mobileThemeId, branding?.accentColor]);
+  }, [branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -211,6 +190,12 @@ export default function App() {
     pragRidicare,
     pragInactivitate,
   });
+
+  const highlightClaimId = useMemo(() => {
+    const q = search.trim();
+    if (!q || !filteredClaims.length) return null;
+    return filteredClaims[0]?.id ?? null;
+  }, [search, filteredClaims]);
 
   const {
     buckets: alertBuckets,
@@ -454,7 +439,6 @@ export default function App() {
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
-            themeId={mobileThemeId}
           />
         </Suspense>
 
@@ -471,7 +455,6 @@ export default function App() {
               onMoveToStatus={handleMoveToStatus}
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
-              themeId={mobileThemeId}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
                 closeFieldClaim();
@@ -495,7 +478,7 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
-              themeId={mobileThemeId}
+              desktopUi
             />
           </Suspense>
         )}
@@ -506,7 +489,7 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={closeQuickCreate}
               onSave={handleSave}
-              themeId={mobileThemeId}
+              desktopUi
             />
           </Suspense>
         )}
@@ -538,8 +521,7 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
-              mobileThemeId={mobileThemeId}
-              onMobileThemeChange={handleMobileThemeChange}
+              desktopUi
             />
           </Suspense>
         )}
@@ -686,14 +668,14 @@ export default function App() {
 
           {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <div className="relative w-72">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
+            <div className="relative app-search-lg">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Caută nr. auto, client, dosar…"
-                className="app-search w-full pl-9 pr-16 py-1.5 rounded-lg text-[12.5px] transition-all font-medium"
+                className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
@@ -828,7 +810,7 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
+                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimId={highlightClaimId} />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
@@ -851,6 +833,7 @@ export default function App() {
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
                   onNotify={showNotice}
+                  highlightClaimId={highlightClaimId}
                 />
               )
             ) : view === "dashboard" ? (

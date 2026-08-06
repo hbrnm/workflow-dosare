@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
@@ -7,13 +7,10 @@ import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
-import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
+import FluxStageStrip from "../common/FluxStageStrip";
 
-const FLUX_STAGE_SORTS = [
-  { key: "alerte", tabKey: "sort_alerte", label: "Alerte" },
-  { key: "vechime", tabKey: "sort_vechime", label: "Vechime" },
-];
+const STAGE_SORT_KEY = "alerte";
 
 function getClaimStageDays(claim) {
   return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
@@ -77,7 +74,7 @@ const copyClaimNumber = async (numarDosar, onNotify) => {
 // ---------------------------------------------------------------------------
 // KANBAN CARD — vizual minimal, funcții păstrate (status, piese, contact)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify, hideStatusSelect = false }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify, hideStatusSelect = false, isSearchHighlight = false }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -117,7 +114,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       onClick={() => onOpen(claim)}
       className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
         claim.blocat || overdue ? "is-alert" : ""
-      }`}
+      } ${isSearchHighlight ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}
     >
       {/* Rând 1: identificare + vechime */}
@@ -222,10 +219,10 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function renderClaimGroups(stageClaims, props, sortKey, pieseAlertDays) {
-  return groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays).map(([groupKey, groupClaims]) => (
+function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimId) {
+  return groupAndSortStageClaims(stageClaims, STAGE_SORT_KEY, pieseAlertDays).map(([groupKey, groupClaims]) => (
     <div key={groupKey} className="min-w-0 h-full">
-      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} hideStatusSelect {...props} />
+      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} highlightClaimId={highlightClaimId} hideStatusSelect {...props} />
     </div>
   ));
 }
@@ -239,8 +236,14 @@ function getClaimAgingMeta(claim) {
   return { days, agingClass, alertThreshold: getClaimAlertDays(claim), overdue };
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect }) {
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect, highlightClaimId }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (highlightClaimId && groupClaims.some((c) => c.id === highlightClaimId)) {
+      setExpanded(true);
+    }
+  }, [highlightClaimId, groupClaims]);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
   const subline = first.marcaModel || first.client || "";
@@ -267,6 +270,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         pragRidicare={pragRidicare}
         onNotify={onNotify}
         hideStatusSelect={hideStatusSelect}
+        isSearchHighlight={first.id === highlightClaimId}
       />
     );
   }
@@ -312,6 +316,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               pragRidicare={pragRidicare}
               onNotify={onNotify}
               hideStatusSelect={hideStatusSelect}
+              isSearchHighlight={c.id === highlightClaimId}
             />
           ))}
         </div>
@@ -370,12 +375,22 @@ export default function TablouPeFazeRedesign({
   canEditFn,
   pragRidicare,
   onNotify,
+  highlightClaimId = null,
 }) {
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
   const [focusedStage, setFocusedStage] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
-  const [stageSort, setStageSort] = useState("alerte");
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
+
+  useEffect(() => {
+    if (!highlightClaimId) return;
+    const claim = claims.find((c) => c.id === highlightClaimId);
+    if (claim) setFocusedStage(claim.status);
+    const t = window.setTimeout(() => {
+      document.getElementById(`claim-card-${highlightClaimId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimId, claims]);
 
   const overduePartClaims = useMemo(() => {
     return claims.filter((c) => isPartsOrderOverdue(c, pieseAlertDays));
@@ -447,45 +462,12 @@ export default function TablouPeFazeRedesign({
         </div>
       )}
 
-      {/* Etape + sortare — o singură linie sus */}
-      <div className="app-brief-panel rounded-xl p-2 shrink-0 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="app-flux-stage-strip flex flex-nowrap items-center gap-1.5 text-[11px] flex-1 min-w-0 overflow-x-auto scrollbar-thin">
-            <button
-              type="button"
-              onClick={() => setFocusedStage(null)}
-              className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")} shrink-0 whitespace-nowrap`}
-            >
-              Toate
-            </button>
-            {STATUSES.map((s) => (
-              <StageTabLabel
-                key={s.key}
-                as="button"
-                num={s.num}
-                label={s.label}
-                count={statusCounts[s.key] || 0}
-                selected={focusedStage === s.key}
-                onClick={() => setFocusedStage(focusedStage === s.key ? null : s.key)}
-                className="shrink-0"
-              />
-            ))}
-          </div>
-          <div className="app-flux-sort-bar flex items-center gap-1.5 text-[11px] shrink-0 pl-2 border-l border-[var(--app-border-soft)]">
-            <span className="text-[var(--app-muted)] font-medium whitespace-nowrap">Sortare</span>
-            {FLUX_STAGE_SORTS.map(({ key, tabKey, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setStageSort(key)}
-                className={`${alertTabClass(tabKey, stageSort === key ? tabKey : "")} whitespace-nowrap`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Etape — aceeași bandă ca în Tabel */}
+      <FluxStageStrip
+        statusCounts={statusCounts}
+        focusedStage={focusedStage}
+        onFocusStage={setFocusedStage}
+      />
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
@@ -542,7 +524,7 @@ export default function TablouPeFazeRedesign({
                   />
                   {stageClaims.length > 0 && (
                     <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
-                      {stageSort === "alerte" ? "Urgent sus" : "Vechi sus"}
+                      Urgent sus
                     </span>
                   )}
                 </div>
@@ -553,7 +535,7 @@ export default function TablouPeFazeRedesign({
                   </div>
                 ) : (
                   <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 items-stretch auto-rows-fr">
-                    {renderClaimGroups(stageClaims, cardProps, stageSort, pieseAlertDays)}
+                    {renderClaimGroups(stageClaims, cardProps, pieseAlertDays, highlightClaimId)}
                   </div>
                 )}
               </section>

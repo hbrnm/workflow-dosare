@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
@@ -6,30 +6,37 @@ import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
+import FluxStageStrip from "../common/FluxStageStrip";
 
-const QUICK_FILTERS = [
-  { key: "toate", label: "Toate" },
-  { key: "in_lucru", label: "În lucru" },
-  { key: "piese_comandate", label: "Piese comandate" },
-  { key: "gata_de_ridicare", label: "Gata ridicare" },
-  { key: "blocate", label: "🛑 Blocate" },
-];
-
-export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
+export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimId = null }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
-  const [statusFilter, setStatusFilter] = useState("toate");
+  const [focusedStage, setFocusedStage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const filtered = useMemo(() => {
-    return claims.filter((c) => {
-      if (statusFilter === "in_lucru" && c.status !== "in_lucru") return false;
-      if (statusFilter === "piese_comandate" && c.status !== "piese_comandate") return false;
-      if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
-      if (statusFilter === "blocate" && !c.blocat) return false;
-      return true;
+  const statusCounts = useMemo(() => {
+    const counts = {};
+    STATUSES.forEach((s) => { counts[s.key] = 0; });
+    claims.forEach((c) => {
+      if (counts[c.status] !== undefined) counts[c.status]++;
     });
-  }, [claims, statusFilter]);
+    return counts;
+  }, [claims]);
+
+  const filtered = useMemo(() => {
+    if (!focusedStage) return claims;
+    return claims.filter((c) => c.status === focusedStage);
+  }, [claims, focusedStage]);
+
+  useEffect(() => {
+    if (!highlightClaimId) return;
+    const claim = claims.find((c) => c.id === highlightClaimId);
+    if (claim) setFocusedStage(claim.status);
+    const t = window.setTimeout(() => {
+      document.getElementById(`claim-row-${highlightClaimId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimId, claims]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -59,6 +66,15 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
     });
     return Array.from(map.entries()).map(([key, group]) => ({ key, group }));
   }, [sorted]);
+
+  useEffect(() => {
+    if (!highlightClaimId) return;
+    groupedRows.forEach(({ key, group }) => {
+      if (group.length > 1 && group.some((c) => c.id === highlightClaimId)) {
+        setExpandedGroups((prev) => ({ ...prev, [key]: true }));
+      }
+    });
+  }, [highlightClaimId, groupedRows]);
 
   const cols = [
     { key: "numarDosar", label: "Nr. dosar", width: "6.5rem" },
@@ -92,8 +108,9 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
     return (
       <tr
         key={c.id}
+        id={`claim-row-${c.id}`}
         onClick={() => onOpen(c)}
-        className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""}`}
+        className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${c.id === highlightClaimId ? "is-search-highlight" : ""}`}
       >
         <td className={`${cell} font-mono font-semibold whitespace-nowrap`}>
           {inGroup && <span className="text-[var(--app-muted)] mr-1">↳</span>}
@@ -145,33 +162,14 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn }) {
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5 text-[11px] font-bold">
-        {QUICK_FILTERS.map(({ key, label }) => {
-          const count = key === "toate"
-            ? claims.length
-            : key === "blocate"
-              ? claims.filter((c) => c.blocat).length
-              : claims.filter((c) => c.status === key).length;
-          const active = statusFilter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setStatusFilter(key)}
-              className={`app-table-filter px-2.5 py-1 rounded-lg transition-all ${
-                active
-                  ? key === "blocate" ? "is-active-danger" : "is-active"
-                  : ""
-              }`}
-            >
-              {label} ({count})
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col flex-1 min-h-0 space-y-2">
+      <FluxStageStrip
+        statusCounts={statusCounts}
+        focusedStage={focusedStage}
+        onFocusStage={setFocusedStage}
+      />
 
-      <div className="app-table-wrap overflow-x-auto rounded-lg">
+      <div className="app-table-wrap overflow-x-auto rounded-lg flex-1 min-h-0">
         <table className="app-table w-full min-w-[960px] text-[12.5px]">
           <colgroup>
             {cols.map((c) => (

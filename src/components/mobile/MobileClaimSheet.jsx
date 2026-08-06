@@ -23,7 +23,6 @@ export default function MobileClaimSheet({
   canEdit,
   onNotify,
   onCapturePhotos,
-  themeId = "atelier",
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -127,11 +126,11 @@ export default function MobileClaimSheet({
 
   return (
     <div
-      className="m-claim-sheet fixed inset-0 z-[9000] bg-[#EFEAE1] flex flex-col text-[#23282E] font-sans"
-      data-mtheme={themeId}
+      className="m-claim-sheet app-shell fixed inset-0 z-[9000] flex flex-col font-sans"
+      style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
       {/* Header */}
-      <header className="bg-[#1C2127] text-white px-3.5 py-3 flex items-center justify-between shrink-0 shadow-md border-b border-white/10">
+      <header className="px-3.5 py-3 flex items-center justify-between shrink-0 border-b" style={{ background: "var(--app-chrome)", color: "var(--app-chrome-text)", borderColor: "var(--app-border)" }}>
         <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
             {claim.numarDosar ? `Dosar ${claim.numarDosar}` : "Fără nr. dosar"}

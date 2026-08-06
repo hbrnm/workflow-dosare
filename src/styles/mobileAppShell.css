@@ -1,0 +1,229 @@
+/* Mobil — aceleași tokeni ca desktop (.app-shell), fără teme multiple */
+
+.mobile-shell.app-shell {
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--app-font-body);
+  --m-bg: var(--app-bg);
+  --m-surface: var(--app-surface);
+  --m-surface-2: var(--app-surface-2);
+  --m-text: var(--app-text);
+  --m-muted: var(--app-muted);
+  --m-border: var(--app-border);
+  --m-header: var(--app-chrome);
+  --m-header-text: var(--app-chrome-text);
+  --m-nav: var(--app-chrome);
+  --m-nav-text: var(--app-muted);
+  --m-nav-active: var(--app-accent);
+  --m-accent: var(--app-accent);
+  --m-accent-text: var(--app-accent-text);
+  --m-danger: var(--app-danger);
+  --m-radius: var(--app-radius-lg);
+  --m-radius-sm: var(--app-radius);
+  --m-shadow: none;
+  --m-font-body: var(--app-font-body);
+  --m-font-display: var(--app-font-display);
+}
+
+.mobile-shell.app-shell .m-header-bar {
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .m-nav-bar {
+  background: var(--app-chrome);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .m-nav-item.is-active {
+  color: var(--app-accent);
+}
+
+.mobile-shell.app-shell .m-content {
+  background: var(--app-bg);
+}
+
+.mobile-shell.app-shell .bg-white,
+.mobile-shell.app-shell .bg-\[\#FAF8F5\],
+.mobile-shell.app-shell .bg-\[\#FCFAF5\] {
+  background-color: var(--app-surface) !important;
+}
+
+.mobile-shell.app-shell .text-\[\#23282E\],
+.mobile-shell.app-shell .text-\[\#3B5166\] {
+  color: var(--app-text) !important;
+}
+
+.mobile-shell.app-shell .text-\[\#6B6558\],
+.mobile-shell.app-shell .text-\[\#8A8375\] {
+  color: var(--app-muted) !important;
+}
+
+.mobile-shell.app-shell .border-\[\#DAD4C6\],
+.mobile-shell.app-shell .border-\[\#EFEAE1\] {
+  border-color: var(--app-border) !important;
+}
+
+.mobile-shell.app-shell .m-coach-banner {
+  background: color-mix(in srgb, var(--app-accent) 10%, var(--app-surface));
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Login — același stil ca shell desktop */
+.app-login {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--app-chrome);
+  color: var(--app-text);
+  font-family: var(--app-font-body);
+  overflow: hidden;
+}
+
+.app-login-glow {
+  position: absolute;
+  inset: -20% auto auto 50%;
+  width: 520px;
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--app-accent) 18%, transparent), transparent 68%);
+  pointer-events: none;
+}
+
+.app-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 24rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  padding: 1.35rem 1.25rem 1.2rem;
+}
+
+.app-login-logo {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.app-login-mark {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 60%, var(--app-border));
+}
+
+.app-login-title {
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  color: var(--app-text-strong);
+}
+
+.app-login-sub {
+  font-size: 11.5px;
+  color: var(--app-muted);
+  font-weight: 600;
+}
+
+.app-login-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-login-input {
+  width: 100%;
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0.7rem 0.85rem;
+  outline: none;
+}
+
+.app-login-input::placeholder {
+  color: var(--app-muted-2);
+}
+
+.app-login-input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 25%, transparent);
+}
+
+.app-login-error {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-danger);
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+  border-radius: var(--app-radius);
+  padding: 0.5rem 0.65rem;
+}
+
+.app-login-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: var(--app-radius);
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.app-login-submit:hover {
+  background: var(--app-accent-hover);
+}
+
+.app-login-submit:active {
+  transform: scale(0.98);
+}
+
+.app-login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.app-login-hint {
+  font-size: 11px;
+  color: var(--app-muted);
+}
+
+/* Evidențiere rezultat căutare */
+@keyframes app-search-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 55%, transparent);
+    border-color: var(--app-accent);
+  }
+}
+
+.app-shell .is-search-highlight {
+  animation: app-search-pulse 1.1s ease-in-out 4;
+  border-color: var(--app-accent) !important;
+}
+
+.app-shell .app-search-lg {
+  min-width: 22rem;
+  width: min(36rem, 42vw);
+}
