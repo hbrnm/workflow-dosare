@@ -7,6 +7,12 @@ import { INSURERS, STATUSES } from "../../constants/config";
 import * as XLSX from "xlsx";
 import { todayISO } from "../../utils/dateUtils";
 import MobileThemePicker from "../mobile/MobileThemePicker";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+  modalHeaderClass,
+} from "../common/modalShellClasses";
 import "../../styles/mobileThemes.css";
 
 export default function SetariModal({
@@ -36,6 +42,7 @@ export default function SetariModal({
   onChangePassword,
   mobileThemeId = "atelier",
   onMobileThemeChange,
+  desktopUi = false,
 }) {
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
 
@@ -250,28 +257,31 @@ export default function SetariModal({
   };
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" data-mtheme={mobileThemeId || "atelier"}>
-      <div className="m-modal-panel bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+    <div
+      className={modalOverlayClass(desktopUi)}
+      {...modalOverlayProps(desktopUi, mobileThemeId)}
+    >
+      <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
 
         {/* Header cu ecuson Utilizator */}
-        <div className="m-modal-header flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0">
+        <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
           <div className="flex items-center gap-3">
-            <div className="m-modal-header-icon w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center text-white font-bold text-[14px] shadow-sm">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[14px] ${desktopUi ? "app-accent-bg" : "m-modal-header-icon rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] text-white shadow-sm"}`}>
               {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h2 className={`font-semibold text-[15.5px] tracking-wide app-display ${desktopUi ? "text-[var(--app-text)]" : "font-bold text-white"}`}>
                   Centrul de Administrare &amp; Setări
                 </h2>
-                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/50" : "bg-white/10 text-white/80 border border-white/20"}`}>
+                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? (desktopUi ? "bg-[var(--app-accent)]/15 text-[var(--app-accent)] border border-[var(--app-accent)]/40" : "bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/50") : (desktopUi ? "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]" : "bg-white/10 text-white/80 border border-white/20")}`}>
                   {isAdmin ? "★ Administrator" : "Operator"}
                 </span>
               </div>
-              <p className="text-[11px] text-white/60">Conectat ca: <span className="text-white font-semibold">{userEmail || "Neautentificat"}</span></p>
+              <p className={`text-[11px] ${desktopUi ? "text-[var(--app-muted)]" : "text-white/60"}`}>Conectat ca: <span className={`font-semibold ${desktopUi ? "text-[var(--app-text)]" : "text-white"}`}>{userEmail || "Neautentificat"}</span></p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+          <button onClick={onClose} className={`p-1.5 rounded-lg ${desktopUi ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]" : "text-white/70 hover:text-white hover:bg-white/10"}`}>
             <X size={20} />
           </button>
         </div>
@@ -622,20 +632,20 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
-              {typeof onMobileThemeChange === "function" && (
+              {!desktopUi && typeof onMobileThemeChange === "function" && (
                 <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
                   <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                    <Palette size={16} className="text-[#C98A2B]" /> Temă aplicație
+                    <Palette size={16} className="text-[#C98A2B]" /> Temă mobilă
                   </h3>
                   <p className="text-[11.5px] text-[#8A8375]">
-                    Schimbă culorile, fonturile și stilul vizual pe desktop și mobil.
-                    Pe telefon se aplică și layout-ul barei de navigare. Efect imediat.
+                    Schimbă culorile, fonturile, icoanele și layout-ul barei de navigare pe telefon.
+                    Se aplică imediat în modul mobil.
                   </p>
                   <MobileThemePicker
                     currentId={mobileThemeId}
                     onSelect={(id) => {
                       onMobileThemeChange(id);
-                      onNotify?.("Tema aplicației a fost actualizată", "success");
+                      onNotify?.("Tema mobilă a fost actualizată", "success");
                     }}
                   />
                 </div>

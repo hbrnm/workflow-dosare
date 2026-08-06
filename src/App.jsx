@@ -33,9 +33,8 @@ import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
-import { darkenHex } from "./constants/branding";
+import { applyAppTokens } from "./constants/appTokens";
 import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
-import { applyThemeToRoot } from "./constants/themeApply";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -145,11 +144,28 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    applyThemeToRoot(document.documentElement, {
-      themeId: mobileThemeId,
-      accentColor: branding?.accentColor,
-    });
-  }, [mobileThemeId, branding?.accentColor]);
+    if (activeMode === "mobile") {
+      try {
+        document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
+      } catch {
+        /* ignore */
+      }
+      return () => {
+        try {
+          delete document.documentElement.dataset.mtheme;
+        } catch {
+          /* ignore */
+        }
+      };
+    }
+    try {
+      delete document.documentElement.dataset.mtheme;
+    } catch {
+      /* ignore */
+    }
+    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
+    return undefined;
+  }, [activeMode, mobileThemeId, branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -533,15 +549,12 @@ export default function App() {
   }
 
   return (
-    <div
-      className="h-screen flex app-shell overflow-hidden relative font-sans"
-      data-mtheme={mobileThemeId || "atelier"}
-    >
+    <div className="h-screen flex app-shell overflow-hidden relative font-sans">
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
-      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
-      <aside className={`hidden md:flex flex-col app-chrome ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>
+      {/* --- DESKTOP MINIMAL SIDEBAR --- */}
+      <aside className={`hidden md:flex flex-col app-sidebar ${navHovered ? "w-[200px]" : "w-[56px]"} transition-all duration-200 ease-out shrink-0 z-30 overflow-hidden`}>
 
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
@@ -550,15 +563,16 @@ export default function App() {
             setView("dosare");
             setDosareSubView("brief");
           }}
-          className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
+          className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 hover:bg-[var(--app-surface-2)] transition-colors w-full cursor-pointer"
           title="Revenire la ecranul principal (Brief Zilnic)"
         >
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform overflow-hidden"
+            className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0 overflow-hidden border border-[var(--app-border)]"
             style={{
               background: branding?.logoUrl
                 ? "#fff"
-                : `linear-gradient(135deg, ${branding?.accentColor || "#C98A2B"}, ${darkenHex(branding?.accentColor || "#C98A2B")})`,
+                : branding?.accentColor || "var(--app-accent)",
+              color: branding?.logoUrl ? undefined : "var(--app-accent-text)",
             }}
             title={branding?.atelierNume || "Dosare Daună"}
           >
@@ -586,10 +600,8 @@ export default function App() {
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
-                  active
-                    ? "app-accent-bg font-bold shadow-md"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
+                className={`w-full flex items-center justify-between px-2.5 py-2 text-[13px] font-medium transition-all app-nav-btn ${
+                  active ? "is-active" : ""
                 }`}
                 title={label}
               >
@@ -600,7 +612,7 @@ export default function App() {
                   </span>
                 </div>
                 {badge !== undefined && (
-                  <span className={`text-[10px] font-black bg-white/20 px-1.5 py-0.2 rounded-full transition-opacity duration-200 ${navHovered ? "opacity-100" : "opacity-0"}`}>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--app-surface-muted)] app-muted transition-opacity duration-200 ${navHovered ? "opacity-100" : "opacity-0"}`}>
                     {badge}
                   </span>
                 )}
@@ -610,13 +622,13 @@ export default function App() {
         </div>
 
         {/* Bottom Profile & Settings Dock */}
-        <div className="p-2 shrink-0 space-y-1 border-t border-white/10">
+        <div className="p-2 shrink-0 border-t border-[var(--app-border)]">
           <button
             onClick={() => openSettings()}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
+            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg app-nav-btn text-[12.5px] font-medium transition-all"
             title="Centru Setări"
           >
-            <div className="w-6 h-6 rounded-full app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
               {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
             </div>
             <span className={`transition-all duration-200 truncate max-w-[120px] ${navHovered ? "opacity-100" : "opacity-0"}`}>
@@ -630,18 +642,18 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Breadcrumb & Action Header */}
-        <header className="relative h-14 app-header border-b px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <header className="relative h-14 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
 
           {/* Left Navigation / Segmented Switch */}
           <div className="flex items-center gap-2 text-[13px]">
             {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              <div className="flex items-center app-segment-track border p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px]">
+              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-semibold text-[11.5px]">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "flux"
-                      ? "app-accent-bg shadow-xs"
+                      ? "app-accent-bg"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
@@ -654,7 +666,7 @@ export default function App() {
                   onClick={() => setDosareSubView("brief")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "brief"
-                      ? "app-accent-bg shadow-xs"
+                      ? "app-accent-bg"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
@@ -672,7 +684,7 @@ export default function App() {
                   onClick={() => setDosareSubView("list")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "list"
-                      ? "app-accent-bg shadow-xs"
+                      ? "app-accent-bg"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
@@ -681,7 +693,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <span className="font-extrabold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-3 py-1 rounded-xl text-[13px]">
+              <span className="font-semibold app-accent-text bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-1 rounded-lg text-[13px]">
                 {viewLabels[view] || "Aplicație"}
               </span>
             )}
@@ -696,7 +708,7 @@ export default function App() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Caută după nr. auto, client, dosar..."
-                className="w-full pl-9 pr-16 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#23282E] placeholder-[#8A8375] focus:bg-white focus:border-[#C98A2B] text-[12.5px] transition-all shadow-2xs font-medium focus:outline-none"
+                className="w-full pl-9 pr-16 py-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-text)] placeholder-[var(--app-muted-2)] focus:bg-[var(--app-surface)] focus:border-[var(--app-accent)] text-[12.5px] transition-all font-medium focus:outline-none"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
@@ -1021,7 +1033,7 @@ export default function App() {
               insurersList={customInsurers}
               onJumpTo={openExisting}
               onNotify={showNotice}
-              themeId={mobileThemeId}
+              desktopUi
             />
           </ErrorBoundary>
         )}
@@ -1037,7 +1049,7 @@ export default function App() {
             onOpenClaim={handleOpenClaim}
             onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
-            themeId={mobileThemeId}
+            desktopUi
           />
         )}
 
@@ -1067,8 +1079,7 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
-            mobileThemeId={mobileThemeId}
-            onMobileThemeChange={handleMobileThemeChange}
+            desktopUi
           />
         )}
 
@@ -1077,7 +1088,7 @@ export default function App() {
             isOpen={quickCreateOpen}
             onClose={closeQuickCreate}
             onSave={handleSave}
-            themeId={mobileThemeId}
+            desktopUi
           />
         )}
 

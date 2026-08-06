@@ -12,6 +12,12 @@ import {
 } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import { ALERT_CATEGORIES } from "../../constants/alertCategories";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+  modalHeaderClass,
+} from "../common/modalShellClasses";
 
 export default function AlerteModal({
   claims = [],
@@ -24,6 +30,7 @@ export default function AlerteModal({
   onPatchClaim,
   onNotify,
   themeId = "atelier",
+  desktopUi = false,
 }) {
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -56,27 +63,30 @@ export default function AlerteModal({
   const totalAlertsCount = buckets.totalAlertsCount;
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" data-mtheme={themeId}>
-      <div className="m-modal-panel bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+    <div
+      className={modalOverlayClass(desktopUi)}
+      {...modalOverlayProps(desktopUi, themeId)}
+    >
+      <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
 
-        <div className="m-modal-header flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0 shadow-md">
+        <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#B23A2E] flex items-center justify-center text-white font-bold shadow-md">
+            <div className={`flex items-center justify-center font-bold text-white ${desktopUi ? "w-9 h-9 rounded-lg bg-[var(--app-danger)]" : "w-9 h-9 rounded-xl bg-[#B23A2E] shadow-md"}`}>
               <Bell size={19} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-[16px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                <h2 className={`font-semibold text-[16px] tracking-wide app-display ${desktopUi ? "text-[var(--app-text)]" : "font-extrabold text-white"}`}>
                   Centrul de Alerte Operaționale
                 </h2>
                 <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
                   {totalAlertsCount} Alerte Total
                 </span>
               </div>
-              <p className="text-[11.5px] text-white/70">Aceleași categorii ca în Brief — alege o categorie pentru acțiune</p>
+              <p className={`text-[11.5px] ${desktopUi ? "text-[var(--app-muted)]" : "text-white/70"}`}>Aceleași categorii ca în Brief — alege o categorie pentru acțiune</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
+          <button onClick={onClose} className={`p-1.5 rounded-lg ${desktopUi ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]" : "text-white/70 hover:text-white hover:bg-white/10"}`}>
             <X size={20} />
           </button>
         </div>
