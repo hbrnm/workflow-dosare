@@ -1,5 +1,6 @@
 import { daysBetween, todayISO } from "./dateUtils";
 import { getStatusDefinition, getClaimAlertDays, isPieseComandateStatus } from "../constants/config";
+import { isPaymentOverdue, getDaysPaymentOverdue, getSettlementAmount, getEffectivePaymentDue } from "./settlementUtils";
 
 /** Canonical alert type keys used by Brief, MobileBrief, and AlerteModal. */
 export const ALERT_TYPES = [
@@ -11,6 +12,7 @@ export const ALERT_TYPES = [
   "neridicate",
   "accept_plata",
   "inactivitate",
+  "restante",
 ];
 
 /** Legacy modal tab key → canonical type */
@@ -155,6 +157,9 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   );
   const acceptPlata = list.filter(isAcceptPlataWithoutParts);
   const inactivitate = list.filter((c) => isInactiveClaim(c, pragInactivitate));
+  const restante = list
+    .filter(isPaymentOverdue)
+    .sort((a, b) => getDaysPaymentOverdue(b) - getDaysPaymentOverdue(a));
 
   const byType = {
     blocate,
@@ -165,6 +170,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     neridicate,
     accept_plata: acceptPlata,
     inactivitate,
+    restante,
   };
 
   const counts = {
@@ -176,6 +182,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     neridicate: neridicate.length,
     accept_plata: acceptPlata.length,
     inactivitate: inactivitate.length,
+    restante: restante.length,
   };
 
   // Legacy aliases used by badges / openAlerts("depasite")
@@ -279,6 +286,22 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     });
   });
 
+  restante.forEach((c) => {
+    const zile = getDaysPaymentOverdue(c);
+    const due = getEffectivePaymentDue(c);
+    const amount = getSettlementAmount(c);
+    items.push({
+      id: `restante-${c.id}`,
+      claim: c,
+      type: "restante",
+      title: `Plată restantă (+${zile}z)`,
+      reason: `${c.asigurator || "Asigurător"} · scadență ${due || "—"} · ${
+        amount ? `${amount.toLocaleString("ro-RO")} RON` : "sumă neseată"
+      }`,
+      severity: "warning",
+    });
+  });
+
   const totalAlertsCount = ALERT_TYPES.reduce((sum, key) => sum + counts[key], 0);
 
   return {
@@ -286,7 +309,6 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     counts,
     items,
     totalAlertsCount,
-    // Convenience lists (same references as byType)
     blocate,
     masiniSchimb,
     stagnate,
@@ -295,6 +317,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     neridicate,
     acceptPlata,
     inactivitate,
+    restante,
   };
 }
 
