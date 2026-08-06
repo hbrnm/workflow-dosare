@@ -257,7 +257,7 @@ export async function uploadStorageItem(supabaseClient, bucketName, claimId, fil
 }
 
 export function toDb(c) {
-  return {
+  const row = {
     id: c.id,
     numar_dosar: c.numarDosar,
     tip_asigurare: c.tipAsigurare,
@@ -302,8 +302,54 @@ export function toDb(c) {
     data_incasarii: c.dataIncasarii || null,
     alerte_ack: c.alerteAck || false,
     piese_sosite: !!c.pieseSosite,
-    programare_status: c.programareStatus || null,
   };
+
+  // Trimite doar când e setat — compatibil dacă migrarea 22 nu e încă aplicată
+  if (c.programareStatus === "onorata" || c.programareStatus === "neonorata") {
+    row.programare_status = c.programareStatus;
+  }
+
+  return row;
+}
+
+/** Mapare câmp app → coloană DB pentru patch-uri parțiale. */
+const PATCH_FIELD_MAP = {
+  dataComandaPiese: "data_comanda_piese",
+  termenLivrarePiese: "termen_livrare_piese",
+  programareStatus: "programare_status",
+  dataProgramare: "data_programare",
+  pieseSosite: "piese_sosite",
+  status: "status",
+  dataSchimbareStatus: "data_schimbare_status",
+  adusaFizic: "adusa_fizic",
+  dataAdusaFizic: "data_adusa_fizic",
+  gataDeRidicare: "gata_de_ridicare",
+  dataGataRidicare: "data_gata_ridicare",
+  ridicata: "ridicata",
+  dataRidicare: "data_ridicare",
+  termenAlertaZile: "termen_alerta_zile",
+  alerteAck: "alerte_ack",
+  blocat: "blocat",
+  motivBlocare: "motiv_blocare",
+};
+
+/** Construiește payload Supabase doar cu câmpurile modificate. */
+export function toDbPatch(claim, patch, { updatedByEmail } = {}) {
+  const merged = { ...claim, ...patch };
+  const fullDb = toDb(merged);
+  const db = {};
+
+  for (const appKey of Object.keys(patch)) {
+    const dbKey = PATCH_FIELD_MAP[appKey];
+    if (!dbKey) continue;
+    if (dbKey === "programare_status" && !fullDb.programare_status) continue;
+    if (dbKey in fullDb) db[dbKey] = fullDb[dbKey];
+  }
+
+  db.data_ultimei_actualizari = nowISO();
+  if (updatedByEmail) db.updated_by_email = updatedByEmail;
+
+  return db;
 }
 
 export function fromDb(row) {
