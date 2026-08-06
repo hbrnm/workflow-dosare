@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Bell, Phone, ChevronDown, ChevronUp
+  Bell, Phone, ChevronDown, ChevronUp, Download
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -14,55 +14,10 @@ import {
   groupHasSearchHighlight,
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
+import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from "../../utils/fluxClaimSort";
+import { downloadClaimsList } from "../../utils/exportClaimsList";
 
 const STAGE_SORT_KEY = "alerte";
-
-function getClaimStageDays(claim) {
-  return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
-}
-
-/** Scor alertă — mai mare = mai urgent (blocat > termen > piese > stagnare). */
-function getClaimAlertScore(claim, pieseAlertDays) {
-  let score = 0;
-  if (claim.blocat) score += 10_000;
-  if (isDeliveryDeadlineOverdue(claim)) score += 5_000 + getDaysPastDeliveryDeadline(claim);
-  if (isPartsOrderOverdue(claim, pieseAlertDays)) score += 2_000 + getClaimStageDays(claim);
-  if (isStageOverdue(claim)) score += 1_000 + getClaimStageDays(claim);
-  return score;
-}
-
-function getGroupSortValue(groupClaims, sortKey, pieseAlertDays) {
-  if (sortKey === "vechime") {
-    return Math.max(...groupClaims.map(getClaimStageDays));
-  }
-  return Math.max(...groupClaims.map((c) => getClaimAlertScore(c, pieseAlertDays)));
-}
-
-function groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays) {
-  const groupedMap = new Map();
-  stageClaims.forEach((c) => {
-    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
-    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
-    if (!groupedMap.has(key)) groupedMap.set(key, []);
-    groupedMap.get(key).push(c);
-  });
-
-  const compareClaims = (a, b) => {
-    if (sortKey === "vechime") return getClaimStageDays(b) - getClaimStageDays(a);
-    const diff = getClaimAlertScore(b, pieseAlertDays) - getClaimAlertScore(a, pieseAlertDays);
-    return diff !== 0 ? diff : getClaimStageDays(b) - getClaimStageDays(a);
-  };
-
-  groupedMap.forEach((group) => group.sort(compareClaims));
-
-  return Array.from(groupedMap.entries()).sort(([, ga], [, gb]) => {
-    const diff = getGroupSortValue(gb, sortKey, pieseAlertDays) - getGroupSortValue(ga, sortKey, pieseAlertDays);
-    if (diff !== 0) return diff;
-    const plateA = (ga[0]?.numarInmatriculare || "").trim();
-    const plateB = (gb[0]?.numarInmatriculare || "").trim();
-    return plateA.localeCompare(plateB, "ro");
-  });
-}
 
 // Culori oficiale per fază — sursă unică config.js
 
@@ -429,6 +384,15 @@ export default function TablouPeFazeRedesign({
     return STATUSES.filter((s) => claims.some((c) => c.status === s.key));
   }, [focusedStage, claims]);
 
+  const exportClaims = useMemo(
+    () => getFluxExportClaims(claims, { focusedStage, sortKey: STAGE_SORT_KEY, pieseAlertDays }),
+    [claims, focusedStage, pieseAlertDays],
+  );
+
+  const handleDownloadList = async () => {
+    await downloadClaimsList(exportClaims, { focusedStage });
+  };
+
   return (
     <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]">
 
@@ -464,11 +428,24 @@ export default function TablouPeFazeRedesign({
       )}
 
       {/* Etape — aceeași bandă ca în Tabel */}
-      <FluxStageStrip
-        statusCounts={statusCounts}
-        focusedStage={focusedStage}
-        onFocusStage={setFocusedStage}
-      />
+      <div className="flex items-stretch gap-2 min-w-0">
+        <FluxStageStrip
+          className="flex-1 min-w-0"
+          statusCounts={statusCounts}
+          focusedStage={focusedStage}
+          onFocusStage={setFocusedStage}
+        />
+        <button
+          type="button"
+          onClick={handleDownloadList}
+          disabled={exportClaims.length === 0}
+          className="app-table-export-btn shrink-0 inline-flex items-center gap-1.5 self-center px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Descarcă lista filtrată (Excel)"
+        >
+          <Download size={14} />
+          Descarcă listă{exportClaims.length > 0 ? ` (${exportClaims.length})` : ""}
+        </button>
+      </div>
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
