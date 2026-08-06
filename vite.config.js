@@ -10,11 +10,11 @@ export default defineConfig({
       injectRegister: "script", // Înregistrează automat Service Worker-ul în HTML fără import-uri speciale
       includeAssets: ["icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Management Dosare Daune RCA/CASCO",
-        short_name: "Dosare Daună",
-        description: "Aplicație administrativă pentru managementul fluxului de dosare de daună RCA/CASCO.",
-        theme_color: "#23282E",
-        background_color: "#23282E",
+        name: "Workflow Daune 2.0",
+        short_name: "Daune 2.0",
+        description: "Recepție vehicule, inspecție foto, diagramă avarii și management dosare de daună.",
+        theme_color: "#0f1419",
+        background_color: "#0f1419",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
