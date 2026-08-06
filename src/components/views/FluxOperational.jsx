@@ -458,8 +458,8 @@ export default function TablouPeFazeRedesign({
                 })}
               </div>
 
-              {/* Zona cu cardurile din coloană Comasate pe Vehicul */}
-              <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin">
+              {/* Zona carduri — 2 pe rând; grup comasat = linie întreagă */}
+              <div className="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-1.5 auto-rows-min content-start scrollbar-thin">
                 {(() => {
                   const groupedMap = new Map();
                   phaseClaims.forEach((c) => {
@@ -473,26 +473,30 @@ export default function TablouPeFazeRedesign({
 
                   if (groups.length === 0) {
                     return (
-                      <div className="border-1.5 border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic my-auto">
+                      <div className="col-span-2 border border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic">
                         Niciun dosar în această fază
                       </div>
                     );
                   }
 
                   return groups.map(([groupKey, groupClaims]) => (
-                    <StackedPhaseCardGroup
+                    <div
                       key={groupKey}
-                      groupKey={groupKey}
-                      groupClaims={groupClaims}
-                      onOpen={onOpen}
-                      onMoveToStatus={onMoveToStatus}
-                      onTogglePieseSosite={onTogglePieseSosite}
-                      onScheduleFromPiese={onScheduleFromPiese}
-                      onPatchPieseDates={onPatchPieseDates}
-                      canEditFn={canEditFn}
-                      pragRidicare={pragRidicare}
-                      onNotify={onNotify}
-                    />
+                      className={groupClaims.length > 1 ? "col-span-2 min-w-0" : "min-w-0"}
+                    >
+                      <StackedPhaseCardGroup
+                        groupKey={groupKey}
+                        groupClaims={groupClaims}
+                        onOpen={onOpen}
+                        onMoveToStatus={onMoveToStatus}
+                        onTogglePieseSosite={onTogglePieseSosite}
+                        onScheduleFromPiese={onScheduleFromPiese}
+                        onPatchPieseDates={onPatchPieseDates}
+                        canEditFn={canEditFn}
+                        pragRidicare={pragRidicare}
+                        onNotify={onNotify}
+                      />
+                    </div>
                   ));
                 })()}
               </div>
