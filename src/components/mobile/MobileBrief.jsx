@@ -13,6 +13,7 @@ const FILTER_CHIPS = [
   { key: "blocate", label: "🛑 Blocate", active: "bg-[#B23A2E] text-white border-[#B23A2E]", idle: "bg-red-50 text-[#B23A2E] border-red-200" },
   { key: "masini_schimb", label: "🚗 Auto Schimb", active: "bg-[#C98A2B] text-white border-[#C98A2B]", idle: "bg-amber-50 text-[#7A5316] border-amber-200" },
   { key: "stagnate", label: "⏳ Stagnate", active: "bg-[#3B5166] text-white border-[#3B5166]", idle: "bg-blue-50 text-[#3B5166] border-blue-200" },
+  { key: "livrare_piese", label: "🚚 Livrare", active: "bg-[#D6473F] text-white border-[#D6473F]", idle: "bg-red-50 text-[#D6473F] border-red-200" },
   { key: "piese", label: "📦 Piese", active: "bg-[#7A5316] text-white border-[#7A5316]", idle: "bg-orange-50 text-[#7A5316] border-orange-200" },
   { key: "neridicate", label: "📞 Neridicate", active: "bg-[#3E6B45] text-white border-[#3E6B45]", idle: "bg-emerald-50 text-[#3E6B45] border-emerald-200" },
   { key: "accept_plata", label: "🛒 Accept", active: "bg-[#2C4160] text-white border-[#2C4160]", idle: "bg-slate-50 text-[#2C4160] border-slate-200" },
@@ -23,6 +24,7 @@ const HUB_PILLS = [
   { key: "toate", label: "Toate" },
   { key: "blocate", label: "Blocate" },
   { key: "piese", label: "Piese" },
+  { key: "livrare_piese", label: "Livrare" },
   { key: "neridicate", label: "Neridicate" },
   { key: "stagnate", label: "Stagnate" },
   { key: "accept_plata", label: "Accept" },
@@ -76,7 +78,7 @@ export default function MobileBrief({
   };
 
   const canAck = (type) =>
-    ["blocate", "neridicate", "accept_plata", "masini_schimb", "piese"].includes(type);
+    ["blocate", "neridicate", "accept_plata", "masini_schimb", "piese", "livrare_piese"].includes(type);
 
   const go = (tab) => {
     softHaptic(8);
@@ -87,6 +89,7 @@ export default function MobileBrief({
     switch (type) {
       case "blocate": return "#F85149";
       case "piese": return "#F0883E";
+      case "livrare_piese": return "#D6473F";
       case "neridicate": return "#3FB950";
       case "stagnate": return "#58A6FF";
       case "accept_plata": return "#A371F7";

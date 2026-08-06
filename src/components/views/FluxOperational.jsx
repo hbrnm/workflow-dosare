@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
+import { isReadyForPickupOverdue, isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
@@ -56,7 +56,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
-  const isPartOverdue = isPieseComandateStatus(claim.status) && !claim.pieseSosite && days > pieseAlertDays;
+  const isPartOverdue = isPartsOrderOverdue(claim, pieseAlertDays);
+  const termenDepasit = isDeliveryDeadlineOverdue(claim);
 
   return (
     <div
@@ -183,7 +184,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {isPartOverdue && (
         <div className="flex items-center gap-1 bg-[#FBEAE9] text-[#8C2E28] text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border border-[#EFC3C0]">
           <Bell size={10} className="shrink-0 animate-bounce" />
-          <span>Fără confirmare sosire ({days} zile)</span>
+          <span>
+            {termenDepasit
+              ? `Termen livrare depășit (+${getDaysPastDeliveryDeadline(claim)}z) — verifică stocul`
+              : `Fără confirmare sosire (${days} zile)`}
+          </span>
         </div>
       )}
 
@@ -317,8 +322,12 @@ export default function TablouPeFazeRedesign({
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   const overduePartClaims = useMemo(() => {
-    return claims.filter((c) => c.status === "piese_comandate" && !c.pieseSosite && daysBetween(c.dataSchimbareStatus) > pieseAlertDays);
+    return claims.filter((c) => isPartsOrderOverdue(c, pieseAlertDays));
   }, [claims, pieseAlertDays]);
+
+  const overdueDeliveryClaims = useMemo(() => {
+    return claims.filter(isDeliveryDeadlineOverdue);
+  }, [claims]);
 
   // Alerte și grupări dosare
   const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
@@ -351,12 +360,22 @@ export default function TablouPeFazeRedesign({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px]">🔔</span>
             <span>
-              <b>{overduePartClaims.length} dosare</b> peste pragul de <b>{pieseAlertDays} zile</b> fără confirmare de sosire piese:
+              <b>{overduePartClaims.length} dosare</b> necesită verificare piese
+              {overdueDeliveryClaims.length > 0 && (
+                <> — <b>{overdueDeliveryClaims.length}</b> cu termen livrare depășit (verifică stocul fizic)</>
+              )}
+              {overdueDeliveryClaims.length === 0 && (
+                <> — peste pragul de <b>{pieseAlertDays} zile</b> fără confirmare</>
+              )}
+              :
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {overduePartClaims.map((c) => (
                 <span key={c.id} className="bg-white border border-[#EFC3C0] px-2 py-0.5 rounded-full font-mono font-bold text-[11px] text-[#1B2430]">
-                  {c.numarInmatriculare || "—"} · {daysBetween(c.dataSchimbareStatus)}z
+                  {c.numarInmatriculare || "—"}
+                  {isDeliveryDeadlineOverdue(c)
+                    ? ` · livrare +${getDaysPastDeliveryDeadline(c)}z`
+                    : ` · ${daysBetween(c.dataSchimbareStatus)}z`}
                 </span>
               ))}
             </div>

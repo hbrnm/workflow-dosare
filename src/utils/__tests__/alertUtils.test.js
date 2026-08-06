@@ -6,6 +6,7 @@ import {
   isBlocked,
   isLoanerOverdue,
   isPartsArrivedUnscheduled,
+  isDeliveryDeadlineOverdue,
   buildAlertBuckets,
   filterAlertItems,
   normalizeAlertTab,
@@ -67,6 +68,24 @@ describe('alertUtils', () => {
     expect(isPartsArrivedUnscheduled({ pieseSosite: true, dataProgramare: '2026-08-01' })).toBe(false);
   });
 
+  it('isDeliveryDeadlineOverdue detects passed delivery date without confirmation', () => {
+    expect(isDeliveryDeadlineOverdue({
+      status: 'piese_comandate',
+      pieseSosite: false,
+      termenLivrarePiese: '2026-08-01',
+    })).toBe(true);
+    expect(isDeliveryDeadlineOverdue({
+      status: 'piese_comandate',
+      pieseSosite: false,
+      termenLivrarePiese: '2026-08-10',
+    })).toBe(false);
+    expect(isDeliveryDeadlineOverdue({
+      status: 'piese_comandate',
+      pieseSosite: true,
+      termenLivrarePiese: '2026-08-01',
+    })).toBe(false);
+  });
+
   it('normalizeAlertTab maps depasite → stagnate', () => {
     expect(normalizeAlertTab('depasite')).toBe('stagnate');
     expect(normalizeAlertTab('blocate')).toBe('blocate');
@@ -113,6 +132,12 @@ describe('alertUtils', () => {
         dataSchimbareStatus: isoDaysAgo(1),
         termenAlertaZile: 3,
       },
+      {
+        id: '8',
+        status: 'piese_comandate',
+        pieseSosite: false,
+        termenLivrarePiese: '2026-08-01',
+      },
     ];
 
     const buckets = buildAlertBuckets(claims, { pragRidicare: 3, pragInactivitate: 7 });
@@ -122,10 +147,11 @@ describe('alertUtils', () => {
     expect(buckets.counts.accept_plata).toBe(1);
     expect(buckets.counts.neridicate).toBe(1);
     expect(buckets.counts.piese).toBe(1);
+    expect(buckets.counts.livrare_piese).toBe(1);
     expect(buckets.counts.masini_schimb).toBe(1);
     expect(buckets.counts.inactivitate).toBe(1);
-    expect(buckets.totalAlertsCount).toBe(7);
-    expect(buckets.items).toHaveLength(7);
+    expect(buckets.totalAlertsCount).toBe(8);
+    expect(buckets.items).toHaveLength(8);
 
     const onlyBlocked = filterAlertItems(buckets.items, 'blocate');
     expect(onlyBlocked).toHaveLength(1);

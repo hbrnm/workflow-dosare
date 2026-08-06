@@ -1,11 +1,12 @@
-import { daysBetween } from "./dateUtils";
-import { getStatusDefinition, getClaimAlertDays } from "../constants/config";
+import { daysBetween, todayISO } from "./dateUtils";
+import { getStatusDefinition, getClaimAlertDays, isPieseComandateStatus } from "../constants/config";
 
 /** Canonical alert type keys used by Brief, MobileBrief, and AlerteModal. */
 export const ALERT_TYPES = [
   "blocate",
   "masini_schimb",
   "stagnate",
+  "livrare_piese",
   "piese",
   "neridicate",
   "accept_plata",
@@ -97,6 +98,34 @@ export function isPartsArrivedUnscheduled(claim) {
   return Boolean((claim?.pieseSosite || claim?.status === "piese_sosite") && !claim?.dataProgramare);
 }
 
+function deliveryDateOnly(claim) {
+  return claim?.termenLivrarePiese ? String(claim.termenLivrarePiese).slice(0, 10) : "";
+}
+
+/** Termen livrare piese depășit — verificare fizică stoc necesară. */
+export function isDeliveryDeadlineOverdue(claim) {
+  if (claim?.alerteAck) return false;
+  if (!isPieseComandateStatus(claim?.status) || claim?.pieseSosite) return false;
+  const termen = deliveryDateOnly(claim);
+  if (!termen) return false;
+  return termen < todayISO();
+}
+
+export function getDaysPastDeliveryDeadline(claim) {
+  const termen = deliveryDateOnly(claim);
+  if (!termen) return 0;
+  return daysBetween(`${termen}T12:00:00.000Z`);
+}
+
+/** Piese comandate fără confirmare: termen livrare depășit sau fallback zile în stadiu. */
+export function isPartsOrderOverdue(claim, pieseAlertDays = 4) {
+  if (claim?.alerteAck) return false;
+  if (!isPieseComandateStatus(claim?.status) || claim?.pieseSosite) return false;
+  if (isDeliveryDeadlineOverdue(claim)) return true;
+  if (deliveryDateOnly(claim)) return false;
+  return daysBetween(claim.dataSchimbareStatus) > pieseAlertDays;
+}
+
 function sortByDaysDesc(claims, dateField) {
   return [...claims].sort(
     (a, b) => daysBetween(b[dateField]) - daysBetween(a[dateField])
@@ -116,6 +145,9 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     .map((c) => ({ ...c, zile: getLoanerDaysUsed(c), depasit: true }))
     .sort((a, b) => b.zile - a.zile);
   const stagnate = sortByDaysDesc(list.filter(isStageOverdue), "dataSchimbareStatus");
+  const livrarePiese = list
+    .filter(isDeliveryDeadlineOverdue)
+    .sort((a, b) => getDaysPastDeliveryDeadline(b) - getDaysPastDeliveryDeadline(a));
   const piese = list.filter(isPartsArrivedUnscheduled);
   const neridicate = sortByDaysDesc(
     list.filter((c) => isReadyForPickupOverdue(c, pragRidicare)),
@@ -128,6 +160,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     blocate,
     masini_schimb: masiniSchimb,
     stagnate,
+    livrare_piese: livrarePiese,
     piese,
     neridicate,
     accept_plata: acceptPlata,
@@ -138,6 +171,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     blocate: blocate.length,
     masini_schimb: masiniSchimb.length,
     stagnate: stagnate.length,
+    livrare_piese: livrarePiese.length,
     piese: piese.length,
     neridicate: neridicate.length,
     accept_plata: acceptPlata.length,
@@ -182,6 +216,19 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
       title: `Întârziere în Etapă (${zile} zile)`,
       reason: `Status curent: ${sDef.label} (depășit pragul recomandat)`,
       severity: "info",
+    });
+  });
+
+  livrarePiese.forEach((c) => {
+    const zile = getDaysPastDeliveryDeadline(c);
+    const termen = deliveryDateOnly(c);
+    items.push({
+      id: `livrare_piese-${c.id}`,
+      claim: c,
+      type: "livrare_piese",
+      title: `Termen livrare depășit (+${zile}z)`,
+      reason: `Verifică fizic stocul — termen livrare era ${termen}`,
+      severity: "warning",
     });
   });
 
@@ -243,6 +290,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
     blocate,
     masiniSchimb,
     stagnate,
+    livrarePiese,
     piese,
     neridicate,
     acceptPlata,
