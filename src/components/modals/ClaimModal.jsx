@@ -24,6 +24,7 @@ import { fileToDataUrl } from "../../utils/documentScanner";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 function NotionPropertyRow({ icon: Icon, label, children, full }) {
   return (
@@ -1135,33 +1136,23 @@ export default function ClaimModal({
                       </div>
 
                       {isPieseComandateStatus(form.status) && (
-                        <label
-                          className={`m-piese-sosite-toggle flex items-center justify-between gap-2 text-[13px] font-extrabold cursor-pointer select-none py-2.5 px-3 rounded-xl border-2 transition-all ${
-                            form.pieseSosite
-                              ? "is-checked bg-emerald-50 text-[#1F7A45] border-emerald-400"
-                              : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
-                          }`}
-                        >
-                          <span className="flex items-center gap-2.5 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={!!form.pieseSosite}
-                              onChange={(e) => set("pieseSosite", e.target.checked)}
-                              className="rounded accent-[#2F8F5B] w-[18px] h-[18px] shrink-0 cursor-pointer"
-                            />
-                            <span className="flex items-center gap-1.5">
-                              <PackageCheck size={16} className="shrink-0 opacity-80" aria-hidden />
-                              Au sosit piesele în service?
-                            </span>
-                          </span>
-                          {form.pieseSosite ? (
-                            <span className="text-[10px] font-extrabold bg-[#2F8F5B] text-white px-2 py-0.5 rounded-md shrink-0">
-                              DA · SOSITE
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-[#9A7A30] shrink-0">Bifează</span>
-                          )}
-                        </label>
+                        <MobilePieseSositeRow
+                          claim={form}
+                          canEdit={!readOnly}
+                          onToggle={(_c, val) => set("pieseSosite", val)}
+                          onSchedule={(_c, iso) => {
+                            setForm((f) => ({
+                              ...f,
+                              pieseSosite: true,
+                              dataProgramare: iso,
+                            }));
+                            onNotify?.(
+                              `Programare setată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""} — salvează dosarul.`.trim(),
+                              "success"
+                            );
+                            return true;
+                          }}
+                        />
                       )}
                     </div>
                   </div>

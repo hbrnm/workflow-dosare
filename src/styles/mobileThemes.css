@@ -1061,3 +1061,27 @@ html[data-mtheme="forge"] .m-themed-modal .m-piese-sosite-toggle.is-checked {
   color: #1ED760 !important;
 }
 
+.mobile-shell[data-mtheme="forge"] .m-piese-programare-btn,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-programare-btn,
+.m-themed-modal[data-mtheme="forge"] .m-piese-programare-btn,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-programare-btn {
+  background: #238636 !important;
+  color: #fff !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-schedule-panel,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-schedule-panel,
+.m-themed-modal[data-mtheme="forge"] .m-piese-schedule-panel,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-schedule-panel {
+  background: #161B22 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-schedule-panel input,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-schedule-panel input,
+.m-themed-modal[data-mtheme="forge"] .m-piese-schedule-panel input,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-schedule-panel input {
+  background: #0D1117 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+

@@ -4,10 +4,11 @@ import {
   ChevronRight, ArrowRight, Clock, MessageSquare, ExternalLink,
   Search, Check, Bell, AlertOctagon, X, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus } from "../../constants/config";
 import { daysBetween, telLink, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 // Culori oficiale per fază din redesign
 const PHASE_COLOR_MAP = {
@@ -34,7 +35,7 @@ const SHORT_STATUS_LABELS = {
 // ---------------------------------------------------------------------------
 // KANBAN CARD REDESIGN (OPTIMIZAT COMPACT PE VERTICALĂ)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEdit, pragRidicare }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -135,39 +136,15 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </div>
       </div>
 
-      {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (Etapa Piese comandate) */}
-      {(claim.status === "piese_comandate" || claim.status === "piese_sosite") && (
-        <div className="space-y-1">
-          {claim.dataComandaPiese && (
-            <div className="text-[10px] text-[#7A5316] font-bold bg-[#FDF8EE] border border-[#F5E2C4] px-2 py-0.5 rounded-md flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <CalendarClock size={11} className="text-[#C98A2B]" /> Comandat la:
-              </span>
-              <span className="font-mono">{fmtDate(claim.dataComandaPiese)}</span>
-            </div>
-          )}
-          <label
-            onClick={(e) => e.stopPropagation()}
-            className={`m-piese-sosite-toggle flex items-center justify-between gap-1.5 text-[11px] font-extrabold cursor-pointer select-none py-1.5 px-2 rounded-lg border-2 transition-all ${
-              claim.pieseSosite
-                ? "is-checked bg-[#E9F5EE] text-[#2F8F5B] border-[#2F8F5B]/50"
-                : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
-            }`}
-          >
-            <div className="flex items-center gap-1.5">
-              <input
-                type="checkbox"
-                checked={!!claim.pieseSosite}
-                onChange={(e) => {
-                  if (onTogglePieseSosite) onTogglePieseSosite(claim, e.target.checked);
-                }}
-                className="rounded accent-[#2F8F5B] w-3.5 h-3.5 cursor-pointer"
-              />
-              <span>Au sosit piesele?</span>
-            </div>
-            {claim.pieseSosite && <span className="text-[9px] font-extrabold bg-[#2F8F5B] text-white px-1.5 py-0.2 rounded">✓ SOSITE</span>}
-          </label>
-        </div>
+      {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (+ Programare) */}
+      {isPieseComandateStatus(claim.status) && (
+        <MobilePieseSositeRow
+          claim={claim}
+          canEdit={canEdit}
+          compact
+          onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
+          onSchedule={onScheduleFromPiese}
+        />
       )}
 
       {/* 4. PART OVERDUE ALERT BANNER ON CARD */}
@@ -203,7 +180,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, canEditFn, pragRidicare }) {
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEditFn, pragRidicare }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
@@ -216,6 +193,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         onOpen={onOpen}
         onMoveToStatus={onMoveToStatus}
         onTogglePieseSosite={onTogglePieseSosite}
+        onScheduleFromPiese={onScheduleFromPiese}
         canEdit={canEditFn(first)}
         pragRidicare={pragRidicare}
       />
@@ -269,6 +247,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               onOpen={onOpen}
               onMoveToStatus={onMoveToStatus}
               onTogglePieseSosite={onTogglePieseSosite}
+              onScheduleFromPiese={onScheduleFromPiese}
               canEdit={canEditFn(c)}
               pragRidicare={pragRidicare}
             />
@@ -287,6 +266,7 @@ export default function TablouPeFazeRedesign({
   onOpen,
   onMoveToStatus,
   onTogglePieseSosite,
+  onScheduleFromPiese,
   onAddInStatus,
   onDuplicate,
   canEditFn,
@@ -522,6 +502,7 @@ export default function TablouPeFazeRedesign({
                       onOpen={onOpen}
                       onMoveToStatus={onMoveToStatus}
                       onTogglePieseSosite={onTogglePieseSosite}
+                      onScheduleFromPiese={onScheduleFromPiese}
                       canEditFn={canEditFn}
                       pragRidicare={pragRidicare}
                     />

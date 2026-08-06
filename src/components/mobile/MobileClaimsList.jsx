@@ -51,10 +51,24 @@ export default function MobileClaimsList({
     if (ok === false) return;
     onNotify?.(
       val
-        ? "Piese marcate ca sosite — apar la alerte dacă nu au programare."
+        ? "Piese marcate ca sosite — apasă Programare ca să alegi data."
         : "Bifa „Piese sosite” a fost stearsă.",
       val ? "success" : "info"
     );
+  };
+
+  const handleScheduleFromPiese = async (claim, iso) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return false;
+    }
+    const ok = await onPatch?.(claim.id, { dataProgramare: iso });
+    if (ok === false) return false;
+    onNotify?.(
+      `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+      "success"
+    );
+    return true;
   };
   // Group claims by vehicle registration if multiple exist in the same status (Point 15)
   const groupedClaims = useMemo(() => {
@@ -197,6 +211,7 @@ export default function MobileClaimsList({
                       claim={c}
                       canEdit={!canEditFn || canEditFn(c)}
                       onToggle={handleTogglePieseSosite}
+                      onSchedule={handleScheduleFromPiese}
                     />
                   )}
 
@@ -234,6 +249,7 @@ export default function MobileClaimsList({
                 onOpen={onOpen}
                 canEditFn={canEditFn}
                 onTogglePieseSosite={handleTogglePieseSosite}
+                onScheduleFromPiese={handleScheduleFromPiese}
               />
             );
           })
@@ -244,7 +260,7 @@ export default function MobileClaimsList({
   );
 }
 
-function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite }) {
+function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
 
@@ -310,6 +326,7 @@ function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite 
                     claim={c}
                     canEdit={!canEditFn || canEditFn(c)}
                     onToggle={onTogglePieseSosite}
+                    onSchedule={onScheduleFromPiese}
                     compact
                   />
                 )}

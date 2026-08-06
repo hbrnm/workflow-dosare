@@ -216,10 +216,19 @@ export default function MobileClaimSheet({
                   if (ok === false) return;
                   onNotify?.(
                     val
-                      ? "Piese marcate ca sosite — apar la alerte dacă nu au programare."
+                      ? "Piese marcate ca sosite — apasă Programare ca să alegi data."
                       : "Bifa „Piese sosite” a fost stearsă.",
                     val ? "success" : "info"
                   );
+                }}
+                onSchedule={async (c, iso) => {
+                  const ok = await onPatch?.(c.id, { dataProgramare: iso });
+                  if (ok === false) return false;
+                  onNotify?.(
+                    `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                    "success"
+                  );
+                  return true;
                 }}
               />
             </div>
