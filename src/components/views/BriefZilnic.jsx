@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   CalendarClock, PackageCheck, AlertOctagon, Phone, Car,
   Clock, CheckCircle2, ShieldAlert, BarChart3, Boxes, ExternalLink, ShoppingCart,
-  ChevronRight, User
+  ChevronRight, User, Truck
 } from "lucide-react";
 import { todayISO, telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
@@ -14,6 +14,7 @@ const ALERT_ICON_BY_TYPE = {
   blocate: AlertOctagon,
   masini_schimb: Car,
   stagnate: Clock,
+  livrare_piese: Truck,
   piese: Boxes,
   neridicate: PackageCheck,
   accept_plata: ShoppingCart,
@@ -24,6 +25,7 @@ const ALERT_STYLE_BY_TYPE = {
   blocate: { badgeColor: "bg-[#B23A2E] text-white", borderColor: "border-[#B23A2E]" },
   masini_schimb: { badgeColor: "bg-[#C98A2B] text-white", borderColor: "border-[#C98A2B]" },
   stagnate: { badgeColor: "bg-[#3B5166] text-white", borderColor: "border-[#3B5166]" },
+  livrare_piese: { badgeColor: "bg-[#D6473F] text-white", borderColor: "border-[#D6473F]" },
   piese: { badgeColor: "bg-[#7A5316] text-white", borderColor: "border-[#C98A2B]/60" },
   neridicate: { badgeColor: "bg-[#3E6B45] text-white", borderColor: "border-[#3E6B45]" },
   accept_plata: { badgeColor: "bg-[#2C4160] text-white", borderColor: "border-[#2C4160]" },
@@ -167,6 +169,13 @@ export default function BriefZilnic({
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "stagnate" ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-blue-50 text-[#3B5166] border-blue-200 hover:bg-blue-100"}`}
             >
               ⏳ Stagnate ({counts.stagnate})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveAlertTab("livrare_piese")}
+              className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "livrare_piese" ? "bg-[#D6473F] text-white border-[#D6473F]" : "bg-red-50 text-[#D6473F] border-red-200 hover:bg-red-100"}`}
+            >
+              🚚 Termen livrare ({counts.livrare_piese})
             </button>
             <button
               type="button"

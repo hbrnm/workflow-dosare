@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  X, ShieldAlert, ShoppingCart, ChevronRight, Car, Bell, Clock, Boxes, PackageCheck
+  X, ShieldAlert, ShoppingCart, ChevronRight, Car, Bell, Clock, Boxes, PackageCheck, Truck
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import {
@@ -8,11 +8,13 @@ import {
   normalizeAlertTab,
   getDaysInStage,
   getDaysSinceLastActivity,
+  getDaysPastDeliveryDeadline,
 } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 
 const CATEGORY_META = [
   { key: "stagnate", label: "Termene Depășite", emoji: "🚨", active: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40", idle: "text-[#B23A2E]" },
+  { key: "livrare_piese", label: "Termen Livrare", emoji: "🚚", active: "bg-[#D6473F] text-white border-[#D6473F] ring-[#D6473F]/40", idle: "text-[#D6473F]" },
   { key: "accept_plata", label: "Accept Fără Piese", emoji: "🛒", active: "bg-[#2C4160] text-white border-[#2C4160] ring-[#2C4160]/40", idle: "text-[#2C4160]" },
   { key: "neridicate", label: "Mașini Neridicate", emoji: "📦", active: "bg-[#C98A2B] text-white border-[#C98A2B] ring-[#C98A2B]/40", idle: "text-[#C98A2B]" },
   { key: "inactivitate", label: "Fără Activitate", emoji: "⏱️", active: "bg-[#7A5316] text-white border-[#7A5316] ring-[#7A5316]/40", idle: "text-[#7A5316]" },
@@ -89,7 +91,7 @@ export default function AlerteModal({
           </button>
         </div>
 
-        <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 shrink-0 text-center">
+        <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 shrink-0 text-center">
           {CATEGORY_META.map((cat) => {
             const active = activeTab === cat.key;
             const count = buckets.counts[cat.key] || 0;
@@ -278,7 +280,35 @@ export default function AlerteModal({
                 );
               }
 
-              // piese
+              if (activeTab === "livrare_piese") {
+                const zile = getDaysPastDeliveryDeadline(c);
+                const termen = c.termenLivrarePiese ? String(c.termenLivrarePiese).slice(0, 10) : "—";
+                return (
+                  <div key={c.id} className="flex items-center justify-between bg-white border border-[#EFC3C0] rounded-xl p-3 hover:border-[#D6473F] hover:shadow-sm transition-all group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-[#D6473F]/10 text-[#D6473F] flex items-center justify-center shrink-0">
+                        <Truck size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"} · {c.numarInmatriculare}</div>
+                        <div className="text-[12px] text-[#D6473F] font-medium truncate">
+                          Termen livrare {termen} depășit (+{zile}z) — verifică stocul fizic
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold">
+                        Marchează rezolvat
+                      </button>
+                      <button type="button" onClick={() => openClaim(c)} className="p-1.5 rounded hover:bg-[#F4F1EA]">
+                        <ChevronRight size={18} className="text-[#8A8375]" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (activeTab === "piese") {
               return (
                 <div key={c.id} className="flex items-center justify-between bg-white border border-[#D5E8D8] rounded-xl p-3 hover:border-[#3E6B45] hover:shadow-sm transition-all group">
                   <div className="flex items-center gap-3 min-w-0">
@@ -300,6 +330,9 @@ export default function AlerteModal({
                   </div>
                 </div>
               );
+              }
+
+              return null;
             })
           )}
         </div>
