@@ -391,7 +391,7 @@ export default function TablouPeFazeRedesign({
       )}
 
       {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
-      <div className="flex items-center justify-between gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2 shadow-2xs">
+      <div className="flex items-center gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2 shadow-2xs">
         {/* Chips de filtrare rapidă */}
         <div className="flex items-center gap-2 flex-wrap text-[12px] font-semibold">
           <button
@@ -451,19 +451,6 @@ export default function TablouPeFazeRedesign({
               Filtru sub-etapă ✕
             </button>
           )}
-        </div>
-
-        {/* Legendă Timp în Fază */}
-        <div className="ml-auto hidden xl:flex items-center gap-3 text-[11px] text-[#5B6572] font-semibold">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#2F8F5B]" /> sub 2z
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#D69A1E]" /> 2–4z
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#D6473F]" /> peste 4z
-          </span>
         </div>
       </div>
 
