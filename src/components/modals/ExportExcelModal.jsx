@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { Download, X, CheckSquare, Square, FileSpreadsheet, Layers, Wallet, CalendarClock, Car, BarChart3 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { getStatusDefinition } from "../../constants/config";
-import { fmtDate, todayISO, daysBetween } from "../../utils/dateUtils";
+import { Download, X, CheckSquare, Square, FileSpreadsheet, FileText, Layers, Wallet, CalendarClock, Car, BarChart3 } from "lucide-react";
+import { downloadWorkflowModules } from "../../utils/exportWorkflowModules";
+import { EXPORT_FORMAT } from "../../utils/exportClaimsList";
 
-export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClose }) {
+export default function ExportExcelModal({ claims = [], onClose }) {
   const [selectedModules, setSelectedModules] = useState({
     dosare: true,
     financiar: true,
@@ -39,134 +38,9 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
 
   const selectedCount = Object.values(selectedModules).filter(Boolean).length;
 
-  const handleExport = () => {
+  const handleExport = async (format) => {
     if (selectedCount === 0) return;
-
-    const wb = XLSX.utils.book_new();
-
-    // 1. Modulul Dosare
-    if (selectedModules.dosare) {
-      const rows = claims.map((c) => ({
-        "Nr. dosar": c.numarDosar || "—",
-        "Tip Asigurare": c.tipAsigurare || "—",
-        "Asigurător": c.asigurator || "—",
-        "Client": c.client || "—",
-        "Telefon Client": c.telefonClient || "—",
-        "Nr. Înmatriculare": c.numarInmatriculare || "—",
-        "VIN": c.vin || "—",
-        "Marcă / Model": c.marcaModel || "—",
-        "Status Curent": getStatusDefinition(c.status)?.label || c.status,
-        "Blocat": c.blocat ? "DA" : "NU",
-        "Motiv Blocat": c.motivBlocat || "—",
-        "Data Deschiderii": fmtDate(c.dataDeschiderii),
-        "Data Schimbare Status": fmtDate(c.dataSchimbareStatus),
-        "Creat de": c.createdByEmail || "—",
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Lista Dosare");
-    }
-
-    // 2. Modulul Financiar
-    if (selectedModules.financiar) {
-      const rows = claims.map((c) => {
-        const fin = c.manopera || {};
-        const tin = fin.tinichigerie || {};
-        const vop = fin.vopsitorie || {};
-        const facturatTotal = (Number(tin.facturat) || 0) + (Number(vop.facturat) || 0);
-
-        return {
-          "Nr. dosar": c.numarDosar || "—",
-          "Client": c.client || "—",
-          "Asigurător": c.asigurator || "—",
-          "Valoare Deviz Estimat (RON)": c.valoareDeviz || 0,
-          "Valoare Decontată (RON)": c.valoareDecontata || 0,
-          "Diferență Regie / Client (RON)": c.diferentaRegie || 0,
-          "Facturat Tinichigerie (RON)": tin.facturat || 0,
-          "Ore Tinichigerie": tin.ore || 0,
-          "Facturat Vopsitorie (RON)": vop.facturat || 0,
-          "Ore Vopsitorie": vop.ore || 0,
-          "Total Manoperă Facturată (RON)": facturatTotal,
-          "Comandă Piese": c.pieseComandate ? "Comandate" : "Necomandate",
-          "Piese Sosite": c.pieseSosite ? "Sosite" : "Incomplete / Neprimite",
-          "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-        };
-      });
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Raport Financiar");
-    }
-
-    // 3. Modulul Programări Atelier
-    if (selectedModules.programari) {
-      const rows = claims
-        .filter((c) => c.dataProgramare)
-        .map((c) => ({
-          "Nr. dosar": c.numarDosar || "—",
-          "Client": c.client || "—",
-          "Nr. Inmatriculare": c.numarInmatriculare || "—",
-          "Marcă / Model": c.marcaModel || "—",
-          "Data Programare": fmtDate(c.dataProgramare),
-          "Tinichigiu / Mecanic Alocat": c.mecanicAlocat || "Nealocat",
-          "Vopsitor Alocat": c.vopsitorAlocat || "Nealocat",
-          "Estimare Finalizare Work": fmtDate(c.dataEstimataFinalizare),
-          "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-        }));
-      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: "Nicio programare existentă" }]);
-      XLSX.utils.book_append_sheet(wb, ws, "Programări Atelier");
-    }
-
-    // 4. Modulul Mașini la Schimb
-    if (selectedModules.masiniSchimb) {
-      const rows = claims
-        .filter((c) => c.masinaSchimb && c.masinaSchimb.trim())
-        .map((c) => {
-          const zileEfective = daysBetween(c.dataDariiLaSchimb || c.dataProgramare);
-          const depasit = c.zileChirieAudatex > 0 && zileEfective > c.zileChirieAudatex;
-          return {
-            "Nr. dosar": c.numarDosar || "—",
-            "Client": c.client || "—",
-            "Telefon Client": c.telefonClient || "—",
-            "Mașină la Schimb Alocată": c.masinaSchimb,
-            "Dată Predare Auto": fmtDate(c.dataDariiLaSchimb),
-            "Zile Aprobate Audatex": c.zileChirieAudatex || 0,
-            "Zile Efective Utilizate": zileEfective,
-            "Status Depășire": depasit ? `Depășit cu ${zileEfective - c.zileChirieAudatex} zile` : "În grafic / OK",
-            "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-          };
-        });
-      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: "Nicio mașină la schimb alocată" }]);
-      XLSX.utils.book_append_sheet(wb, ws, "Auto la Schimb");
-    }
-
-    // 5. Modulul Statistici pe Asigurători
-    if (selectedModules.statistici) {
-      const map = {};
-      claims.forEach((c) => {
-        const key = c.asigurator?.trim() || "Neprecizat";
-        if (!map[key]) {
-          map[key] = { total: 0, rca: 0, casco: 0, blocate: 0, facturate: 0, valoareDevizTotal: 0 };
-        }
-        map[key].total += 1;
-        if (c.tipAsigurare === "RCA") map[key].rca += 1;
-        if (c.tipAsigurare === "CASCO") map[key].casco += 1;
-        if (c.blocat) map[key].blocate += 1;
-        if (c.status === "facturat") map[key].facturate += 1;
-        map[key].valoareDevizTotal += Number(c.valoareDeviz) || 0;
-      });
-
-      const rows = Object.entries(map).map(([asigurator, stat]) => ({
-        "Asigurător": asigurator,
-        "Total Dosare": stat.total,
-        "Dosare RCA": stat.rca,
-        "Dosare CASCO": stat.casco,
-        "Dosare Blocate": stat.blocate,
-        "Dosare Finalizate / Facturate": stat.facturate,
-        "Valoare Devize Însumată (RON)": stat.valoareDevizTotal,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Statistici Asigurători");
-    }
-
-    XLSX.writeFile(wb, `export-workflow-dosare-${todayISO()}.xlsx`);
+    await downloadWorkflowModules(claims, selectedModules, format);
     onClose();
   };
 
@@ -219,8 +93,8 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
               <FileSpreadsheet size={20} />
             </div>
             <div>
-              <h2 className="font-extrabold text-[16px] tracking-tight text-white">Export în Excel</h2>
-              <p className="text-[11.5px] text-white/70">Alege modulele ale căror date dorești să le exporți</p>
+              <h2 className="font-extrabold text-[16px] tracking-tight text-white">Export date</h2>
+              <p className="text-[11.5px] text-white/70">Alege modulele și formatul de export</p>
             </div>
           </div>
           <button
@@ -278,7 +152,7 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-white border-t border-[#DAD4C6] flex items-center justify-end gap-3">
+        <div className="p-4 bg-white border-t border-[#DAD4C6] flex items-center justify-end gap-2 flex-wrap">
           <button
             type="button"
             onClick={onClose}
@@ -288,7 +162,20 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
           </button>
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => handleExport(EXPORT_FORMAT.PDF)}
+            disabled={selectedCount === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-[13px] shadow-sm transition-all ${
+              selectedCount > 0
+                ? "bg-[#3B5166] text-white hover:bg-[#2C4160] active:scale-95"
+                : "bg-[#DAD4C6] text-white cursor-not-allowed"
+            }`}
+          >
+            <FileText size={16} />
+            <span>PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport(EXPORT_FORMAT.XLSX)}
             disabled={selectedCount === 0}
             className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-[13px] shadow-sm transition-all ${
               selectedCount > 0
@@ -297,7 +184,7 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
             }`}
           >
             <Download size={16} />
-            <span>Descarcă Excel (.xlsx)</span>
+            <span>Excel</span>
           </button>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Bell, Phone, ChevronDown, ChevronUp, Download
+  Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
@@ -15,6 +15,7 @@ import {
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
 import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from "../../utils/fluxClaimSort";
+import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 
 const STAGE_SORT_KEY = "alerte";
@@ -389,8 +390,8 @@ export default function TablouPeFazeRedesign({
     [claims, focusedStage, pieseAlertDays],
   );
 
-  const handleDownloadList = async () => {
-    await downloadClaimsList(exportClaims, { focusedStage });
+  const handleDownloadList = async (format) => {
+    await downloadClaimsList(exportClaims, { focusedStage, format });
   };
 
   return (
@@ -435,16 +436,12 @@ export default function TablouPeFazeRedesign({
           focusedStage={focusedStage}
           onFocusStage={setFocusedStage}
         />
-        <button
-          type="button"
-          onClick={handleDownloadList}
+        <ExportFormatMenu
+          count={exportClaims.length}
           disabled={exportClaims.length === 0}
-          className="app-table-export-btn shrink-0 inline-flex items-center gap-1.5 self-center px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Descarcă lista filtrată (Excel)"
-        >
-          <Download size={14} />
-          Descarcă listă{exportClaims.length > 0 ? ` (${exportClaims.length})` : ""}
-        </button>
+          onExport={handleDownloadList}
+          className="shrink-0 self-center"
+        />
       </div>
 
       {/* Board vertical — secțiuni etapă, grid responsive */}

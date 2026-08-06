@@ -26,5 +26,6 @@ describe("exportClaimsList", () => {
   it("builds filename with stage slug when filtered", () => {
     expect(claimsListFilename({ focusedStage: "deschidere" })).toMatch(/^lista-dosare-01-acord-intrare-in-reparatie-\d{4}-\d{2}-\d{2}\.xlsx$/);
     expect(claimsListFilename({ focusedStage: null })).toMatch(/^lista-dosare-toate-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    expect(claimsListFilename({ focusedStage: "deschidere", format: "pdf" })).toMatch(/\.pdf$/);
   });
 });

@@ -394,7 +394,7 @@ export default function App() {
     return claims.find((c) => c.id === modalClaim.id) || modalClaim;
   }, [claims, modalClaim]);
 
-  const { exportExcel } = useExportExcel(userClaims);
+  const { exportExcel, exportPdf } = useExportExcel(userClaims);
 
   const viewLabels = {
     brief: "Brief Zilnic",
@@ -1081,6 +1081,7 @@ export default function App() {
         onOpenNewClaim={openNew}
         onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}
+        onExportPdf={exportPdf}
       />
     </div>
   );

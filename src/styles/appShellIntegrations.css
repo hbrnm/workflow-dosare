@@ -1005,6 +1005,24 @@
   border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
 }
 
+.app-shell .app-export-menu-panel {
+  background: var(--app-chrome);
+  border-color: var(--app-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.app-shell .app-export-menu-item {
+  color: var(--app-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.app-shell .app-export-menu-item:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+}
+
 .app-shell .app-table-contact-btn {
   background: var(--app-surface-muted);
   color: var(--app-text);

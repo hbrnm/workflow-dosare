@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
-import { Trash2, Phone, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
@@ -102,8 +103,8 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
     setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleDownloadList = async () => {
-    await downloadClaimsList(sorted, { focusedStage });
+  const handleDownloadList = async (format) => {
+    await downloadClaimsList(sorted, { focusedStage, format });
   };
 
   const renderRow = (c, i, { inGroup = false } = {}) => {
@@ -177,16 +178,12 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
           focusedStage={focusedStage}
           onFocusStage={setFocusedStage}
         />
-        <button
-          type="button"
-          onClick={handleDownloadList}
+        <ExportFormatMenu
+          count={sorted.length}
           disabled={sorted.length === 0}
-          className="app-table-export-btn shrink-0 inline-flex items-center gap-1.5 self-center px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          title="Descarcă lista filtrată (Excel)"
-        >
-          <Download size={14} />
-          Descarcă listă{sorted.length > 0 ? ` (${sorted.length})` : ""}
-        </button>
+          onExport={handleDownloadList}
+          className="shrink-0 self-center"
+        />
       </div>
 
       <div className="app-table-wrap overflow-x-auto rounded-lg flex-1 min-h-0">

@@ -15,6 +15,7 @@ export default function CommandPalette({
   onOpenNewClaim,
   onOpenQuickCapture,
   onExportExcel,
+  onExportPdf,
 }) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -61,6 +62,7 @@ export default function CommandPalette({
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
       { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte cu auto-crop, cameră live", icon: Camera, handler: onOpenQuickCapture },
       { type: "action", id: "excel", label: "Exportă Excel", sub: "Descarcă toate dosarele în format .xlsx", icon: Download, handler: onExportExcel },
+      { type: "action", id: "pdf", label: "Exportă PDF", sub: "Descarcă toate dosarele în format .pdf", icon: FileText, handler: onExportPdf },
     ];
 
     if (!q) {
@@ -93,7 +95,7 @@ export default function CommandPalette({
     );
 
     return [...matchedClaims, ...matchedViews, ...matchedActions];
-  }, [query, claims, onOpenNewClaim, onOpenQuickCapture, onExportExcel]);
+  }, [query, claims, onOpenNewClaim, onOpenQuickCapture, onExportExcel, onExportPdf]);
 
   // Keyboard navigation within list
   const handleKeyDownList = (e) => {
