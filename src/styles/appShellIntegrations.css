@@ -601,11 +601,17 @@
 }
 
 /* Brief — Pulsul atelier (pill-uri etape) */
+.app-shell .app-brief-tab--etapa {
+  display: block;
+  width: 100%;
+}
+
 .app-shell .app-brief-tab--etapa.is-active {
   background: var(--app-surface-muted);
   border-color: var(--app-muted-2);
   color: var(--app-text-strong);
 }
+
 .app-shell .app-brief-tab--etapa:not(.is-active) {
   opacity: 0.55;
   color: var(--app-muted);

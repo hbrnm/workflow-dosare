@@ -2,12 +2,13 @@ import React, { useState, useMemo } from "react";
 import {
   Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
+import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import { alertTabClass } from "../common/alertTabClasses";
+import StageTabLabel from "../common/StageTabLabel";
 
 const FLUX_QUICK_FILTERS = [
   { key: "atentie", tabKey: "atentie", label: "Atenție", dot: "var(--app-danger)" },
@@ -26,18 +27,6 @@ const copyClaimNumber = async (numarDosar, onNotify) => {
   } catch {
     onNotify?.("Nu am putut copia în clipboard.", "error");
   }
-};
-
-const SHORT_STATUS_LABELS = {
-  deschidere: "Acord",
-  reconstatare: "Reconst",
-  accept_plata: "Accept",
-  piese_comandate: "Piese",
-  programat: "Progr",
-  in_lucru: "Lucru",
-  gata_de_ridicare: "Gata",
-  predat_client: "Predat",
-  facturat: "Fact",
 };
 
 // ---------------------------------------------------------------------------
@@ -136,7 +125,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         >
           {STATUSES.map((s) => (
             <option key={s.key} value={s.key} title={s.label}>
-              {SHORT_STATUS_LABELS[s.key] || s.label}
+              {String(s.num).padStart(2, "0")}. {s.label}
             </option>
           ))}
         </select>
@@ -272,7 +261,6 @@ export default function TablouPeFazeRedesign({
   setQuickFilter,
   onNotify,
 }) {
-  const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
@@ -298,13 +286,8 @@ export default function TablouPeFazeRedesign({
     else if (quickFilter === "programate") list = programateClaims;
     else if (quickFilter === "lucru") list = inLucruClaims;
 
-    // Filtru sub-etapă
-    if (selectedSubStatus) {
-      list = list.filter((c) => c.status === selectedSubStatus);
-    }
-
     return list;
-  }, [claims, quickFilter, selectedSubStatus, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
+  }, [claims, quickFilter, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2.5 font-sans text-[var(--app-text)]">
@@ -364,123 +347,84 @@ export default function TablouPeFazeRedesign({
             );
           })}
 
-          {selectedSubStatus && (
-            <button
-              type="button"
-              onClick={() => setSelectedSubStatus(null)}
-              className={`${alertTabClass("subetapa", "subetapa")} text-[11px]`}
-            >
-              Filtru sub-etapă ✕
-            </button>
-          )}
         </div>
       </div>
 
-      {/* 3. VIZUALIZARE KANBAN BOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
-        {PIPELINE_PHASES.map((phase) => {
-          const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
+      {/* 3. COLOANE PE ETAPE (STATUSES — ca în Brief) */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
+        <div className="flex gap-3 h-full min-w-max pb-1 px-0.5">
+          {STATUSES.map((status) => {
+            const stageClaims = filteredClaims.filter((c) => c.status === status.key);
+            const totalAll = claims.filter((c) => c.status === status.key).length;
 
-          return (
-            <div
-              key={phase.key}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const claimId = e.dataTransfer.getData("text/plain");
-                if (claimId && onMoveToStatus) {
-                  const claim = claims.find((cl) => cl.id === claimId);
-                  if (claim) onMoveToStatus(claim, phase.statuses[0]);
-                }
-              }}
-              className="app-flux-column rounded-2xl overflow-hidden flex flex-col h-auto md:h-full"
-            >
-              {/* Header Coloană Fază — accent subtil, fundal neutru (confort vizual) */}
+            return (
               <div
-                className="app-flux-phase-header p-3 shrink-0"
-                data-phase={phase.key}
-              >
-                <div className="flex items-center justify-between font-semibold text-[14px]">
-                  <span>{phase.label}</span>
-                  <span className="app-flux-phase-count px-2 py-0.5 rounded-full text-[11.5px] font-mono">
-                    {phaseClaims.length}
-                  </span>
-                </div>
-                <div className="text-[11px] text-[var(--app-muted)] mt-0.5 leading-tight">
-                  {phase.description}
-                </div>
-              </div>
-
-              {/* Sub-steps Pills inside Phase Header */}
-              <div className="app-flux-substep-bar flex items-center gap-1 flex-wrap p-2 border-b">
-                {phase.statuses.map((stKey) => {
-                  const stDef = getStatusDefinition(stKey);
-                  const stCount = filteredClaims.filter((c) => c.status === stKey).length;
-                  const isActive = selectedSubStatus === stKey;
-
-                  return (
-                    <button
-                      key={stKey}
-                      type="button"
-                      onClick={() => setSelectedSubStatus(isActive ? null : stKey)}
-                      className={`app-flux-substep text-[10px] font-semibold px-1.5 py-0.5 rounded transition-all ${
-                        isActive ? "is-active" : ""
-                      }`}
-                    >
-                      {stDef.num}. {stDef.label} {stCount > 0 ? `(${stCount})` : ""}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Zona carduri — 2 pe rând; grup comasat = linie întreagă */}
-              <div className="flex-1 overflow-y-auto p-2 grid grid-cols-2 gap-1.5 auto-rows-min content-start scrollbar-thin">
-                {(() => {
-                  const groupedMap = new Map();
-                  phaseClaims.forEach((c) => {
-                    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
-                    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
-                    if (!groupedMap.has(key)) groupedMap.set(key, []);
-                    groupedMap.get(key).push(c);
-                  });
-
-                  const groups = Array.from(groupedMap.entries());
-
-                  if (groups.length === 0) {
-                    return (
-                      <div className="app-flux-empty col-span-2 border border-dashed rounded-xl p-5 text-center text-[12px] italic">
-                        Niciun dosar în această fază
-                      </div>
-                    );
+                key={status.key}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const claimId = e.dataTransfer.getData("text/plain");
+                  if (claimId && onMoveToStatus) {
+                    const claim = claims.find((cl) => cl.id === claimId);
+                    if (claim) onMoveToStatus(claim, status.key);
                   }
+                }}
+                className="app-flux-column w-[260px] shrink-0 rounded-2xl overflow-hidden flex flex-col h-full max-h-full"
+              >
+                <div className="p-2 shrink-0 border-b border-[var(--app-border-soft)]">
+                  <StageTabLabel
+                    num={status.num}
+                    label={status.label}
+                    count={totalAll}
+                    className="w-full block"
+                  />
+                </div>
 
-                  return groups.map(([groupKey, groupClaims]) => (
-                    <div
-                      key={groupKey}
-                      className={groupClaims.length > 1 ? "col-span-2 min-w-0" : "min-w-0"}
-                    >
-                      <StackedPhaseCardGroup
-                        groupKey={groupKey}
-                        groupClaims={groupClaims}
-                        onOpen={onOpen}
-                        onMoveToStatus={onMoveToStatus}
-                        onTogglePieseSosite={onTogglePieseSosite}
-                        onScheduleFromPiese={onScheduleFromPiese}
-                        onPatchPieseDates={onPatchPieseDates}
-                        canEditFn={canEditFn}
-                        pragRidicare={pragRidicare}
-                        onNotify={onNotify}
-                      />
-                    </div>
-                  ));
-                })()}
+                <div className="flex-1 overflow-y-auto p-2 grid grid-cols-1 gap-1.5 auto-rows-min content-start scrollbar-thin min-h-[120px]">
+                  {(() => {
+                    const groupedMap = new Map();
+                    stageClaims.forEach((c) => {
+                      const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+                      const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
+                      if (!groupedMap.has(key)) groupedMap.set(key, []);
+                      groupedMap.get(key).push(c);
+                    });
+
+                    const groups = Array.from(groupedMap.entries());
+
+                    if (groups.length === 0) {
+                      return (
+                        <div className="app-flux-empty border border-dashed rounded-xl p-4 text-center text-[11px] italic">
+                          Niciun dosar
+                        </div>
+                      );
+                    }
+
+                    return groups.map(([groupKey, groupClaims]) => (
+                      <div key={groupKey} className="min-w-0">
+                        <StackedPhaseCardGroup
+                          groupKey={groupKey}
+                          groupClaims={groupClaims}
+                          onOpen={onOpen}
+                          onMoveToStatus={onMoveToStatus}
+                          onTogglePieseSosite={onTogglePieseSosite}
+                          onScheduleFromPiese={onScheduleFromPiese}
+                          onPatchPieseDates={onPatchPieseDates}
+                          canEditFn={canEditFn}
+                          pragRidicare={pragRidicare}
+                          onNotify={onNotify}
+                        />
+                      </div>
+                    ));
+                  })()}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
     </div>

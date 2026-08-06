@@ -11,6 +11,7 @@ import { getAlertStyle, getAlertIcon } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
+import StageTabLabel from "../common/StageTabLabel";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate", count: (c, total) => total },
@@ -341,20 +342,15 @@ export default function BriefZilnic({
             <div className="flex flex-wrap gap-1.5 text-[11px]">
               {STATUSES.map((s) => {
                 const count = statusStats[s.key] || 0;
-
                 return (
-                  <button
+                  <StageTabLabel
                     key={s.key}
-                    type="button"
+                    as="button"
+                    num={s.num}
+                    label={s.label}
+                    count={count}
                     onClick={() => onSelectStatusFilter?.(s.key)}
-                    className={`app-brief-tab app-brief-tab--etapa px-2.5 py-1 rounded-lg font-bold border transition-colors text-left ${count > 0 ? "is-active" : ""}`}
-                    title={count > 0 ? `Deschide ${count} dosare — ${s.label}` : `Niciun dosar — ${s.label}`}
-                  >
-                    <span className="font-mono opacity-70">{String(s.num).padStart(2, "0")}.</span>{" "}
-                    {s.label}{" "}
-                    <span className="opacity-70">({count})</span>
-                    {count > 0 && <span className="opacity-50 ml-0.5">→</span>}
-                  </button>
+                  />
                 );
               })}
             </div>
