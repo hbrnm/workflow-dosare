@@ -87,104 +87,155 @@ export default function MobilePieseSositeRow({
     !claim.pieseSosite &&
     toInputDate(claim.termenLivrarePiese) < todayISO();
 
+  const showDatesBlock = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates || compact;
+
+  const metaBoxClass = compact
+    ? "m-piese-sosite-meta text-[10px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 space-y-1"
+    : "m-piese-sosite-meta text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-2 rounded-lg border border-amber-200 space-y-1.5";
+
+  const toggleRowClass = compact
+    ? "flex items-center justify-between gap-2 min-h-0"
+    : `m-piese-sosite-toggle flex items-center justify-between gap-2 font-bold select-none py-2 px-2.5 rounded-lg border transition-all ${
+        checked
+          ? "is-checked bg-emerald-50 text-[#1F7A45] border-emerald-300"
+          : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
+      } ${toggleDisabled ? "opacity-60" : ""}`;
+
   return (
     <div
-      className={`m-piese-sosite space-y-1.5 ${compact ? "" : ""}`}
+      className={`m-piese-sosite ${compact ? "space-y-1" : "space-y-1.5"}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {(claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates) && (
-        <div className="m-piese-sosite-meta text-[10px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 space-y-1">
-          <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0">📦 Comandă:</span>
-            {canEditDates ? (
+      {showDatesBlock && (
+        <div className={metaBoxClass}>
+          {(claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates) && (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0">📦 Comandă:</span>
+                {canEditDates ? (
+                  <input
+                    type="date"
+                    className="font-mono text-[10px] bg-white border border-amber-200 rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px]"
+                    defaultValue={toInputDate(claim.dataComandaPiese)}
+                    disabled={savingDates}
+                    onBlur={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : claim.dataComandaPiese ? (
+                  <span className="font-mono">{toInputDate(claim.dataComandaPiese)}</span>
+                ) : (
+                  <span className="text-[#9A7A30] italic">—</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="shrink-0">🚚 Livrare:</span>
+                {canEditDates ? (
+                  <input
+                    type="date"
+                    className={`font-mono text-[10px] bg-white border rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px] ${
+                      livrareOverdue ? "border-[#D6473F] text-[#D6473F]" : "border-amber-200"
+                    }`}
+                    defaultValue={toInputDate(claim.termenLivrarePiese)}
+                    disabled={savingDates}
+                    onBlur={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : claim.termenLivrarePiese ? (
+                  <span className={`font-mono ${livrareOverdue ? "text-[#D6473F]" : ""}`}>
+                    {toInputDate(claim.termenLivrarePiese)}
+                  </span>
+                ) : (
+                  <span className="text-[#9A7A30] italic">—</span>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className={`${toggleRowClass}${checked ? " is-checked" : ""}`}>
+            <label className={`flex items-center gap-1.5 min-w-0 ${toggleDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
               <input
-                type="date"
-                className="font-mono text-[10px] bg-white border border-amber-200 rounded px-1 py-0.5 flex-1 min-w-0"
-                defaultValue={toInputDate(claim.dataComandaPiese)}
-                disabled={savingDates}
-                onBlur={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : claim.dataComandaPiese ? (
-              <span className="font-mono">{toInputDate(claim.dataComandaPiese)}</span>
-            ) : (
-              <span className="text-[#9A7A30] italic">—</span>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="shrink-0">🚚 Livrare:</span>
-            {canEditDates ? (
-              <input
-                type="date"
-                className={`font-mono text-[10px] bg-white border rounded px-1 py-0.5 flex-1 min-w-0 ${
-                  livrareOverdue ? "border-[#D6473F] text-[#D6473F]" : "border-amber-200"
+                type="checkbox"
+                checked={checked}
+                disabled={toggleDisabled}
+                onChange={(e) => onToggle?.(claim, e.target.checked)}
+                className={`rounded accent-[#2F8F5B] shrink-0 cursor-pointer disabled:cursor-not-allowed ${
+                  compact ? "w-3.5 h-3.5" : "w-4 h-4"
                 }`}
-                defaultValue={toInputDate(claim.termenLivrarePiese)}
-                disabled={savingDates}
-                onBlur={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
-                onClick={(e) => e.stopPropagation()}
               />
-            ) : claim.termenLivrarePiese ? (
-              <span className={`font-mono ${livrareOverdue ? "text-[#D6473F]" : ""}`}>
-                {toInputDate(claim.termenLivrarePiese)}
+              <span className={`flex items-center gap-1 min-w-0 ${compact ? "text-[10px] font-bold" : "text-[11px] font-extrabold"}`}>
+                {!compact && <PackageCheck size={13} className="shrink-0 opacity-80" aria-hidden />}
+                <span className="leading-none">Au sosit piesele?</span>
               </span>
-            ) : (
-              <span className="text-[#9A7A30] italic">—</span>
-            )}
+            </label>
+
+            {checked ? (
+              hasSchedule ? (
+                <span className="text-[9.5px] font-bold bg-[#2C4160] text-white px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-0.5">
+                  <CalendarClock size={10} aria-hidden />
+                  {scheduleLabel}
+                </span>
+              ) : canSchedule ? (
+                <button
+                  type="button"
+                  onClick={openScheduler}
+                  className="m-piese-programare-btn text-[9.5px] font-bold bg-[#C98A2B] hover:bg-[#B37A22] text-white px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-0.5 transition-colors"
+                >
+                  <CalendarClock size={10} aria-hidden />
+                  Progr.
+                </button>
+              ) : (
+                <span className="text-[9.5px] font-bold text-[#1F7A45] shrink-0">✓</span>
+              )
+            ) : null}
           </div>
         </div>
       )}
 
-      <div
-        className={`m-piese-sosite-toggle flex items-center justify-between gap-2 text-[13px] font-extrabold select-none py-2.5 px-3 rounded-xl border-2 transition-all ${
-          checked
-            ? "is-checked bg-emerald-50 text-[#1F7A45] border-emerald-400"
-            : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
-        } ${toggleDisabled ? "opacity-60" : ""}`}
-      >
-        <label className={`flex items-center gap-2.5 min-w-0 flex-1 ${toggleDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
-          <input
-            type="checkbox"
-            checked={checked}
-            disabled={toggleDisabled}
-            onChange={(e) => onToggle?.(claim, e.target.checked)}
-            className="rounded accent-[#2F8F5B] w-[18px] h-[18px] shrink-0 cursor-pointer disabled:cursor-not-allowed"
-          />
-          <span className="flex items-center gap-1.5 min-w-0">
-            <PackageCheck size={16} className="shrink-0 opacity-80" aria-hidden />
-            <span className="leading-tight">Au sosit piesele?</span>
-          </span>
-        </label>
-
-        {checked ? (
-          hasSchedule ? (
-            <span className="text-[10px] font-extrabold bg-[#2C4160] text-white px-2 py-0.5 rounded-md shrink-0 inline-flex items-center gap-1">
-              <CalendarClock size={11} aria-hidden />
-              {scheduleLabel}
+      {!compact && !showDatesBlock && (
+        <div className={toggleRowClass}>
+          <label className={`flex items-center gap-2 min-w-0 flex-1 ${toggleDisabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={toggleDisabled}
+              onChange={(e) => onToggle?.(claim, e.target.checked)}
+              className="rounded accent-[#2F8F5B] w-4 h-4 shrink-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+            <span className="flex items-center gap-1.5 text-[11px] font-extrabold">
+              <PackageCheck size={13} className="shrink-0 opacity-80" aria-hidden />
+              Au sosit piesele?
             </span>
-          ) : canSchedule ? (
-            <button
-              type="button"
-              onClick={openScheduler}
-              className="m-piese-programare-btn text-[10px] font-extrabold bg-[#C98A2B] hover:bg-[#B37A22] active:scale-[0.97] text-white px-2.5 py-1 rounded-md shrink-0 inline-flex items-center gap-1 transition-all"
-            >
-              <CalendarClock size={11} aria-hidden />
-              Programare
-            </button>
+          </label>
+          {checked ? (
+            hasSchedule ? (
+              <span className="text-[10px] font-extrabold bg-[#2C4160] text-white px-2 py-0.5 rounded-md shrink-0 inline-flex items-center gap-1">
+                <CalendarClock size={11} aria-hidden />
+                {scheduleLabel}
+              </span>
+            ) : canSchedule ? (
+              <button
+                type="button"
+                onClick={openScheduler}
+                className="m-piese-programare-btn text-[10px] font-extrabold bg-[#C98A2B] hover:bg-[#B37A22] text-white px-2 py-0.5 rounded-md shrink-0 inline-flex items-center gap-1 transition-all"
+              >
+                <CalendarClock size={11} aria-hidden />
+                Programare
+              </button>
+            ) : (
+              <span className="text-[10px] font-extrabold bg-[#2F8F5B] text-white px-2 py-0.5 rounded-md shrink-0">
+                DA · SOSITE
+              </span>
+            )
           ) : (
-            <span className="text-[10px] font-extrabold bg-[#2F8F5B] text-white px-2 py-0.5 rounded-md shrink-0">
-              DA · SOSITE
-            </span>
-          )
-        ) : (
-          <span className="text-[10px] font-bold text-[#9A7A30] shrink-0">Bifează</span>
-        )}
-      </div>
+            <span className="text-[10px] font-bold text-[#9A7A30] shrink-0">Bifează</span>
+          )}
+        </div>
+      )}
 
       {checked && scheduling && canSchedule && (
-        <div className="m-piese-schedule-panel bg-[#FAF8F5] border border-[#C98A2B]/55 p-2.5 rounded-xl space-y-2">
-          <div className="text-[10.5px] font-bold text-[#7A5316] flex items-center gap-1">
-            <CalendarClock size={12} /> Alege data &amp; ora programării
+        <div className={`m-piese-schedule-panel bg-[#FAF8F5] border border-[#C98A2B]/55 rounded-lg space-y-1.5 ${compact ? "p-1.5" : "p-2.5 rounded-xl space-y-2"}`}>
+          <div className={`font-bold text-[#7A5316] flex items-center gap-1 ${compact ? "text-[9.5px]" : "text-[10.5px]"}`}>
+            <CalendarClock size={compact ? 10 : 12} /> Alege data &amp; ora
           </div>
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -221,7 +272,7 @@ export default function MobilePieseSositeRow({
         </div>
       )}
 
-      {checked && !hasSchedule && !scheduling && (
+      {checked && !hasSchedule && !scheduling && !compact && (
         <p className="m-piese-sosite-hint text-[10.5px] font-semibold text-[#8A8375] px-0.5">
           Apasă <span className="text-[#C98A2B] font-extrabold">Programare</span> ca să alegi data — trece automat în Programat.
         </p>
