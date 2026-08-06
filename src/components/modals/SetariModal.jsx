@@ -14,6 +14,8 @@ export default function SetariModal({
   capacitateZilnica,
   pragRidicare,
   pragInactivitate = 7,
+  termeneAlertaStatus = {},
+  onSaveTermeneAlertaStatus,
   onSaveCapacitate,
   onSavePrag,
   onSavePragInactivitate,
@@ -41,6 +43,13 @@ export default function SetariModal({
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
   const [prag, setPrag] = useState(pragRidicare || 3);
   const [inactivitateDays, setInactivitateDays] = useState(pragInactivitate || 7);
+  const [alertDaysByStatus, setAlertDaysByStatus] = useState(() => {
+    const initial = {};
+    STATUSES.forEach((s) => {
+      initial[s.key] = termeneAlertaStatus[s.key] ?? s.alertDays ?? 3;
+    });
+    return initial;
+  });
   const [tvaDefault, setTvaDefault] = useState(21);
   const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
@@ -66,6 +75,20 @@ export default function SetariModal({
     setLogoUrl(brandingProp.logoUrl || "");
     setAccentColor(brandingProp.accentColor || "#C98A2B");
   }, [brandingProp]);
+
+  useEffect(() => {
+    setAlertDaysByStatus((prev) => {
+      const next = { ...prev };
+      STATUSES.forEach((s) => {
+        if (termeneAlertaStatus[s.key] != null) {
+          next[s.key] = termeneAlertaStatus[s.key];
+        } else if (next[s.key] == null) {
+          next[s.key] = s.alertDays ?? 3;
+        }
+      });
+      return next;
+    });
+  }, [termeneAlertaStatus]);
 
   // New user management states
   const [newUserEmail, setNewUserEmail] = useState("");
@@ -94,6 +117,16 @@ export default function SetariModal({
       }
       if (inactivitateDays !== pragInactivitate && onSavePragInactivitate) {
         await onSavePragInactivitate(Number(inactivitateDays));
+      }
+      if (onSaveTermeneAlertaStatus) {
+        const overrides = {};
+        STATUSES.forEach((s) => {
+          const val = Number(alertDaysByStatus[s.key]);
+          if (!Number.isNaN(val) && val > 0) {
+            overrides[s.key] = val;
+          }
+        });
+        await onSaveTermeneAlertaStatus(overrides);
       }
       if (onSaveInsurers) {
         await onSaveInsurers(insurersList);
@@ -457,6 +490,42 @@ export default function SetariModal({
                         onChange={(e) => setCapacitate(e.target.value)}
                       />
                       <span className="text-[12.5px] font-bold text-[#6B6558]">mașini / zi</span>
+                    </div>
+                  </div>
+
+                  <div className="col-span-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
+                    <div>
+                      <label className="block text-[12.5px] font-bold text-[#23282E] flex items-center gap-1.5">
+                        <Bell size={15} className="text-[#C98A2B]" /> Praguri alertă per stadiu (zile)
+                      </label>
+                      <p className="text-[11px] text-[#8A8375] mt-1">
+                        După câte zile în același stadiu se declanșează alerta pe card și în Brief.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {STATUSES.map((s) => (
+                        <div key={s.key} className="flex items-center justify-between gap-2 bg-white border border-[#DAD4C6] rounded-lg px-2.5 py-1.5">
+                          <span className="text-[11px] font-bold text-[#23282E] truncate" title={s.label}>
+                            {s.num}. {s.label}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="number"
+                              min="1"
+                              max="90"
+                              className="w-14 p-1 border border-[#DAD4C6] rounded-md font-bold text-[13px] bg-white text-center focus:border-[#C98A2B]"
+                              value={alertDaysByStatus[s.key] ?? s.alertDays ?? 3}
+                              onChange={(e) =>
+                                setAlertDaysByStatus((prev) => ({
+                                  ...prev,
+                                  [s.key]: e.target.value === "" ? "" : Number(e.target.value),
+                                }))
+                              }
+                            />
+                            <span className="text-[10px] font-bold text-[#8A8375]">z</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 

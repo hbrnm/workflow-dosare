@@ -3,6 +3,7 @@ import { supabase } from "../supabaseClient";
 import { fromDb, toDb } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
+import { getStatusAlertDays } from "../constants/config";
 
 export function useClaims(session, showNotice) {
   const [claims, setClaims] = useState([]);
@@ -202,6 +203,7 @@ export function useClaims(session, showNotice) {
         ...deliveryPatch,
         ...schedulePatch,
         status: newStatusKey,
+        termenAlertaZile: getStatusAlertDays(newStatusKey),
         dataSchimbareStatus: changedAt,
         dataUltimeiActualizari: changedAt,
         updatedByEmail: myEmail,

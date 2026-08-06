@@ -148,6 +148,8 @@ export default function App() {
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
+    saveTermeneAlertaStatus,
+    termeneAlertaStatus,
     saveBranding,
     uploadBrandingLogo,
     handleAddUser,
@@ -387,6 +389,18 @@ export default function App() {
     return patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
   };
 
+  const handleOpenClaim = useCallback((claimOrRef) => {
+    if (!claimOrRef) return;
+    const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
+    const fresh = id ? claims.find((c) => c.id === id) : null;
+    openExisting(fresh || claimOrRef);
+  }, [claims, openExisting]);
+
+  const activeModalClaim = useMemo(() => {
+    if (!modalClaim?.id) return modalClaim;
+    return claims.find((c) => c.id === modalClaim.id) || modalClaim;
+  }, [claims, modalClaim]);
+
   const { exportExcel } = useExportExcel(userClaims);
 
   const viewLabels = {
@@ -461,8 +475,8 @@ export default function App() {
         {modalClaim && (
           <Suspense fallback={null}>
             <ClaimModal
-              claim={modalClaim}
-              isNew={!modalClaim.numarDosar}
+              claim={activeModalClaim}
+              isNew={!activeModalClaim?.numarDosar}
               onSave={handleSave}
               onDelete={handleDelete}
               onClose={closeClaimModal}
@@ -470,7 +484,7 @@ export default function App() {
               onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openMobileClaim(c), 150); }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
               insurersList={customInsurers}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
               themeId={mobileThemeId}
@@ -496,6 +510,8 @@ export default function App() {
               capacitateZilnica={capacitateZilnica}
               pragRidicare={pragRidicare}
               pragInactivitate={pragInactivitate}
+              termeneAlertaStatus={termeneAlertaStatus}
+              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
               onSaveCapacitate={saveCapacitate}
               onSavePrag={savePragRidicare}
               onSavePragInactivitate={savePragInactivitate}
@@ -841,7 +857,7 @@ export default function App() {
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
-                  onOpen={openExisting}
+                  onOpen={handleOpenClaim}
                   onMoveToStatus={handleMoveToStatus}
                   onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
                   onScheduleFromPiese={async (claim, iso) => {
@@ -854,12 +870,14 @@ export default function App() {
                     }
                     return ok;
                   }}
+                  onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
                   onAddInStatus={openNew}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
                   quickFilter={fluxFilter}
                   setQuickFilter={setFluxFilter}
+                  onNotify={showNotice}
                 />
               )
             ) : view === "dashboard" ? (
@@ -1005,13 +1023,13 @@ export default function App() {
       {/* --- MODALS & OVERLAYS --- */}
       <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
         {modalClaim && (
-          <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={closeClaimModal}>
+          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={closeClaimModal}>
             <ClaimModal
-              claim={modalClaim}
+              claim={activeModalClaim}
               onClose={closeClaimModal}
               onSave={handleSave}
               onDelete={handleDelete}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               insurersList={customInsurers}
               onJumpTo={openExisting}
@@ -1029,7 +1047,7 @@ export default function App() {
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             onClose={closeAlerts}
-            onOpenClaim={openExisting}
+            onOpenClaim={handleOpenClaim}
             onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
             themeId={mobileThemeId}
@@ -1042,6 +1060,8 @@ export default function App() {
             capacitateZilnica={capacitateZilnica}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
+            termeneAlertaStatus={termeneAlertaStatus}
+            onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
             insurersList={customInsurers}
             onSaveInsurers={saveInsurers}
             onSaveCapacitate={saveCapacitate}
@@ -1089,7 +1109,7 @@ export default function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         claims={claims}
-        onOpenClaim={openExisting}
+        onOpenClaim={handleOpenClaim}
         onSwitchView={setView}
         onOpenNewClaim={openNew}
         onOpenQuickCapture={openQuickCapture}

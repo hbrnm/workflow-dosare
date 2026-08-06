@@ -6,19 +6,20 @@ import { todayISO } from "../../utils/dateUtils";
 /**
  * Toggle "Piese sosite" — visible only for status piese_comandate.
  * When checked and unscheduled, shows interactive „Programare” → date/time picker.
- * Saving dataProgramare relies on existing scheduleStatusEffects → status „programat”.
  */
 export default function MobilePieseSositeRow({
   claim,
   canEdit = true,
   onToggle,
   onSchedule,
+  onPatchDates,
   compact = false,
 }) {
   const [scheduling, setScheduling] = useState(false);
   const [editDate, setEditDate] = useState(todayISO());
   const [editTime, setEditTime] = useState("09:00");
   const [saving, setSaving] = useState(false);
+  const [savingDates, setSavingDates] = useState(false);
 
   if (!claim || !isPieseComandateStatus(claim.status)) return null;
 
@@ -26,6 +27,9 @@ export default function MobilePieseSositeRow({
   const hasSchedule = Boolean(claim.dataProgramare);
   const toggleDisabled = !canEdit || typeof onToggle !== "function";
   const canSchedule = canEdit && typeof onSchedule === "function";
+  const canEditDates = canEdit && typeof onPatchDates === "function";
+
+  const toInputDate = (val) => (val ? String(val).slice(0, 10) : "");
 
   const openScheduler = (e) => {
     e.preventDefault();
@@ -57,6 +61,19 @@ export default function MobilePieseSositeRow({
     }
   };
 
+  const handleDateFieldBlur = async (field, value) => {
+    if (!canEditDates) return;
+    const normalized = value || null;
+    const current = field === "dataComandaPiese" ? claim.dataComandaPiese : claim.termenLivrarePiese;
+    if (toInputDate(current) === (normalized || "")) return;
+    setSavingDates(true);
+    try {
+      await onPatchDates(claim, { [field]: normalized });
+    } finally {
+      setSavingDates(false);
+    }
+  };
+
   const scheduleLabel = hasSchedule
     ? (() => {
         const d = String(claim.dataProgramare).slice(0, 10);
@@ -65,17 +82,59 @@ export default function MobilePieseSositeRow({
       })()
     : null;
 
+  const livrareOverdue =
+    claim.termenLivrarePiese &&
+    !claim.pieseSosite &&
+    toInputDate(claim.termenLivrarePiese) < todayISO();
+
   return (
     <div
       className={`m-piese-sosite space-y-1.5 ${compact ? "" : ""}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {claim.dataComandaPiese && (
-        <div className="m-piese-sosite-meta text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
-          <span>📦 Piese comandate la:</span>
-          <span className="font-mono">{String(claim.dataComandaPiese).slice(0, 10)}</span>
+      {(claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates) && (
+        <div className="m-piese-sosite-meta text-[10px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="shrink-0">📦 Comandă:</span>
+            {canEditDates ? (
+              <input
+                type="date"
+                className="font-mono text-[10px] bg-white border border-amber-200 rounded px-1 py-0.5 flex-1 min-w-0"
+                defaultValue={toInputDate(claim.dataComandaPiese)}
+                disabled={savingDates}
+                onBlur={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : claim.dataComandaPiese ? (
+              <span className="font-mono">{toInputDate(claim.dataComandaPiese)}</span>
+            ) : (
+              <span className="text-[#9A7A30] italic">—</span>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="shrink-0">🚚 Livrare:</span>
+            {canEditDates ? (
+              <input
+                type="date"
+                className={`font-mono text-[10px] bg-white border rounded px-1 py-0.5 flex-1 min-w-0 ${
+                  livrareOverdue ? "border-[#D6473F] text-[#D6473F]" : "border-amber-200"
+                }`}
+                defaultValue={toInputDate(claim.termenLivrarePiese)}
+                disabled={savingDates}
+                onBlur={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : claim.termenLivrarePiese ? (
+              <span className={`font-mono ${livrareOverdue ? "text-[#D6473F]" : ""}`}>
+                {toInputDate(claim.termenLivrarePiese)}
+              </span>
+            ) : (
+              <span className="text-[#9A7A30] italic">—</span>
+            )}
+          </div>
         </div>
       )}
+
       <div
         className={`m-piese-sosite-toggle flex items-center justify-between gap-2 text-[13px] font-extrabold select-none py-2.5 px-3 rounded-xl border-2 transition-all ${
           checked

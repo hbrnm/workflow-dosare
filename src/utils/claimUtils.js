@@ -27,7 +27,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     numarDosar: "", tipAsigurare: "RCA", asigurator: defaultInsurer || INSURERS[0] || "Omniasig VIG", client: "", delegat: "", telefonClient: "",
     numarInmatriculare: "", vin: "", marcaModel: "", status: status === "primit" ? "deschidere" : status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
-    termenAlertaZile: 3, dataProgramare: "", dataComandaPiese: null, note: [], documente: [],
+    termenAlertaZile: 3, dataProgramare: "", dataComandaPiese: null, termenLivrarePiese: null, note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",
     operatiuni: { inl: false, rev: false, rep: false, uni: false },
     manopera: {
@@ -79,6 +79,7 @@ export function sanitizeClaim(c) {
     marcaModel: c.marcaModel || "",
     status: c.status || "primit",
     dataComandaPiese: c.dataComandaPiese || null,
+    termenLivrarePiese: c.termenLivrarePiese || null,
     ceEsteDeReparat: c.ceEsteDeReparat || "",
     operatiuni: Array.isArray(c.operatiuni) && c.operatiuni.length > 0
       ? c.operatiuni.map((op, idx) => ({
@@ -269,6 +270,7 @@ export function toDb(c) {
     termen_alerta_zile: c.termenAlertaZile,
     data_programare: c.dataProgramare || null,
     data_comanda_piese: c.dataComandaPiese || null,
+    termen_livrare_piese: c.termenLivrarePiese || null,
     note: c.note,
     documente: stripEphemeralMediaUrls(c.documente),
     poze: stripEphemeralMediaUrls(c.poze || []),
@@ -322,6 +324,7 @@ export function fromDb(row) {
     termenAlertaZile: row.termen_alerta_zile || 3,
     dataProgramare: row.data_programare || "",
     dataComandaPiese: row.data_comanda_piese || null,
+    termenLivrarePiese: row.termen_livrare_piese || null,
     note: row.note || [],
     documente: row.documente || [],
     poze: row.poze || [],
@@ -374,7 +377,8 @@ export const CAMP_LABELS = {
   vin: "VIN",
   marca_model: "Marcă/Model",
   status: "Status",
-  data_programare: "Data programare",
+  data_comanda_piese: "Dată comandă piese",
+  termen_livrare_piese: "Termen livrare piese",
   adusa_fizic: "Adusă fizic",
   ce_este_de_reparat: "De reparat",
   masina_schimb: "Mașină schimb",

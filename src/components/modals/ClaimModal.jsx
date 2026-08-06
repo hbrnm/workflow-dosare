@@ -713,6 +713,30 @@ export default function ClaimModal({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
+                  onClick={() => {
+                    if (form.blocat) {
+                      set("blocat", false);
+                      set("motivBlocare", "");
+                    } else {
+                      const motiv = window.prompt("Motiv blocare dosar:", form.motivBlocare || "");
+                      if (motiv === null) return;
+                      set("blocat", true);
+                      set("motivBlocare", motiv.trim() || "Nespecificat");
+                    }
+                  }}
+                  className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+                    form.blocat
+                      ? "text-white bg-[#B23A2E] border-[#B23A2E] hover:bg-[#9A3228]"
+                      : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                  }`}
+                  title={form.blocat ? "Deblochează dosarul" : "Marchează dosarul ca blocat"}
+                >
+                  <AlertOctagon size={12} />
+                  <span className="hidden md:inline">{form.blocat ? " Deblochează" : " Blochează"}</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleDuplicate}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
                   title="Duplică / Copiază datele acestui dosar"
@@ -907,15 +931,42 @@ export default function ClaimModal({
 
                       {/* Dată Comandă Piese — detalii în coloana Date Dosar */}
                       {isPieseComandateStatus(form.status) && (
-                        <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
-                          <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
-                            <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
+                            <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
+                              <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
+                            </label>
+                            <DatePickerInput
+                              value={form.dataComandaPiese}
+                              onChange={(v) => set("dataComandaPiese", v)}
+                              withTime={false}
+                              placeholder="zi/lună/an"
+                            />
+                          </div>
+                          <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
+                            <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
+                              <Calendar size={12} className="text-[#7A5316]" /> Termen Livrare Piese
+                            </label>
+                            <DatePickerInput
+                              value={form.termenLivrarePiese}
+                              onChange={(v) => set("termenLivrarePiese", v)}
+                              withTime={false}
+                              placeholder="zi/lună/an"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {form.blocat && (
+                        <div className="p-2 bg-red-50/80 border border-red-200 rounded-xl space-y-1">
+                          <label className="block text-[10.5px] font-bold text-[#B23A2E] flex items-center gap-1">
+                            <AlertOctagon size={12} /> Motiv blocare dosar
                           </label>
-                          <DatePickerInput
-                            value={form.dataComandaPiese}
-                            onChange={(v) => set("dataComandaPiese", v)}
-                            withTime={false}
-                            placeholder="zi/lună/an"
+                          <input
+                            className="w-full text-[11.5px] p-1.5 border border-red-200 rounded-lg bg-white font-semibold text-[#23282E]"
+                            placeholder="ex: Litigiu, așteptare deviz..."
+                            value={form.motivBlocare || ""}
+                            onChange={(e) => set("motivBlocare", e.target.value)}
                           />
                         </div>
                       )}
