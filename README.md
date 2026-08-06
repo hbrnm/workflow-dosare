@@ -1,67 +1,52 @@
-# Workflow Daune 2.0 — MVP Faza 1
+# Workflow Daune 2.0
 
-Aplicație PWA (Vite + React + Supabase) pentru service auto: recepție vehicul, inspecție foto, diagramă interactivă de avarii, documente, statusuri dosar și roluri.
+PWA (Vite + React + Supabase) pentru service auto.
 
-Versiunea anterioară rămâne în [`src/App.v1.jsx`](src/App.v1.jsx).
+Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
 
-## Ce include MVP (Faza 1 / punctul A)
+## Ce include acum
 
-- **Recepție ghidată** (wizard): nr. înmatriculare, VIN, marcă, model, kilometraj, tip dosar (RCA / CASCO / Regie proprie / Fără asigurare)
-- **Client & asigurător**: nr. dosar asigurător, inspector daună
-- **Diagramă interactivă** a vehiculului (marcaje pe zone + severitate)
-- **Poze & documente** (comprimare automată, Storage Supabase)
-- **Documente oficiale tipizate** (PV constatare, talon, CI, poliță etc.)
-- **Statusuri** pipeline (aceleași ca în v1)
-- **Roluri**: `receptioner`, `mecanic`, `admin` (`operator` = legacy → receptioner)
-- Listă dosare cu **căutare / filtrare** (nr. auto, client, asigurător, status)
+### Faza 1A — Nucleu
+- Wizard **Recepție** (VIN, marcă, model, km, tip dosar)
+- **Diagramă avarii** interactivă
+- Poze + documente tipizate
+- Statusuri pipeline + roluri `receptioner` / `mecanic` / `admin`
 
-### În afara MVP (Faza 2+)
+### Faza 1B — Operațional
+- **Flux** pe faze (mutare status)
+- **Alerte** operaționale
+- **Programări** (calendar din v1)
+- **Dashboard** KPI (active, timp mediu, restanțe asigurători)
 
-Tracking client, Audatex, SMS/push, dashboard KPI financiar, programator calendar.
+### Faza 2 — Client
+- Link **tracking public**: `https://domeniul-tau/?track=TOKEN`
+- Buton „Copiază link tracking client” în fișa dosarului
 
-## Migrare obligatorie
+## Migrări Supabase (obligatoriu)
 
-În Supabase → **SQL Editor**, rulează:
+Rulează în ordine în **SQL Editor**:
 
-[`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql)
+1. [`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql) — câmpuri recepție / avarii / roluri staff  
+2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`
 
-Adaugă: `kilometraj`, `marca`, `model`, `damage_marks`, `nr_dosar_asigurator`, `inspector_dauna`, `tip_documente` + RLS staff (`is_staff`).
-
-## Setup
+## Setup local / test
 
 ```bash
-cp .env.example .env
-# VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+git checkout cursor/workflow-daune-2-mvp-c50e
+cp .env.example .env   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install
 npm run dev
 ```
 
-## Roluri
+Deschide `http://localhost:5173`.
 
-| Rol | Poate |
-|-----|--------|
-| **receptioner** | Creează dosare, editează tot, documente, statusuri |
-| **mecanic** | Vezi dosare, note progres, poze reparație, statusuri, diagramă |
-| **admin** | Tot + management utilizatori |
+### Preview Vercel
+Deploy branch-ul `cursor/workflow-daune-2-mvp-c50e` (nu `main`) → primești un URL de preview.  
+Merge pe `main` doar după ce ai testat + migrările 23–24.
 
-Rolurile se setează din tab-ul **Echipă** (email trebuie să existe în Supabase Auth).
-
-## Structură 2.0
-
-```
-src/
-  App.jsx                 ← shell 2.0
-  App.v1.jsx              ← aplicația anterioară
-  features/
-    reception/            ← wizard recepție
-    inspection/           ← diagramă avarii
-    claims/               ← listă + detaliu
-    admin/                ← utilizatori
-  constants/roles.js
-  constants/vehicleParts.js
-database/migrations/supabase-migration-23-v2-mvp.sql
-```
+### Tracking client
+1. Deschide un dosar → **Copiază link tracking client**
+2. Deschide linkul într-o fereastră privată (fără login)
 
 ## Revenire la v1
-
-În `src/main.jsx`, importă `App` din `./App.v1.jsx` în loc de `./App.jsx`.
+În `src/main.jsx` importă din `./App.v1.jsx`.
