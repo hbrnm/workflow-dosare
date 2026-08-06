@@ -73,7 +73,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 transition-all duration-150 cursor-pointer select-none hover:shadow-md ${
+      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 transition-colors duration-150 cursor-pointer select-none ${
         claim.blocat || overdue ? "is-alert" : ""
       }`}
       style={{ borderLeftColor: phaseColorHex }}
@@ -400,7 +400,6 @@ export default function TablouPeFazeRedesign({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
-          const phaseColors = getPhaseColumnColors(phase.key);
 
           return (
             <div
@@ -419,18 +418,18 @@ export default function TablouPeFazeRedesign({
               }}
               className="app-flux-column rounded-2xl overflow-hidden flex flex-col h-auto md:h-full"
             >
-              {/* Header Coloană Fază */}
+              {/* Header Coloană Fază — accent subtil, fundal neutru (confort vizual) */}
               <div
-                className="p-3 text-white shrink-0"
-                style={{ background: phaseColors.bg }}
+                className="app-flux-phase-header p-3 shrink-0"
+                data-phase={phase.key}
               >
-                <div className="flex items-center justify-between font-extrabold text-[14px]">
+                <div className="flex items-center justify-between font-semibold text-[14px]">
                   <span>{phase.label}</span>
-                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-[11.5px] font-mono">
+                  <span className="app-flux-phase-count px-2 py-0.5 rounded-full text-[11.5px] font-mono">
                     {phaseClaims.length}
                   </span>
                 </div>
-                <div className="text-[11px] opacity-85 mt-0.5 leading-tight">
+                <div className="text-[11px] text-[var(--app-muted)] mt-0.5 leading-tight">
                   {phase.description}
                 </div>
               </div>

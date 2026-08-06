@@ -744,10 +744,10 @@ export default function App() {
             {totalAlertsCount > 0 && (
               <button
                 onClick={() => openAlerts("depasite")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold bg-[#B23A2E] text-white shadow-sm hover:bg-[#922D24] active:scale-95 transition-all animate-pulse"
+                className="app-alert-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold active:scale-95 transition-colors"
                 title="Deschide Centrul de Alerte"
               >
-                <Bell size={14} className="fill-white" />
+                <Bell size={14} />
                 <span>{totalAlertsCount} Alerte</span>
               </button>
             )}

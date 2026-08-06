@@ -220,3 +220,150 @@
   border-color: var(--app-muted);
   background-color: var(--app-surface-2);
 }
+
+/* ── Confort vizual (GitHub-like: contrast redus, fără strident) ── */
+.app-shell {
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.app-shell .font-extrabold {
+  font-weight: 600;
+}
+
+.app-shell [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+.app-shell .hover\:shadow-md:hover,
+.app-shell .hover\:shadow-sm:hover {
+  box-shadow: none !important;
+}
+
+.app-shell .scrollbar-thin {
+  scrollbar-color: var(--app-border) transparent;
+}
+
+.app-shell .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+}
+
+.app-shell .app-alert-btn {
+  background: color-mix(in srgb, var(--app-danger) 75%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+  border: 1px solid color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+}
+
+.app-shell .app-alert-btn:hover {
+  background: color-mix(in srgb, var(--app-danger) 65%, var(--app-surface-muted));
+}
+
+.app-shell .app-flux-phase-header {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.app-shell .app-flux-phase-header[data-phase="start"] {
+  border-top: 2px solid #388bfd;
+}
+
+.app-shell .app-flux-phase-header[data-phase="eval"] {
+  border-top: 2px solid #539bf5;
+}
+
+.app-shell .app-flux-phase-header[data-phase="lucru"] {
+  border-top: 2px solid color-mix(in srgb, var(--app-accent) 70%, var(--app-border));
+}
+
+.app-shell .app-flux-phase-header[data-phase="final"] {
+  border-top: 2px solid var(--app-success);
+}
+
+.app-shell .app-flux-phase-count {
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
+}
+
+.app-shell .app-flux-card {
+  box-shadow: none;
+}
+
+.app-shell .app-flux-card:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-brief-panel,
+.app-shell .app-flux-column,
+.app-shell .app-prog-panel,
+.app-shell .app-table-wrap {
+  border-color: var(--app-border-soft);
+}
+
+.app-shell .app-prog-cal-cell.is-over,
+.app-shell .app-prog-cal-cell.is-full,
+.app-shell .app-prog-cal-cell.is-ok {
+  background: var(--app-surface);
+}
+
+.app-shell .app-prog-cal-cell.is-over:hover,
+.app-shell .app-prog-cal-cell.is-full:hover,
+.app-shell .app-prog-cal-cell.is-ok:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-prog-cal-badge.is-over {
+  background: color-mix(in srgb, var(--app-danger) 70%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-cal-badge.is-full {
+  background: color-mix(in srgb, var(--app-accent) 60%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-cal-badge.is-ok {
+  background: color-mix(in srgb, var(--app-success) 50%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-flux-chip .w-2.h-2.rounded-full {
+  opacity: 0.75;
+}
+
+.app-shell .app-brief-status-ok,
+.app-shell .app-brief-status-alert {
+  font-weight: 500;
+}
+
+.app-shell .app-table-row.is-alt {
+  background: transparent;
+}
+
+.app-shell .app-table-row:hover {
+  background: var(--app-surface-muted) !important;
+}
+
+/* Pill-uri mai discrete în tabel */
+.app-shell span.inline-flex.bg-\[\#3B5166\],
+.app-shell span.inline-flex.bg-\[\#C98A2B\] {
+  background: var(--app-surface-muted) !important;
+  color: var(--app-muted) !important;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.app-shell span.inline-flex.bg-\[\#C98A2B\] {
+  color: color-mix(in srgb, var(--app-accent) 80%, var(--app-text)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
