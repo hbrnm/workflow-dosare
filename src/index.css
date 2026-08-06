@@ -33,7 +33,7 @@ input, textarea, select, [contenteditable="true"] {
   color: #23282e;
 }
 .in:focus {
-  outline: 2px solid #c98a2b;
+  outline: 2px solid var(--app-accent, #c98a2b);
   outline-offset: 1px;
 }
 

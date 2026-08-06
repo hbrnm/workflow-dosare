@@ -2,19 +2,13 @@ import React, { useState, useMemo } from "react";
 import {
   Clock, Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays } from "../../constants/config";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
-// Culori oficiale per fază din redesign
-const PHASE_COLOR_MAP = {
-  start: { bg: "#1E2A44", soft: "#E9EBF1" },
-  eval:  { bg: "#2E5C8A", soft: "#E7EEF5" },
-  lucru: { bg: "#B8791E", soft: "#FBF0DE" },
-  final: { bg: "#2F6B4E", soft: "#E7F1EC" },
-};
+// Culori oficiale per fază — sursă unică config.js
 
 const copyClaimNumber = async (numarDosar, onNotify) => {
   if (!numarDosar?.trim()) return;
@@ -46,7 +40,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
   const alertThreshold = getClaimAlertDays(claim);
-  const phaseColorHex = PHASE_COLOR_MAP[statusDef.phase]?.bg || "#1E2A44";
+  const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
 
   const currentStatusKey = statusDef.key;
   const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
@@ -458,7 +452,7 @@ export default function TablouPeFazeRedesign({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
-          const phaseColors = PHASE_COLOR_MAP[phase.key] || { bg: "#1E2A44" };
+          const phaseColors = getPhaseColumnColors(phase.key);
 
           return (
             <div

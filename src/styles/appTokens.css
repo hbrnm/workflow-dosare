@@ -1,0 +1,73 @@
+/* ── Design tokens desktop (Atelier — aliniat cu tema mobilă) ── */
+
+.app-shell {
+  background: var(--app-bg, #F5F2EB);
+  color: var(--app-text, #23282E);
+  font-family: var(--app-font-body, "Inter", system-ui, sans-serif);
+}
+
+.app-chrome {
+  background: var(--app-chrome, #1C2127);
+  color: var(--app-chrome-text, #fff);
+}
+
+.app-surface {
+  background: var(--app-surface, #fff);
+  border-color: var(--app-border, #dad4c6);
+}
+
+.app-surface-2 {
+  background: var(--app-surface-2, #faf8f5);
+}
+
+.app-accent-bg {
+  background: var(--app-accent, #c98a2b);
+  color: var(--app-accent-text, #fff);
+}
+
+.app-accent-bg:hover {
+  background: var(--app-accent-hover, #b37a22);
+}
+
+.app-accent-text {
+  color: var(--app-accent, #c98a2b);
+}
+
+.app-accent-ring:focus-visible {
+  outline: 2px solid var(--app-accent, #c98a2b);
+  outline-offset: 2px;
+}
+
+.app-header {
+  background: var(--app-surface, #fff);
+  border-color: var(--app-border-soft, #e0d9cc);
+}
+
+.app-segment-track {
+  background: var(--app-surface-muted, #efeae1);
+  border-color: var(--app-border, #dad4c6);
+}
+
+.app-display {
+  font-family: var(--app-font-display, "Space Grotesk", sans-serif);
+}
+
+.app-card {
+  background: var(--app-surface, #fff);
+  border: 1px solid var(--app-border, #dad4c6);
+  border-radius: var(--app-radius, 12px);
+  box-shadow: var(--app-shadow);
+}
+
+.app-muted {
+  color: var(--app-muted, #6b6558);
+}
+
+.in {
+  border-color: var(--app-border, #dad4c6);
+  color: var(--app-text, #23282e);
+}
+
+.in:focus {
+  outline-color: var(--app-accent, #c98a2b);
+}

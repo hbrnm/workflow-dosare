@@ -7,30 +7,9 @@ import {
 import { todayISO, telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
 import { STATUSES, PHASE_COLORS } from "../../constants/config";
+import { getAlertStyle, getAlertIcon } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
-
-const ALERT_ICON_BY_TYPE = {
-  blocate: AlertOctagon,
-  masini_schimb: Car,
-  stagnate: Clock,
-  livrare_piese: Truck,
-  piese: Boxes,
-  neridicate: PackageCheck,
-  accept_plata: ShoppingCart,
-  inactivitate: Clock,
-};
-
-const ALERT_STYLE_BY_TYPE = {
-  blocate: { badgeColor: "bg-[#B23A2E] text-white", borderColor: "border-[#B23A2E]" },
-  masini_schimb: { badgeColor: "bg-[#C98A2B] text-white", borderColor: "border-[#C98A2B]" },
-  stagnate: { badgeColor: "bg-[#3B5166] text-white", borderColor: "border-[#3B5166]" },
-  livrare_piese: { badgeColor: "bg-[#D6473F] text-white", borderColor: "border-[#D6473F]" },
-  piese: { badgeColor: "bg-[#7A5316] text-white", borderColor: "border-[#C98A2B]/60" },
-  neridicate: { badgeColor: "bg-[#3E6B45] text-white", borderColor: "border-[#3E6B45]" },
-  accept_plata: { badgeColor: "bg-[#2C4160] text-white", borderColor: "border-[#2C4160]" },
-  inactivitate: { badgeColor: "bg-[#7A5316] text-white", borderColor: "border-[#7A5316]" },
-};
 
 export default function BriefZilnic({
   claims,
@@ -69,8 +48,8 @@ export default function BriefZilnic({
   const alertsList = useMemo(() => {
     return filterAlertItems(buckets.items, activeAlertTab).map((item) => ({
       ...item,
-      icon: ALERT_ICON_BY_TYPE[item.type] || Clock,
-      ...(ALERT_STYLE_BY_TYPE[item.type] || ALERT_STYLE_BY_TYPE.stagnate),
+      icon: getAlertIcon(item.type) || Clock,
+      ...getAlertStyle(item.type),
     }));
   }, [buckets.items, activeAlertTab]);
 
