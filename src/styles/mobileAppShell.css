@@ -39,21 +39,28 @@
 .mobile-shell.app-shell .m-nav-item {
   color: var(--app-muted);
   border: 1.5px solid transparent;
-  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
 }
 
 .mobile-shell.app-shell .m-nav-item.is-active {
   color: var(--app-text-strong);
   background: var(--app-bg);
   border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
   font-weight: 700;
   opacity: 1;
 }
 
-.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon {
-  border-radius: 9999px;
-  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--app-text-strong) 38%, transparent);
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon,
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-label {
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-nav-icon {
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-nav-item:active {
+  transform: none;
 }
 
 .mobile-shell.app-shell .m-content {
