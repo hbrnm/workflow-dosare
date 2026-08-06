@@ -1,73 +1,165 @@
-/* ── Design tokens desktop (Atelier — aliniat cu tema mobilă) ── */
+/* ── Desktop minimalist — tokeni + utilitare (.app-shell) ── */
 
 .app-shell {
-  background: var(--app-bg, #F5F2EB);
-  color: var(--app-text, #23282E);
+  background: var(--app-bg, #F7F7F5);
+  color: var(--app-text, #1A1A1A);
   font-family: var(--app-font-body, "Inter", system-ui, sans-serif);
 }
 
 .app-chrome {
-  background: var(--app-chrome, #1C2127);
-  color: var(--app-chrome-text, #fff);
+  background: var(--app-chrome, #fff);
+  color: var(--app-chrome-text, #1A1A1A);
+}
+
+.app-sidebar {
+  background: var(--app-chrome, #fff);
+  color: var(--app-chrome-text, #1A1A1A);
+  border-right: 1px solid var(--app-border, #E5E5E0);
 }
 
 .app-surface {
   background: var(--app-surface, #fff);
-  border-color: var(--app-border, #dad4c6);
+  border-color: var(--app-border, #E5E5E0);
 }
 
 .app-surface-2 {
-  background: var(--app-surface-2, #faf8f5);
+  background: var(--app-surface-2, #F3F3F1);
 }
 
 .app-accent-bg {
-  background: var(--app-accent, #c98a2b);
+  background: var(--app-accent, #C98A2B);
   color: var(--app-accent-text, #fff);
 }
 
 .app-accent-bg:hover {
-  background: var(--app-accent-hover, #b37a22);
+  background: var(--app-accent-hover, #B37A22);
 }
 
 .app-accent-text {
-  color: var(--app-accent, #c98a2b);
+  color: var(--app-accent, #C98A2B);
 }
 
 .app-accent-ring:focus-visible {
-  outline: 2px solid var(--app-accent, #c98a2b);
+  outline: 2px solid var(--app-accent, #C98A2B);
   outline-offset: 2px;
 }
 
 .app-header {
   background: var(--app-surface, #fff);
-  border-color: var(--app-border-soft, #e0d9cc);
+  border-color: var(--app-border-soft, #EDEDEA);
 }
 
 .app-segment-track {
-  background: var(--app-surface-muted, #efeae1);
-  border-color: var(--app-border, #dad4c6);
+  background: var(--app-surface-muted, #EBEBE8);
+  border-color: var(--app-border, #E5E5E0);
 }
 
 .app-display {
-  font-family: var(--app-font-display, "Space Grotesk", sans-serif);
+  font-family: var(--app-font-display, "Inter", system-ui, sans-serif);
 }
 
 .app-card {
   background: var(--app-surface, #fff);
-  border: 1px solid var(--app-border, #dad4c6);
-  border-radius: var(--app-radius, 12px);
+  border: 1px solid var(--app-border, #E5E5E0);
+  border-radius: var(--app-radius, 8px);
   box-shadow: var(--app-shadow);
 }
 
 .app-muted {
-  color: var(--app-muted, #6b6558);
+  color: var(--app-muted, #737373);
+}
+
+.app-nav-btn {
+  color: var(--app-chrome-muted, #737373);
+  border-radius: var(--app-radius, 8px);
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-nav-btn:hover {
+  background: var(--app-surface-2, #F3F3F1);
+  color: var(--app-chrome-text, #1A1A1A);
+}
+
+.app-nav-btn.is-active {
+  background: var(--app-surface-2, #F3F3F1);
+  color: var(--app-text-strong, #0D0D0D);
+}
+
+.app-modal-overlay {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.app-modal-panel {
+  background: var(--app-surface, #fff);
+  border: 1px solid var(--app-border, #E5E5E0);
+  border-radius: var(--app-radius-lg, 12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--app-surface, #fff);
+  color: var(--app-text, #1A1A1A);
+  border-bottom: 1px solid var(--app-border-soft, #EDEDEA);
+}
+
+.app-modal-btn-primary {
+  background: var(--app-accent, #C98A2B);
+  color: var(--app-accent-text, #fff);
+}
+
+.app-modal-btn-primary:hover {
+  background: var(--app-accent-hover, #B37A22);
+}
+
+.app-modal-btn-secondary {
+  background: var(--app-surface-2, #F3F3F1);
+  color: var(--app-text, #1A1A1A);
+  border: 1px solid var(--app-border, #E5E5E0);
 }
 
 .in {
-  border-color: var(--app-border, #dad4c6);
-  color: var(--app-text, #23282e);
+  border-color: var(--app-border, #E5E5E0);
+  color: var(--app-text, #1A1A1A);
 }
 
 .in:focus {
-  outline-color: var(--app-accent, #c98a2b);
+  outline-color: var(--app-accent, #C98A2B);
+}
+
+/* Remap clase Tailwind hardcodate în workspace desktop */
+.app-shell .bg-white { background-color: var(--app-surface) !important; }
+.app-shell .bg-\[\#FAF8F5\],
+.app-shell .bg-\[\#FCFAF5\],
+.app-shell .bg-\[\#F4F1EA\] { background-color: var(--app-surface-2) !important; }
+.app-shell .bg-\[\#EFEAE1\],
+.app-shell .bg-\[\#E2DBCF\] { background-color: var(--app-surface-muted) !important; }
+.app-shell .text-\[\#23282E\],
+.app-shell .text-\[\#1B2430\],
+.app-shell .text-\[\#3B5166\] { color: var(--app-text) !important; }
+.app-shell .text-\[\#6B6558\],
+.app-shell .text-\[\#8A8375\],
+.app-shell .text-\[\#A69F91\] { color: var(--app-muted) !important; }
+.app-shell .text-\[\#C98A2B\] { color: var(--app-accent) !important; }
+.app-shell .border-\[\#DAD4C6\],
+.app-shell .border-\[\#E0D9CC\],
+.app-shell .border-\[\#E4E1D9\],
+.app-shell .border-\[\#EFEAE1\] { border-color: var(--app-border) !important; }
+.app-shell .bg-\[\#C98A2B\] { background-color: var(--app-accent) !important; color: var(--app-accent-text) !important; }
+.app-shell .hover\:bg-\[\#B37A22\]:hover { background-color: var(--app-accent-hover) !important; }
+.app-shell .focus\:border-\[\#C98A2B\]:focus { border-color: var(--app-accent) !important; }
+.app-shell .focus\:bg-white:focus { background-color: var(--app-surface) !important; }
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  border-color: var(--app-border);
+}
+.app-shell input:focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  border-color: var(--app-accent);
 }

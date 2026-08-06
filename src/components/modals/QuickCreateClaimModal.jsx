@@ -2,8 +2,14 @@ import React, { useState } from "react";
 import { X, Plus, ShieldCheck, FileText, Phone, Car, Building2, Check, User } from "lucide-react";
 import { INSURERS } from "../../constants/config";
 import { emptyClaim, getMostFrequentInsurer } from "../../utils/claimUtils";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+  modalHeaderClass,
+} from "../common/modalShellClasses";
 
-export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [], themeId = "atelier" }) {
+export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [], themeId = "atelier", desktopUi = false }) {
   const defaultInsurer = getMostFrequentInsurer(allClaims, INSURERS[0]);
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
@@ -54,24 +60,26 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
   };
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-[9999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" data-mtheme={themeId}>
-      <div className="m-modal-panel bg-white rounded-3xl shadow-2xl border border-[#DAD4C6] w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div
+      className={modalOverlayClass(desktopUi, { dense: true })}
+      {...modalOverlayProps(desktopUi, themeId)}
+    >
+      <div className={modalPanelClass(desktopUi, "w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150 bg-[var(--app-surface)]")}>
         
-        {/* HEADER MODAL */}
-        <div className="m-modal-header bg-[#1C2127] text-white px-5 py-4 flex items-center justify-between">
+        <div className={modalHeaderClass(desktopUi, "px-5 py-4 flex items-center justify-between")}>
           <div className="flex items-center gap-2.5">
-            <div className="m-modal-header-icon w-8 h-8 rounded-xl bg-[#C98A2B] flex items-center justify-center font-extrabold text-white">
+            <div className={`w-8 h-8 rounded-lg app-accent-bg flex items-center justify-center font-semibold ${desktopUi ? "" : "m-modal-header-icon rounded-xl font-extrabold"}`}>
               <Plus size={20} />
             </div>
             <div>
-              <h2 className="font-extrabold text-[16px] tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h2 className={`font-semibold text-[16px] tracking-tight app-display ${desktopUi ? "text-[var(--app-text)]" : "font-extrabold text-white"}`}>
                 Dosar Nou Rapid
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className={`p-1.5 rounded-full transition-colors ${desktopUi ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]" : "text-white/70 hover:text-white hover:bg-white/10"}`}
           >
             <X size={20} />
           </button>
