@@ -1,0 +1,209 @@
+/* Desktop visual themes — applied via [data-mtheme] on .app-shell */
+
+.app-shell {
+  font-family: var(--app-font-body, "Inter", system-ui, sans-serif);
+}
+
+.app-shell .app-display {
+  font-family: var(--app-font-display, "Space Grotesk", sans-serif);
+}
+
+/* Soft remap of frequent Tailwind hardcodes inside desktop workspace */
+.app-shell .bg-white { background-color: var(--app-surface) !important; }
+.app-shell .bg-\[\#FAF8F5\] { background-color: var(--app-surface-2) !important; }
+.app-shell .bg-\[\#FCFAF5\] { background-color: var(--app-surface-2) !important; }
+.app-shell .bg-\[\#F4F1EA\] { background-color: var(--app-surface-2) !important; }
+.app-shell .bg-\[\#EFEAE1\] { background-color: var(--app-bg) !important; }
+.app-shell .bg-\[\#E2DBCF\] { background-color: var(--app-surface-muted) !important; }
+.app-shell .bg-\[\#1C2127\] { background-color: var(--app-chrome) !important; }
+.app-shell .bg-\[\#C98A2B\] { background-color: var(--app-accent) !important; color: var(--app-accent-text) !important; }
+.app-shell .bg-\[\#2C4160\] { background-color: var(--app-accent) !important; color: var(--app-accent-text) !important; }
+.app-shell .text-\[\#23282E\] { color: var(--app-text) !important; }
+.app-shell .text-\[\#1B2430\] { color: var(--app-text-strong) !important; }
+.app-shell .text-\[\#6B6558\] { color: var(--app-muted) !important; }
+.app-shell .text-\[\#8A8375\] { color: var(--app-muted-2) !important; }
+.app-shell .text-\[\#A69F91\] { color: var(--app-muted-2) !important; }
+.app-shell .text-\[\#C98A2B\] { color: var(--app-accent) !important; }
+.app-shell .border-\[\#DAD4C6\] { border-color: var(--app-border) !important; }
+.app-shell .border-\[\#E0D9CC\] { border-color: var(--app-border-soft) !important; }
+.app-shell .border-\[\#E4E1D9\] { border-color: var(--app-border) !important; }
+.app-shell .border-\[\#EFEAE1\] { border-color: var(--app-border) !important; }
+.app-shell .rounded-2xl { border-radius: var(--app-radius-lg, 16px) !important; }
+.app-shell .rounded-xl { border-radius: var(--app-radius) !important; }
+.app-shell .rounded-lg { border-radius: var(--app-radius-sm) !important; }
+
+.app-shell .bg-slate-50 { background-color: var(--app-surface-2) !important; }
+.app-shell .border-slate-200 { border-color: var(--app-border) !important; }
+.app-shell .text-\[\#3B5166\] { color: var(--app-text) !important; }
+.app-shell .hover\:border-\[\#2C4160\]:hover { border-color: var(--app-accent) !important; }
+.app-shell .hover\:border-\[\#C98A2B\]:hover { border-color: var(--app-accent) !important; }
+.app-shell .hover\:border-\[\#1B2430\]\/30:hover { border-color: color-mix(in srgb, var(--app-text-strong) 30%, transparent) !important; }
+
+.app-shell input:focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  border-color: var(--app-accent) !important;
+}
+
+.app-shell .focus\:border-\[\#C98A2B\]:focus { border-color: var(--app-accent) !important; }
+.app-shell .focus\:bg-white:focus { background-color: var(--app-surface) !important; }
+
+/* ── Forge (dark) ── */
+.app-shell[data-mtheme="forge"] .bg-white,
+.app-shell[data-mtheme="forge"] .bg-white\/80,
+.app-shell[data-mtheme="forge"] .bg-\[\#FAF8F5\],
+.app-shell[data-mtheme="forge"] .bg-\[\#FCFAF5\],
+.app-shell[data-mtheme="forge"] .bg-\[\#F4F1EA\],
+.app-shell[data-mtheme="forge"] .bg-\[\#EFEAE1\],
+.app-shell[data-mtheme="forge"] .bg-green-50,
+.app-shell[data-mtheme="forge"] .bg-red-50\/60,
+.app-shell[data-mtheme="forge"] .bg-amber-50,
+.app-shell[data-mtheme="forge"] .bg-emerald-50,
+.app-shell[data-mtheme="forge"] .bg-blue-50,
+.app-shell[data-mtheme="forge"] .bg-orange-50,
+.app-shell[data-mtheme="forge"] .bg-yellow-50,
+.app-shell[data-mtheme="forge"] .bg-slate-50,
+.app-shell[data-mtheme="forge"] .bg-\[\#EEF1F3\],
+.app-shell[data-mtheme="forge"] .bg-\[\#EEF5EE\],
+.app-shell[data-mtheme="forge"] .bg-\[\#1C2127\] {
+  background-color: var(--app-surface) !important;
+}
+
+.app-shell[data-mtheme="forge"] .bg-\[\#E2DBCF\] {
+  background-color: var(--app-surface-2) !important;
+}
+
+.app-shell[data-mtheme="forge"] .text-\[\#23282E\],
+.app-shell[data-mtheme="forge"] .text-\[\#1B2430\],
+.app-shell[data-mtheme="forge"] .text-\[\#3B5166\],
+.app-shell[data-mtheme="forge"] .text-\[\#3E6B45\] {
+  color: var(--app-text) !important;
+}
+
+.app-shell[data-mtheme="forge"] .text-\[\#6B6558\],
+.app-shell[data-mtheme="forge"] .text-\[\#8A8375\],
+.app-shell[data-mtheme="forge"] .text-\[\#A69F91\] {
+  color: var(--app-muted) !important;
+}
+
+.app-shell[data-mtheme="forge"] .border-\[\#DAD4C6\],
+.app-shell[data-mtheme="forge"] .border-\[\#E0D9CC\],
+.app-shell[data-mtheme="forge"] .border-\[\#E4E1D9\],
+.app-shell[data-mtheme="forge"] .border-\[\#EFEAE1\],
+.app-shell[data-mtheme="forge"] .border-green-200,
+.app-shell[data-mtheme="forge"] .border-red-100,
+.app-shell[data-mtheme="forge"] .border-red-200 {
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="forge"] .app-header {
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="forge"] .app-segment-track {
+  background: var(--app-surface-2) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="forge"] input,
+.app-shell[data-mtheme="forge"] select,
+.app-shell[data-mtheme="forge"] textarea {
+  background-color: var(--app-surface-2) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="forge"] input::placeholder,
+.app-shell[data-mtheme="forge"] textarea::placeholder {
+  color: var(--app-muted) !important;
+}
+
+.app-shell[data-mtheme="forge"] .hover\:bg-gray-200:hover {
+  background-color: var(--app-surface-2) !important;
+}
+
+/* ── Pulse (dark) ── */
+.app-shell[data-mtheme="pulse"] .bg-white,
+.app-shell[data-mtheme="pulse"] .bg-white\/80,
+.app-shell[data-mtheme="pulse"] .bg-\[\#FAF8F5\],
+.app-shell[data-mtheme="pulse"] .bg-\[\#FCFAF5\],
+.app-shell[data-mtheme="pulse"] .bg-\[\#F4F1EA\],
+.app-shell[data-mtheme="pulse"] .bg-\[\#EFEAE1\],
+.app-shell[data-mtheme="pulse"] .bg-green-50,
+.app-shell[data-mtheme="pulse"] .bg-red-50\/60,
+.app-shell[data-mtheme="pulse"] .bg-amber-50,
+.app-shell[data-mtheme="pulse"] .bg-emerald-50,
+.app-shell[data-mtheme="pulse"] .bg-blue-50,
+.app-shell[data-mtheme="pulse"] .bg-orange-50,
+.app-shell[data-mtheme="pulse"] .bg-yellow-50,
+.app-shell[data-mtheme="pulse"] .bg-slate-50,
+.app-shell[data-mtheme="pulse"] .bg-\[\#EEF1F3\],
+.app-shell[data-mtheme="pulse"] .bg-\[\#EEF5EE\] {
+  background-color: var(--app-surface) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .bg-\[\#E2DBCF\] {
+  background-color: var(--app-surface-2) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .text-\[\#23282E\],
+.app-shell[data-mtheme="pulse"] .text-\[\#1B2430\] {
+  color: var(--app-text) !important;
+}
+
+.app-shell[data-mtheme="pulse"] :not(.wa-btn):not(.m-call-btn).text-\[\#3B5166\],
+.app-shell[data-mtheme="pulse"] :not(.wa-btn):not(.m-call-btn).text-\[\#3E6B45\] {
+  color: var(--app-muted) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .text-\[\#6B6558\],
+.app-shell[data-mtheme="pulse"] .text-\[\#8A8375\],
+.app-shell[data-mtheme="pulse"] .text-\[\#A69F91\] {
+  color: var(--app-muted) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .border-green-200,
+.app-shell[data-mtheme="pulse"] .border-red-100,
+.app-shell[data-mtheme="pulse"] .border-red-200,
+.app-shell[data-mtheme="pulse"] .border-\[\#DAD4C6\],
+.app-shell[data-mtheme="pulse"] .border-\[\#E0D9CC\],
+.app-shell[data-mtheme="pulse"] .border-\[\#E4E1D9\],
+.app-shell[data-mtheme="pulse"] .border-\[\#EFEAE1\] {
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .app-header {
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .app-segment-track {
+  background: var(--app-surface-2) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="pulse"] input,
+.app-shell[data-mtheme="pulse"] select,
+.app-shell[data-mtheme="pulse"] textarea {
+  background-color: var(--app-surface-2) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="pulse"] input::placeholder,
+.app-shell[data-mtheme="pulse"] textarea::placeholder {
+  color: var(--app-muted) !important;
+}
+
+.app-shell[data-mtheme="pulse"] .hover\:bg-gray-200:hover {
+  background-color: var(--app-surface-2) !important;
+}
+
+.app-shell[data-mtheme="sport"] .app-header {
+  border-color: var(--app-border) !important;
+}
+
+.app-shell[data-mtheme="agora"] .app-header {
+  background: var(--app-surface) !important;
+}

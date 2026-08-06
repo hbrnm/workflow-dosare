@@ -625,17 +625,17 @@ export default function SetariModal({
               {typeof onMobileThemeChange === "function" && (
                 <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
                   <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                    <Palette size={16} className="text-[#C98A2B]" /> Temă mobilă
+                    <Palette size={16} className="text-[#C98A2B]" /> Temă aplicație
                   </h3>
                   <p className="text-[11.5px] text-[#8A8375]">
-                    Schimbă culorile, fonturile, icoanele și layout-ul barei de navigare pe telefon.
-                    Se aplică imediat în modul mobil.
+                    Schimbă culorile, fonturile și stilul vizual pe desktop și mobil.
+                    Pe telefon se aplică și layout-ul barei de navigare. Efect imediat.
                   </p>
                   <MobileThemePicker
                     currentId={mobileThemeId}
                     onSelect={(id) => {
                       onMobileThemeChange(id);
-                      onNotify?.("Tema mobilă a fost actualizată", "success");
+                      onNotify?.("Tema aplicației a fost actualizată", "success");
                     }}
                   />
                 </div>

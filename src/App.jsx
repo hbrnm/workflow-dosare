@@ -34,8 +34,8 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { darkenHex } from "./constants/branding";
-import { APP_TOKEN_DEFAULTS } from "./constants/appTokens";
 import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
+import { applyThemeToRoot } from "./constants/themeApply";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -93,21 +93,6 @@ export default function App() {
     saveMobileThemeId(id);
   }, []);
 
-  useEffect(() => {
-    try {
-      document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
-    } catch {
-      /* ignore */
-    }
-    return () => {
-      try {
-        delete document.documentElement.dataset.mtheme;
-      } catch {
-        /* ignore */
-      }
-    };
-  }, [mobileThemeId]);
-
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
@@ -160,13 +145,11 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    Object.entries(APP_TOKEN_DEFAULTS).forEach(([key, val]) => {
-      document.documentElement.style.setProperty(key, val);
+    applyThemeToRoot(document.documentElement, {
+      themeId: mobileThemeId,
+      accentColor: branding?.accentColor,
     });
-    const accent = branding?.accentColor || APP_TOKEN_DEFAULTS["--app-accent"];
-    document.documentElement.style.setProperty("--app-accent", accent);
-    document.documentElement.style.setProperty("--brand-accent", accent);
-  }, [branding?.accentColor]);
+  }, [mobileThemeId, branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -550,7 +533,10 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex app-shell overflow-hidden relative font-sans">
+    <div
+      className="h-screen flex app-shell overflow-hidden relative font-sans"
+      data-mtheme={mobileThemeId || "atelier"}
+    >
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
