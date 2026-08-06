@@ -6,28 +6,23 @@ alter table public.dosare
 alter table public.setari
   add column if not exists termene_alerta_status jsonb default '{}'::jsonb;
 
--- Include termene_alerta_status în view-ul public (dacă există)
-do $$
-begin
-  if exists (
-    select 1 from pg_views where schemaname = 'public' and viewname = 'setari_publice'
-  ) then
-    execute $v$
-      create or replace view public.setari_publice as
-      select
-        id,
-        capacitate_zilnica,
-        prag_ridicare_zile,
-        prag_inactivitate_zile,
-        utilizatori,
-        asiguratori,
-        termene_alerta_status,
-        atelier_nume,
-        atelier_short,
-        logo_url,
-        accent_color
-      from public.setari
-    $v$;
-    grant select on public.setari_publice to authenticated;
-  end if;
-end $$;
+-- PostgreSQL nu permite CREATE OR REPLACE VIEW cu coloane inserate în mijloc
+-- (interpretă schimbarea pozițională ca RENAME). Recreăm view-ul.
+drop view if exists public.setari_publice;
+
+create view public.setari_publice as
+select
+  id,
+  capacitate_zilnica,
+  prag_ridicare_zile,
+  prag_inactivitate_zile,
+  utilizatori,
+  asiguratori,
+  termene_alerta_status,
+  atelier_nume,
+  atelier_short,
+  logo_url,
+  accent_color
+from public.setari;
+
+grant select on public.setari_publice to authenticated;
