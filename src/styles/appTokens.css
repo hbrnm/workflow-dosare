@@ -83,8 +83,6 @@
 .app-nav-btn.is-active {
   background: var(--app-surface-2, #F3F3F1);
   color: var(--app-text-strong, #0D0D0D);
-  box-shadow: inset 3px 0 0 var(--app-accent, #C98A2B);
-  font-weight: 700;
 }
 
 .app-modal-overlay {

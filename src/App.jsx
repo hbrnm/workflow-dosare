@@ -94,7 +94,6 @@ export default function App() {
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [navHovered, setNavHovered] = useState(false);
 
   const { session, authLoading, setSession, handleLogout } = useAuth();
 
@@ -553,8 +552,8 @@ export default function App() {
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
-      {/* --- DESKTOP MINIMAL SIDEBAR --- */}
-      <aside className={`hidden md:flex flex-col app-sidebar ${navHovered ? "w-[200px]" : "w-[56px]"} transition-all duration-200 ease-out shrink-0 z-30 overflow-hidden`}>
+      {/* --- DESKTOP MINIMAL SIDEBAR (icoane fixe) --- */}
+      <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
 
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
@@ -584,12 +583,8 @@ export default function App() {
           </div>
         </button>
 
-        {/* Main Navigation Items (Extindere automată doar la trecerea mouse-ului pe această porțiune) */}
-        <div
-          onMouseEnter={() => setNavHovered(true)}
-          onMouseLeave={() => setNavHovered(false)}
-          className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none"
-        >
+        {/* Navigare principală — doar icoane */}
+        <div className="flex-1 py-3 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
           {[
             { id: "dosare", label: "Dosare & Flux", icon: Layers, badge: userClaims.length },
             { id: "programator", label: "Programări", icon: CalendarClock },
@@ -600,40 +595,34 @@ export default function App() {
               <button
                 key={id}
                 onClick={() => setView(id)}
-                className={`w-full flex items-center justify-between px-2.5 py-2 text-[13px] font-medium transition-all app-nav-btn ${
+                className={`w-full flex items-center justify-center p-2.5 transition-all app-nav-btn ${
                   active ? "is-active" : ""
                 }`}
                 title={label}
               >
-                <div className="flex items-center gap-3">
+                <span className="relative inline-flex">
                   <Icon size={20} className="shrink-0" />
-                  <span className={`transition-all duration-200 whitespace-nowrap ${navHovered ? "opacity-100 max-w-[120px]" : "opacity-0 max-w-0 overflow-hidden"}`}>
-                    {label}
-                  </span>
-                </div>
-                {badge !== undefined && (
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--app-surface-muted)] app-muted transition-opacity duration-200 ${navHovered ? "opacity-100" : "opacity-0"}`}>
-                    {badge}
-                  </span>
-                )}
+                  {badge !== undefined && badge > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[9px] font-bold leading-[15px] text-center">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {/* Bottom Profile & Settings Dock */}
-        <div className="p-2 shrink-0 border-t border-[var(--app-border)]">
+        {/* Setări / profil */}
+        <div className="p-1.5 shrink-0 border-t border-[var(--app-border)]">
           <button
             onClick={() => openSettings()}
-            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg app-nav-btn text-[12.5px] font-medium transition-all"
-            title="Centru Setări"
+            className="w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all"
+            title={myEmail ? `Setări — ${myEmail}` : "Centru Setări"}
           >
-            <div className="w-6 h-6 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
+            <div className="w-7 h-7 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
               {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
             </div>
-            <span className={`transition-all duration-200 truncate max-w-[120px] ${navHovered ? "opacity-100" : "opacity-0"}`}>
-              {myEmail}
-            </span>
           </button>
         </div>
       </aside>
