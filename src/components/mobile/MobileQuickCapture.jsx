@@ -479,18 +479,16 @@ export default function MobileQuickCapture({
           {/* Selector categorie (nu deschide camera) */}
           <div className="grid grid-cols-3 gap-2">
             {[
-              { key: "receptie", label: "Recepție", active: "bg-[#C98A2B] text-white border-[#C98A2B]" },
-              { key: "reconstatare", label: "Reconstatare", active: "bg-[#3B5166] text-white border-[#3B5166]" },
-              { key: "predare", label: "Predare", active: "bg-[#3E6B45] text-white border-[#3E6B45]" },
+              { key: "receptie", label: "Recepție" },
+              { key: "reconstatare", label: "Reconstatare" },
+              { key: "predare", label: "Predare" },
             ].map((cat) => (
               <button
                 key={cat.key}
                 type="button"
                 onClick={() => setCameraCategory(cat.key)}
-                className={`py-2 px-1 rounded-xl border text-[11.5px] font-extrabold transition-all ${
-                  cameraCategory === cat.key
-                    ? cat.active + " shadow-sm"
-                    : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"
+                className={`m-capture-cat py-2 px-1 rounded-xl border text-[11.5px] font-extrabold transition-all ${
+                  cameraCategory === cat.key ? "is-active" : ""
                 }`}
               >
                 {cat.label}

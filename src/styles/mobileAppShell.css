@@ -36,8 +36,24 @@
   border-color: var(--app-border);
 }
 
+.mobile-shell.app-shell .m-nav-item {
+  color: var(--app-muted);
+  border: 1.5px solid transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
 .mobile-shell.app-shell .m-nav-item.is-active {
-  color: var(--app-accent);
+  color: var(--app-text-strong);
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon {
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--app-text-strong) 38%, transparent);
 }
 
 .mobile-shell.app-shell .m-content {
@@ -423,15 +439,16 @@
 }
 
 .mobile-shell.app-shell .m-filter-pill.is-active {
-  background: color-mix(in srgb, var(--app-accent) 18%, var(--app-surface));
-  border-color: var(--app-accent);
-  color: var(--app-accent);
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
 }
 
 .mobile-shell.app-shell .m-stack-badge {
-  background: color-mix(in srgb, var(--app-accent) 20%, var(--app-surface));
-  color: var(--app-accent);
-  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+  border: 1px solid color-mix(in srgb, var(--app-text-strong) 28%, var(--app-border));
 }
 
 .mobile-shell.app-shell .m-call-btn {
@@ -442,5 +459,18 @@
 }
 
 .mobile-shell.app-shell .m-claim-card:hover {
-  border-color: color-mix(in srgb, var(--app-accent) 45%, var(--app-border));
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-capture-cat {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-capture-cat.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
 }

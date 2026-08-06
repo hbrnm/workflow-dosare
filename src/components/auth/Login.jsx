@@ -28,8 +28,8 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
   }, []);
 
   useEffect(() => {
-    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
-  }, [branding?.accentColor]);
+    applyAppTokens(document.documentElement);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

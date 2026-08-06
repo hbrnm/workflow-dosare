@@ -138,13 +138,13 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
+    applyAppTokens(document.documentElement);
     try {
       delete document.documentElement.dataset.mtheme;
     } catch {
       /* ignore */
     }
-  }, [branding?.accentColor]);
+  }, []);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -551,8 +551,8 @@ export default function App() {
             style={{
               background: branding?.logoUrl
                 ? "#fff"
-                : branding?.accentColor || "var(--app-accent)",
-              color: branding?.logoUrl ? undefined : "var(--app-accent-text)",
+                : "var(--app-surface-2)",
+              color: branding?.logoUrl ? undefined : "var(--app-text-strong)",
             }}
             title={branding?.atelierNume || "Dosare Daună"}
           >

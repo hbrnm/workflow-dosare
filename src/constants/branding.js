@@ -3,13 +3,11 @@ export const DEFAULT_BRANDING = {
   atelierNume: "Dosare Daună",
   atelierShort: "WD",
   logoUrl: "",
-  accentColor: "#C98A2B",
 };
 
 export const BRANDING_STORAGE_KEY = "workflow_dosare_branding";
 
 export function normalizeBranding(raw = {}) {
-  const accent = String(raw.accentColor || raw.accent_color || DEFAULT_BRANDING.accentColor).trim();
   const short = String(raw.atelierShort || raw.atelier_short || DEFAULT_BRANDING.atelierShort)
     .trim()
     .slice(0, 4)
@@ -22,7 +20,6 @@ export function normalizeBranding(raw = {}) {
     atelierNume: name,
     atelierShort: short,
     logoUrl,
-    accentColor: /^#[0-9A-Fa-f]{6}$/.test(accent) ? accent : DEFAULT_BRANDING.accentColor,
   };
 }
 
@@ -43,10 +40,11 @@ export function cacheBranding(branding) {
   }
 }
 
-/** Darken accent for gradients / hover. */
+/** Darken hex for gradients / hover. */
 export function darkenHex(hex, amount = 0.15) {
-  const h = (hex || DEFAULT_BRANDING.accentColor).replace("#", "");
-  if (h.length !== 6) return DEFAULT_BRANDING.accentColor;
+  const fallback = "#e6edf3";
+  const h = (hex || fallback).replace("#", "");
+  if (h.length !== 6) return fallback;
   const nums = [0, 2, 4].map((i) => {
     const v = parseInt(h.slice(i, i + 2), 16);
     return Math.max(0, Math.min(255, Math.round(v * (1 - amount))));
