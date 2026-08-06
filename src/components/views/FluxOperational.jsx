@@ -21,15 +21,15 @@ const copyClaimNumber = async (numarDosar, onNotify) => {
 };
 
 const SHORT_STATUS_LABELS = {
-  deschidere: "1.Acord",
-  reconstatare: "2.Reconst",
-  accept_plata: "3.Accept",
-  piese_comandate: "4.Piese",
-  programat: "5.Progr",
-  in_lucru: "6.Lucru",
-  gata_de_ridicare: "7.Gata",
-  predat_client: "8.Predat",
-  facturat: "9.Fact",
+  deschidere: "Acord",
+  reconstatare: "Reconst",
+  accept_plata: "Accept",
+  piese_comandate: "Piese",
+  programat: "Progr",
+  in_lucru: "Lucru",
+  gata_de_ridicare: "Gata",
+  predat_client: "Predat",
+  facturat: "Fact",
 };
 
 // ---------------------------------------------------------------------------
@@ -127,8 +127,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           title="Schimbă stadiul dosarului"
         >
           {STATUSES.map((s) => (
-            <option key={s.key} value={s.key}>
-              {SHORT_STATUS_LABELS[s.key] || s.label} — {s.label}
+            <option key={s.key} value={s.key} title={s.label}>
+              {SHORT_STATUS_LABELS[s.key] || s.label}
             </option>
           ))}
         </select>
@@ -149,6 +149,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
             claim={claim}
             canEdit={canEdit}
             compact
+            hideDatesUntilHover
             onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
             onSchedule={onScheduleFromPiese}
             onPatchDates={onPatchPieseDates}

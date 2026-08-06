@@ -14,6 +14,7 @@ export default function MobilePieseSositeRow({
   onSchedule,
   onPatchDates,
   compact = false,
+  hideDatesUntilHover = false,
 }) {
   const [scheduling, setScheduling] = useState(false);
   const [editDate, setEditDate] = useState(todayISO());
@@ -88,10 +89,15 @@ export default function MobilePieseSositeRow({
     toInputDate(claim.termenLivrarePiese) < todayISO();
 
   const showDatesBlock = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates || compact;
+  const showDateFields = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates;
 
   const metaBoxClass = compact
     ? "m-piese-sosite-meta text-[10px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 space-y-1"
     : "m-piese-sosite-meta text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-2 rounded-lg border border-amber-200 space-y-1.5";
+
+  const datesRevealClass = hideDatesUntilHover
+    ? "hidden group-hover:block group-focus-within:block space-y-1"
+    : "space-y-1";
 
   const toggleRowClass = compact
     ? "flex items-center justify-between gap-2 min-h-0"
@@ -108,8 +114,8 @@ export default function MobilePieseSositeRow({
     >
       {showDatesBlock && (
         <div className={metaBoxClass}>
-          {(claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates) && (
-            <>
+          {showDateFields && (
+            <div className={datesRevealClass}>
               <div className="flex items-center justify-between gap-2">
                 <span className="shrink-0">📦 Comandă:</span>
                 {canEditDates ? (
@@ -148,7 +154,7 @@ export default function MobilePieseSositeRow({
                   <span className="text-[#9A7A30] italic">—</span>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           <div className={`${toggleRowClass}${checked ? " is-checked" : ""}`}>
