@@ -1,31 +1,31 @@
 import { darkenHex } from "./branding";
 
 /**
- * Tokeni vizuali desktop — stil minimalist, independent de temele mobile.
+ * Tokeni desktop — dark shell (inspirat Cursor: negru, contrast soft, accent branding).
  */
 export const APP_TOKEN_DEFAULTS = {
-  "--app-bg": "#F7F7F5",
-  "--app-surface": "#FFFFFF",
-  "--app-surface-2": "#F3F3F1",
-  "--app-surface-muted": "#EBEBE8",
-  "--app-text": "#1A1A1A",
-  "--app-text-strong": "#0D0D0D",
-  "--app-muted": "#737373",
-  "--app-muted-2": "#A3A3A3",
-  "--app-border": "#E5E5E0",
-  "--app-border-soft": "#EDEDEA",
-  "--app-chrome": "#FFFFFF",
-  "--app-chrome-text": "#1A1A1A",
+  "--app-bg": "#0a0a0a",
+  "--app-surface": "#141414",
+  "--app-surface-2": "#1a1a1a",
+  "--app-surface-muted": "#242424",
+  "--app-text": "#ededed",
+  "--app-text-strong": "#ffffff",
+  "--app-muted": "#8a8a8a",
+  "--app-muted-2": "#666666",
+  "--app-border": "#2a2a2a",
+  "--app-border-soft": "#222222",
+  "--app-chrome": "#0a0a0a",
+  "--app-chrome-text": "#ededed",
   "--app-chrome-muted": "#737373",
   "--app-accent": "#C98A2B",
   "--app-accent-hover": "#B37A22",
-  "--app-accent-text": "#FFFFFF",
-  "--app-danger": "#B23A2E",
-  "--app-success": "#3E6B45",
+  "--app-accent-text": "#ffffff",
+  "--app-danger": "#e05a4f",
+  "--app-success": "#4ade80",
   "--app-radius": "8px",
   "--app-radius-sm": "6px",
   "--app-radius-lg": "12px",
-  "--app-shadow": "0 1px 2px rgba(0,0,0,0.04)",
+  "--app-shadow": "none",
   "--app-font-body": "'Inter', system-ui, sans-serif",
   "--app-font-display": "'Inter', system-ui, sans-serif",
 };

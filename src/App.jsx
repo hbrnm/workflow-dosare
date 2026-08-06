@@ -628,41 +628,54 @@ export default function App() {
       </aside>
 
       {/* --- RIGHT MAIN WORKSPACE CANVAS --- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden app-workspace">
 
-        {/* Top Breadcrumb & Action Header */}
-        <header className="relative h-14 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
+        {/* Top bar — breadcrumb + acțiuni */}
+        <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
 
-          {/* Left Navigation / Segmented Switch */}
-          <div className="flex items-center gap-2 text-[13px]">
-            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-semibold text-[11.5px]">
+          {/* Breadcrumb + segment (dosare) */}
+          <div className="flex items-center gap-3 text-[13px] min-w-0">
+            <nav className="app-breadcrumb hidden sm:flex items-center gap-1.5 shrink-0">
+              <span>Dosare Daună</span>
+              <span className="opacity-40">/</span>
+              <strong>{viewLabels[view] || "Aplicație"}</strong>
+              {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
+                <>
+                  <span className="opacity-40">/</span>
+                  <strong>
+                    {dosareSubView === "flux" ? "Tablou Flux" : dosareSubView === "brief" ? "Brief Alerte" : "Tabel Dosare"}
+                  </strong>
+                </>
+              )}
+            </nav>
+            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
+              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-medium text-[11px] shrink-0">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "flux"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Layers size={13} />
-                  <span>Tablou Flux</span>
+                  <Layers size={12} />
+                  <span className="hidden md:inline">Flux</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDosareSubView("brief")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "brief"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Sunrise size={13} />
-                  <span>Brief Alerte</span>
+                  <Sunrise size={12} />
+                  <span className="hidden md:inline">Brief</span>
                   {totalAlertsCount > 0 && (
-                    <span className="bg-[#B23A2E] text-white text-[9.5px] px-1.5 py-0.2 rounded-full font-mono">
+                    <span className="bg-[var(--app-danger)] text-white text-[9px] px-1 py-0 rounded-full font-mono min-w-[14px] text-center">
                       {totalAlertsCount}
                     </span>
                   )}
@@ -671,40 +684,36 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("list")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "list"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <List size={13} />
-                  <span>Tabel Dosare</span>
+                  <List size={12} />
+                  <span className="hidden md:inline">Tabel</span>
                 </button>
               </div>
-            ) : (
-              <span className="font-semibold app-accent-text bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-1 rounded-lg text-[13px]">
-                {viewLabels[view] || "Aplicație"}
-              </span>
             )}
           </div>
 
           {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <div className="relative w-80">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+            <div className="relative w-72">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Caută după nr. auto, client, dosar..."
-                className="w-full pl-9 pr-16 py-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-text)] placeholder-[var(--app-muted-2)] focus:bg-[var(--app-surface)] focus:border-[var(--app-accent)] text-[12.5px] transition-all font-medium focus:outline-none"
+                placeholder="Caută nr. auto, client, dosar…"
+                className="app-search w-full pl-9 pr-16 py-1.5 rounded-lg text-[12.5px] transition-all font-medium"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="p-0.5 rounded-full hover:bg-gray-200 text-[#8A8375]"
+                    className="p-0.5 rounded-full hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
                     title="Șterge căutarea"
                   >
                     <X size={13} />
@@ -713,7 +722,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsCommandPaletteOpen(true)}
-                  className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166] hover:bg-[#E2DBCF]"
+                  className="app-kbd text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded"
                   title="Deschide Paleta de Comenzi (Ctrl+K)"
                 >
                   Ctrl+K
@@ -726,7 +735,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl app-accent-bg text-[13px] font-bold shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg app-accent-bg text-[12px] font-semibold transition-all active:scale-95"
             >
               <Plus size={16} /> <span>Dosar nou</span>
             </button>
