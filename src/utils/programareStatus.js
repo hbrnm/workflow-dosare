@@ -14,20 +14,20 @@ export function normalizeProgramareStatus(value) {
 
 export function getProgramareChipClass(status) {
   if (status === PROGRAMARE_STATUS.ONORATA) {
-    return "bg-[#2F8F5B] text-white border-[#2F8F5B]";
+    return "app-prog-chip is-onorata";
   }
   if (status === PROGRAMARE_STATUS.NEONORATA) {
-    return "bg-[#D6473F] text-white border-[#D6473F]";
+    return "app-prog-chip is-neonorata";
   }
-  return "bg-[#E7EEF5] text-[#2E5C8A] border-[#2E5C8A]/30";
+  return "app-prog-chip";
 }
 
 export function getProgramareCardClass(status) {
   if (status === PROGRAMARE_STATUS.ONORATA) {
-    return "bg-emerald-50 border-emerald-400 ring-1 ring-emerald-200/80 hover:border-emerald-500";
+    return "app-prog-claim-card is-onorata";
   }
   if (status === PROGRAMARE_STATUS.NEONORATA) {
-    return "bg-red-50 border-red-400 ring-1 ring-red-200/80 hover:border-red-500";
+    return "app-prog-claim-card is-neonorata";
   }
-  return "bg-[#FAF8F5] border-[#DAD4C6] hover:border-[#3B5166]";
+  return "app-prog-claim-card";
 }

@@ -34,16 +34,16 @@ export default function ProgramatorClaimCard({
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`p-1.5 border rounded-lg cursor-pointer transition-all text-[13px] flex flex-col hover:shadow-2xs active:opacity-60 ${cardClass}`}
+      className={`app-prog-claim-card p-1.5 border rounded-lg cursor-pointer transition-colors text-[13px] flex flex-col active:opacity-60 ${cardClass}`}
     >
       <div className="flex items-start justify-between gap-1.5 mb-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">
+          <span className="font-mono font-bold uppercase shrink-0">
             {claim.numarInmatriculare || "FĂRĂ NR."}
           </span>
           {claim.numarDosar && (
             <span
-              className="text-[10px] font-mono font-bold bg-white/70 px-1.5 py-0.2 rounded text-[#3B5166] shrink-0"
+              className="app-prog-claim-dosar text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0"
               title={`Dosar #${claim.numarDosar}`}
             >
               #{claim.numarDosar}
@@ -60,10 +60,8 @@ export default function ProgramatorClaimCard({
                 e.stopPropagation();
                 onPatch?.(claim.id, { programareStatus: PROGRAMARE_STATUS.ONORATA });
               }}
-              className={`p-1 rounded-md border transition-all ${
-                status === PROGRAMARE_STATUS.ONORATA
-                  ? "bg-[#2F8F5B] border-[#2F8F5B] text-white shadow-sm"
-                  : "bg-white/80 border-[#2F8F5B]/40 text-[#2F8F5B] hover:bg-[#2F8F5B] hover:text-white"
+              className={`app-prog-status-btn p-1 rounded-md border transition-colors ${
+                status === PROGRAMARE_STATUS.ONORATA ? "is-onorata-active" : "is-onorata"
               }`}
             >
               <Check size={12} strokeWidth={3} />
@@ -75,10 +73,8 @@ export default function ProgramatorClaimCard({
                 e.stopPropagation();
                 onMarkNeonorata?.(claim);
               }}
-              className={`p-1 rounded-md border transition-all ${
-                status === PROGRAMARE_STATUS.NEONORATA
-                  ? "bg-[#D6473F] border-[#D6473F] text-white shadow-sm"
-                  : "bg-white/80 border-[#D6473F]/40 text-[#D6473F] hover:bg-[#D6473F] hover:text-white"
+              className={`app-prog-status-btn p-1 rounded-md border transition-colors ${
+                status === PROGRAMARE_STATUS.NEONORATA ? "is-neonorata-active" : "is-neonorata"
               }`}
             >
               <X size={12} strokeWidth={3} />
@@ -88,27 +84,27 @@ export default function ProgramatorClaimCard({
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        <span className="font-bold text-[#23282E] truncate text-[12px]">{claim.client || "—"}</span>
-        <span className="text-[11px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[120px]">
+        <span className="font-bold truncate text-[12px]">{claim.client || "—"}</span>
+        <span className="text-[11px] text-[var(--app-muted)] font-semibold truncate shrink-0 max-w-[120px]">
           {claim.marcaModel || "—"}
         </span>
       </div>
 
       {claim.ceEsteDeReparat && claim.ceEsteDeReparat.trim() !== "—" && (
-        <div className="text-[11px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1 mt-1 truncate flex items-center gap-1">
-          <span className="text-[#8A8375]">⚙️</span>
+        <div className="app-prog-claim-footer text-[11px] text-[var(--app-muted)] border-t pt-1 mt-1 truncate flex items-center gap-1">
+          <span>⚙️</span>
           <span className="truncate">{claim.ceEsteDeReparat}</span>
         </div>
       )}
 
       {status === PROGRAMARE_STATUS.ONORATA && (
-        <div className="text-[10px] font-bold text-[#2F8F5B] mt-1">✓ Programare onorată</div>
+        <div className="text-[10px] font-bold text-[var(--app-success)] mt-1">✓ Programare onorată</div>
       )}
 
       {claim.masinaSchimb && (
         <div
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 w-max flex items-center gap-1 ${
-            conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"
+            conflict ? "app-prog-schimb-conflict" : "app-prog-schimb-ok"
           }`}
         >
           🚗 Auto Schimb: {claim.masinaSchimb}

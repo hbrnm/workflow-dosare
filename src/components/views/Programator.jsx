@@ -532,7 +532,7 @@ export default function Programator({
                             setSelectingFromArrived(false);
                             if (onOpen) onOpen(c);
                           }}
-                          className={`max-w-[54px] truncate text-[8.5px] font-mono font-extrabold px-1 py-0.5 rounded border leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
+                          className={`app-prog-chip max-w-[54px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
                           title={`${time ? `${time} · ` : ""}${c.numarInmatriculare || "—"}${c.numarDosar ? ` (#${c.numarDosar})` : ""} · ${c.client || ""}`}
                         >
                           {plate}

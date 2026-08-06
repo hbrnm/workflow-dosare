@@ -633,21 +633,8 @@ export default function App() {
         {/* Top bar — breadcrumb + acțiuni */}
         <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
 
-          {/* Breadcrumb + segment (dosare) */}
+          {/* Segment (dosare) — fără breadcrumb */}
           <div className="flex items-center gap-3 text-[13px] min-w-0">
-            <nav className="app-breadcrumb hidden sm:flex items-center gap-1.5 shrink-0">
-              <span>Dosare Daună</span>
-              <span className="opacity-40">/</span>
-              <strong>{viewLabels[view] || "Aplicație"}</strong>
-              {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <strong>
-                    {dosareSubView === "flux" ? "Tablou Flux" : dosareSubView === "brief" ? "Brief Alerte" : "Tabel Dosare"}
-                  </strong>
-                </>
-              )}
-            </nav>
             {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
               <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-medium text-[11px] shrink-0">
                 <button
