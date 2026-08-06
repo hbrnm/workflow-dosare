@@ -22,6 +22,10 @@ Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
 - Link **tracking public**: `https://domeniul-tau/?track=TOKEN`
 - Buton „Copiază link tracking client” în fișa dosarului
 
+### Capture rapidă (curte / tabletă)
+- Tab **Capture**: caută dosar → cameră live / galerie → salvare automată pe dosar
+- Ține minte ultimul dosar folosit
+
 ## Migrări Supabase (obligatoriu)
 
 Rulează în ordine în **SQL Editor**:
