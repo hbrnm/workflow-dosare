@@ -8,9 +8,15 @@ import { getStatusDefinition, MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZ
 import { uid, todayISO } from "../../utils/dateUtils";
 import { refreshStorageUrls, uploadStorageItem } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
-import { processScanImage, categoryLabel, PHOTO_CATEGORIES } from "../../utils/scanUtils";
+import { processDocumentScan } from "../../utils/documentScanner";
+import { categoryLabel, PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import Pill from "../common/Pill";
+
+async function processScanImage(file) {
+  const result = await processDocumentScan(file, { pro: true });
+  return result.dataUrl;
+}
 
 export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNotify }) {
   const [step, setStep] = useState("pick");

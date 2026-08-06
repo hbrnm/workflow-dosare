@@ -2,26 +2,29 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
+  FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
   CheckSquare, Square, Download, Calendar, Eye, Layers
 } from "lucide-react";
 import {
-  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors,
+  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
 import {
-  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber
+  emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber, SIGNED_URL_TTL_SECONDS
 } from "../../utils/claimUtils";
 import {
   generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
 } from "../../utils/pdfGenerator";
+import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import { supabase } from "../../supabaseClient";
+import { fileToDataUrl } from "../../utils/documentScanner";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 function NotionPropertyRow({ icon: Icon, label, children, full }) {
   return (
@@ -93,49 +96,10 @@ export function compressColorImage(file) {
 }
 
 export function processScanImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-
-          const MAX_DIM = 1500;
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_DIM || h > MAX_DIM) {
-            if (w > h) {
-              h = Math.round((h * MAX_DIM) / w);
-              w = MAX_DIM;
-            } else {
-              w = Math.round((w * MAX_DIM) / h);
-              h = MAX_DIM;
-            }
-          }
-
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
-
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error("Eroare la procesarea documentului scanat."));
-              return;
-            }
-            resolve(canvas.toDataURL("image/jpeg", 0.85));
-          }, "image/jpeg", 0.85);
-        } catch (err) {
-          reject(new Error("Eroare la procesarea documentului."));
-        }
-      };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii pentru scanare."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Eroare la citirea fișierului."));
-    reader.readAsDataURL(file);
-  });
+  // Compat: detecție 4 colțuri + Pro mode auto dacă poza e slabă
+  return import("../../utils/documentScanner").then(({ processDocumentScan }) =>
+    processDocumentScan(file, { pro: true }).then((r) => r.dataUrl)
+  );
 }
 
 export default function ClaimModal({
@@ -148,6 +112,7 @@ export default function ClaimModal({
   onDelete,
   onNotify,
   onJumpTo,
+  themeId = "atelier",
 }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [isDragging, setIsDragging] = useState(false);
@@ -195,6 +160,8 @@ export default function ClaimModal({
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
   const [previewPoza, setPreviewPoza] = useState(null);
   const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [cropQueue, setCropQueue] = useState([]);
+  const [cropMode, setCropMode] = useState("document"); // "document" | "scan"
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
 
@@ -263,9 +230,11 @@ export default function ClaimModal({
     let cancelled = false;
     const loadStorageUrls = async () => {
       if (!claim?.id) return;
-      const pozeNeedRefresh = (claim.poze || []).some((p) => p && p.path && !p.url);
-      const docsNeedRefresh = (claim.documente || []).some((d) => d && d.path && !d.url);
-      if (!pozeNeedRefresh && !docsNeedRefresh) return;
+      // Mereu regenerăm URL-urile semnate — cele din DB expiră după TTL
+      const hasMedia =
+        (claim.poze || []).some((p) => p && (p.path || p.url)) ||
+        (claim.documente || []).some((d) => d && (d.path || d.url));
+      if (!hasMedia) return;
 
       const [poze, documente] = await Promise.all([
         refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
@@ -277,7 +246,7 @@ export default function ClaimModal({
     };
     loadStorageUrls();
     return () => { cancelled = true; };
-  }, [claim?.id]);
+  }, [claim?.id, claim?.poze, claim?.documente]);
 
   useEffect(() => {
     if (isNew || !claim?.id) { setIstoric([]); return; }
@@ -392,7 +361,14 @@ export default function ClaimModal({
       effectiveStatus = "predat_client";
     } else if (form.gataDeRidicare && form.status !== "facturat" && form.status !== "predat_client") {
       effectiveStatus = "gata_de_ridicare";
-    } else if (form.dataProgramare && form.status === "piese_sosite") {
+    } else if (form.adusaFizic && form.status === "programat") {
+      effectiveStatus = "in_lucru";
+    } else if (
+      form.dataProgramare &&
+      form.status !== "programat" &&
+      !["in_lucru", "gata_de_ridicare", "predat_client", "facturat"].includes(form.status) &&
+      (form.pieseSosite || form.status === "piese_comandate" || form.status === "piese_sosite")
+    ) {
       effectiveStatus = "programat";
     }
 
@@ -505,7 +481,7 @@ export default function ClaimModal({
       const path = storagePath(claimId, file);
       const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: false });
       if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
-      const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, 60 * 60);
+      const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
         await supabase.storage.from("poze-dosare").remove([path]);
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
@@ -562,7 +538,7 @@ export default function ClaimModal({
       const path = storagePath(claimId, file);
       const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
       if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
-      const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, 60 * 60);
+      const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
         await supabase.storage.from("documente-dosare").remove([path]);
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
@@ -576,24 +552,23 @@ export default function ClaimModal({
   };
 
   const handleStartScanSession = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
     if (files.length === 0) return;
 
     setUploadingDocumente(true);
     try {
-      const pageDataUrls = [];
-      for (const file of files) {
-        const dataUrl = await processScanImage(file);
-        pageDataUrls.push(dataUrl);
-      }
-
+      const urls = [];
+      for (const file of files) urls.push(await fileToDataUrl(file));
       const defaultName = `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`;
       setScanSession({
         fileName: defaultName,
-        pages: pageDataUrls,
+        pages: [],
         saveAsPdf: true,
         saveAsPhotos: false,
       });
+      setCropMode("scan");
+      setCropImageSrc(urls[0]);
+      setCropQueue(urls.slice(1));
     } catch (err) {
       onNotify(err.message, "error");
     } finally {
@@ -602,19 +577,15 @@ export default function ClaimModal({
   };
 
   const handleAddPageToScan = async (fileList) => {
-    const files = Array.from(fileList || []);
+    const files = Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
     if (files.length === 0) return;
 
     try {
-      const newPages = [];
-      for (const file of files) {
-        const dataUrl = await processScanImage(file);
-        newPages.push(dataUrl);
-      }
-      setScanSession(prev => ({
-        ...prev,
-        pages: [...prev.pages, ...newPages]
-      }));
+      const urls = [];
+      for (const file of files) urls.push(await fileToDataUrl(file));
+      setCropMode("scan");
+      setCropImageSrc(urls[0]);
+      setCropQueue(urls.slice(1));
     } catch (err) {
       onNotify(err.message, "error");
     }
@@ -692,17 +663,17 @@ export default function ClaimModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3 overflow-hidden">
+    <div className="m-themed-modal fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3 overflow-hidden" data-mtheme={themeId}>
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
-        className="relative bg-[#FAF8F5] w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col overflow-hidden"
+        className="m-modal-panel relative bg-[#FAF8F5] w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col overflow-hidden"
       >
         
         {/* Notion Top Bar Navigation & Actions */}
         <div 
           onMouseDown={handleMouseDown}
-          className="flex items-center justify-between px-3 py-2 bg-[#1C2127] text-white shrink-0 select-none border-b border-white/10"
+          className="m-modal-header flex items-center justify-between px-3 py-2 bg-[#1C2127] text-white shrink-0 select-none border-b border-white/10"
         >
           <div className="flex items-center gap-2 min-w-0 pr-2">
             <span className="text-[16px] shrink-0">📄</span>
@@ -764,7 +735,7 @@ export default function ClaimModal({
                 <select
                   onChange={async (e) => {
                     const val = e.target.value;
-                    if (val === "pdf") await generateazaPDF(form, istoric);
+                    if (val === "pdf") await generateazaPDF(form, istoric, loadCachedBranding());
                     if (val === "fisa") await generateazaFisaIntrareService(form);
                     if (val === "schimb" && form.masinaSchimb) generateazaProcesVerbalMasinaSchimb(form);
                     e.target.value = "";
@@ -934,8 +905,8 @@ export default function ClaimModal({
                         </div>
                       </div>
 
-                      {/* Dată Comandă Piese */}
-                      {form.status === "piese_comandate" && (
+                      {/* Dată Comandă Piese — detalii în coloana Date Dosar */}
+                      {isPieseComandateStatus(form.status) && (
                         <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
                           <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
                             <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
@@ -947,19 +918,6 @@ export default function ClaimModal({
                             placeholder="zi/lună/an"
                           />
                         </div>
-                      )}
-
-                      {/* Piese sosite checkbox */}
-                      {form.status === "piese_comandate" && (
-                        <label className="flex items-center gap-2 text-[11.5px] font-bold text-[#3E6B45] cursor-pointer bg-[#EEF5EE] p-2 rounded-xl border border-[#3E6B45]/20">
-                          <input
-                            type="checkbox"
-                            checked={!!form.pieseSosite}
-                            onChange={(e) => set("pieseSosite", e.target.checked)}
-                            className="rounded accent-[#3E6B45] w-4 h-4"
-                          />
-                          <span>Confirmare: Toate piesele au sosit în service</span>
-                        </label>
                       )}
 
                       {/* Linii reparații */}
@@ -1112,7 +1070,7 @@ export default function ClaimModal({
                           {form.telefonClient && (
                             <>
                               <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[#DAD4C6] hover:bg-[#EFEAE1] text-[#3B5166] transition-colors"><Phone size={12} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la service referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] transition-colors"><MessageCircle size={12} /></a>
                             </>
                           )}
                         </div>
@@ -1176,6 +1134,26 @@ export default function ClaimModal({
                           ))}
                         </select>
                       </div>
+
+                      {isPieseComandateStatus(form.status) && (
+                        <MobilePieseSositeRow
+                          claim={form}
+                          canEdit={!readOnly}
+                          onToggle={(_c, val) => set("pieseSosite", val)}
+                          onSchedule={(_c, iso) => {
+                            setForm((f) => ({
+                              ...f,
+                              pieseSosite: true,
+                              dataProgramare: iso,
+                            }));
+                            onNotify?.(
+                              `Programare setată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""} — salvează dosarul.`.trim(),
+                              "success"
+                            );
+                            return true;
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -1200,11 +1178,19 @@ export default function ClaimModal({
                             <input
                               type="checkbox"
                               checked={!!form.adusaFizic}
-                              onChange={(e) => setForm((f) => ({
-                                ...f,
-                                adusaFizic: e.target.checked,
-                                dataAdusaFizic: e.target.checked ? nowISO() : null,
-                              }))}
+                              onChange={(e) => setForm((f) => {
+                                const checked = e.target.checked;
+                                const updates = {
+                                  adusaFizic: checked,
+                                  dataAdusaFizic: checked ? nowISO() : null,
+                                };
+                                // Side-effect: adus fizic pe Programat → În lucru
+                                if (checked && f.status === "programat") {
+                                  updates.status = "in_lucru";
+                                  updates.dataSchimbareStatus = nowISO();
+                                }
+                                return { ...f, ...updates };
+                              })}
                               className="rounded border-[#DAD4C6]"
                             />
                             <span className="font-bold text-[#23282E]">1. Vehicul adus fizic în service</span>
@@ -1370,7 +1356,7 @@ export default function ClaimModal({
                       </label>
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[#FAF8F5] border-[#C98A2B]/40 text-[#7A5316] font-bold"}`}>
                         {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => setCropImageSrc(ev.target.result); reader.readAsDataURL(file); } }} />
+                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) { setCropMode("document"); const reader = new FileReader(); reader.onload = (ev) => setCropImageSrc(ev.target.result); reader.readAsDataURL(file); } e.target.value = ""; }} />
                       </label>
                     </div>
 
@@ -1734,8 +1720,36 @@ export default function ClaimModal({
               {cropImageSrc && (
                 <DocumentCropModal
                   imageSrc={cropImageSrc}
-                  onClose={() => setCropImageSrc(null)}
+                  onClose={() => {
+                    if (cropQueue.length > 0) {
+                      setCropImageSrc(cropQueue[0]);
+                      setCropQueue((q) => q.slice(1));
+                    } else {
+                      setCropImageSrc(null);
+                      setCropMode("document");
+                    }
+                  }}
                   onConfirm={async (croppedDataUrl) => {
+                    if (cropMode === "scan") {
+                      setScanSession((prev) =>
+                        prev
+                          ? { ...prev, pages: [...prev.pages, croppedDataUrl] }
+                          : {
+                              fileName: `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`,
+                              pages: [croppedDataUrl],
+                              saveAsPdf: true,
+                              saveAsPhotos: false,
+                            }
+                      );
+                      if (cropQueue.length > 0) {
+                        setCropImageSrc(cropQueue[0]);
+                        setCropQueue((q) => q.slice(1));
+                      } else {
+                        setCropImageSrc(null);
+                        setCropMode("document");
+                      }
+                      return;
+                    }
                     setCropImageSrc(null);
                     const res = await fetch(croppedDataUrl);
                     const blob = await res.blob();

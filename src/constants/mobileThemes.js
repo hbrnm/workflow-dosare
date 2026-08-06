@@ -1,0 +1,314 @@
+import {
+  Camera, List, BarChart3, CalendarClock,
+  Aperture, Newspaper, AlertTriangle, CalendarDays,
+  Image, Files, Flame, CalendarRange,
+  Inbox, Calendar, FolderOpen,
+  BookOpen, ClipboardList, Lightbulb, CalendarCheck,
+  Home, Library, Search, Palette
+} from "lucide-react";
+
+export const MOBILE_THEME_STORAGE_KEY = "workflow_dosare_mobile_theme";
+
+/**
+ * Visual themes for the mobile shell.
+ * Names are original; aesthetics are loosely inspired by popular apps.
+ */
+export const MOBILE_THEMES = {
+  atelier: {
+    id: "atelier",
+    label: "Atelier",
+    blurb: "Stilul clasic Dosare — charcoal & amber",
+    inspiredNote: "Original",
+    navStyle: "dock", // dock | pill | underline
+    headerStyle: "dark",
+    fonts: {
+      display: "'Space Grotesk', sans-serif",
+      body: "'Inter', system-ui, sans-serif",
+    },
+    icons: {
+      capture: Camera,
+      brief: BarChart3,
+      dosare: List,
+      programari: CalendarClock,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Foto & Doc",
+      brief: "Brief Alerte",
+      dosare: "Dosare",
+      programari: "Programari",
+    },
+    vars: {
+      "--m-bg": "#EFEAE1",
+      "--m-surface": "#FFFFFF",
+      "--m-surface-2": "#FAF8F5",
+      "--m-text": "#23282E",
+      "--m-muted": "#6B6558",
+      "--m-border": "#DAD4C6",
+      "--m-header": "#1C2127",
+      "--m-header-text": "#FFFFFF",
+      "--m-nav": "#1C2127",
+      "--m-nav-text": "rgba(255,255,255,0.6)",
+      "--m-nav-active": "#C98A2B",
+      "--m-accent": "#C98A2B",
+      "--m-accent-text": "#FFFFFF",
+      "--m-danger": "#B23A2E",
+      "--m-radius": "16px",
+      "--m-radius-sm": "12px",
+      "--m-shadow": "0 1px 2px rgba(0,0,0,0.06)",
+    },
+  },
+  sport: {
+    id: "sport",
+    label: "Sport",
+    blurb: "Energie sportivă — albastru & galben",
+    inspiredNote: "Inspirat de magazine sportive",
+    navStyle: "pill",
+    headerStyle: "brand",
+    fonts: {
+      display: "'Outfit', 'Space Grotesk', sans-serif",
+      body: "'Outfit', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: Aperture,
+      brief: Flame,
+      dosare: Newspaper,
+      programari: CalendarDays,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Cameră",
+      brief: "Alerte",
+      dosare: "Dosare",
+      programari: "Agenda",
+    },
+    vars: {
+      "--m-bg": "#D6EBFA",
+      "--m-surface": "#FFFFFF",
+      "--m-surface-2": "#EAF4FC",
+      "--m-text": "#0B1F33",
+      "--m-muted": "#3D5A73",
+      "--m-border": "#9FC7E6",
+      "--m-header": "#0072BC",
+      "--m-header-text": "#FFFFFF",
+      "--m-nav": "#005A96",
+      "--m-nav-text": "rgba(255,255,255,0.75)",
+      "--m-nav-active": "#FFED00",
+      "--m-accent": "#0072BC",
+      "--m-accent-text": "#FFFFFF",
+      "--m-danger": "#E31C23",
+      "--m-radius": "20px",
+      "--m-radius-sm": "14px",
+      "--m-shadow": "0 8px 24px rgba(0,114,188,0.18)",
+    },
+  },
+  agora: {
+    id: "agora",
+    label: "Agora",
+    blurb: "Feed cald, carduri moi, accent coral",
+    inspiredNote: "Inspirat de comunități online",
+    navStyle: "dock",
+    headerStyle: "light",
+    fonts: {
+      display: "'Nunito', 'Space Grotesk', sans-serif",
+      body: "'Nunito', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: Image,
+      brief: AlertTriangle,
+      dosare: Files,
+      programari: CalendarRange,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Media",
+      brief: "Hot",
+      dosare: "Liste",
+      programari: "Plan",
+    },
+    vars: {
+      "--m-bg": "#DAE0E6",
+      "--m-surface": "#FFFFFF",
+      "--m-surface-2": "#F6F7F8",
+      "--m-text": "#1A1A1B",
+      "--m-muted": "#7C7C7C",
+      "--m-border": "#CCC",
+      "--m-header": "#FFFFFF",
+      "--m-header-text": "#1A1A1B",
+      "--m-nav": "#1A1A1B",
+      "--m-nav-text": "rgba(255,255,255,0.55)",
+      "--m-nav-active": "#FF4500",
+      "--m-accent": "#FF4500",
+      "--m-accent-text": "#FFFFFF",
+      "--m-danger": "#EA0027",
+      "--m-radius": "12px",
+      "--m-radius-sm": "8px",
+      "--m-shadow": "0 1px 3px rgba(0,0,0,0.08)",
+    },
+  },
+  forge: {
+    id: "forge",
+    label: "Forge",
+    blurb: "Stil GitHub — charcoal, inbox, dock plutitor",
+    inspiredNote: "Inspirat de tool-uri de cod",
+    navStyle: "pill",
+    headerStyle: "dark",
+    homeStyle: "inbox",
+    fonts: {
+      display: "'IBM Plex Sans', 'Space Grotesk', sans-serif",
+      body: "'IBM Plex Sans', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: Search,
+      brief: Inbox,
+      dosare: FolderOpen,
+      programari: Calendar,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Caută",
+      brief: "Brief",
+      dosare: "Dosare",
+      programari: "Programări",
+    },
+    vars: {
+      "--m-bg": "#010409",
+      "--m-surface": "#161B22",
+      "--m-surface-2": "#21262D",
+      "--m-text": "#E6EDF3",
+      "--m-muted": "#8B949E",
+      "--m-border": "#30363D",
+      "--m-header": "#010409",
+      "--m-header-text": "#E6EDF3",
+      "--m-nav": "rgba(22, 27, 34, 0.92)",
+      "--m-nav-text": "#8B949E",
+      "--m-nav-active": "#58A6FF",
+      "--m-accent": "#238636",
+      "--m-accent-text": "#FFFFFF",
+      "--m-danger": "#F85149",
+      "--m-radius": "12px",
+      "--m-radius-sm": "8px",
+      "--m-shadow": "0 8px 28px rgba(1, 4, 9, 0.65)",
+      "--m-hub-a": "#3FB950",
+      "--m-hub-b": "#58A6FF",
+      "--m-hub-c": "#A371F7",
+      "--m-hub-d": "#F0883E",
+    },
+  },
+  guide: {
+    id: "guide",
+    label: "Ghid",
+    blurb: "Curat, prietenos, verde instructiv",
+    inspiredNote: "Inspirat de ghiduri how-to",
+    navStyle: "dock",
+    headerStyle: "brand",
+    fonts: {
+      display: "'Source Sans 3', 'Space Grotesk', sans-serif",
+      body: "'Source Sans 3', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: BookOpen,
+      brief: Lightbulb,
+      dosare: ClipboardList,
+      programari: CalendarCheck,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Pași foto",
+      brief: "De făcut",
+      dosare: "Dosare",
+      programari: "Calendar",
+    },
+    vars: {
+      "--m-bg": "#F4F7F0",
+      "--m-surface": "#FFFFFF",
+      "--m-surface-2": "#EEF5E6",
+      "--m-text": "#2C2C2C",
+      "--m-muted": "#5F6B5A",
+      "--m-border": "#C5D4B5",
+      "--m-header": "#6B8E23",
+      "--m-header-text": "#FFFFFF",
+      "--m-nav": "#4F6B1A",
+      "--m-nav-text": "rgba(255,255,255,0.7)",
+      "--m-nav-active": "#FFE566",
+      "--m-accent": "#6B8E23",
+      "--m-accent-text": "#FFFFFF",
+      "--m-danger": "#C23B22",
+      "--m-radius": "18px",
+      "--m-radius-sm": "12px",
+      "--m-shadow": "0 4px 14px rgba(107,142,35,0.12)",
+    },
+  },
+  pulse: {
+    id: "pulse",
+    label: "Pulse",
+    blurb: "Hub dark — verde, pastile, dock plutitor",
+    inspiredNote: "Inspirat de player-e muzicale",
+    navStyle: "pill",
+    headerStyle: "dark",
+    homeStyle: "hub",
+    fonts: {
+      display: "'Plus Jakarta Sans', 'Space Grotesk', sans-serif",
+      body: "'Plus Jakarta Sans', 'Inter', sans-serif",
+    },
+    icons: {
+      capture: Search,
+      brief: Home,
+      dosare: Library,
+      programari: CalendarDays,
+      theme: Palette,
+    },
+    labels: {
+      capture: "Caută",
+      brief: "Brief",
+      dosare: "Dosare",
+      programari: "Programator",
+    },
+    vars: {
+      "--m-bg": "#000000",
+      "--m-surface": "#121212",
+      "--m-surface-2": "#181818",
+      "--m-text": "#FFFFFF",
+      "--m-muted": "#A7A7A7",
+      "--m-border": "#282828",
+      "--m-header": "#000000",
+      "--m-header-text": "#FFFFFF",
+      "--m-nav": "rgba(18, 18, 18, 0.92)",
+      "--m-nav-text": "#B3B3B3",
+      "--m-nav-active": "#1ED760",
+      "--m-accent": "#1ED760",
+      "--m-accent-text": "#000000",
+      "--m-danger": "#F15E6C",
+      "--m-radius": "12px",
+      "--m-radius-sm": "999px",
+      "--m-shadow": "0 8px 28px rgba(0,0,0,0.55)",
+      "--m-hub-a": "#F5C451",
+      "--m-hub-b": "#E91E8C",
+      "--m-hub-c": "#509BF5",
+      "--m-hub-d": "#A960EE",
+    },
+  },
+};
+
+export const MOBILE_THEME_LIST = Object.values(MOBILE_THEMES);
+
+export function getMobileTheme(id) {
+  return MOBILE_THEMES[id] || MOBILE_THEMES.atelier;
+}
+
+export function loadMobileThemeId() {
+  try {
+    const id = localStorage.getItem(MOBILE_THEME_STORAGE_KEY);
+    return MOBILE_THEMES[id] ? id : "atelier";
+  } catch {
+    return "atelier";
+  }
+}
+
+export function saveMobileThemeId(id) {
+  try {
+    localStorage.setItem(MOBILE_THEME_STORAGE_KEY, id);
+  } catch {
+    /* ignore */
+  }
+}

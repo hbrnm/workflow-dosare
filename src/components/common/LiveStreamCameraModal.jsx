@@ -42,6 +42,11 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
 
   const capturePhotoInstantly = async () => {
     if (!videoRef.current) return;
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(10);
+      }
+    } catch { /* ignore */ }
     setFlash(true);
     setTimeout(() => setFlash(false), 120);
 

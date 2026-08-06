@@ -24,6 +24,7 @@ const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/Qu
 const SetariModal = lazyWithRetry(() => import("./components/modals/SetariModal"));
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
+const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
@@ -32,6 +33,8 @@ import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
+import { darkenHex } from "./constants/branding";
+import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,27 @@ export default function App() {
     }
   };
 
+  const [mobileThemeId, setMobileThemeId] = useState(() => loadMobileThemeId());
+  const handleMobileThemeChange = useCallback((id) => {
+    setMobileThemeId(id);
+    saveMobileThemeId(id);
+  }, []);
+
+  useEffect(() => {
+    try {
+      document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      try {
+        delete document.documentElement.dataset.mtheme;
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [mobileThemeId]);
+
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [navHovered, setNavHovered] = useState(false);
@@ -118,15 +142,23 @@ export default function App() {
     adminEmails,
     usersList,
     customInsurers,
+    branding,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
+    saveBranding,
+    uploadBrandingLogo,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
   } = useSettings(session, showNotice);
+
+  useEffect(() => {
+    if (!branding?.accentColor) return;
+    document.documentElement.style.setProperty("--brand-accent", branding.accentColor);
+  }, [branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -175,11 +207,7 @@ export default function App() {
   });
 
   const {
-    alertCount,
-    blockedCount,
-    gataNeridicateCount,
-    acceptPlataNoPartsCount,
-    inactiveCount,
+    buckets: alertBuckets,
     totalAlertsCount,
   } = useAlerts(userClaims, pragRidicare, pragInactivitate);
 
@@ -201,6 +229,19 @@ export default function App() {
     quickCreateOpen,
     closeQuickCreate,
   } = useClaimModal(showNotice);
+
+  // Mobile field sheet (thin claim view) — full ClaimModal only via "Detalii complete"
+  const [fieldClaimId, setFieldClaimId] = useState(null);
+  const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+
+  const openMobileClaim = useCallback((claim) => {
+    if (!claim?.id) return;
+    setFieldClaimId(claim.id);
+  }, []);
+
+  const closeFieldClaim = useCallback(() => {
+    setFieldClaimId(null);
+  }, []);
 
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
   useEffect(() => {
@@ -245,6 +286,8 @@ export default function App() {
       isNavigatingHistoryRef.current = true;
       if (modalClaim) {
         closeClaimModal();
+      } else if (fieldClaimId) {
+        closeFieldClaim();
       } else if (setariOpen) {
         closeSettings();
       } else if (quickCaptureOpen) {
@@ -264,9 +307,9 @@ export default function App() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [modalClaim, closeClaimModal, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
+  }, [modalClaim, closeClaimModal, fieldClaimId, closeFieldClaim, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
 
-  // Deschidere modal adaugă stare în istoric pentru închidere prin butonul Back
+  // Deschidere modal / field sheet — stare în istoric pentru Back
   useEffect(() => {
     if (modalClaim && !isNavigatingHistoryRef.current) {
       window.history.pushState(
@@ -277,6 +320,15 @@ export default function App() {
     }
   }, [modalClaim, view]);
 
+  useEffect(() => {
+    if (fieldClaimId && !modalClaim && !isNavigatingHistoryRef.current) {
+      window.history.pushState(
+        { view, fieldSheet: true, claimId: fieldClaimId },
+        "",
+        `#field-${fieldClaimId}`
+      );
+    }
+  }, [fieldClaimId, modalClaim, view]);
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -309,6 +361,9 @@ export default function App() {
     const result = await saveClaim(claim, options);
     setSaving(false);
     if (!result?.success) return result;
+    if (activeMode === "mobile" && claim?.id) {
+      setFieldClaimId(claim.id);
+    }
     closeClaimModal();
     closeQuickCreate();
     return result;
@@ -319,6 +374,7 @@ export default function App() {
       onUndoToast: (item) => setUndoToastItem(item),
     });
     closeClaimModal();
+    if (fieldClaimId === id) closeFieldClaim();
   };
 
   const handleMoveToStatus = (claim, newStatusKey) => {
@@ -328,7 +384,7 @@ export default function App() {
   };
 
   const handlePatchClaim = async (id, patch) => {
-    await patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
+    return patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
   };
 
   const { exportExcel } = useExportExcel(userClaims);
@@ -343,13 +399,15 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen bg-[#F5F2EB] flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
+    return <div className="min-h-screen bg-[#010409] flex items-center justify-center text-[#8B949E] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (!session) {
-    return <Login onLoginSuccess={(s) => setSession(s)} />;
+    return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
   }
 
   if (activeMode === "mobile") {
+    const fieldClaim = fieldClaimId ? claims.find((c) => c.id === fieldClaimId) : null;
+
     return (
       <ErrorBoundary>
         <NotificationQueue notice={notice} />
@@ -359,7 +417,7 @@ export default function App() {
             claims={claims}
             session={session}
             userEmail={myEmail}
-            onOpenClaim={openExisting}
+            onOpenClaim={openMobileClaim}
             onNewClaim={openNew}
             onPatchClaim={handlePatchClaim}
             canEditFn={canEdit}
@@ -367,9 +425,38 @@ export default function App() {
             onLogout={handleLogout}
             onOpenSettings={openSettings}
             pragRidicare={pragRidicare}
+            pragInactivitate={pragInactivitate}
+            alertBuckets={alertBuckets}
+            totalAlertsCount={totalAlertsCount}
+            branding={branding}
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
+            captureFocusClaimId={captureFocusClaimId}
+            onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
+            themeId={mobileThemeId}
           />
         </Suspense>
+
+        {fieldClaim && !modalClaim && (
+          <Suspense fallback={null}>
+            <MobileClaimSheet
+              claim={fieldClaim}
+              onClose={closeFieldClaim}
+              onOpenFull={(c) => {
+                // Full editor on top of sheet; closing modal returns to sheet
+                openExisting(c);
+              }}
+              onPatch={handlePatchClaim}
+              onMoveToStatus={handleMoveToStatus}
+              canEdit={canEdit(fieldClaim)}
+              onNotify={showNotice}
+              themeId={mobileThemeId}
+              onCapturePhotos={(c) => {
+                setCaptureFocusClaimId(c.id);
+                closeFieldClaim();
+              }}
+            />
+          </Suspense>
+        )}
 
         {modalClaim && (
           <Suspense fallback={null}>
@@ -380,12 +467,13 @@ export default function App() {
               onDelete={handleDelete}
               onClose={closeClaimModal}
               onNotify={showNotice}
-              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openExisting(c), 150); }}
+              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openMobileClaim(c), 150); }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
               insurersList={customInsurers}
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
+              themeId={mobileThemeId}
             />
           </Suspense>
         )}
@@ -396,6 +484,7 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={closeQuickCreate}
               onSave={handleSave}
+              themeId={mobileThemeId}
             />
           </Suspense>
         )}
@@ -412,6 +501,9 @@ export default function App() {
               onSavePragInactivitate={savePragInactivitate}
               insurersList={customInsurers}
               onSaveInsurers={saveInsurers}
+              branding={branding}
+              onSaveBranding={saveBranding}
+              onUploadBrandingLogo={uploadBrandingLogo}
               onClose={closeSettings}
               onNotify={showNotice}
               userEmail={myEmail}
@@ -422,6 +514,8 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
+              mobileThemeId={mobileThemeId}
+              onMobileThemeChange={handleMobileThemeChange}
             />
           </Suspense>
         )}
@@ -440,12 +534,27 @@ export default function App() {
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
           type="button"
-          onClick={() => setView("brief")}
+          onClick={() => {
+            setView("dosare");
+            setDosareSubView("brief");
+          }}
           className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
           title="Revenire la ecranul principal (Brief Zilnic)"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform">
-            WD
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform overflow-hidden"
+            style={{
+              background: branding?.logoUrl
+                ? "#fff"
+                : `linear-gradient(135deg, ${branding?.accentColor || "#C98A2B"}, ${darkenHex(branding?.accentColor || "#C98A2B")})`,
+            }}
+            title={branding?.atelierNume || "Dosare Daună"}
+          >
+            {branding?.logoUrl ? (
+              <img src={branding.logoUrl} alt="" className="w-full h-full object-contain" />
+            ) : (
+              branding?.atelierShort || "WD"
+            )}
           </div>
         </button>
 
@@ -602,6 +711,17 @@ export default function App() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
+            {(displayMode === "desktop" || (displayMode === null && !isMobileScreen)) && (
+              <button
+                type="button"
+                onClick={() => toggleDisplayMode("mobile")}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#3B5166] text-[12px] font-bold hover:bg-[#EFEAE1] transition-all"
+                title="Comută la modul mobil"
+              >
+                <Smartphone size={14} />
+                <span className="hidden sm:inline">Mobil</span>
+              </button>
+            )}
             <button
               onClick={() => openQuickCapture()}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-white text-[#3B5166] text-[13px] font-bold hover:bg-[#FAF8F5] shadow-sm transition-all active:scale-95"
@@ -703,12 +823,14 @@ export default function App() {
             ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
               dosareSubView === "brief" ? (
                 <BriefZilnic
-                  claims={claims}
+                  claims={userClaims}
                   onOpen={openExisting}
                   onMoveToStatus={handleMoveToStatus}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
+                  pragInactivitate={pragInactivitate}
+                  alertBuckets={alertBuckets}
                   onSelectStatusFilter={(statusKey) => {
                     setFilterStatus(statusKey);
                     setDosareSubView("list");
@@ -722,6 +844,16 @@ export default function App() {
                   onOpen={openExisting}
                   onMoveToStatus={handleMoveToStatus}
                   onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
+                  onScheduleFromPiese={async (claim, iso) => {
+                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
+                    if (ok !== false) {
+                      showNotice(
+                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                        "success"
+                      );
+                    }
+                    return ok;
+                  }}
                   onAddInStatus={openNew}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
@@ -884,20 +1016,23 @@ export default function App() {
               insurersList={customInsurers}
               onJumpTo={openExisting}
               onNotify={showNotice}
+              themeId={mobileThemeId}
             />
           </ErrorBoundary>
         )}
 
         {alerteModalTab && (
           <AlerteModal
-            claims={claims}
+            claims={userClaims}
+            alertBuckets={alertBuckets}
             initialTab={alerteModalTab}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             onClose={closeAlerts}
             onOpenClaim={openExisting}
-            onPatchClaim={patchClaim}
+            onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
+            themeId={mobileThemeId}
           />
         )}
 
@@ -912,6 +1047,9 @@ export default function App() {
             onSaveCapacitate={saveCapacitate}
             onSavePrag={savePragRidicare}
             onSavePragInactivitate={savePragInactivitate}
+            branding={branding}
+            onSaveBranding={saveBranding}
+            onUploadBrandingLogo={uploadBrandingLogo}
             onClose={closeSettings}
             onNotify={showNotice}
             userEmail={myEmail}
@@ -922,6 +1060,8 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
+            mobileThemeId={mobileThemeId}
+            onMobileThemeChange={handleMobileThemeChange}
           />
         )}
 
@@ -930,6 +1070,7 @@ export default function App() {
             isOpen={quickCreateOpen}
             onClose={closeQuickCreate}
             onSave={handleSave}
+            themeId={mobileThemeId}
           />
         )}
 

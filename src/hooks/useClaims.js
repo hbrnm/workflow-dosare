@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { fromDb, toDb } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
+import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 
 export function useClaims(session, showNotice) {
   const [claims, setClaims] = useState([]);
@@ -85,7 +86,15 @@ export function useClaims(session, showNotice) {
       // Remove from UI immediately
       setClaims((prev) => prev.filter((c) => c.id !== id));
 
+      const clearPendingTimer = () => {
+        const existing = pendingDeletes.current.get(id);
+        if (existing?.timer) clearTimeout(existing.timer);
+      };
+
       const commitDelete = async () => {
+        // Idempotent — toast + timer pot apela ambele
+        if (!pendingDeletes.current.has(id)) return;
+        clearPendingTimer();
         pendingDeletes.current.delete(id);
         const { error } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
         if (error) {
@@ -99,6 +108,8 @@ export function useClaims(session, showNotice) {
       };
 
       const undoDelete = () => {
+        if (!pendingDeletes.current.has(id)) return;
+        clearPendingTimer();
         pendingDeletes.current.delete(id);
         // Restore claim to UI
         setClaims((prev) => {
@@ -108,7 +119,11 @@ export function useClaims(session, showNotice) {
         showNotice(`Dosarul „${target.numarDosar || target.numarInmatriculare}" a fost restaurat.`, "success");
       };
 
-      pendingDeletes.current.set(id, { claim: target, commitDelete, undoDelete });
+      clearPendingTimer();
+      const timer = setTimeout(() => {
+        commitDelete();
+      }, 5000);
+      pendingDeletes.current.set(id, { claim: target, commitDelete, undoDelete, timer });
 
       // Signal parent to show undo toast
       onUndoToast?.({
@@ -132,10 +147,13 @@ export function useClaims(session, showNotice) {
         return false;
       }
       let effectivePatch = { ...patch };
-      if (patch.dataProgramare && current.status === "piese_sosite") {
-        effectivePatch = { ...effectivePatch, status: "programat", dataSchimbareStatus: nowISO() };
-        showNotice('Dosar mutat automat în „Programat".', "success");
-      }
+      const { patch: schedulePatch, notices: scheduleNotices } = applyScheduleStatusEffects(
+        current,
+        effectivePatch
+      );
+      effectivePatch = schedulePatch;
+      scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
       const { error } = await supabase.from("dosare").update(toDb(updated)).eq("id", id);
       if (error) {
@@ -192,7 +210,14 @@ export function useClaims(session, showNotice) {
       // Apply immediately to UI
       setClaims((prev) => prev.map((c) => (c.id === claim.id ? updated : c)));
 
+      const clearPendingTimer = () => {
+        const existing = pendingStatusChanges.current.get(claim.id);
+        if (existing?.timer) clearTimeout(existing.timer);
+      };
+
       const commitStatus = async () => {
+        if (!pendingStatusChanges.current.has(claim.id)) return;
+        clearPendingTimer();
         pendingStatusChanges.current.delete(claim.id);
         const { error } = await supabase.from("dosare").upsert(toDb(updated));
         if (error) {
@@ -203,12 +228,18 @@ export function useClaims(session, showNotice) {
       };
 
       const undoStatus = () => {
+        if (!pendingStatusChanges.current.has(claim.id)) return;
+        clearPendingTimer();
         pendingStatusChanges.current.delete(claim.id);
         setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
         showNotice(`Status restaurat la „${previousClaim.status}".`, "success");
       };
 
-      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, commitStatus, undoStatus });
+      clearPendingTimer();
+      const timer = setTimeout(() => {
+        commitStatus();
+      }, 5000);
+      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, commitStatus, undoStatus, timer });
 
       // Notify parent for undo toast
       const STATUSES_LABELS = {

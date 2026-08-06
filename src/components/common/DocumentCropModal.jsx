@@ -1,281 +1,396 @@
-import React, { useState, useRef, useEffect } from "react";
-import { X, RotateCcw, RotateCw, Crop, Check, Sun, Contrast, FileCheck } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { X, RotateCcw, Check, Sun, FileCheck, Sparkles, Move, Zap, AlertTriangle } from "lucide-react";
+import {
+  detectDocumentCorners,
+  orderCorners,
+  imageToCanvas,
+  loadImageElement,
+  applyCornerWarp,
+  analyzeImageQuality,
+  recommendedJpegQuality,
+} from "../../utils/documentScanner";
 
-export default function DocumentCropModal({ imageSrc, onConfirm, onClose }) {
-  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
-  const [contrast, setContrast] = useState(120); // % contrast
-  const [brightness, setBrightness] = useState(105); // % brightness
-  const [grayscale, setGrayscale] = useState(false);
-  const [crop, setCrop] = useState({ top: 5, bottom: 5, left: 5, right: 5 }); // % percentages
-
-  const canvasRef = useRef(null);
+/**
+ * Editor tip CamScanner: 4 colțuri + Pro mode auto (lumină / blur / contrast).
+ * @param {string} imageSrc
+ * @param {(dataUrl: string) => void} onConfirm
+ * @param {() => void} onClose
+ * @param {[{x:number,y:number}]|null} [initialCorners] — colțuri din detectarea live (coordonate imagine full-res)
+ */
+export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initialCorners = null }) {
   const [loadedImage, setLoadedImage] = useState(null);
+  const [corners, setCorners] = useState(null);
+  const [dragging, setDragging] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [enhance, setEnhance] = useState(true);
+  const [proMode, setProMode] = useState(true);
+  const [proAuto, setProAuto] = useState(false);
+  const [quality, setQuality] = useState(null);
+  const [detecting, setDetecting] = useState(true);
+  const stageRef = useRef(null);
+  const [viewSize, setViewSize] = useState({ w: 1, h: 1 });
 
   useEffect(() => {
     if (!imageSrc) return;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => setLoadedImage(img);
-    img.src = imageSrc;
-  }, [imageSrc]);
+    let cancelled = false;
+    (async () => {
+      let img = null;
+      try {
+        setDetecting(true);
+        img = await loadImageElement(imageSrc);
+        if (cancelled) return;
+        setLoadedImage(img);
 
-  const handleRotateLeft = () => setRotation((prev) => (prev - 90 + 360) % 360);
-  const handleRotateRight = () => setRotation((prev) => (prev + 90) % 360);
+        const canvas = imageToCanvas(img, 1600);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const q = analyzeImageQuality(data, canvas.width, canvas.height);
 
-  const applyAutoEnhance = () => {
-    setContrast(140);
-    setBrightness(110);
-    setGrayscale(true);
+        let scaled;
+        if (initialCorners && initialCorners.length === 4) {
+          scaled = orderCorners(initialCorners);
+        } else {
+          // Detecție pe poza statică (nu live) — mai fiabilă
+          const detected = detectDocumentCorners(data, canvas.width, canvas.height, {
+            allowDefault: true,
+          });
+          const sx = (img.naturalWidth || img.width) / canvas.width;
+          const sy = (img.naturalHeight || img.height) / canvas.height;
+          scaled = orderCorners(detected.map((p) => ({ x: p.x * sx, y: p.y * sy })));
+        }
+
+        if (!cancelled) {
+          setCorners(scaled);
+          setQuality(q);
+          // Pro enhance mereu pentru aspect de scan profesional
+          setProMode(true);
+          setEnhance(true);
+          if (q.recommendPro) setProAuto(true);
+        }
+      } catch (err) {
+        console.warn("Auto-detect corners failed:", err);
+        if (!cancelled && img) {
+          const w = img.naturalWidth || img.width;
+          const h = img.naturalHeight || img.height;
+          setCorners(
+            orderCorners([
+              { x: w * 0.08, y: h * 0.08 },
+              { x: w * 0.92, y: h * 0.08 },
+              { x: w * 0.92, y: h * 0.92 },
+              { x: w * 0.08, y: h * 0.92 },
+            ])
+          );
+        }
+      } finally {
+        if (!cancelled) setDetecting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [imageSrc, initialCorners]);
+
+  const measureView = useCallback(() => {
+    if (!stageRef.current || !loadedImage) return;
+    const rect = stageRef.current.getBoundingClientRect();
+    const natW = loadedImage.naturalWidth || loadedImage.width;
+    const natH = loadedImage.naturalHeight || loadedImage.height;
+    const scale = Math.min(rect.width / natW, rect.height / natH, 1);
+    setViewSize({ w: natW * scale, h: natH * scale, scale, natW, natH });
+  }, [loadedImage]);
+
+  useEffect(() => {
+    measureView();
+    window.addEventListener("resize", measureView);
+    return () => window.removeEventListener("resize", measureView);
+  }, [measureView, loadedImage]);
+
+  const toView = (p) => {
+    const s = viewSize.scale || 1;
+    return { x: p.x * s, y: p.y * s };
   };
 
-  const handleAutoCamScannerCrop = () => {
+  const fromClient = (clientX, clientY) => {
+    const rect = stageRef.current.getBoundingClientRect();
+    const offsetX = (rect.width - viewSize.w) / 2;
+    const offsetY = (rect.height - viewSize.h) / 2;
+    const x = (clientX - rect.left - offsetX) / (viewSize.scale || 1);
+    const y = (clientY - rect.top - offsetY) / (viewSize.scale || 1);
+    return {
+      x: Math.max(0, Math.min(viewSize.natW || 1, x)),
+      y: Math.max(0, Math.min(viewSize.natH || 1, y)),
+    };
+  };
+
+  const onPointerDown = (idx, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(idx);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (dragging === null || !corners) return;
+    e.preventDefault();
+    const pt = fromClient(e.clientX, e.clientY);
+    setCorners((prev) => prev.map((c, i) => (i === dragging ? pt : c)));
+  };
+
+  const onPointerUp = (e) => {
+    if (dragging === null) return;
+    e.preventDefault();
+    setDragging(null);
+  };
+
+  const handleAutoDetect = async () => {
     if (!loadedImage) return;
+    setDetecting(true);
     try {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const w = Math.min(800, loadedImage.width);
-      const h = Math.round((loadedImage.height * w) / loadedImage.width);
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(loadedImage, 0, 0, w, h);
-
-      const imgData = ctx.getImageData(0, 0, w, h);
-      const data = imgData.data;
-
-      let top = 0, bottom = h - 1, left = 0, right = w - 1;
-      const step = 4;
-
-      const rowBright = new Array(h).fill(0);
-      const colBright = new Array(w).fill(0);
-
-      for (let y = 0; y < h; y += step) {
-        let sum = 0, cnt = 0;
-        for (let x = 0; x < w; x += step) {
-          const idx = (y * w + x) * 4;
-          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-          cnt++;
-        }
-        rowBright[y] = sum / cnt;
+      const canvas = imageToCanvas(loadedImage, 1400);
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const detected = detectDocumentCorners(data, canvas.width, canvas.height);
+      const q = analyzeImageQuality(data, canvas.width, canvas.height);
+      const sx = (loadedImage.naturalWidth || loadedImage.width) / canvas.width;
+      const sy = (loadedImage.naturalHeight || loadedImage.height) / canvas.height;
+      setCorners(orderCorners(detected.map((p) => ({ x: p.x * sx, y: p.y * sy }))));
+      setQuality(q);
+      if (q.recommendPro) {
+        setProMode(true);
+        setProAuto(true);
+        setEnhance(true);
       }
-
-      for (let x = 0; x < w; x += step) {
-        let sum = 0, cnt = 0;
-        for (let y = 0; y < h; y += step) {
-          const idx = (y * w + x) * 4;
-          sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-          cnt++;
-        }
-        colBright[x] = sum / cnt;
-      }
-
-      const validRows = [...rowBright].filter(v => v > 0).sort((a, b) => a - b);
-      const medianVal = validRows[Math.floor(validRows.length / 2)] || 128;
-      const cutoff = Math.max(70, medianVal * 0.7);
-
-      while (top < h * 0.25 && rowBright[top] < cutoff) top += step;
-      while (bottom > h * 0.75 && rowBright[bottom] < cutoff) bottom -= step;
-      while (left < w * 0.25 && colBright[left] < cutoff) left += step;
-      while (right > w * 0.75 && colBright[right] < cutoff) right -= step;
-
-      const cropTop = Math.max(0, Math.floor((top / h) * 100));
-      const cropBottom = Math.max(0, Math.floor(((h - bottom) / h) * 100));
-      const cropLeft = Math.max(0, Math.floor((left / w) * 100));
-      const cropRight = Math.max(0, Math.floor(((w - right) / w) * 100));
-
-      setCrop({ top: cropTop, bottom: cropBottom, left: cropLeft, right: cropRight });
-      applyAutoEnhance();
-    } catch (e) {
-      applyAutoEnhance();
+    } finally {
+      setDetecting(false);
     }
   };
 
-  const handleSave = () => {
+  const handleResetFull = () => {
     if (!loadedImage) return;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    const isVertical = rotation === 90 || rotation === 270;
-    const origW = isVertical ? loadedImage.height : loadedImage.width;
-    const origH = isVertical ? loadedImage.width : loadedImage.height;
-
-    // Calculate cropped region
-    const cropX = Math.round((crop.left / 100) * origW);
-    const cropY = Math.round((crop.top / 100) * origH);
-    const cropW = Math.round(origW * (1 - (crop.left + crop.right) / 100));
-    const cropH = Math.round(origH * (1 - (crop.top + crop.bottom) / 100));
-
-    canvas.width = Math.max(10, cropW);
-    canvas.height = Math.max(10, cropH);
-
-    ctx.save();
-    // Filters
-    let filterStr = `contrast(${contrast}%) brightness(${brightness}%)`;
-    if (grayscale) filterStr += ` grayscale(100%)`;
-    ctx.filter = filterStr;
-
-    // Apply rotation transformation
-    ctx.translate(-cropX, -cropY);
-
-    if (rotation === 90) {
-      ctx.translate(loadedImage.height, 0);
-      ctx.rotate((90 * Math.PI) / 180);
-    } else if (rotation === 180) {
-      ctx.translate(loadedImage.width, loadedImage.height);
-      ctx.rotate((180 * Math.PI) / 180);
-    } else if (rotation === 270) {
-      ctx.translate(0, loadedImage.width);
-      ctx.rotate((270 * Math.PI) / 180);
-    }
-
-    ctx.drawImage(loadedImage, 0, 0);
-    ctx.restore();
-
-    const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-    onConfirm(croppedDataUrl);
+    const w = loadedImage.naturalWidth || loadedImage.width;
+    const h = loadedImage.naturalHeight || loadedImage.height;
+    setCorners(
+      orderCorners([
+        { x: 2, y: 2 },
+        { x: w - 2, y: 2 },
+        { x: w - 2, y: h - 2 },
+        { x: 2, y: h - 2 },
+      ])
+    );
   };
+
+  const handleSave = async () => {
+    if (!imageSrc || !corners) return;
+    setBusy(true);
+    try {
+      const usePro = enhance && proMode;
+      const result = await applyCornerWarp(imageSrc, corners, {
+        maxDim: 2600,
+        outMaxDim: usePro ? 2400 : 2000,
+        enhance,
+        pro: usePro,
+        forcePro: usePro,
+        qualityHints: quality || undefined,
+        mode: "document",
+        quality: recommendedJpegQuality({ pro: usePro }),
+        sourceWidth: loadedImage?.naturalWidth || loadedImage?.width,
+        sourceHeight: loadedImage?.naturalHeight || loadedImage?.height,
+      });
+      onConfirm(typeof result === "string" ? result : result.dataUrl);
+    } catch (err) {
+      console.error(err);
+      alert("Nu am putut procesa pagina: " + (err.message || "eroare"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const labels = ["ST", "DR", "DJ", "SJ"];
+  const jpegHint = Math.round(recommendedJpegQuality({ pro: enhance && proMode }) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 backdrop-blur-sm">
-      <div className="flex flex-col w-full max-w-2xl bg-[#1E293B] text-white rounded-xl shadow-2xl overflow-hidden max-h-[95vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#0F172A] border-b border-slate-700">
+    <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/85 p-2 sm:p-4 backdrop-blur-sm">
+      <div className="flex flex-col w-full max-w-3xl bg-[#1C2127] text-white rounded-2xl shadow-2xl overflow-hidden max-h-[96vh]">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#14181D] border-b border-white/10">
           <div className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-semibold text-white">Scanare & Editare Document Pro</h3>
+            <FileCheck className="w-5 h-5 text-[#C98A2B]" />
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Ajustează pagina</h3>
+              <p className="text-[10.5px] text-white/50 font-medium">
+                Trage cele 4 colțuri pe colțurile foii, apoi Confirmă (Pro enhance activ)
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content area */}
-        <div className="flex-1 overflow-auto p-4 flex flex-col items-center justify-center bg-slate-950 relative min-h-[300px]">
+        {quality?.issues?.length > 0 && (
+          <div className="px-3 py-2 bg-[#3A2A12] border-b border-[#C98A2B]/40 flex items-start gap-2">
+            <AlertTriangle size={14} className="text-[#C98A2B] shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-extrabold text-[#F3D9A8]">
+                Calitate scăzută detectată (scor {Math.round(quality.score)}/100)
+                {proAuto ? " — Pro mode activat automat" : ""}
+              </div>
+              <div className="text-[10.5px] text-[#E8C98A]/90 font-medium">
+                {quality.issues.map((i) => i.label).join(" · ")}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div
+          ref={stageRef}
+          className="relative flex-1 min-h-[300px] sm:min-h-[400px] bg-[#0B0E11] flex items-center justify-center overflow-hidden touch-none"
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+        >
           {loadedImage ? (
-            <div className="relative max-w-full max-h-[50vh] flex items-center justify-center">
+            <div className="relative" style={{ width: viewSize.w, height: viewSize.h }}>
               <img
                 src={imageSrc}
-                alt="Document preview"
-                className="max-h-[45vh] max-w-full object-contain rounded border border-slate-700 transition-all"
-                style={{
-                  transform: `rotate(${rotation}deg)`,
-                  filter: `contrast(${contrast}%) brightness(${brightness}%) ${grayscale ? "grayscale(100%)" : ""}`,
-                  clipPath: `inset(${crop.top}% ${crop.right}% ${crop.bottom}% ${crop.left}%)`,
-                }}
+                alt="Document"
+                draggable={false}
+                className="absolute inset-0 w-full h-full object-fill select-none pointer-events-none"
               />
+
+              {corners && viewSize.scale && (
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox={`0 0 ${viewSize.w} ${viewSize.h}`}
+                >
+                  <defs>
+                    <mask id="doc-quad-mask">
+                      <rect width="100%" height="100%" fill="white" />
+                      <polygon
+                        fill="black"
+                        points={corners.map(toView).map((p) => `${p.x},${p.y}`).join(" ")}
+                      />
+                    </mask>
+                  </defs>
+                  <rect width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#doc-quad-mask)" />
+                  <polygon
+                    fill="none"
+                    stroke="#C98A2B"
+                    strokeWidth="2.5"
+                    points={corners.map(toView).map((p) => `${p.x},${p.y}`).join(" ")}
+                  />
+                </svg>
+              )}
+
+              {corners &&
+                corners.map((c, idx) => {
+                  const v = toView(c);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onPointerDown={(e) => onPointerDown(idx, e)}
+                      className={`absolute z-10 -translate-x-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center touch-none ${
+                        dragging === idx ? "scale-110" : ""
+                      }`}
+                      style={{ left: v.x, top: v.y }}
+                      aria-label={`Colț ${labels[idx]}`}
+                    >
+                      <span className="w-7 h-7 rounded-full bg-[#C98A2B] border-2 border-white shadow-lg flex items-center justify-center text-[9px] font-black text-white">
+                        {labels[idx]}
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           ) : (
-            <div className="text-slate-400 text-sm">Se încarcă imaginea...</div>
+            <div className="text-white/50 text-sm font-semibold">Se încarcă imaginea...</div>
+          )}
+
+          {(detecting || busy) && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-20">
+              <div className="px-4 py-2 rounded-xl bg-[#1C2127] border border-white/10 text-[12px] font-bold text-white">
+                {busy
+                  ? proMode
+                    ? "Pro mode: perspectivă + îmbunătățire calitate..."
+                    : "Se aplică perspectiva..."
+                  : "Detectez colțurile și calitatea pozei..."}
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Controls */}
-        <div className="p-4 bg-[#0F172A] border-t border-slate-800 flex flex-col gap-3 text-xs">
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRotateLeft}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200"
-                title="Rotește stânga"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> 90°
-              </button>
-              <button
-                onClick={handleRotateRight}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-200"
-                title="Rotește dreapta"
-              >
-                <RotateCw className="w-3.5 h-3.5" /> 90°
-              </button>
-              <button
-                onClick={handleAutoCamScannerCrop}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded shadow-sm"
-                title="Detecție automată margini hârtie și decupare stil CamScanner"
-              >
-                <Crop className="w-3.5 h-3.5 text-white" /> ⚡ Auto-Crop CamScanner
-              </button>
-              <button
-                onClick={applyAutoEnhance}
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-700 rounded font-bold"
-              >
-                <Sun className="w-3.5 h-3.5 text-emerald-400" /> Scanner Alb/Negru Pro
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setGrayscale(!grayscale)}
-                className={`px-2.5 py-1.5 rounded border transition ${
-                  grayscale ? "bg-amber-600 border-amber-500 text-white" : "bg-slate-800 border-slate-700 text-slate-300"
-                }`}
-              >
-                Grayscale
-              </button>
-            </div>
-          </div>
-
-          {/* Sliders for Crop Margins */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-800">
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Crop Sus: {crop.top}%</label>
-              <input
-                type="range"
-                min="0"
-                max="40"
-                value={crop.top}
-                onChange={(e) => setCrop({ ...crop, top: Number(e.target.value) })}
-                className="w-full h-1 bg-slate-700 rounded appearance-none cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Crop Jos: {crop.bottom}%</label>
-              <input
-                type="range"
-                min="0"
-                max="40"
-                value={crop.bottom}
-                onChange={(e) => setCrop({ ...crop, bottom: Number(e.target.value) })}
-                className="w-full h-1 bg-slate-700 rounded appearance-none cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Crop Stânga: {crop.left}%</label>
-              <input
-                type="range"
-                min="0"
-                max="40"
-                value={crop.left}
-                onChange={(e) => setCrop({ ...crop, left: Number(e.target.value) })}
-                className="w-full h-1 bg-slate-700 rounded appearance-none cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Crop Dreapta: {crop.right}%</label>
-              <input
-                type="range"
-                min="0"
-                max="40"
-                value={crop.right}
-                onChange={(e) => setCrop({ ...crop, right: Number(e.target.value) })}
-                className="w-full h-1 bg-slate-700 rounded appearance-none cursor-pointer"
-              />
-            </div>
-          </div>
-
-          {/* Footer buttons */}
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+        <div className="p-3 sm:p-4 bg-[#14181D] border-t border-white/10 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
+              type="button"
+              onClick={handleAutoDetect}
+              disabled={detecting || busy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C98A2B] hover:bg-[#B37A22] text-white text-[11.5px] font-extrabold disabled:opacity-50"
+            >
+              <Sparkles size={13} /> Auto-detect
+            </button>
+            <button
+              type="button"
+              onClick={handleResetFull}
+              disabled={busy}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-[11.5px] font-bold"
+            >
+              <RotateCcw size={13} /> Tot cadrul
+            </button>
+            <button
+              type="button"
+              onClick={() => setEnhance((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-bold border transition ${
+                enhance
+                  ? "bg-emerald-900/50 border-emerald-600 text-emerald-200"
+                  : "bg-white/5 border-white/15 text-white/70"
+              }`}
+            >
+              <Sun size={13} /> {enhance ? "Filtru ON" : "Filtru OFF"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setProMode((v) => !v);
+                setProAuto(false);
+                if (!proMode) setEnhance(true);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11.5px] font-extrabold border transition ${
+                proMode
+                  ? "bg-[#C98A2B]/25 border-[#C98A2B] text-[#F3D9A8]"
+                  : "bg-white/5 border-white/15 text-white/70"
+              }`}
+              title="Lumină + sharpen + contrast + JPEG maxim"
+            >
+              <Zap size={13} /> Pro {proMode ? "ON" : "OFF"}
+              {proAuto ? " · auto" : ""}
+            </button>
+            <div className="flex items-center gap-1 text-[10.5px] text-white/45 font-medium ml-auto">
+              <Move size={12} /> Salvare JPEG {jpegHint}%
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
               onClick={onClose}
-              className="px-4 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded font-medium"
+              disabled={busy}
+              className="px-4 py-2 rounded-lg text-[12.5px] font-bold text-white/60 hover:text-white hover:bg-white/10"
             >
               Anulează
             </button>
             <button
+              type="button"
               onClick={handleSave}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded shadow transition"
+              disabled={busy || !corners}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[12.5px] font-extrabold shadow disabled:opacity-50"
             >
-              <Check className="w-4 h-4" /> Salvează Pagina Procesată
+              <Check size={15} />{" "}
+              {busy ? "Se salvează..." : proMode ? "Confirmă (Pro)" : "Confirmă pagina"}
             </button>
           </div>
         </div>

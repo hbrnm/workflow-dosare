@@ -1,24 +1,57 @@
 import React, { useState, useMemo } from "react";
 import {
-  CalendarClock, PackageCheck, AlertTriangle, AlertOctagon, Phone, Car,
-  Clock, CheckCircle2, ShieldAlert, BarChart3, ChevronRight, User, Filter,
-  Wrench, Boxes, FileText, ArrowRight, ExternalLink
+  CalendarClock, PackageCheck, AlertOctagon, Phone, Car,
+  Clock, CheckCircle2, ShieldAlert, BarChart3, Boxes, ExternalLink, ShoppingCart,
+  ChevronRight, User
 } from "lucide-react";
-import { todayISO, daysBetween, telLink } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
-import { STATUSES, PHASE_COLORS, getStatusDefinition } from "../../constants/config";
+import { todayISO, telLink } from "../../utils/dateUtils";
+import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
+import { STATUSES, PHASE_COLORS } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 
-export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, onSelectStatusFilter }) {
-  const todayStr = todayISO();
-  const [activeAlertTab, setActiveAlertTab] = useState("toate"); // "toate" | "blocate" | "masini_schimb" | "stagnate" | "piese" | "neridicate"
+const ALERT_ICON_BY_TYPE = {
+  blocate: AlertOctagon,
+  masini_schimb: Car,
+  stagnate: Clock,
+  piese: Boxes,
+  neridicate: PackageCheck,
+  accept_plata: ShoppingCart,
+  inactivitate: Clock,
+};
 
-  // Dată azi formatată în limba română
+const ALERT_STYLE_BY_TYPE = {
+  blocate: { badgeColor: "bg-[#B23A2E] text-white", borderColor: "border-[#B23A2E]" },
+  masini_schimb: { badgeColor: "bg-[#C98A2B] text-white", borderColor: "border-[#C98A2B]" },
+  stagnate: { badgeColor: "bg-[#3B5166] text-white", borderColor: "border-[#3B5166]" },
+  piese: { badgeColor: "bg-[#7A5316] text-white", borderColor: "border-[#C98A2B]/60" },
+  neridicate: { badgeColor: "bg-[#3E6B45] text-white", borderColor: "border-[#3E6B45]" },
+  accept_plata: { badgeColor: "bg-[#2C4160] text-white", borderColor: "border-[#2C4160]" },
+  inactivitate: { badgeColor: "bg-[#7A5316] text-white", borderColor: "border-[#7A5316]" },
+};
+
+export default function BriefZilnic({
+  claims,
+  onOpen,
+  pragRidicare,
+  pragInactivitate = 7,
+  alertBuckets = null,
+  onSelectStatusFilter,
+}) {
+  const todayStr = todayISO();
+  const [activeAlertTab, setActiveAlertTab] = useState("toate");
+
   const formattedTodayDate = useMemo(() => {
     const d = new Date();
     return d.toLocaleDateString("ro-RO", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   }, []);
+
+  const buckets = useMemo(
+    () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
+    [alertBuckets, claims, pragRidicare, pragInactivitate]
+  );
+
+  const { counts, totalAlertsCount: totalActiuniUrgente } = buckets;
 
   // 1. Programări intrări astăzi
   const programariAzi = useMemo(() =>
@@ -31,122 +64,13 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
     claims.filter((c) => c.gataDeRidicare && !c.ridicata && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
     [claims, todayStr]);
 
-  // 3. Dosare blocate
-  const blocate = useMemo(() => claims.filter((c) => c.blocat), [claims]);
-
-  // 4. Mașini de schimb cu durata depășită
-  const masiniSchimbDepasite = useMemo(() =>
-    claims.filter((c) => c.masinaSchimb && c.masinaSchimb.trim() && c.status !== "facturat")
-      .map((c) => {
-        const zile = daysBetween(c.dataDariiLaSchimb || c.dataProgramare);
-        const depasit = c.zileChirieAudatex > 0 && zile > c.zileChirieAudatex;
-        return { ...c, zile, depasit };
-      })
-      .filter((c) => c.depasit)
-      .sort((a, b) => b.zile - a.zile),
-    [claims]);
-
-  // 5. Dosare stagnate/în întârziere în etapă
-  const restante = useMemo(() =>
-    claims.filter(isStageOverdue)
-      .sort((a, b) => daysBetween(b.dataSchimbareStatus) - daysBetween(a.dataSchimbareStatus)),
-    [claims]);
-
-  // 6. Piese sosite dar neprogramate la atelier
-  const pieseSositeNeprogramate = useMemo(() =>
-    claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare),
-    [claims]);
-
-  // 7. Clienți cu mașini gata de ridicare ce depășesc pragul de zile
-  const neridicateVechi = useMemo(() =>
-    claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare))
-      .sort((a, b) => daysBetween(b.dataGataRidicare) - daysBetween(a.dataGataRidicare)),
-    [claims, pragRidicare]);
-
-  // Totalul tuturor alertelor operative
-  const totalActiuniUrgente = blocate.length + masiniSchimbDepasite.length + restante.length + pieseSositeNeprogramate.length + neridicateVechi.length;
-
-  // Lista unificată și filtrată de alerte pentru Centrul de Comandă
   const alertsList = useMemo(() => {
-    const list = [];
-
-    blocate.forEach((c) => {
-      list.push({
-        id: `blocat-${c.id}`,
-        claim: c,
-        type: "blocat",
-        title: "Dosar Blocat",
-        reason: c.motivBlocare || "Lipsă motiv specificat",
-        severity: "critical",
-        badgeColor: "bg-[#B23A2E] text-white",
-        borderColor: "border-[#B23A2E]",
-        icon: AlertOctagon,
-      });
-    });
-
-    masiniSchimbDepasite.forEach((c) => {
-      const depasireZile = c.zile - c.zileChirieAudatex;
-      list.push({
-        id: `schimb-${c.id}`,
-        claim: c,
-        type: "masini_schimb",
-        title: `Auto la Schimb Excedat (+${depasireZile}z)`,
-        reason: `Auto: ${c.masinaSchimb} · Folosit ${c.zile} zile (limită Audatex: ${c.zileChirieAudatex}z)`,
-        severity: "warning",
-        badgeColor: "bg-[#C98A2B] text-white",
-        borderColor: "border-[#C98A2B]",
-        icon: Car,
-      });
-    });
-
-    restante.forEach((c) => {
-      const zile = daysBetween(c.dataSchimbareStatus);
-      const sDef = getStatusDefinition(c.status);
-      list.push({
-        id: `stagnat-${c.id}`,
-        claim: c,
-        type: "stagnate",
-        title: `Întârziere în Etapă (${zile} zile)`,
-        reason: `Status curent: ${sDef.label} (depășit pragul recomandat)`,
-        severity: "info",
-        badgeColor: "bg-[#3B5166] text-white",
-        borderColor: "border-[#3B5166]",
-        icon: Clock,
-      });
-    });
-
-    pieseSositeNeprogramate.forEach((c) => {
-      list.push({
-        id: `piese-${c.id}`,
-        claim: c,
-        type: "piese",
-        title: "Piese Sosite - Fără Programare",
-        reason: "Piesele au fost recepționate dar nu a fost stabilită o dată de intrare în service",
-        severity: "warning",
-        badgeColor: "bg-[#7A5316] text-white",
-        borderColor: "border-[#C98A2B]/60",
-        icon: Boxes,
-      });
-    });
-
-    neridicateVechi.forEach((c) => {
-      const zile = daysBetween(c.dataGataRidicare);
-      list.push({
-        id: `neridicat-${c.id}`,
-        claim: c,
-        type: "neridicate",
-        title: `Mașină Neridicată (${zile} zile)`,
-        reason: `Mașina este gata din ${c.dataGataRidicare ? c.dataGataRidicare.slice(0, 10) : "—"} și nu a fost preluată`,
-        severity: "warning",
-        badgeColor: "bg-[#3E6B45] text-white",
-        borderColor: "border-[#3E6B45]",
-        icon: PackageCheck,
-      });
-    });
-
-    if (activeAlertTab === "toate") return list;
-    return list.filter((item) => item.type === activeAlertTab);
-  }, [blocate, masiniSchimbDepasite, restante, pieseSositeNeprogramate, neridicateVechi, activeAlertTab]);
+    return filterAlertItems(buckets.items, activeAlertTab).map((item) => ({
+      ...item,
+      icon: ALERT_ICON_BY_TYPE[item.type] || Clock,
+      ...(ALERT_STYLE_BY_TYPE[item.type] || ALERT_STYLE_BY_TYPE.stagnate),
+    }));
+  }, [buckets.items, activeAlertTab]);
 
   // Număr total dosare active
   const activeClaimsCount = useMemo(() =>
@@ -214,7 +138,7 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
             </span>
           </div>
 
-          {/* Tab-uri de filtrare alerte */}
+          {/* Tab-uri de filtrare alerte — aceleași tipuri ca AlerteModal */}
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             <button
               type="button"
@@ -228,35 +152,49 @@ export default function BriefZilnic({ claims, onOpen, onMoveToStatus, onDuplicat
               onClick={() => setActiveAlertTab("blocate")}
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "blocate" ? "bg-[#B23A2E] text-white border-[#B23A2E]" : "bg-red-50 text-[#B23A2E] border-red-200 hover:bg-red-100"}`}
             >
-              🛑 Blocate ({blocate.length})
+              🛑 Blocate ({counts.blocate})
             </button>
             <button
               type="button"
               onClick={() => setActiveAlertTab("masini_schimb")}
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "masini_schimb" ? "bg-[#C98A2B] text-white border-[#C98A2B]" : "bg-amber-50 text-[#7A5316] border-amber-200 hover:bg-amber-100"}`}
             >
-              🚗 Auto Schimb ({masiniSchimbDepasite.length})
+              🚗 Auto Schimb ({counts.masini_schimb})
             </button>
             <button
               type="button"
               onClick={() => setActiveAlertTab("stagnate")}
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "stagnate" ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-blue-50 text-[#3B5166] border-blue-200 hover:bg-blue-100"}`}
             >
-              ⏳ Stagnate ({restante.length})
+              ⏳ Stagnate ({counts.stagnate})
             </button>
             <button
               type="button"
               onClick={() => setActiveAlertTab("piese")}
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "piese" ? "bg-[#7A5316] text-white border-[#7A5316]" : "bg-orange-50 text-[#7A5316] border-orange-200 hover:bg-orange-100"}`}
             >
-              📦 Piese Neprogramate ({pieseSositeNeprogramate.length})
+              📦 Piese Neprogramate ({counts.piese})
             </button>
             <button
               type="button"
               onClick={() => setActiveAlertTab("neridicate")}
               className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "neridicate" ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-emerald-50 text-[#3E6B45] border-emerald-200 hover:bg-emerald-100"}`}
             >
-              📞 Neridicate ({neridicateVechi.length})
+              📞 Neridicate ({counts.neridicate})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveAlertTab("accept_plata")}
+              className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "accept_plata" ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-slate-50 text-[#2C4160] border-slate-200 hover:bg-slate-100"}`}
+            >
+              🛒 Accept fără piese ({counts.accept_plata})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveAlertTab("inactivitate")}
+              className={`px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeAlertTab === "inactivitate" ? "bg-[#7A5316] text-white border-[#7A5316]" : "bg-yellow-50 text-[#7A5316] border-yellow-200 hover:bg-yellow-100"}`}
+            >
+              ⏱️ Inactive ({counts.inactivitate})
             </button>
           </div>
         </div>

@@ -23,6 +23,22 @@ export const STATUS_MIGRATION = {
 };
 export const STADII_PROGRAMABILE = ["piese_comandate", "programat", "in_lucru"];
 
+/** Statusuri vizibile în Programator (desktop + mobil) — aceleași pe ambele. */
+export const PROGRAMATOR_VISIBLE_STATUSES = [
+  "programat",
+  "in_lucru",
+  "gata_de_ridicare",
+  "predat_client",
+  "facturat",
+];
+
+export function isProgramatorClaim(claim) {
+  return !!(
+    claim?.dataProgramare &&
+    PROGRAMATOR_VISIBLE_STATUSES.includes(claim.status)
+  );
+}
+
 export const PHASE_COLORS = {
   start: { bar: "#3B5166", tint: "#EEF1F3" },
   eval:  { bar: "#4A6FA5", tint: "#ECF1F7" },
@@ -52,6 +68,11 @@ export const MAX_DOCUMENTE_PER_DOSAR = 15;
 export function getStatusDefinition(statusKey) {
   const mappedKey = STATUS_MIGRATION[statusKey] || statusKey;
   return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
+}
+
+/** True for pipeline step „Piese comandate” (incl. legacy status piese_sosite). */
+export function isPieseComandateStatus(statusKey) {
+  return getStatusDefinition(statusKey).key === "piese_comandate";
 }
 
 export function getPhaseColors(statusKey) {

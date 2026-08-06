@@ -1,12 +1,41 @@
-import React, { useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ShieldCheck, Lock, Mail } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import { fetchPublicBranding } from "../../hooks/useSettings";
+import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
+import { loadMobileThemeId } from "../../constants/mobileThemes";
+import "../../styles/mobileThemes.css";
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, branding: brandingProp }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
+  const themeId = loadMobileThemeId();
+
+  useEffect(() => {
+    if (brandingProp) setBranding(brandingProp);
+  }, [brandingProp]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const remote = await fetchPublicBranding();
+      if (alive && remote) setBranding(remote);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      document.documentElement.dataset.mtheme = themeId || "forge";
+    } catch {
+      /* ignore */
+    }
+  }, [themeId]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,7 +44,6 @@ export default function Login({ onLoginSuccess }) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // 1. Încercăm mai întâi conectarea cu Supabase Auth
     const { data: authData, error: signInErr } = await supabase.auth.signInWithPassword({
       email: cleanEmail,
       password: cleanPassword,
@@ -31,49 +59,77 @@ export default function Login({ onLoginSuccess }) {
     setError("Email sau parolă incorectă.");
   };
 
+  const short = (branding?.atelierShort || "WD").slice(0, 2);
+  const name = branding?.atelierNume || DEFAULT_BRANDING.atelierNume;
+
   return (
-    <div className="min-h-screen bg-[#EFEAE1] flex items-center justify-center p-4">
-      <form onSubmit={handleLogin} className="bg-white rounded-lg border border-[#DAD4C6] shadow-xl p-6 w-full max-w-sm space-y-3">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded bg-[#C98A2B] flex items-center justify-center">
-            <ShieldCheck size={18} className="text-white" />
-          </div>
-          <div className="font-bold text-[15px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Dosare Daună
+    <div className="m-login min-h-screen flex items-center justify-center p-4" data-mtheme={themeId || "forge"}>
+      <div className="m-login-glow" aria-hidden />
+      <form onSubmit={handleLogin} className="m-login-card relative w-full max-w-sm space-y-4">
+        <div className="flex items-center gap-3">
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt=""
+              className="m-login-logo w-11 h-11 rounded-xl object-contain"
+            />
+          ) : (
+            <div className="m-login-mark w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-[13px]">
+              {short}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="m-login-title truncate">{name}</div>
+            <div className="m-login-sub">Autentificare atelier</div>
           </div>
         </div>
-        <div>
-          <label className="block text-[11px] text-[#6B6558] mb-0.5">Email</label>
+
+        <div className="space-y-1.5">
+          <label className="m-login-label">
+            <Mail size={12} /> Email
+          </label>
           <input
             type="email"
             required
-            className="in"
+            className="m-login-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoFocus
+            autoComplete="username"
+            placeholder="nume@atelier.ro"
           />
         </div>
-        <div>
-          <label className="block text-[11px] text-[#6B6558] mb-0.5">Parolă</label>
+
+        <div className="space-y-1.5">
+          <label className="m-login-label">
+            <Lock size={12} /> Parolă
+          </label>
           <input
             type="password"
             required
-            className="in"
+            className="m-login-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••"
           />
         </div>
-        {error && <div className="text-[12px] text-[#B23A2E]">{error}</div>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 rounded-md bg-[#C98A2B] text-white text-[13px] font-semibold hover:bg-[#B37A22] disabled:opacity-60"
-        >
-          {loading ? "Se conectează..." : "Conectare"}
+
+        {error && <div className="m-login-error">{error}</div>}
+
+        <button type="submit" disabled={loading} className="m-login-submit">
+          {loading ? (
+            "Se conectează..."
+          ) : (
+            <>
+              <ShieldCheck size={16} /> Conectare
+            </>
+          )}
         </button>
-        <div className="text-[11px] text-[#8A8375] text-center">
-          Cont nou? Cere administratorului să-ți creeze unul din Supabase.
-        </div>
+
+        <p className="m-login-hint text-center">
+          Cont nou? Cere administratorului să-ți creeze unul din Setări.
+        </p>
       </form>
     </div>
   );

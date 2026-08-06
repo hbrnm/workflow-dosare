@@ -1,18 +1,27 @@
 import React, { useState, useMemo } from "react";
-import { Search, Plus, Filter, ChevronRight, User, Phone, X, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
-import { getStatusDefinition } from "../../constants/config";
+import { Search, Plus, ChevronRight, User, Phone, X, ChevronDown, ChevronUp } from "lucide-react";
+import { getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
-import Pill from "../common/Pill";
 import { telLink } from "../../utils/dateUtils";
+import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
-export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
+export default function MobileClaimsList({
+  claims,
+  onOpen,
+  onNew,
+  onPatch,
+  canEditFn,
+  atelierNume = "Dosare Daună",
+  onNotify,
+}) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "gata_de_ridicare" | "facturat" | "blocate"
+  const [statusFilter, setStatusFilter] = useState("toate"); // "toate" | "in_lucru" | "piese_comandate" | "piese_sosite" | "gata_de_ridicare" | "facturat" | "blocate"
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {
       if (statusFilter === "in_lucru" && c.status !== "in_lucru") return false;
-      if (statusFilter === "piese_comandate" && c.status !== "piese_comandate") return false;
+      if (statusFilter === "piese_comandate" && !isPieseComandateStatus(c.status)) return false;
+      if (statusFilter === "piese_sosite" && !(c.pieseSosite && !c.dataProgramare)) return false;
       if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
       if (statusFilter === "facturat" && c.status !== "facturat") return false;
       if (statusFilter === "blocate" && !c.blocat) return false;
@@ -28,6 +37,39 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
     });
   }, [claims, query, statusFilter]);
 
+  const pieseSositeCount = useMemo(
+    () => claims.filter((c) => c.pieseSosite && !c.dataProgramare).length,
+    [claims]
+  );
+
+  const handleTogglePieseSosite = async (claim, val) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return;
+    }
+    const ok = await onPatch?.(claim.id, { pieseSosite: val });
+    if (ok === false) return;
+    onNotify?.(
+      val
+        ? "Piese marcate ca sosite — apasă Programare ca să alegi data."
+        : "Bifa „Piese sosite” a fost stearsă.",
+      val ? "success" : "info"
+    );
+  };
+
+  const handleScheduleFromPiese = async (claim, iso) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return false;
+    }
+    const ok = await onPatch?.(claim.id, { dataProgramare: iso });
+    if (ok === false) return false;
+    onNotify?.(
+      `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+      "success"
+    );
+    return true;
+  };
   // Group claims by vehicle registration if multiple exist in the same status (Point 15)
   const groupedClaims = useMemo(() => {
     const map = new Map();
@@ -47,7 +89,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
       <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-extrabold text-[15px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Dosare Daună ({filtered.length})
+            {atelierNume} ({filtered.length})
           </h2>
           <button
             onClick={onNew}
@@ -95,6 +137,12 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
             Piese Comandate
           </button>
           <button
+            onClick={() => setStatusFilter("piese_sosite")}
+            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "piese_sosite" ? "bg-[#2F8F5B] text-white border-[#2F8F5B]" : "bg-emerald-50 text-[#2F8F5B] border-emerald-200"}`}
+          >
+            Piese sosite ({pieseSositeCount})
+          </button>
+          <button
             onClick={() => setStatusFilter("gata_de_ridicare")}
             className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "gata_de_ridicare" ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-emerald-50 text-[#3E6B45] border-emerald-200"}`}
           >
@@ -112,8 +160,26 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
       {/* LISTĂ TACTILĂ DOSARE */}
       <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
         {groupedClaims.length === 0 ? (
-          <div className="p-8 text-center text-[12px] text-[#8A8375] italic bg-white border border-[#DAD4C6] rounded-2xl">
-            Niciun dosar găsit pentru criteriul selectat.
+          <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl space-y-3">
+            <p className="text-[13px] font-extrabold text-[#23282E]">
+              {query.trim() || statusFilter !== "toate"
+                ? "Niciun dosar pentru filtrele alese"
+                : "Niciun dosar încă"}
+            </p>
+            <p className="text-[11.5px] text-[#8A8375] font-semibold">
+              {query.trim() || statusFilter !== "toate"
+                ? "Șterge căutarea sau schimbă filtrul de status."
+                : "Creează un dosar nou ca să poți fotografia pe teren."}
+            </p>
+            {onNew && (!query.trim() && statusFilter === "toate") && (
+              <button
+                type="button"
+                onClick={onNew}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#C98A2B] text-white text-[12px] font-extrabold shadow-sm"
+              >
+                <Plus size={14} /> Dosar Nou
+              </button>
+            )}
           </div>
         ) : (
           groupedClaims.map((group) => {
@@ -126,7 +192,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
                 <div
                   key={c.id}
                   onClick={() => onOpen(c)}
-                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2"
+                  className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2 active:scale-[0.99]"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -140,11 +206,13 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
                     </span>
                   </div>
 
-                  {c.status === "piese_comandate" && c.dataComandaPiese && (
-                    <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
-                      <span>📦 Piese Comandate la:</span>
-                      <span className="font-mono">{c.dataComandaPiese}</span>
-                    </div>
+                  {isPieseComandateStatus(c.status) && (
+                    <MobilePieseSositeRow
+                      claim={c}
+                      canEdit={!canEditFn || canEditFn(c)}
+                      onToggle={handleTogglePieseSosite}
+                      onSchedule={handleScheduleFromPiese}
+                    />
                   )}
 
                   <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
@@ -161,7 +229,7 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
                       {phone && (
                         <>
                           <WhatsAppButton phone={phone} claim={c} size={11} />
-                          <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                          <a href={telLink(phone)} className="m-call-btn p-1.5">
                             <Phone size={12} />
                           </a>
                         </>
@@ -179,6 +247,9 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
                 key={group[0].id}
                 group={group}
                 onOpen={onOpen}
+                canEditFn={canEditFn}
+                onTogglePieseSosite={handleTogglePieseSosite}
+                onScheduleFromPiese={handleScheduleFromPiese}
               />
             );
           })
@@ -189,16 +260,16 @@ export default function MobileClaimsList({ claims, onOpen, onNew, canEditFn }) {
   );
 }
 
-function MobileStackedGroupCard({ group, onOpen }) {
+function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
 
   return (
-    <div className="border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
+    <div className="m-stack-group border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
       {/* Header Comasat Mobil */}
       <div 
         onClick={() => setExpanded(!expanded)} 
-        className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
+        className="m-stack-head flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
       >
         <div className="flex items-center gap-2">
           <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
@@ -208,7 +279,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
             {group.length} dosare
           </span>
         </div>
-        <div className="flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
+        <div className="m-stack-meta flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
           <span>{expanded ? "Restrânge" : "Extinde"}</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
@@ -218,7 +289,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
       {!expanded && (
         <div 
           onClick={() => setExpanded(true)}
-          className="bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
+          className="m-stack-hint bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
         >
           <span>Apasă pentru a deschide cele {group.length} dosare comasate</span>
           <ChevronDown size={14} />
@@ -236,7 +307,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
               <div
                 key={c.id}
                 onClick={() => onOpen(c)}
-                className="bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
+                className="m-stack-item bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -250,11 +321,14 @@ function MobileStackedGroupCard({ group, onOpen }) {
                   </span>
                 </div>
 
-                {c.status === "piese_comandate" && c.dataComandaPiese && (
-                  <div className="text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-1 rounded-lg border border-amber-200 flex items-center justify-between">
-                    <span>📦 Piese Comandate la:</span>
-                    <span className="font-mono">{c.dataComandaPiese}</span>
-                  </div>
+                {isPieseComandateStatus(c.status) && (
+                  <MobilePieseSositeRow
+                    claim={c}
+                    canEdit={!canEditFn || canEditFn(c)}
+                    onToggle={onTogglePieseSosite}
+                    onSchedule={onScheduleFromPiese}
+                    compact
+                  />
                 )}
 
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[#6B6558]">
@@ -271,7 +345,7 @@ function MobileStackedGroupCard({ group, onOpen }) {
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={11} />
-                        <a href={telLink(phone)} className="p-1.5 rounded-lg bg-[#EEF1F3] text-[#3B5166]">
+                        <a href={telLink(phone)} className="m-call-btn p-1.5">
                           <Phone size={12} />
                         </a>
                       </>
