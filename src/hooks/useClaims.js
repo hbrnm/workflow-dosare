@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { fromDb, toDb } from "../utils/claimUtils";
+import { fromDb, toDb, toDbPatch } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 import { getStatusAlertDays } from "../constants/config";
@@ -156,7 +156,10 @@ export function useClaims(session, showNotice) {
       scheduleNotices.forEach((msg) => showNotice(msg, "success"));
 
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-      const { error } = await supabase.from("dosare").update(toDb(updated)).eq("id", id);
+      const { error } = await supabase
+        .from("dosare")
+        .update(toDbPatch(current, effectivePatch, { updatedByEmail: myEmail }))
+        .eq("id", id);
       if (error) {
         showNotice(error.message, "error");
         await loadAll();
