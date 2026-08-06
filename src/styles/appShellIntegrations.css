@@ -565,6 +565,52 @@
 .app-shell .app-brief-tab--inactivitate.is-active { background: var(--app-accent); border-color: var(--app-accent); color: var(--app-accent-text); }
 .app-shell .app-brief-tab--inactivitate:not(.is-active) { color: var(--app-accent); }
 
+/* Flux — filtre rapide (același pattern ca brief) */
+.app-shell .app-brief-tab--atentie.is-active {
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+  color: #fff;
+}
+.app-shell .app-brief-tab--atentie:not(.is-active) { color: var(--app-danger); }
+
+.app-shell .app-brief-tab--piese_intarziate.is-active {
+  background: color-mix(in srgb, var(--app-accent) 80%, #000);
+  border-color: var(--app-accent);
+  color: var(--app-accent-text);
+}
+.app-shell .app-brief-tab--piese_intarziate:not(.is-active) { color: var(--app-accent); }
+
+.app-shell .app-brief-tab--programate.is-active {
+  background: var(--app-surface-muted);
+  border-color: #539bf5;
+  color: var(--app-text-strong);
+}
+.app-shell .app-brief-tab--programate:not(.is-active) { color: #539bf5; }
+
+.app-shell .app-brief-tab--lucru.is-active {
+  background: color-mix(in srgb, var(--app-success) 70%, #000);
+  border-color: var(--app-success);
+  color: #fff;
+}
+.app-shell .app-brief-tab--lucru:not(.is-active) { color: var(--app-success); }
+
+.app-shell .app-brief-tab--subetapa.is-active {
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+  color: #fff;
+}
+
+/* Brief — Pulsul atelier (pill-uri etape) */
+.app-shell .app-brief-tab--etapa.is-active {
+  background: var(--app-surface-muted);
+  border-color: var(--app-muted-2);
+  color: var(--app-text-strong);
+}
+.app-shell .app-brief-tab--etapa:not(.is-active) {
+  opacity: 0.55;
+  color: var(--app-muted);
+}
+
 .app-shell .app-brief-empty {
   background: var(--app-surface-2);
   border: 1px dashed var(--app-border);

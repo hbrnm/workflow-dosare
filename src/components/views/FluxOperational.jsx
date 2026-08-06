@@ -7,6 +7,14 @@ import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
+import { alertTabClass } from "../common/alertTabClasses";
+
+const FLUX_QUICK_FILTERS = [
+  { key: "atentie", tabKey: "atentie", label: "Atenție", dot: "var(--app-danger)" },
+  { key: "piese", tabKey: "piese_intarziate", label: "Piese întârziate", dot: "var(--app-accent)" },
+  { key: "programate", tabKey: "programate", label: "Programate", dot: "#539bf5" },
+  { key: "lucru", tabKey: "lucru", label: "În lucru", dot: "var(--app-success)" },
+];
 
 // Culori oficiale per fază — sursă unică config.js
 
@@ -332,63 +340,35 @@ export default function TablouPeFazeRedesign({
         </div>
       )}
 
-      {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
-      <div className="app-flux-filter-bar flex items-center gap-2.5 flex-wrap rounded-xl p-2">
-        {/* Chips de filtrare rapidă */}
-        <div className="flex items-center gap-2 flex-wrap text-[12px] font-semibold">
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
-            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
-              quickFilter === "atentie" ? "is-active" : ""
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#D6473F]" />
-            <span>Atenție</span>
-            <span className="opacity-70">({attentionClaims.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "piese" ? "toate" : "piese")}
-            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
-              quickFilter === "piese" ? "is-active" : ""
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#D69A1E]" />
-            <span>Piese întârziate</span>
-            <span className="opacity-70">({overduePartClaims.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
-            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
-              quickFilter === "programate" ? "is-active" : ""
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#2E5C8A]" />
-            <span>Programate</span>
-            <span className="opacity-70">({programateClaims.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "lucru" ? "toate" : "lucru")}
-            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
-              quickFilter === "lucru" ? "is-active" : ""
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#2F6B4E]" />
-            <span>În lucru</span>
-            <span className="opacity-70">({inLucruClaims.length})</span>
-          </button>
+      {/* 2. FILTRE RAPIDE — același stil ca tab-urile Brief/Alerte */}
+      <div className="app-brief-panel rounded-xl p-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          {FLUX_QUICK_FILTERS.map(({ key, tabKey, label, dot }) => {
+            const count =
+              key === "atentie" ? attentionClaims.length
+              : key === "piese" ? overduePartClaims.length
+              : key === "programate" ? programateClaims.length
+              : inLucruClaims.length;
+            const isActive = quickFilter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setQuickFilter(isActive ? "toate" : key)}
+                className={`${alertTabClass(tabKey, isActive ? tabKey : "")} flex items-center gap-1.5`}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />
+                <span>{label}</span>
+                <span className="opacity-70">({count})</span>
+              </button>
+            );
+          })}
 
           {selectedSubStatus && (
             <button
               type="button"
               onClick={() => setSelectedSubStatus(null)}
-              className="px-2.5 py-0.5 rounded-full bg-[var(--app-danger)] text-white font-bold text-[11px]"
+              className={`${alertTabClass("subetapa", "subetapa")} text-[11px]`}
             >
               Filtru sub-etapă ✕
             </button>

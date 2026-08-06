@@ -10,6 +10,7 @@ import { STATUSES } from "../../constants/config";
 import { getAlertStyle, getAlertIcon } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
+import { alertTabClass } from "../common/alertTabClasses";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate", count: (c, total) => total },
@@ -22,10 +23,6 @@ const ALERT_TABS = [
   { key: "accept_plata", label: "🛒 Accept fără piese", count: (c) => c.accept_plata },
   { key: "inactivitate", label: "⏱️ Inactive", count: (c) => c.inactivitate },
 ];
-
-function briefTabClass(tabKey, activeTab) {
-  return `app-brief-tab app-brief-tab--${tabKey} px-2.5 py-1 rounded-lg font-bold border transition-colors ${activeTab === tabKey ? "is-active" : ""}`;
-}
 
 export default function BriefZilnic({
   claims,
@@ -142,7 +139,7 @@ export default function BriefZilnic({
                 key={key}
                 type="button"
                 onClick={() => setActiveAlertTab(key)}
-                className={briefTabClass(key, activeAlertTab)}
+                className={alertTabClass(key, activeAlertTab)}
               >
                 {label} ({key === "toate" ? totalActiuniUrgente : count(counts)})
               </button>
@@ -341,38 +338,23 @@ export default function BriefZilnic({
             <h4 className="text-[10px] font-extrabold text-[var(--app-muted)] uppercase tracking-wider mb-1.5 shrink-0">
               Dosare Înregistrate pe Etape de Lucru
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10.5px]">
+            <div className="flex flex-wrap gap-1.5 text-[11px]">
               {STATUSES.map((s) => {
                 const count = statusStats[s.key] || 0;
 
                 return (
-                  <div
+                  <button
                     key={s.key}
-                    onClick={() => {
-                      if (onSelectStatusFilter) {
-                        onSelectStatusFilter(s.key);
-                      }
-                    }}
-                    className={`app-brief-stage-row px-2 py-1 rounded-lg transition-all select-none flex items-center justify-between gap-1 group ${
-                      count > 0 ? "cursor-pointer" : "is-empty cursor-pointer"
-                    }`}
-                    title={count > 0 ? `Apasă pentru a deschide cele ${count} dosare din etapa „${s.label}”` : `Niciun dosar în etapa „${s.label}”`}
+                    type="button"
+                    onClick={() => onSelectStatusFilter?.(s.key)}
+                    className={`app-brief-tab app-brief-tab--etapa px-2.5 py-1 rounded-lg font-bold border transition-colors text-left ${count > 0 ? "is-active" : ""}`}
+                    title={count > 0 ? `Deschide ${count} dosare — ${s.label}` : `Niciun dosar — ${s.label}`}
                   >
-                    <div className="flex items-center gap-1 min-w-0 pr-1 truncate">
-                      <span className="app-brief-stage-num text-[9px] font-mono px-1 py-0.2 rounded shrink-0">
-                        {String(s.num).padStart(2, "0")}
-                      </span>
-                      <span className="truncate font-semibold group-hover:text-[var(--app-accent)] transition-colors">{s.label}</span>
-                    </div>
-
-                    <span
-                      className={`app-brief-stage-count font-bold font-mono px-1.5 py-0.2 rounded-full text-[10px] shrink-0 transition-transform group-hover:scale-105 ${
-                        count === 0 ? "is-zero" : ""
-                      }`}
-                    >
-                      {count} {count > 0 && "➔"}
-                    </span>
-                  </div>
+                    <span className="font-mono opacity-70">{String(s.num).padStart(2, "0")}.</span>{" "}
+                    {s.label}{" "}
+                    <span className="opacity-70">({count})</span>
+                    {count > 0 && <span className="opacity-50 ml-0.5">→</span>}
+                  </button>
                 );
               })}
             </div>
