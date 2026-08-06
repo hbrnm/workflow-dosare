@@ -70,6 +70,19 @@
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   color: var(--app-text);
+  min-height: 3.75rem;
+  box-sizing: border-box;
+}
+
+.app-shell .app-flux-stack-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app-shell .app-flux-stack-card:hover {
+  border-color: var(--app-muted-2);
+  background: var(--app-surface-2);
 }
 
 .app-shell .app-flux-card:hover {

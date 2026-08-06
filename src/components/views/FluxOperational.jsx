@@ -115,13 +115,13 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 transition-colors duration-150 cursor-pointer select-none ${
+      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
         claim.blocat || overdue ? "is-alert" : ""
       }`}
       style={{ borderLeftColor: phaseColorHex }}
     >
       {/* Rând 1: identificare + vechime */}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-1">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 min-w-0 flex-wrap">
             <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate">
@@ -147,7 +147,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               <span className="text-[8px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
             )}
           </div>
-          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5" title={claim.client || claim.marcaModel}>
+          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={claim.client || claim.marcaModel}>
             {claim.client || claim.marcaModel || "—"}
           </p>
         </div>
@@ -224,17 +224,35 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
 function renderClaimGroups(stageClaims, props, sortKey, pieseAlertDays) {
   return groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays).map(([groupKey, groupClaims]) => (
-    <div key={groupKey} className="min-w-0">
+    <div key={groupKey} className="min-w-0 h-full">
       <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} hideStatusSelect {...props} />
     </div>
   ));
+}
+
+function getClaimAgingMeta(claim) {
+  const days = daysBetween(claim.dataSchimbareStatus);
+  const overdue = isStageOverdue(claim);
+  let agingClass = "app-flux-aging";
+  if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";
+  if (days > 5 || overdue || claim.blocat) agingClass = "app-flux-aging is-danger";
+  return { days, agingClass, alertThreshold: getClaimAlertDays(claim), overdue };
 }
 
 function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
-  const brand = first.marcaModel || first.client || "";
+  const subline = first.marcaModel || first.client || "";
+  const statusDef = getStatusDefinition(first.status);
+  const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
+  const groupHasAlert = groupClaims.some((c) => c.blocat || isStageOverdue(c));
+  const leadClaim = groupClaims.reduce((best, c) => {
+    const bestDays = getClaimStageDays(best);
+    const cDays = getClaimStageDays(c);
+    return cDays > bestDays ? c : best;
+  }, first);
+  const { days, agingClass, alertThreshold } = getClaimAgingMeta(leadClaim);
 
   if (groupClaims.length === 1) {
     return (
@@ -253,32 +271,34 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
     );
   }
 
-  return (
-    <div className="app-flux-stack rounded-lg p-1 space-y-1">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="app-flux-stack-header w-full flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors text-left"
-        title={expanded ? "Restrânge" : "Extinde dosarele"}
-      >
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-extrabold text-[12px] uppercase truncate">
-            {plate}
-          </span>
-          {brand && (
-            <span className="text-[10px] text-[var(--app-muted)] truncate">{brand}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-            {groupClaims.length}
-          </span>
-          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="space-y-1 pt-0.5">
+  if (expanded) {
+    return (
+      <div className="app-flux-stack-expanded space-y-1">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className={`app-flux-card app-flux-stack-card w-full border-l-[3px] rounded-lg p-2 text-left transition-colors ${groupHasAlert ? "is-alert" : ""}`}
+          style={{ borderLeftColor: phaseColorHex }}
+          title="Restrânge dosarele"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate uppercase">
+                  {plate}
+                </span>
+                <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  {groupClaims.length} dosare
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5">
+                {subline || "—"}
+              </p>
+            </div>
+            <ChevronUp size={14} className="shrink-0 text-[var(--app-muted)] mt-0.5" />
+          </div>
+        </button>
+        <div className="space-y-1">
           {groupClaims.map((c) => (
             <PhaseCardRedesign
               key={c.id}
@@ -295,8 +315,43 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
             />
           ))}
         </div>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setExpanded(true)}
+      className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""}`}
+      style={{ borderLeftColor: phaseColorHex }}
+      title={`${groupClaims.length} dosare — click pentru detalii`}
+    >
+      <div className="flex items-center justify-between gap-2 flex-1">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1 min-w-0 flex-wrap">
+            <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate uppercase">
+              {plate}
+            </span>
+            <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+              ×{groupClaims.length}
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={subline}>
+            {subline || "—"}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-1">
+          <span
+            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+            title={`${days} zile (cel mai vechi) · prag ${alertThreshold} zile`}
+          >
+            {days}z
+          </span>
+          <ChevronDown size={14} className="text-[var(--app-muted)]" />
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -497,7 +552,7 @@ export default function TablouPeFazeRedesign({
                     Niciun dosar aici · trage un card sau schimbă etapa din dosar
                   </div>
                 ) : (
-                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 auto-rows-min">
+                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 items-stretch auto-rows-fr">
                     {renderClaimGroups(stageClaims, cardProps, stageSort, pieseAlertDays)}
                   </div>
                 )}
