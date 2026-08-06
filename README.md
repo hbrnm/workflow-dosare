@@ -20,7 +20,9 @@ Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
 
 ### Faza 2 — Client
 - Link **tracking public**: `https://domeniul-tau/?track=TOKEN`
-- Buton „Copiază link tracking client” în fișa dosarului
+- Texte prietenoase pe fază, bară progres, banner **gata de ridicare**
+- Mesaj opțional de la service + preview link
+- Migrare: `supabase-migration-27-tracking-polish.sql`
 
 ### Capture rapidă (curte / tabletă)
 - Tab **Capture**: caută dosar → cameră live / galerie → salvare automată pe dosar
@@ -44,7 +46,8 @@ Rulează în ordine în **SQL Editor**:
 1. [`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql) — câmpuri recepție / avarii / roluri staff  
 2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`  
 3. [`database/migrations/supabase-migration-25-decontare.sql`](database/migrations/supabase-migration-25-decontare.sql) — `termen_plata`, `suma_decont`  
-4. [`database/migrations/supabase-migration-26-deviz.sql`](database/migrations/supabase-migration-26-deviz.sql) — `devize` jsonb
+4. [`database/migrations/supabase-migration-26-deviz.sql`](database/migrations/supabase-migration-26-deviz.sql) — `devize` jsonb  
+5. [`database/migrations/supabase-migration-27-tracking-polish.sql`](database/migrations/supabase-migration-27-tracking-polish.sql) — `mesaj_client` + RPC tracking
 
 ## Setup local / test
 

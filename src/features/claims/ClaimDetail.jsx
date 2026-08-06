@@ -282,21 +282,42 @@ export default function ClaimDetail({
               </ul>
             )}
             {fullEdit && claim.trackingToken && (
-              <button
-                type="button"
-                className="v2-btn-secondary w-full"
-                onClick={async () => {
-                  const url = buildTrackingUrl(claim.trackingToken);
-                  try {
-                    await navigator.clipboard.writeText(url);
-                    showNotice?.("Link tracking copiat.", "success");
-                  } catch {
-                    window.prompt("Copiază linkul tracking:", url);
-                  }
-                }}
-              >
-                <Link2 size={14} /> Copiază link tracking client
-              </button>
+              <>
+                <label className="block">
+                  <span className="v2-label">Mesaj pe linkul client (opțional)</span>
+                  <textarea
+                    className="v2-input min-h-[70px]"
+                    placeholder="ex: Te sunăm mâine după-amiază pentru ridicare."
+                    value={claim.mesajClient || ""}
+                    onChange={(e) => setField("mesajClient", e.target.value)}
+                  />
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="v2-btn-secondary flex-1"
+                    onClick={async () => {
+                      const url = buildTrackingUrl(claim.trackingToken);
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        showNotice?.("Link tracking copiat.", "success");
+                      } catch {
+                        window.prompt("Copiază linkul tracking:", url);
+                      }
+                    }}
+                  >
+                    <Link2 size={14} /> Copiază link
+                  </button>
+                  <a
+                    className="v2-btn-ghost flex-1 text-center"
+                    href={buildTrackingUrl(claim.trackingToken)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Preview
+                  </a>
+                </div>
+              </>
             )}
             {deleteOk && (
               <button
