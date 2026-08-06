@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText, Smartphone
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { STATUSES, INSURERS } from "./constants/config";
@@ -727,24 +727,6 @@ export default function App() {
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
-            {(displayMode === "desktop" || (displayMode === null && !isMobileScreen)) && (
-              <button
-                type="button"
-                onClick={() => toggleDisplayMode("mobile")}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#3B5166] text-[12px] font-bold hover:bg-[#EFEAE1] transition-all"
-                title="Comută la modul mobil"
-              >
-                <Smartphone size={14} />
-                <span className="hidden sm:inline">Mobil</span>
-              </button>
-            )}
-            <button
-              onClick={() => openQuickCapture()}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-white text-[#3B5166] text-[13px] font-bold hover:bg-[#FAF8F5] shadow-sm transition-all active:scale-95"
-              title="Captură rapidă poze & scan documente"
-            >
-              <Camera size={16} className="text-[#C98A2B]" /> <span>Poze &amp; Doc</span>
-            </button>
             <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
