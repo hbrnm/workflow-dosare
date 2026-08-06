@@ -8,13 +8,13 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "script", // Înregistrează automat Service Worker-ul în HTML fără import-uri speciale
-      includeAssets: ["icon-192.png", "icon-512.png"],
+      includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         name: "Workflow Daune 2.0",
         short_name: "Daune 2.0",
         description: "Recepție vehicule, inspecție foto, diagramă avarii și management dosare de daună.",
-        theme_color: "#0f1419",
-        background_color: "#0f1419",
+        theme_color: "#000000",
+        background_color: "#000000",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",

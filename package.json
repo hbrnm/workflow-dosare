@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "icons": "node scripts/generate-pwa-icons.mjs",
     "test": "vitest"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.4",
     "vite": "^5.3.1",
     "vite-plugin-pwa": "^0.20.0",
