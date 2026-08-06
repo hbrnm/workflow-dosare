@@ -156,6 +156,43 @@
   background: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface));
 }
 
+/* Flux — bandă etape orizontală (înlocuiește filtrele alerte) */
+.app-shell .app-flux-stage-strip {
+  scrollbar-color: var(--app-border) transparent;
+}
+
+.app-shell .app-flux-stage-strip .app-brief-tab,
+.app-shell .app-flux-stage-strip .app-brief-tab--etapa {
+  display: inline-flex;
+  width: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.app-shell .app-brief-tab--etapa-strip {
+  font-variant-numeric: tabular-nums;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.app-shell .app-flux-sort-bar {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .app-shell .app-brief-panel:has(.app-flux-stage-strip) > .flex {
+    flex-wrap: wrap;
+  }
+
+  .app-shell .app-flux-sort-bar {
+    width: 100%;
+    border-left: none;
+    padding-left: 0;
+    padding-top: 0.375rem;
+    border-top: 1px solid var(--app-border-soft);
+  }
+}
+
 .app-shell .app-brief-tab--toate_etape.is-active {
   background: var(--app-surface-muted);
   border-color: var(--app-muted-2);

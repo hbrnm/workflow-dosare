@@ -850,8 +850,6 @@ export default function App() {
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
-                  quickFilter={fluxFilter}
-                  setQuickFilter={setFluxFilter}
                   onNotify={showNotice}
                 />
               )

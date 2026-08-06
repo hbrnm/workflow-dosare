@@ -10,13 +10,6 @@ import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 
-const FLUX_QUICK_FILTERS = [
-  { key: "atentie", tabKey: "atentie", label: "Atenție", dot: "var(--app-danger)" },
-  { key: "piese", tabKey: "piese_intarziate", label: "Piese întârziate", dot: "var(--app-accent)" },
-  { key: "programate", tabKey: "programate", label: "Programate", dot: "#539bf5" },
-  { key: "lucru", tabKey: "lucru", label: "În lucru", dot: "var(--app-success)" },
-];
-
 const FLUX_STAGE_SORTS = [
   { key: "alerte", tabKey: "sort_alerte", label: "Alerte" },
   { key: "vechime", tabKey: "sort_vechime", label: "Vechime" },
@@ -321,8 +314,6 @@ export default function TablouPeFazeRedesign({
   onDuplicate,
   canEditFn,
   pragRidicare,
-  quickFilter,
-  setQuickFilter,
   onNotify,
 }) {
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
@@ -338,23 +329,6 @@ export default function TablouPeFazeRedesign({
   const overdueDeliveryClaims = useMemo(() => {
     return claims.filter(isDeliveryDeadlineOverdue);
   }, [claims]);
-
-  // Alerte și grupări dosare
-  const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
-  const inLucruClaims = useMemo(() => claims.filter((c) => c.status === "in_lucru"), [claims]);
-  const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
-
-  const filteredClaims = useMemo(() => {
-    let list = claims;
-
-    // Filtru rapid din chips
-    if (quickFilter === "atentie") list = attentionClaims;
-    else if (quickFilter === "piese") list = overduePartClaims;
-    else if (quickFilter === "programate") list = programateClaims;
-    else if (quickFilter === "lucru") list = inLucruClaims;
-
-    return list;
-  }, [claims, quickFilter, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
 
   const statusCounts = useMemo(() => {
     const counts = {};
@@ -381,8 +355,8 @@ export default function TablouPeFazeRedesign({
     if (focusedStage) {
       return STATUSES.filter((s) => s.key === focusedStage);
     }
-    return STATUSES.filter((s) => filteredClaims.some((c) => c.status === s.key));
-  }, [focusedStage, filteredClaims]);
+    return STATUSES.filter((s) => claims.some((c) => c.status === s.key));
+  }, [focusedStage, claims]);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]">
@@ -397,13 +371,13 @@ export default function TablouPeFazeRedesign({
             )}
           </span>
           <div className="flex items-center gap-2 shrink-0">
-            {quickFilter !== "piese" && (
+            {focusedStage !== "piese_comandate" && (
               <button
                 type="button"
-                onClick={() => setQuickFilter("piese")}
+                onClick={() => setFocusedStage("piese_comandate")}
                 className="text-[11px] font-bold px-2 py-0.5 rounded-md border"
               >
-                Vezi filtru
+                Vezi etapa
               </button>
             )}
             <button
@@ -418,75 +392,47 @@ export default function TablouPeFazeRedesign({
         </div>
       )}
 
-      {/* 2. FILTRE RAPIDE — același stil ca tab-urile Brief/Alerte */}
-      <div className="app-brief-panel rounded-xl p-2 shrink-0">
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          {FLUX_QUICK_FILTERS.map(({ key, tabKey, label, dot }) => {
-            const count =
-              key === "atentie" ? attentionClaims.length
-              : key === "piese" ? overduePartClaims.length
-              : key === "programate" ? programateClaims.length
-              : inLucruClaims.length;
-            const isActive = quickFilter === key;
-            return (
+      {/* Etape + sortare — o singură linie sus */}
+      <div className="app-brief-panel rounded-xl p-2 shrink-0 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="app-flux-stage-strip flex flex-nowrap items-center gap-1.5 text-[11px] flex-1 min-w-0 overflow-x-auto scrollbar-thin">
+            <button
+              type="button"
+              onClick={() => setFocusedStage(null)}
+              className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")} shrink-0 whitespace-nowrap`}
+            >
+              Toate
+            </button>
+            {STATUSES.map((s) => (
+              <StageTabLabel
+                key={s.key}
+                as="button"
+                num={s.num}
+                label={s.label}
+                count={statusCounts[s.key] || 0}
+                selected={focusedStage === s.key}
+                onClick={() => setFocusedStage(focusedStage === s.key ? null : s.key)}
+                className="shrink-0"
+              />
+            ))}
+          </div>
+          <div className="app-flux-sort-bar flex items-center gap-1.5 text-[11px] shrink-0 pl-2 border-l border-[var(--app-border-soft)]">
+            <span className="text-[var(--app-muted)] font-medium whitespace-nowrap">Sortare</span>
+            {FLUX_STAGE_SORTS.map(({ key, tabKey, label }) => (
               <button
                 key={key}
                 type="button"
-                onClick={() => setQuickFilter(isActive ? "toate" : key)}
-                className={`${alertTabClass(tabKey, isActive ? tabKey : "")} flex items-center gap-1.5`}
+                onClick={() => setStageSort(key)}
+                className={`${alertTabClass(tabKey, stageSort === key ? tabKey : "")} whitespace-nowrap`}
               >
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: dot }} />
-                <span>{label}</span>
-                <span className="opacity-70">({count})</span>
+                {label}
               </button>
-            );
-          })}
-
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* 3. Navigare etape — focus pe una sau toate (vertical, fără scroll lateral) */}
-      <div className="app-brief-panel rounded-xl p-2 shrink-0">
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <button
-            type="button"
-            onClick={() => setFocusedStage(null)}
-            className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")}`}
-          >
-            Toate etapele
-          </button>
-          {STATUSES.map((s) => (
-            <StageTabLabel
-              key={s.key}
-              as="button"
-              num={s.num}
-              label={s.label}
-              count={statusCounts[s.key] || 0}
-              selected={focusedStage === s.key}
-              onClick={() => setFocusedStage(focusedStage === s.key ? null : s.key)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Sortare carduri în secțiune */}
-      <div className="app-brief-panel rounded-xl px-2 py-1.5 shrink-0">
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="text-[var(--app-muted)] font-medium px-1">Sortare:</span>
-          {FLUX_STAGE_SORTS.map(({ key, tabKey, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setStageSort(key)}
-              className={alertTabClass(tabKey, stageSort === key ? tabKey : "")}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 4. Board vertical — secțiuni etapă, grid responsive */}
+      {/* Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
         {visibleStages.length === 0 ? (
           <div className="app-flux-empty border border-dashed rounded-xl p-8 text-center text-[13px]">
@@ -494,7 +440,7 @@ export default function TablouPeFazeRedesign({
           </div>
         ) : (
           visibleStages.map((status) => {
-            const stageClaims = filteredClaims.filter((c) => c.status === status.key);
+            const stageClaims = claims.filter((c) => c.status === status.key);
             const totalAll = statusCounts[status.key] || 0;
             const phaseAccent = getPhaseColumnColors(status.phase).bg;
             const isDragTarget = dragOverStage === status.key;
