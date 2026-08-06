@@ -92,20 +92,18 @@ export default function MobilePieseSositeRow({
   const showDateFields = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates;
 
   const metaBoxClass = compact
-    ? "m-piese-sosite-meta text-[10px] font-bold text-[#7A5316] bg-amber-50 p-1.5 rounded-lg border border-amber-200 space-y-1"
-    : "m-piese-sosite-meta text-[10.5px] font-bold text-[#7A5316] bg-amber-50 p-2 rounded-lg border border-amber-200 space-y-1.5";
+    ? "app-piese-panel m-piese-sosite-meta text-[10px] font-bold p-1.5 rounded-lg space-y-1"
+    : "app-piese-panel m-piese-sosite-meta text-[10.5px] font-bold p-2 rounded-lg space-y-1.5";
 
   const datesRevealClass = hideDatesUntilHover
     ? (scheduling ? "block" : "hidden group-hover:block group-focus-within:block")
     : "";
 
   const toggleRowClass = compact
-    ? "flex items-center justify-between gap-2 min-h-0"
-    : `m-piese-sosite-toggle flex items-center justify-between gap-2 font-bold select-none py-2 px-2.5 rounded-lg border transition-all ${
-        checked
-          ? "is-checked bg-emerald-50 text-[#1F7A45] border-emerald-300"
-          : "bg-[#FFF8E8] text-[#5C4810] border-[#E0B85A]"
-      } ${toggleDisabled ? "opacity-60" : ""}`;
+    ? "app-piese-toggle flex items-center justify-between gap-2 min-h-0"
+    : `app-piese-toggle m-piese-sosite-toggle flex items-center justify-between gap-2 font-bold select-none py-2 px-2.5 rounded-lg transition-all ${
+        toggleDisabled ? "opacity-60" : ""
+      }`;
 
   return (
     <div
@@ -122,7 +120,7 @@ export default function MobilePieseSositeRow({
                   {canEditDates ? (
                     <input
                       type="date"
-                      className="font-mono text-[10px] bg-white border border-amber-200 rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px]"
+                      className="font-mono text-[10px] rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px]"
                       defaultValue={toInputDate(claim.dataComandaPiese)}
                       disabled={savingDates}
                       onBlur={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
@@ -131,7 +129,7 @@ export default function MobilePieseSositeRow({
                   ) : claim.dataComandaPiese ? (
                     <span className="font-mono">{toInputDate(claim.dataComandaPiese)}</span>
                   ) : (
-                    <span className="text-[#9A7A30] italic">—</span>
+                    <span className="text-[var(--app-muted-2)] italic">—</span>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -139,8 +137,8 @@ export default function MobilePieseSositeRow({
                   {canEditDates ? (
                     <input
                       type="date"
-                      className={`font-mono text-[10px] bg-white border rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px] ${
-                        livrareOverdue ? "border-[#D6473F] text-[#D6473F]" : "border-amber-200"
+                      className={`font-mono text-[10px] rounded px-1 py-0.5 flex-1 min-w-0 max-w-[130px] ${
+                        livrareOverdue ? "border-[var(--app-danger)] text-[var(--app-danger)]" : ""
                       }`}
                       defaultValue={toInputDate(claim.termenLivrarePiese)}
                       disabled={savingDates}
@@ -148,11 +146,11 @@ export default function MobilePieseSositeRow({
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : claim.termenLivrarePiese ? (
-                    <span className={`font-mono ${livrareOverdue ? "text-[#D6473F]" : ""}`}>
+                    <span className={`font-mono ${livrareOverdue ? "text-[var(--app-danger)]" : ""}`}>
                       {toInputDate(claim.termenLivrarePiese)}
                     </span>
                   ) : (
-                    <span className="text-[#9A7A30] italic">—</span>
+                    <span className="text-[var(--app-muted-2)] italic">—</span>
                   )}
                 </div>
               </div>
@@ -198,8 +196,8 @@ export default function MobilePieseSositeRow({
           </div>
 
           {checked && scheduling && canSchedule && (
-            <div className={`m-piese-schedule-panel bg-[#FAF8F5] border border-[#C98A2B]/55 rounded-lg space-y-1.5 ${compact ? "p-1.5 mt-1" : "p-2.5 rounded-xl space-y-2"}`}>
-              <div className={`font-bold text-[#7A5316] flex items-center gap-1 ${compact ? "text-[9.5px]" : "text-[10.5px]"}`}>
+            <div className={`app-piese-schedule-panel m-piese-schedule-panel rounded-lg space-y-1.5 ${compact ? "p-1.5 mt-1" : "p-2.5 rounded-xl space-y-2"}`}>
+              <div className={`font-bold text-[var(--app-muted)] flex items-center gap-1 ${compact ? "text-[9.5px]" : "text-[10.5px]"}`}>
                 <CalendarClock size={compact ? 10 : 12} /> Alege data &amp; ora
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -207,20 +205,20 @@ export default function MobilePieseSositeRow({
                   type="date"
                   value={editDate}
                   onChange={(e) => setEditDate(e.target.value)}
-                  className="bg-white border border-[#DAD4C6] rounded-lg p-1.5 text-[12px] font-bold text-[#23282E]"
+                  className="rounded-lg p-1.5 text-[12px] font-bold"
                 />
                 <input
                   type="time"
                   value={editTime}
                   onChange={(e) => setEditTime(e.target.value)}
-                  className="bg-white border border-[#DAD4C6] rounded-lg p-1.5 text-[12px] font-bold text-[#23282E]"
+                  className="rounded-lg p-1.5 text-[12px] font-bold"
                 />
               </div>
               <div className="flex justify-end gap-1.5 pt-0.5">
                 <button
                   type="button"
                   onClick={cancelScheduler}
-                  className="px-2.5 py-1 rounded-lg border border-[#DAD4C6] text-[11px] font-bold text-[#6B6558] hover:bg-gray-100"
+                  className="app-piese-btn-cancel px-2.5 py-1 rounded-lg text-[11px] font-bold"
                 >
                   Anulează
                 </button>
@@ -228,7 +226,7 @@ export default function MobilePieseSositeRow({
                   type="button"
                   disabled={saving || !editDate}
                   onClick={saveSchedule}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#C98A2B] text-white text-[11px] font-extrabold hover:bg-[#B37A22] shadow-xs disabled:opacity-50"
+                  className="app-piese-btn-save flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-extrabold shadow-xs disabled:opacity-50"
                 >
                   <Save size={12} />
                   {saving ? "…" : "Salvează"}
@@ -275,14 +273,14 @@ export default function MobilePieseSositeRow({
               </span>
             )
           ) : (
-            <span className="text-[10px] font-bold text-[#9A7A30] shrink-0">Bifează</span>
+            <span className="text-[10px] font-bold text-[var(--app-muted-2)] shrink-0">Bifează</span>
           )}
         </div>
       )}
 
       {checked && !hasSchedule && !scheduling && !compact && (
-        <p className="m-piese-sosite-hint text-[10.5px] font-semibold text-[#8A8375] px-0.5">
-          Apasă <span className="text-[#C98A2B] font-extrabold">Programare</span> ca să alegi data — trece automat în Programat.
+        <p className="m-piese-sosite-hint text-[10.5px] font-semibold text-[var(--app-muted)] px-0.5">
+          Apasă <span className="text-[var(--app-accent)] font-extrabold">Programare</span> ca să alegi data — trece automat în Programat.
         </p>
       )}
     </div>

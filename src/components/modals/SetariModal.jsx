@@ -1,19 +1,17 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   X, Settings, User, Building, Database, Bell, Wrench, Download,
-  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock, Palette
+  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock
 } from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
 import * as XLSX from "xlsx";
 import { todayISO } from "../../utils/dateUtils";
-import MobileThemePicker from "../mobile/MobileThemePicker";
 import {
   modalOverlayClass,
   modalOverlayProps,
   modalPanelClass,
   modalHeaderClass,
 } from "../common/modalShellClasses";
-import "../../styles/mobileThemes.css";
 
 export default function SetariModal({
   claims = [],
@@ -40,8 +38,6 @@ export default function SetariModal({
   onDeleteUser,
   onToggleAdminRole,
   onChangePassword,
-  mobileThemeId = "atelier",
-  onMobileThemeChange,
   desktopUi = false,
 }) {
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
@@ -259,7 +255,7 @@ export default function SetariModal({
   return (
     <div
       className={modalOverlayClass(desktopUi)}
-      {...modalOverlayProps(desktopUi, mobileThemeId)}
+      {...modalOverlayProps(desktopUi)}
     >
       <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
 
@@ -632,24 +628,9 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
-              {!desktopUi && typeof onMobileThemeChange === "function" && (
-                <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
-                  <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                    <Palette size={16} className="text-[#C98A2B]" /> Temă mobilă
-                  </h3>
-                  <p className="text-[11.5px] text-[#8A8375]">
-                    Schimbă culorile, fonturile, icoanele și layout-ul barei de navigare pe telefon.
-                    Se aplică imediat în modul mobil.
-                  </p>
-                  <MobileThemePicker
-                    currentId={mobileThemeId}
-                    onSelect={(id) => {
-                      onMobileThemeChange(id);
-                      onNotify?.("Tema mobilă a fost actualizată", "success");
-                    }}
-                  />
-                </div>
-              )}
+              <p className="text-[12px] text-[var(--app-muted)] px-1">
+                Notificările și alertele folosesc aceleași reguli ca în modul desktop.
+              </p>
             </div>
           )}
 

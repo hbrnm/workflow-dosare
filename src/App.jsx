@@ -34,7 +34,7 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { applyAppTokens } from "./constants/appTokens";
-import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
+import { getSearchHighlightIds } from "./utils/searchUtils";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -86,11 +86,6 @@ export default function App() {
     }
   };
 
-  const [mobileThemeId, setMobileThemeId] = useState(() => loadMobileThemeId());
-  const handleMobileThemeChange = useCallback((id) => {
-    setMobileThemeId(id);
-    saveMobileThemeId(id);
-  }, []);
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -143,28 +138,13 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    if (activeMode === "mobile") {
-      try {
-        document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
-      } catch {
-        /* ignore */
-      }
-      return () => {
-        try {
-          delete document.documentElement.dataset.mtheme;
-        } catch {
-          /* ignore */
-        }
-      };
-    }
+    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
     try {
       delete document.documentElement.dataset.mtheme;
     } catch {
       /* ignore */
     }
-    applyAppTokens(document.documentElement, { accentColor: branding?.accentColor });
-    return undefined;
-  }, [activeMode, mobileThemeId, branding?.accentColor]);
+  }, [branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
@@ -176,8 +156,6 @@ export default function App() {
       (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
     if (fromAdmins || fromUsers) return true;
-    // Bootstrap: primul setup când nu există încă utilizatori configurați
-    if (usersList.length === 0 && adminEmails.length === 0) return true;
     return false;
   }, [myEmail, adminEmails, usersList]);
 
@@ -211,6 +189,11 @@ export default function App() {
     pragRidicare,
     pragInactivitate,
   });
+
+  const highlightClaimIds = useMemo(
+    () => getSearchHighlightIds(userClaims, search),
+    [userClaims, search]
+  );
 
   const {
     buckets: alertBuckets,
@@ -409,7 +392,7 @@ export default function App() {
     return claims.find((c) => c.id === modalClaim.id) || modalClaim;
   }, [claims, modalClaim]);
 
-  const { exportExcel } = useExportExcel(userClaims);
+  const { exportExcel, exportPdf } = useExportExcel(userClaims);
 
   const viewLabels = {
     brief: "Brief Zilnic",
@@ -454,7 +437,9 @@ export default function App() {
             onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
-            themeId={mobileThemeId}
+            search={search}
+            setSearch={setSearch}
+            highlightClaimIds={highlightClaimIds}
           />
         </Suspense>
 
@@ -471,7 +456,6 @@ export default function App() {
               onMoveToStatus={handleMoveToStatus}
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
-              themeId={mobileThemeId}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
                 closeFieldClaim();
@@ -486,6 +470,7 @@ export default function App() {
               claim={activeModalClaim}
               isNew={!activeModalClaim?.numarDosar}
               onSave={handleSave}
+              onPatch={handlePatchClaim}
               onDelete={handleDelete}
               onClose={closeClaimModal}
               onNotify={showNotice}
@@ -495,7 +480,7 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
-              themeId={mobileThemeId}
+              desktopUi
             />
           </Suspense>
         )}
@@ -506,7 +491,7 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={closeQuickCreate}
               onSave={handleSave}
-              themeId={mobileThemeId}
+              desktopUi
             />
           </Suspense>
         )}
@@ -538,8 +523,7 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
-              mobileThemeId={mobileThemeId}
-              onMobileThemeChange={handleMobileThemeChange}
+              desktopUi
             />
           </Suspense>
         )}
@@ -628,41 +612,41 @@ export default function App() {
       </aside>
 
       {/* --- RIGHT MAIN WORKSPACE CANVAS --- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden app-workspace">
 
-        {/* Top Breadcrumb & Action Header */}
-        <header className="relative h-14 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
+        {/* Top bar — breadcrumb + acțiuni */}
+        <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
 
-          {/* Left Navigation / Segmented Switch */}
-          <div className="flex items-center gap-2 text-[13px]">
-            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-semibold text-[11.5px]">
+          {/* Segment (dosare) — fără breadcrumb */}
+          <div className="flex items-center gap-3 text-[13px] min-w-0">
+            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
+              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-medium text-[11px] shrink-0">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "flux"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Layers size={13} />
-                  <span>Tablou Flux</span>
+                  <Layers size={12} />
+                  <span className="hidden md:inline">Flux</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDosareSubView("brief")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "brief"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Sunrise size={13} />
-                  <span>Brief Alerte</span>
+                  <Sunrise size={12} />
+                  <span className="hidden md:inline">Brief</span>
                   {totalAlertsCount > 0 && (
-                    <span className="bg-[#B23A2E] text-white text-[9.5px] px-1.5 py-0.2 rounded-full font-mono">
+                    <span className="bg-[var(--app-danger)] text-white text-[9px] px-1 py-0 rounded-full font-mono min-w-[14px] text-center">
                       {totalAlertsCount}
                     </span>
                   )}
@@ -671,40 +655,36 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("list")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
                     dosareSubView === "list"
-                      ? "app-accent-bg"
+                      ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <List size={13} />
-                  <span>Tabel Dosare</span>
+                  <List size={12} />
+                  <span className="hidden md:inline">Tabel</span>
                 </button>
               </div>
-            ) : (
-              <span className="font-semibold app-accent-text bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-1 rounded-lg text-[13px]">
-                {viewLabels[view] || "Aplicație"}
-              </span>
             )}
           </div>
 
           {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <div className="relative w-80">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+            <div className="relative app-search-lg">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Caută după nr. auto, client, dosar..."
-                className="w-full pl-9 pr-16 py-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-text)] placeholder-[var(--app-muted-2)] focus:bg-[var(--app-surface)] focus:border-[var(--app-accent)] text-[12.5px] transition-all font-medium focus:outline-none"
+                placeholder="Caută nr. auto, client, dosar…"
+                className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="p-0.5 rounded-full hover:bg-gray-200 text-[#8A8375]"
+                    className="p-0.5 rounded-full hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
                     title="Șterge căutarea"
                   >
                     <X size={13} />
@@ -713,7 +693,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsCommandPaletteOpen(true)}
-                  className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166] hover:bg-[#E2DBCF]"
+                  className="app-kbd text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded"
                   title="Deschide Paleta de Comenzi (Ctrl+K)"
                 >
                   Ctrl+K
@@ -726,7 +706,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl app-accent-bg text-[13px] font-bold shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg app-accent-bg text-[12px] font-semibold transition-all active:scale-95"
             >
               <Plus size={16} /> <span>Dosar nou</span>
             </button>
@@ -735,10 +715,10 @@ export default function App() {
             {totalAlertsCount > 0 && (
               <button
                 onClick={() => openAlerts("depasite")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold bg-[#B23A2E] text-white shadow-sm hover:bg-[#922D24] active:scale-95 transition-all animate-pulse"
+                className="app-alert-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold active:scale-95 transition-colors"
                 title="Deschide Centrul de Alerte"
               >
-                <Bell size={14} className="fill-white" />
+                <Bell size={14} />
                 <span>{totalAlertsCount} Alerte</span>
               </button>
             )}
@@ -832,7 +812,7 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
+                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
@@ -854,9 +834,8 @@ export default function App() {
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
                   pragRidicare={pragRidicare}
-                  quickFilter={fluxFilter}
-                  setQuickFilter={setFluxFilter}
                   onNotify={showNotice}
+                  highlightClaimIds={highlightClaimIds}
                 />
               )
             ) : view === "dashboard" ? (
@@ -1016,6 +995,7 @@ export default function App() {
               claim={activeModalClaim}
               onClose={closeClaimModal}
               onSave={handleSave}
+              onPatch={handlePatchClaim}
               onDelete={handleDelete}
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
@@ -1101,6 +1081,7 @@ export default function App() {
         onOpenNewClaim={openNew}
         onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}
+        onExportPdf={exportPdf}
       />
     </div>
   );

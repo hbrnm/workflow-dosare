@@ -87,6 +87,6 @@ describe("scheduleStatusEffects", () => {
     );
     expect(patch.status).toBe("in_lucru");
     expect(patch.adusaFizic).toBe(true);
-    expect(patch.dataAdusaFizic).toBeTruthy();
+    expect(patch.financiar?.dataAdusaFizic).toBeTruthy();
   });
 });

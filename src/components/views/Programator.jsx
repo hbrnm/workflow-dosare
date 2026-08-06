@@ -78,13 +78,13 @@ function PendingBanner({ claims, onOpen }) {
   if (pending.length === 0) return null;
 
   return (
-    <div className="bg-[#FBF3E6] border border-[#C98A2B]/40 rounded-lg p-3">
+    <div className="app-prog-pending-banner rounded-lg p-3">
       <div className="flex items-center gap-2 mb-2">
-        <PackageCheck size={15} className="text-[#C98A2B]" />
-        <span className="text-[12px] font-bold text-[#7A5316]">
+        <PackageCheck size={15} className="text-[var(--app-accent)]" />
+        <span className="text-[12px] font-bold">
           {pending.length} dosar{pending.length > 1 ? "e" : ""} cu piese sosite — neprogramat{pending.length > 1 ? "e" : ""}
         </span>
-        <span className="ml-auto text-[10.5px] text-[#7A5316] font-medium">
+        <span className="ml-auto text-[10.5px] font-medium">
           Deschide dosarul pentru a programa data și ora
         </span>
       </div>
@@ -93,11 +93,11 @@ function PendingBanner({ claims, onOpen }) {
           <button
             key={c.id}
             onClick={() => onOpen(c)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#C98A2B]/40 rounded-lg text-[10.5px] font-semibold text-[#7A5316] hover:bg-[#FBF3E6] hover:border-[#C98A2B] transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold transition-colors"
           >
             <CalendarClock size={11} />
             {c.numarDosar} · {c.client || c.numarInmatriculare}
-            <span className="text-[#8A8375] font-normal">{daysBetween(c.dataSchimbareStatus)}z</span>
+            <span className="text-[var(--app-muted)] font-normal">{daysBetween(c.dataSchimbareStatus)}z</span>
           </button>
         ))}
       </div>
@@ -334,13 +334,13 @@ export default function Programator({
   return (
     <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-hidden">
       {/* Header */}
-      <div className="bg-white rounded-xl border border-[#DAD4C6] px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="app-prog-panel app-prog-panel-header rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="text-[15px] font-bold text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <CalendarClock size={16} className="inline mr-1.5 text-[#3B5166] mb-0.5" />
+          <div className="text-[15px] font-bold text-[var(--app-text-strong)]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <CalendarClock size={16} className="inline mr-1.5 text-[var(--app-muted)] mb-0.5" />
             Programator Service
           </div>
-          <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-[#6B6558]">
+          <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-[var(--app-muted)]">
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#2F8F5B]" /> Onorată</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#D6473F]" /> Neonorată</span>
             <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#E7EEF5] border border-[#2E5C8A]/30" /> Neconfirmată</span>
@@ -350,38 +350,38 @@ export default function Programator({
           <div className="flex items-center gap-1">
             <button
               onClick={prevWeek}
-              className="p-1.5 rounded border border-[#DAD4C6] text-[#3B5166] transition-colors hover:bg-[#EFEAE1]"
+              className="app-prog-nav-btn p-1.5 rounded transition-colors"
               title="Săptămâna anterioară"
             >
               <ChevronLeft size={15} />
             </button>
-            <button onClick={handleSetToday} className="px-3 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160] transition-colors">
+            <button onClick={handleSetToday} className="app-prog-nav-today px-3 py-1 rounded font-semibold text-[11.5px] transition-colors">
               Mergi la azi
             </button>
-            <button onClick={nextWeek} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors" title="Săptămâna următoare">
+            <button onClick={nextWeek} className="app-prog-nav-btn p-1.5 rounded transition-colors" title="Săptămâna următoare">
               <ChevronRight size={15} />
             </button>
-            <span className="font-bold text-[#23282E] text-[12.5px] ml-1 bg-[#FAF8F5] px-2 py-1 rounded border border-[#DAD4C6]">
+            <span className="app-prog-range font-bold text-[12.5px] ml-1 px-2 py-1 rounded">
               Interval: {dateRangeLabel}
             </span>
           </div>
         </div>
 
         {/* Capacity Input */}
-        <div className="flex items-center gap-2 text-[11.5px] bg-[#FAF8F5] px-3 py-1.5 rounded-lg border border-[#DAD4C6]">
-          <Clock size={13} className="text-[#6B6558]" />
-          <span className="text-[#6B6558] font-medium">Capacitate zilnică:</span>
+        <div className="app-prog-capacity flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg">
+          <Clock size={13} className="text-[var(--app-muted)]" />
+          <span className="font-medium">Capacitate zilnică:</span>
           <input
             type="number"
             min={1} max={30}
-            className="w-11 border border-[#DAD4C6] rounded px-1.5 py-0.5 text-center font-bold text-[#23282E] bg-white text-[11.5px]"
+            className="w-11 rounded px-1.5 py-0.5 text-center font-bold text-[11.5px]"
             value={capInput}
             onChange={(e) => setCapInput(Number(e.target.value) || 1)}
           />
-          <span className="text-[#6B6558]">mașini/zi</span>
+          <span>mașini/zi</span>
           <button
             onClick={() => onSetCapacitate && onSetCapacitate(capInput)}
-            className="px-2.5 py-0.5 bg-[#3B5166] text-white rounded text-[11px] font-semibold hover:bg-[#2C4160] transition-colors"
+            className="app-prog-nav-today px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors"
           >
             Salvează
           </button>
@@ -395,12 +395,12 @@ export default function Programator({
 
       {/* Listă viitoare — aceeași logică ca pe mobil */}
       {upcomingClaims.length > 0 && (
-        <div className="shrink-0 bg-white border border-[#DAD4C6] rounded-xl px-3 py-2.5 shadow-sm">
+        <div className="shrink-0 app-prog-upcoming rounded-xl px-3 py-2.5">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="text-[12px] font-extrabold text-[#23282E]">
+            <div className="text-[12px] font-extrabold text-[var(--app-text-strong)]">
               Programări viitoare ({upcomingClaims.length})
             </div>
-            <div className="text-[10.5px] text-[#8A8375] font-medium">
+            <div className="text-[10.5px] text-[var(--app-muted)] font-medium">
               Click pe o mașină ca să sari la ziua ei în calendar
             </div>
           </div>
@@ -414,10 +414,8 @@ export default function Programator({
                   key={c.id}
                   type="button"
                   onClick={() => jumpToProgramare(c)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
-                    isActive
-                      ? "bg-[#3B5166] text-white border-[#3B5166]"
-                      : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-[#FBF3E6]"
+                  className={`app-prog-upcoming-chip flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                    isActive ? "is-active" : ""
                   }`}
                   title={`${c.client || ""} · ${c.marcaModel || ""} · dosar ${c.numarDosar || "—"}`}
                 >
@@ -435,16 +433,16 @@ export default function Programator({
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-stretch">
         
         {/* Rolling Calendar Grid */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+        <div className="app-prog-panel rounded-xl overflow-hidden flex flex-col h-full">
           {/* Days names */}
-          <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
+          <div className="app-prog-cal-header grid grid-cols-7 text-center">
             {headers.map((d, i) => (
-              <span key={`${d}-${i}`} className="text-[13.5px] font-bold text-[#6B6558] py-2.5">{d}</span>
+              <span key={`${d}-${i}`} className="text-[13.5px] font-bold py-2.5">{d}</span>
             ))}
           </div>
 
-          {/* Days cells — toate zilele din fereastra rolling (nu ascunde luna următoare) */}
-          <div className="grid grid-cols-7 auto-rows-fr gap-px bg-[#DAD4C6] flex-grow flex-1">
+          {/* Days cells */}
+          <div className="app-prog-cal-grid grid grid-cols-7 auto-rows-fr gap-px flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
               const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = dayClaims.length;
@@ -452,20 +450,19 @@ export default function Programator({
               const isToday = cell.iso === todayISO();
               const crossesMonth =
                 idx > 0 && calendarCells[idx - 1] && calendarCells[idx - 1].monthNum !== cell.monthNum;
-              
-              let capClass = crossesMonth ? "bg-[#FAF8F5] text-[#23282E]" : "bg-white text-[#23282E]";
-              let badgeColor = "bg-[#FAF8F5] text-[#6B6558]";
-              
+
+              let capState = "";
+              let badgeState = "";
               if (total > 0) {
                 if (total > capacitate) {
-                  capClass = "bg-[#B23A2E]/5 hover:bg-[#B23A2E]/10";
-                  badgeColor = "bg-[#B23A2E] text-white";
+                  capState = "is-over";
+                  badgeState = "is-over";
                 } else if (total === capacitate) {
-                  capClass = "bg-[#C98A2B]/5 hover:bg-[#C98A2B]/10";
-                  badgeColor = "bg-[#C98A2B] text-white";
+                  capState = "is-full";
+                  badgeState = "is-full";
                 } else {
-                  capClass = "bg-[#3E6B45]/5 hover:bg-[#3E6B45]/10";
-                  badgeColor = "bg-[#3E6B45] text-white";
+                  capState = "is-ok";
+                  badgeState = "is-ok";
                 }
               }
 
@@ -482,14 +479,14 @@ export default function Programator({
                     e.dataTransfer.dropEffect = "move";
                   }}
                   onDragEnter={(e) => {
-                    e.currentTarget.classList.add("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.add("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                   }}
                   onDragLeave={(e) => {
-                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.remove("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.remove("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                     const claimId = e.dataTransfer.getData("text/plain");
                     if (claimId && onPatch) {
                       const claim = claims.find(cl => cl.id === claimId);
@@ -499,16 +496,16 @@ export default function Programator({
                       }
                     }
                   }}
-                  className={`p-1 flex flex-col justify-between cursor-pointer transition-all min-h-[4.75rem] ${
-                    isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
-                  } ${capClass}`}
+                  className={`app-prog-cal-cell p-1 flex flex-col justify-between cursor-pointer transition-all min-h-[4.75rem] ${
+                    crossesMonth ? "is-alt-month" : ""
+                  } ${isSelected ? "is-selected" : ""} ${isToday ? "is-today" : ""} ${capState}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[14px] font-mono font-bold px-1.5 py-0.5 rounded ${isToday ? "bg-[#C98A2B] text-white" : "text-[#23282E]"}`}>
+                    <span className={`app-prog-cal-date text-[14px] font-mono font-bold px-1.5 py-0.5 rounded`}>
                       {cell.iso.slice(8, 10)}/{cell.iso.slice(5, 7)}
                     </span>
                     {total > 0 && (
-                      <span className={`text-[12.5px] font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>
+                      <span className={`app-prog-cal-badge text-[12.5px] font-bold px-1.5 py-0.5 rounded-full ${badgeState}`}>
                         {total}
                       </span>
                     )}
@@ -535,7 +532,7 @@ export default function Programator({
                             setSelectingFromArrived(false);
                             if (onOpen) onOpen(c);
                           }}
-                          className={`max-w-[54px] truncate text-[8.5px] font-mono font-extrabold px-1 py-0.5 rounded border leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
+                          className={`app-prog-chip max-w-[54px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
                           title={`${time ? `${time} · ` : ""}${c.numarInmatriculare || "—"}${c.numarDosar ? ` (#${c.numarDosar})` : ""} · ${c.client || ""}`}
                         >
                           {plate}
@@ -550,11 +547,11 @@ export default function Programator({
         </div>
 
         {/* Sidebar Details Panel broken down by Hourly Slots */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 flex flex-col h-full min-h-0">
-          <div className="border-b border-[#EFEAE1] pb-2 flex items-center justify-between shrink-0">
+        <div className="app-prog-panel rounded-xl p-3.5 space-y-3 flex flex-col h-full min-h-0">
+          <div className="app-prog-sidebar-header pb-2 flex items-center justify-between shrink-0">
             <div>
-              <div className="text-[15px] font-bold text-[#23282E]">Programări: {activeDayFormatted}</div>
-              <div className="text-[12.5px] text-[#8A8375]">{activeDayClaims.length}/{capacitate} programate</div>
+              <div className="text-[15px] font-bold text-[var(--app-text-strong)]">Programări: {activeDayFormatted}</div>
+              <div className="text-[12.5px] text-[var(--app-muted)]">{activeDayClaims.length}/{capacitate} programate</div>
             </div>
             
             {/* Quick Share / Print tools */}
@@ -562,7 +559,7 @@ export default function Programator({
               <button
                 onClick={handleCopyList}
                 disabled={activeDayClaims.length === 0}
-                className="px-2 py-1 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="app-prog-tool-wa px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Copiază textul programului pentru WhatsApp"
               >
                 💬 WhatsApp
@@ -570,7 +567,7 @@ export default function Programator({
               <button
                 onClick={handlePrintList}
                 disabled={activeDayClaims.length === 0}
-                className="px-2 py-1 rounded bg-[#3B5166] hover:bg-[#2C4160] text-white text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="app-prog-tool-print px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Printează programul zilei"
               >
                 🖨️ Tipărește
@@ -587,7 +584,7 @@ export default function Programator({
 
               return (
                 <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between text-[12.5px] font-mono text-[#8A8375] mb-1 font-bold">
+                  <div className="flex items-center justify-between text-[12.5px] font-mono text-[var(--app-muted)] mb-1 font-bold">
                     <span>{slot}</span>
                     {!isSchedulingThisSlot && (
                       <button
@@ -596,7 +593,7 @@ export default function Programator({
                           setActiveSlotForScheduling(slot);
                           setSelectingFromArrived(false);
                         }}
-                        className="text-[#C98A2B] hover:text-[#7A5316] font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        className="app-prog-slot-add font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                       >
                         + Programează
                       </button>
@@ -619,16 +616,16 @@ export default function Programator({
                       ))}
                     </div>
                   ) : isSchedulingThisSlot ? (
-                    <div className="bg-[#FDFCF9] border border-[#DAD4C6] rounded-lg p-2.5 space-y-2 text-[11px] shadow-xs">
-                      <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-1">
-                        <span className="font-bold text-[#3B5166]">Programează la {slot.split(" - ")[0]}</span>
+                    <div className="app-prog-schedule-popover rounded-lg p-2.5 space-y-2 text-[11px]">
+                      <div className="app-prog-schedule-popover-header flex items-center justify-between pb-1">
+                        <span className="font-bold">Programează la {slot.split(" - ")[0]}</span>
                         <button
                           type="button"
                           onClick={() => {
                             setActiveSlotForScheduling(null);
                             setSelectingFromArrived(false);
                           }}
-                          className="text-[#8A8375] hover:text-[#23282E] font-bold"
+                          className="text-[var(--app-muted)] hover:text-[var(--app-text-strong)] font-bold"
                         >
                           ✕
                         </button>
@@ -643,23 +640,23 @@ export default function Programator({
                               onAddInStatus("programat", makeIsoFromSlot(activeDateStr, slot));
                             }
                           }}
-                          className="py-1.5 rounded border border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-center font-bold text-[#23282E] shadow-2xs transition-colors"
+                          className="app-prog-action py-1.5 rounded text-center font-bold transition-colors"
                         >
                           📄 Dosar Nou
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectingFromArrived(prev => !prev)}
-                          className={`py-1.5 rounded border text-center font-bold shadow-2xs transition-colors ${selectingFromArrived ? "bg-[#3B5166] text-white border-[#3B5166]" : "border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-[#23282E]"}`}
+                          className={`app-prog-action py-1.5 rounded text-center font-bold transition-colors ${selectingFromArrived ? "is-active" : ""}`}
                         >
                           📦 Piese Sosite
                         </button>
                       </div>
 
                       {selectingFromArrived && (
-                        <div className="space-y-1 mt-2 max-h-[140px] overflow-y-auto border border-[#DAD4C6] rounded bg-white p-1.5 scrollbar-thin">
+                        <div className="app-prog-arrived-list space-y-1 mt-2 max-h-[140px] overflow-y-auto rounded p-1.5 scrollbar-thin">
                           {arrivedClaims.length === 0 ? (
-                            <div className="text-[10px] text-[#8A8375] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
+                            <div className="text-[10px] text-[var(--app-muted)] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
                           ) : (
                             arrivedClaims.map(c => (
                               <button
@@ -672,23 +669,23 @@ export default function Programator({
                                     setSelectingFromArrived(false);
                                   }
                                 }}
-                                className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
+                                className="w-full text-left p-1 rounded border-b text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
                               >
                                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                  <span className="font-mono text-[#3B5166] font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
+                                  <span className="font-mono font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
                                   {c.numarDosar && (
-                                    <span className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
+                                    <span className="text-[9.5px] font-mono font-bold bg-[var(--app-surface-muted)] px-1.5 py-0.2 rounded shrink-0" title={`Dosar #${c.numarDosar}`}>
                                       #{c.numarDosar}
                                     </span>
                                   )}
                                   {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
                                     <>
-                                      <span className="text-[#8A8375] shrink-0">·</span>
-                                      <span className="text-[#6B6558] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
+                                      <span className="text-[var(--app-muted)] shrink-0">·</span>
+                                      <span className="text-[var(--app-muted)] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
                                     </>
                                   )}
                                 </div>
-                                <span className="text-[#8A8375] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
+                                <span className="text-[var(--app-muted)] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
                               </button>
                             ))
                           )}

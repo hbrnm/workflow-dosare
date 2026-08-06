@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
-  Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
+  Camera, Upload, FileText, Loader2, Car, ImageIcon,
   CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
   Eye, FileCheck, RefreshCw, Check, ChevronDown
 } from "lucide-react";
@@ -15,9 +15,11 @@ import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
+import { isSearchHighlighted } from "../../utils/searchUtils";
 
 export default function MobileQuickCapture({
   claims,
+  searchQuery = "",
   onOpen,
   onNew,
   onPatch,
@@ -25,8 +27,8 @@ export default function MobileQuickCapture({
   onNotify,
   focusClaimId = null,
   onFocusClaimConsumed,
+  highlightClaimIds = null,
 }) {
-  const [query, setQuery] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
@@ -80,15 +82,9 @@ export default function MobileQuickCapture({
 
   // Rezultate căutare
   const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return recentClaims;
-    return editableClaims.filter((c) =>
-      (c.numarDosar || "").toLowerCase().includes(q) ||
-      (c.client || "").toLowerCase().includes(q) ||
-      (c.numarInmatriculare || "").toLowerCase().includes(q) ||
-      (c.vin || "").toLowerCase().includes(q)
-    ).slice(0, 25);
-  }, [editableClaims, query, recentClaims]);
+    if (!searchQuery.trim()) return recentClaims;
+    return editableClaims.slice(0, 25);
+  }, [editableClaims, recentClaims, searchQuery]);
 
   // Dosarul selectat curent (up-to-date cu ultimele poze/documente)
   const selectedClaim = useMemo(() => {
@@ -408,29 +404,12 @@ export default function MobileQuickCapture({
           </div>
         )}
 
-        {/* Căutare tactilă */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-2.5 text-[#8A8375]" />
-          <input
-            type="text"
-            className="w-full pl-9 pr-8 py-2 border border-[#DAD4C6] rounded-xl text-[13px] font-bold bg-[#FAF8F5] focus:bg-white focus:outline-hidden"
-            placeholder="Caută nr. dosar sau nr. auto..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button onClick={() => setQuery("")} className="absolute right-2.5 top-2.5 text-[#8A8375]">
-              <X size={15} />
-            </button>
-          )}
-        </div>
-
         {/* Listă cu afișare: Stânga (Număr Dosar) | Dreapta (Număr Înmatriculare) */}
         <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 px-2 space-y-2">
               <p className="text-[12px] text-[#8A8375] font-semibold">
-                {query.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
+                {searchQuery.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
               </p>
               {onNew && (
                 <button
@@ -448,12 +427,13 @@ export default function MobileQuickCapture({
               return (
                 <div
                   key={c.id}
+                  id={`mobile-claim-${c.id}`}
                   onClick={() => selectClaim(c.id)}
                   className={`m-press p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
                     isSelected
                       ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
                       : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
-                  }`}
+                  } ${!isSelected && isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL (O SINGURĂ LINIE FLUIDĂ) */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">

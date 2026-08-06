@@ -220,31 +220,29 @@ export function useClaims(session, showNotice) {
         if (existing?.timer) clearTimeout(existing.timer);
       };
 
-      const commitStatus = async () => {
-        if (!pendingStatusChanges.current.has(claim.id)) return;
-        clearPendingTimer();
-        pendingStatusChanges.current.delete(claim.id);
+      clearPendingTimer();
+      pendingStatusChanges.current.delete(claim.id);
+      void (async () => {
         const { error } = await supabase.from("dosare").upsert(toDb(updated));
         if (error) {
           showNotice(error.message, "error");
-          // Rollback
           setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
         }
-      };
+      })();
 
       const undoStatus = () => {
         if (!pendingStatusChanges.current.has(claim.id)) return;
         clearPendingTimer();
         pendingStatusChanges.current.delete(claim.id);
         setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
-        showNotice(`Status restaurat la „${previousClaim.status}".`, "success");
+        void (async () => {
+          const { error } = await supabase.from("dosare").upsert(toDb(previousClaim));
+          if (error) showNotice(error.message, "error");
+          else showNotice(`Status restaurat la „${previousClaim.status}".`, "success");
+        })();
       };
 
-      clearPendingTimer();
-      const timer = setTimeout(() => {
-        commitStatus();
-      }, 5000);
-      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, commitStatus, undoStatus, timer });
+      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, undoStatus, timer: null });
 
       // Notify parent for undo toast
       const STATUSES_LABELS = {
@@ -264,7 +262,7 @@ export function useClaims(session, showNotice) {
         icon: "status",
         message: `„${claim.numarDosar || claim.numarInmatriculare}" → ${STATUSES_LABELS[newStatusKey] || newStatusKey}`,
         timeoutMs: 5000,
-        onCommit: commitStatus,
+        onCommit: () => {},
         onUndo: undoStatus,
       });
 

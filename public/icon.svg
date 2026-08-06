@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Dosare Dauna">
+  <rect width="512" height="512" fill="#000000"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="156" cy="334" r="42"/>
+    <circle cx="356" cy="334" r="42"/>
+    <path d="M104 334h36l28-58 62-38h108l62 38 28 58h36"/>
+    <path d="M206 238l34-62h72l34 62"/>
+    <line x1="276" y1="176" x2="276" y2="238"/>
+    <path d="M422 334l18-24"/>
+  </g>
+</svg>

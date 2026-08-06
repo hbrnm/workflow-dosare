@@ -1,29 +1,14 @@
 import { useCallback } from "react";
-import { todayISO, fmtDate } from "../utils/dateUtils";
-import { getStatusDefinition } from "../constants/config";
+import { downloadAllClaimsQuick, EXPORT_FORMAT } from "../utils/exportClaimsList";
 
 export function useExportExcel(claims = []) {
   const exportExcel = useCallback(async () => {
-    const XLSX = await import("xlsx");
-    const rows = claims.map((c) => ({
-      "Nr. dosar": c.numarDosar,
-      Tip: c.tipAsigurare,
-      "Asigurător": c.asigurator,
-      Client: c.client,
-      "Nr. înmatriculare": c.numarInmatriculare,
-      VIN: c.vin,
-      "Marcă/Model": c.marcaModel,
-      Status: getStatusDefinition(c.status).label,
-      "Data deschiderii": fmtDate(c.dataDeschiderii),
-      "Facturat Tinichigerie": c.manopera.tinichigerie.facturat,
-      "Facturat Vopsitorie": c.manopera.vopsitorie.facturat,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Dosare");
-    XLSX.writeFile(wb, `dosare-dauna-${todayISO()}.xlsx`);
+    await downloadAllClaimsQuick(claims, EXPORT_FORMAT.XLSX);
   }, [claims]);
 
-  return { exportExcel };
+  const exportPdf = useCallback(async () => {
+    await downloadAllClaimsQuick(claims, EXPORT_FORMAT.PDF);
+  }, [claims]);
+
+  return { exportExcel, exportPdf };
 }

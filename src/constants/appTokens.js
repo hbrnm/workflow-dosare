@@ -1,31 +1,34 @@
 import { darkenHex } from "./branding";
 
 /**
- * Tokeni vizuali desktop — stil minimalist, independent de temele mobile.
+ * Tokeni desktop — dark confortabil (inspirat GitHub dark: off-black, text moale).
+ * Contrast redus față de negru pur + alb strident — mai puțin obositor la citire lungă.
  */
 export const APP_TOKEN_DEFAULTS = {
-  "--app-bg": "#F7F7F5",
-  "--app-surface": "#FFFFFF",
-  "--app-surface-2": "#F3F3F1",
-  "--app-surface-muted": "#EBEBE8",
-  "--app-text": "#1A1A1A",
-  "--app-text-strong": "#0D0D0D",
-  "--app-muted": "#737373",
-  "--app-muted-2": "#A3A3A3",
-  "--app-border": "#E5E5E0",
-  "--app-border-soft": "#EDEDEA",
-  "--app-chrome": "#FFFFFF",
-  "--app-chrome-text": "#1A1A1A",
-  "--app-chrome-muted": "#737373",
+  "--app-bg": "#0d1117",
+  "--app-surface": "#161b22",
+  "--app-surface-2": "#1c2128",
+  "--app-surface-muted": "#21262d",
+  "--app-text": "#c9d1d9",
+  "--app-text-strong": "#e6edf3",
+  "--app-muted": "#8b949e",
+  "--app-muted-2": "#6e7681",
+  "--app-border": "#30363d",
+  "--app-border-soft": "#21262d",
+  "--app-chrome": "#010409",
+  "--app-chrome-text": "#c9d1d9",
+  "--app-chrome-muted": "#8b949e",
   "--app-accent": "#C98A2B",
   "--app-accent-hover": "#B37A22",
-  "--app-accent-text": "#FFFFFF",
-  "--app-danger": "#B23A2E",
-  "--app-success": "#3E6B45",
+  "--app-accent-text": "#ffffff",
+  "--app-danger": "#f85149",
+  "--app-danger-muted": "#3d1f1f",
+  "--app-success": "#3fb950",
+  "--app-success-muted": "#1a2e1f",
   "--app-radius": "8px",
   "--app-radius-sm": "6px",
   "--app-radius-lg": "12px",
-  "--app-shadow": "0 1px 2px rgba(0,0,0,0.04)",
+  "--app-shadow": "none",
   "--app-font-body": "'Inter', system-ui, sans-serif",
   "--app-font-display": "'Inter', system-ui, sans-serif",
 };
