@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
-import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Phone, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { downloadClaimsList } from "../../utils/exportClaimsList";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -101,6 +102,10 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
     setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleDownloadList = async () => {
+    await downloadClaimsList(sorted, { focusedStage });
+  };
+
   const renderRow = (c, i, { inGroup = false } = {}) => {
     const s = getStatusDefinition(c.status);
     const days = daysBetween(c.dataSchimbareStatus);
@@ -165,11 +170,24 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2">
-      <FluxStageStrip
-        statusCounts={statusCounts}
-        focusedStage={focusedStage}
-        onFocusStage={setFocusedStage}
-      />
+      <div className="flex items-stretch gap-2 min-w-0">
+        <FluxStageStrip
+          className="flex-1 min-w-0"
+          statusCounts={statusCounts}
+          focusedStage={focusedStage}
+          onFocusStage={setFocusedStage}
+        />
+        <button
+          type="button"
+          onClick={handleDownloadList}
+          disabled={sorted.length === 0}
+          className="app-table-export-btn shrink-0 inline-flex items-center gap-1.5 self-center px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          title="Descarcă lista filtrată (Excel)"
+        >
+          <Download size={14} />
+          Descarcă listă{sorted.length > 0 ? ` (${sorted.length})` : ""}
+        </button>
+      </div>
 
       <div className="app-table-wrap overflow-x-auto rounded-lg flex-1 min-h-0">
         <table className="app-table w-full min-w-[960px] text-[12.5px]">

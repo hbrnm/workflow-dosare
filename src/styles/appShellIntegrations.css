@@ -993,6 +993,18 @@
   color: var(--app-text-strong);
 }
 
+.app-shell .app-table-export-btn {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-table-export-btn:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+  border-color: color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+}
+
 .app-shell .app-table-contact-btn {
   background: var(--app-surface-muted);
   color: var(--app-text);
