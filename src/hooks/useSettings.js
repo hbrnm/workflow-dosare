@@ -9,7 +9,7 @@ import {
 } from "../constants/branding";
 
 const BRANDING_SELECT =
-  "atelier_nume, atelier_short, logo_url, accent_color";
+  "atelier_nume, atelier_short, logo_url";
 
 export function useSettings(session, showNotice) {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
@@ -107,7 +107,7 @@ export function useSettings(session, showNotice) {
         }
       }
 
-      if (data?.atelier_nume || data?.atelier_short || data?.logo_url || data?.accent_color) {
+      if (data?.atelier_nume || data?.atelier_short || data?.logo_url) {
         const nextBrand = normalizeBranding(data);
         setBranding(nextBrand);
         cacheBranding(nextBrand);
@@ -232,7 +232,7 @@ export function useSettings(session, showNotice) {
       atelier_nume: next.atelierNume,
       atelier_short: next.atelierShort,
       logo_url: next.logoUrl || null,
-      accent_color: next.accentColor,
+      accent_color: null,
     };
     const { error } = await supabase.from("setari").upsert(payload);
     if (error) {

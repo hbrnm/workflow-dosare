@@ -94,8 +94,7 @@ export default function MobileAppLayout({
             />
           ) : (
             <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-white shadow-xs shrink-0"
-              style={{ backgroundColor: branding?.accentColor || "var(--m-accent)" }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-[var(--app-text-strong)] shadow-xs shrink-0 border border-[var(--app-border)] bg-[var(--app-surface-2)]"
             >
               {(branding?.atelierShort || "WD").slice(0, 2)}
             </div>

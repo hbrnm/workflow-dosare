@@ -60,7 +60,6 @@ export default function SetariModal({
   const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "Dosare Daună");
   const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
   const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
-  const [accentColor, setAccentColor] = useState(brandingProp?.accentColor || "#C98A2B");
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -74,7 +73,6 @@ export default function SetariModal({
     setAtelierNume(brandingProp.atelierNume || "Dosare Daună");
     setAtelierShort(brandingProp.atelierShort || "WD");
     setLogoUrl(brandingProp.logoUrl || "");
-    setAccentColor(brandingProp.accentColor || "#C98A2B");
   }, [brandingProp]);
 
   useEffect(() => {
@@ -137,7 +135,6 @@ export default function SetariModal({
           atelierNume,
           atelierShort,
           logoUrl,
-          accentColor,
         });
       }
       onNotify("Setările și branding-ul au fost salvate cu succes!", "success");
@@ -325,7 +322,7 @@ export default function SetariModal({
                   <Building size={16} className="text-[#C98A2B]" /> Identitate atelier (white-label)
                 </h3>
                 <p className="text-[11.5px] text-[#8A8375]">
-                  Numele, inițialele, logo-ul și culoarea apar în header, login, PDF și mesaje WhatsApp.
+                  Numele, inițialele și logo-ul apar în header, login, PDF și mesaje WhatsApp.
                   {isAdmin ? "" : " Doar administratorul poate salva permanent în cloud."}
                 </p>
 
@@ -333,10 +330,7 @@ export default function SetariModal({
                   {logoUrl ? (
                     <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
                   ) : (
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px]"
-                      style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
-                    >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px] bg-[#21262d] border border-[#30363d] text-[#e6edf3]">
                       {(atelierShort || "WD").slice(0, 3)}
                     </div>
                   )}
@@ -398,25 +392,6 @@ export default function SetariModal({
                           Șterge logo
                         </button>
                       )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Culoare accent</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        disabled={!isAdmin}
-                        className="w-12 h-10 rounded-lg border border-[#DAD4C6] bg-white disabled:opacity-60"
-                      />
-                      <input
-                        type="text"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        disabled={!isAdmin}
-                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-mono font-bold bg-white disabled:opacity-60"
-                      />
                     </div>
                   </div>
                 </div>

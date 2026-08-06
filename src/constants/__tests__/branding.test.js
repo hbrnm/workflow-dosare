@@ -16,16 +16,12 @@ describe("branding", () => {
     expect(b.atelierNume).toBe("Auto Pro");
     expect(b.atelierShort).toBe("AP");
     expect(b.logoUrl).toBe("https://example.com/logo.png");
-    expect(b.accentColor).toBe("#112233");
-  });
-
-  it("rejects invalid accent colors", () => {
-    expect(normalizeBranding({ accentColor: "red" }).accentColor).toBe(DEFAULT_BRANDING.accentColor);
+    expect(b).not.toHaveProperty("accentColor");
   });
 
   it("darkenHex reduces brightness", () => {
-    const d = darkenHex("#C98A2B", 0.2);
+    const d = darkenHex("#e6edf3", 0.2);
     expect(d).toMatch(/^#[0-9a-f]{6}$/i);
-    expect(d.toLowerCase()).not.toBe("#c98a2b");
+    expect(d.toLowerCase()).not.toBe("#e6edf3");
   });
 });
