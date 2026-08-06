@@ -78,73 +78,53 @@ export default function MobileClaimsList({
   }, [filtered]);
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
-      
-      {/* HEADER CĂUTARE & DOSAR NOU */}
-      <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-extrabold text-[15px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div className="space-y-3 flex flex-col flex-1 min-h-0 pb-4">
+      <div className="m-list-toolbar rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-extrabold text-[15px] text-[var(--app-text-strong)] truncate">
             {atelierNume} ({filtered.length})
           </h2>
           <button
+            type="button"
             onClick={onNew}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[12px] font-extrabold shadow-sm"
+            className="m-btn-primary shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-[12px] font-extrabold"
           >
             <Plus size={15} /> Dosar Nou
           </button>
         </div>
 
-        {/* Filtre rapide pe statusuri (Punctul 18) */}
-        <div className="flex gap-1 text-[10.5px] font-bold overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setStatusFilter("toate")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "toate" ? "bg-[#2C4160] text-white border-[#2C4160]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"}`}
-          >
-            Toate ({allClaimsCount ?? claims.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("in_lucru")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "in_lucru" ? "bg-[#3B5166] text-white border-[#3B5166]" : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"}`}
-          >
-            În lucru
-          </button>
-          <button
-            onClick={() => setStatusFilter("piese_comandate")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "piese_comandate" ? "bg-[#C98A2B] text-white border-[#C98A2B]" : "bg-amber-50 text-[#7A5316] border-amber-200"}`}
-          >
-            Piese Comandate
-          </button>
-          <button
-            onClick={() => setStatusFilter("piese_sosite")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "piese_sosite" ? "bg-[#2F8F5B] text-white border-[#2F8F5B]" : "bg-emerald-50 text-[#2F8F5B] border-emerald-200"}`}
-          >
-            Piese sosite ({pieseSositeCount})
-          </button>
-          <button
-            onClick={() => setStatusFilter("gata_de_ridicare")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "gata_de_ridicare" ? "bg-[#3E6B45] text-white border-[#3E6B45]" : "bg-emerald-50 text-[#3E6B45] border-emerald-200"}`}
-          >
-            Gata Ridicare
-          </button>
-          <button
-            onClick={() => setStatusFilter("blocate")}
-            className={`px-2.5 py-1 rounded-lg border whitespace-nowrap ${statusFilter === "blocate" ? "bg-[#B23A2E] text-white border-[#B23A2E]" : "bg-red-50 text-[#B23A2E] border-red-200"}`}
-          >
-            🛑 Blocate
-          </button>
+        <div className="flex gap-1.5 text-[10.5px] font-bold overflow-x-auto pb-0.5 scrollbar-none">
+          {[
+            { id: "toate", label: `Toate (${allClaimsCount ?? claims.length})` },
+            { id: "in_lucru", label: "În lucru" },
+            { id: "piese_comandate", label: "Piese Comandate" },
+            { id: "piese_sosite", label: `Piese sosite (${pieseSositeCount})` },
+            { id: "gata_de_ridicare", label: "Gata Ridicare" },
+            { id: "blocate", label: "Blocate" },
+          ].map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setStatusFilter(id)}
+              className={`m-filter-pill px-2.5 py-1 rounded-lg border whitespace-nowrap shrink-0 ${
+                statusFilter === id ? "is-active" : ""
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* LISTĂ TACTILĂ DOSARE */}
       <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
         {groupedClaims.length === 0 ? (
-          <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl space-y-3">
-            <p className="text-[13px] font-extrabold text-[#23282E]">
+          <div className="p-6 text-center rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface)] space-y-3">
+            <p className="text-[13px] font-extrabold text-[var(--app-text-strong)]">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Niciun dosar pentru filtrele alese"
                 : "Niciun dosar încă"}
             </p>
-            <p className="text-[11.5px] text-[#8A8375] font-semibold">
+            <p className="text-[11.5px] text-[var(--app-muted)] font-semibold">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Șterge căutarea (bară jos) sau schimbă filtrul de status."
                 : "Creează un dosar nou ca să poți fotografia pe teren."}
@@ -153,7 +133,7 @@ export default function MobileClaimsList({
               <button
                 type="button"
                 onClick={onNew}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#C98A2B] text-white text-[12px] font-extrabold shadow-sm"
+                className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-extrabold"
               >
                 <Plus size={14} /> Dosar Nou
               </button>
@@ -171,7 +151,7 @@ export default function MobileClaimsList({
                   key={c.id}
                   id={`mobile-claim-${c.id}`}
                   onClick={() => onOpen(c)}
-                  className={`bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs hover:border-[#2C4160] cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+                  className={`m-claim-card rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] hover:border-[var(--app-accent)] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -242,42 +222,38 @@ export default function MobileClaimsList({
 function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
+  const plate = first.numarInmatriculare || "—";
+  const subline = [first.client, first.marcaModel].filter(Boolean).join(" · ") || `${group.length} dosare pe același vehicul`;
 
   return (
-    <div className="m-stack-group border-2 border-[#3B5166]/40 rounded-2xl p-2 bg-[#EEF1F3] space-y-2 shadow-xs transition-all">
-      {/* Header Comasat Mobil */}
-      <div 
-        onClick={() => setExpanded(!expanded)} 
-        className="m-stack-head flex items-center justify-between bg-white p-2.5 rounded-xl border border-[#DAD4C6] cursor-pointer select-none"
+    <div className="m-stack-group rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] overflow-hidden shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="m-stack-head w-full flex items-center gap-3 p-3.5 text-left cursor-pointer select-none active:bg-[var(--app-surface-2)] transition-colors"
+        aria-expanded={expanded}
       >
-        <div className="flex items-center gap-2">
-          <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
-            🚗 {first.numarInmatriculare}
-          </span>
-          <span className="bg-[#3B5166] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
-            {group.length} dosare
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono font-extrabold text-[14px] text-[var(--app-text-strong)] uppercase tracking-wide">
+              {plate}
+            </span>
+            <span className="m-stack-badge text-[10px] font-bold px-2 py-0.5 rounded-full">
+              ×{group.length}
+            </span>
+          </div>
+          {!expanded && (
+            <p className="text-[11.5px] text-[var(--app-muted)] mt-1 leading-snug truncate">{subline}</p>
+          )}
         </div>
-        <div className="m-stack-meta flex items-center gap-1 text-[#3B5166] font-bold text-[12px]">
+        <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-[var(--app-muted)]">
           <span>{expanded ? "Restrânge" : "Extinde"}</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
-      </div>
+      </button>
 
-      {/* Când este restrâns: Rezumat pe mobil */}
-      {!expanded && (
-        <div 
-          onClick={() => setExpanded(true)}
-          className="m-stack-hint bg-white/80 border border-dashed border-[#DAD4C6] p-2.5 rounded-xl text-[11.5px] text-[#3B5166] font-bold text-center flex items-center justify-center gap-1 cursor-pointer"
-        >
-          <span>Apasă pentru a deschide cele {group.length} dosare comasate</span>
-          <ChevronDown size={14} />
-        </div>
-      )}
-
-      {/* Când este extins: Lista dosarelor */}
       {expanded && (
-        <div className="space-y-2 pt-1">
+        <div className="m-stack-items border-t border-[var(--app-border)] p-2 space-y-2 bg-[var(--app-surface-2)]/40">
           {group.map((c) => {
             const sDef = getStatusDefinition(c.status);
             const phone = c.telefonClient || "";
@@ -286,16 +262,20 @@ function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite,
               <div
                 key={c.id}
                 onClick={() => onOpen(c)}
-                className="m-stack-item bg-white border border-[#DAD4C6] rounded-2xl p-3 shadow-2xs cursor-pointer space-y-2"
+                className="m-stack-item rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 cursor-pointer space-y-2 active:scale-[0.99] transition-transform"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-extrabold text-[13px] text-[#23282E] uppercase">
-                      {c.numarInmatriculare || "—"}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] uppercase truncate">
+                      {c.numarDosar || "Fără nr."}
                     </span>
-                    {c.blocat && <span className="px-1.5 py-0.2 text-[9.5px] bg-[#B23A2E] text-white font-bold rounded">BLOCAT</span>}
+                    {c.blocat && (
+                      <span className="px-1.5 py-0.5 text-[9px] bg-[var(--app-danger)] text-white font-bold rounded shrink-0">
+                        BLOCAT
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[10.5px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#3B5166]">
+                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded text-[var(--app-muted)] shrink-0">
                     {sDef.num}. {sDef.label}
                   </span>
                 </div>
@@ -310,26 +290,28 @@ function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite,
                   />
                 )}
 
-                <div className="flex items-center justify-between text-[11.5px] font-semibold text-[#6B6558]">
-                  <span>{c.marcaModel || "—"}</span>
-                  <span className="font-mono text-[10.5px] text-[#8A8375]">Nr: {c.numarDosar || "—"}</span>
+                <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--app-muted)]">
+                  <span className="truncate">{c.marcaModel || c.client || "—"}</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-1.5 border-t border-[#EFEAE1] text-[11px]">
-                  <div className="flex items-center gap-1.5 text-[#8A8375]">
-                    <User size={12} /> <span className="font-semibold text-[#23282E] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
+                <div className="flex items-center justify-between pt-1.5 border-t border-[var(--app-border)] text-[11px]">
+                  <div className="flex items-center gap-1.5 text-[var(--app-muted)] min-w-0">
+                    <User size={12} className="shrink-0" />
+                    <span className="font-semibold text-[var(--app-text)] truncate max-w-[140px]">
+                      {c.client || "Client neprecizat"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={11} />
-                        <a href={telLink(phone)} className="m-call-btn p-1.5">
+                        <a href={telLink(phone)} className="m-call-btn p-1.5 rounded-lg">
                           <Phone size={12} />
                         </a>
                       </>
                     )}
-                    <ChevronRight size={16} className="text-[#8A8375]" />
+                    <ChevronRight size={16} className="text-[var(--app-muted)]" />
                   </div>
                 </div>
               </div>

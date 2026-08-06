@@ -434,7 +434,6 @@ export default function App() {
             alertBuckets={alertBuckets}
             totalAlertsCount={totalAlertsCount}
             branding={branding}
-            onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
             search={search}
@@ -491,7 +490,6 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={closeQuickCreate}
               onSave={handleSave}
-              desktopUi
             />
           </Suspense>
         )}
@@ -523,7 +521,6 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
-              desktopUi
             />
           </Suspense>
         )}
