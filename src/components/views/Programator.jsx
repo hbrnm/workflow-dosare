@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   CalendarClock, PackageCheck, ChevronLeft, ChevronRight, Clock, Plus
 } from "lucide-react";
@@ -107,11 +107,26 @@ function PendingBanner({ claims, onOpen }) {
 /* ───────────────────────────────────────────────────────────────────────── */
 const WEEKDAYS_RO = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
 
-export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate, onAddInStatus }) {
+export default function Programator({
+  claims,
+  onOpen,
+  onPatch,
+  canEditFn,
+  capacitate,
+  onSetCapacitate,
+  onAddInStatus,
+  initialDate = null,
+}) {
   const today = new Date();
-  const [activeDateStr, setActiveDateStr] = useState(() => todayISO());
+  const [activeDateStr, setActiveDateStr] = useState(() => initialDate || todayISO());
   const [weekOffset, setWeekOffset] = useState(0);
   const [capInput, setCapInput] = useState(capacitate || 5);
+  
+  useEffect(() => {
+    if (!initialDate) return;
+    setActiveDateStr(initialDate);
+    setWeekOffset(0);
+  }, [initialDate]);
   
   // State for scheduling a specific slot
   const [activeSlotForScheduling, setActiveSlotForScheduling] = useState(null);

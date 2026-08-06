@@ -51,6 +51,7 @@ export default function App() {
   });
 
   const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
+  const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => {
     try {
@@ -363,6 +364,10 @@ export default function App() {
     const result = await saveClaim(claim, options);
     setSaving(false);
     if (!result?.success) return result;
+    if (options.openProgramator && claim?.dataProgramare) {
+      setProgramatorFocusDate(String(claim.dataProgramare).slice(0, 10));
+      setView("programator");
+    }
     if (activeMode === "mobile" && claim?.id) {
       setFieldClaimId(claim.id);
     }
@@ -865,7 +870,16 @@ export default function App() {
             ) : view === "dashboard" ? (
               <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
             ) : view === "programator" ? (
-              <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch)} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
+              <Programator
+                claims={claims}
+                onOpen={openExisting}
+                onPatch={(id, patch) => handlePatchClaim(id, patch)}
+                canEditFn={canEdit}
+                capacitate={capacitateZilnica}
+                onSetCapacitate={saveCapacitate}
+                onAddInStatus={openNew}
+                initialDate={programatorFocusDate}
+              />
             ) : (
               <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
             )}
