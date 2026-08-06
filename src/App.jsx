@@ -8,6 +8,7 @@ import {
   Bell,
   CalendarClock,
   BarChart3,
+  Camera,
 } from "lucide-react";
 import Login from "./components/auth/Login";
 import { useAuth } from "./hooks/useAuth";
@@ -20,6 +21,7 @@ import {
   canManageUsers,
   canEditClaimFull,
   canChangeStatus,
+  canEditWorkshop,
   ROLES,
 } from "./constants/roles";
 import ClaimsList from "./features/claims/ClaimsList";
@@ -30,6 +32,7 @@ import FluxBoard from "./features/flux/FluxBoard";
 import AlertsPanel from "./features/alerts/AlertsPanel";
 import SchedulePanel from "./features/schedule/SchedulePanel";
 import KpiDashboard from "./features/dashboard/KpiDashboard";
+import QuickCapture from "./features/capture/QuickCapture";
 import TrackPage, { getTrackingTokenFromLocation } from "./features/tracking/TrackPage";
 import "./styles/v2.css";
 
@@ -89,7 +92,10 @@ function AppAuthenticated() {
   );
 
   const canEditFn = useCallback(
-    (claim) => canEditClaimFull(role, claim, session?.user?.id, email) || canChangeStatus(role),
+    (claim) =>
+      canEditClaimFull(role, claim, session?.user?.id, email) ||
+      canEditWorkshop(role) ||
+      canChangeStatus(role),
     [role, session?.user?.id, email]
   );
 
@@ -136,6 +142,7 @@ function AppAuthenticated() {
 
   const navItems = [
     { key: "list", label: "Dosare", icon: ClipboardList },
+    { key: "capture", label: "Capture", icon: Camera },
     { key: "flux", label: "Flux", icon: LayoutGrid },
     { key: "alerts", label: "Alerte", icon: Bell, badge: alerts.totalAlertsCount },
     { key: "schedule", label: "Programări", icon: CalendarClock },
@@ -248,6 +255,17 @@ function AppAuthenticated() {
               }}
               showNotice={showNotice}
             />
+          ) : screen === "capture" ? (
+            <QuickCapture
+              claims={claims}
+              role={role}
+              canEditFn={canEditFn}
+              onPatch={(id, patch) =>
+                patchClaim(id, patch, { canEditFn, skipOwnershipCheck: true })
+              }
+              onNotify={showNotice}
+              onOpenClaim={openClaim}
+            />
           ) : screen === "flux" ? (
             <FluxBoard
               claims={claims}
@@ -293,7 +311,12 @@ function AppAuthenticated() {
         {/* Mobile bottom nav */}
         {!fullBleed && (
           <nav className="v2-nav flex shrink-0 overflow-x-auto scrollbar-none pb-[env(safe-area-inset-bottom)] md:hidden">
-            {navItems.slice(0, 5).map((item) => {
+            {navItems
+              .filter((i) =>
+                ["list", "capture", "reception", "flux", "alerts"].includes(i.key)
+              )
+              .slice(0, 5)
+              .map((item) => {
               const Icon = item.icon;
               return (
                 <button
