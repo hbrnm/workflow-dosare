@@ -31,13 +31,20 @@ Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
 - Alerte **Plăți restante** în app (+ pe Dashboard pe asigurător)
 - Migrare: `supabase-migration-25-decontare.sql`
 
+### Deviz & piese
+- Tab **Deviz**: linii piesă + bifă INL / REV / REP / UNI
+- Valori Audatex vs achiziție + marjă
+- Import/stocare fișiere Audatex / DAT / PDF (fără API)
+- Migrare: `supabase-migration-26-deviz.sql`
+
 ## Migrări Supabase (obligatoriu)
 
 Rulează în ordine în **SQL Editor**:
 
 1. [`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql) — câmpuri recepție / avarii / roluri staff  
 2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`  
-3. [`database/migrations/supabase-migration-25-decontare.sql`](database/migrations/supabase-migration-25-decontare.sql) — `termen_plata`, `suma_decont`
+3. [`database/migrations/supabase-migration-25-decontare.sql`](database/migrations/supabase-migration-25-decontare.sql) — `termen_plata`, `suma_decont`  
+4. [`database/migrations/supabase-migration-26-deviz.sql`](database/migrations/supabase-migration-26-deviz.sql) — `devize` jsonb
 
 ## Setup local / test
 

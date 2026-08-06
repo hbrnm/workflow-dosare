@@ -36,6 +36,7 @@ import {
   isPaymentOverdue,
   getDaysPaymentOverdue,
 } from "../../utils/settlementUtils";
+import EstimatePanel from "../estimate/EstimatePanel";
 
 export default function ClaimDetail({
   claim: initial,
@@ -68,8 +69,9 @@ export default function ClaimDetail({
         "documente-dosare",
         supabase
       );
+      const devize = await refreshStorageUrls(initial.devize || [], "documente-dosare", supabase);
       if (!alive) return;
-      setClaim((c) => ({ ...c, ...initial, poze, documente, tipDocumente }));
+      setClaim((c) => ({ ...c, ...initial, poze, documente, tipDocumente, devize }));
       setMediaReady(true);
     })();
     return () => {
@@ -148,6 +150,7 @@ export default function ClaimDetail({
     () => [
       { key: "general", label: "General" },
       { key: "avarii", label: "Avarii" },
+      { key: "deviz", label: "Deviz" },
       { key: "media", label: "Media" },
       { key: "decontare", label: "Decontare" },
       { key: "status", label: "Status" },
@@ -317,6 +320,15 @@ export default function ClaimDetail({
               onChange={(marks) => setField("damageMarks", marks)}
             />
           </div>
+        )}
+
+        {tab === "deviz" && (
+          <EstimatePanel
+            claim={claim}
+            setClaim={setClaim}
+            fullEdit={fullEdit}
+            showNotice={showNotice}
+          />
         )}
 
         {tab === "media" && (
