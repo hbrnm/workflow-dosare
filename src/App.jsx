@@ -33,7 +33,7 @@ import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
-import { applyAppTokens } from "./constants/appTokens";
+import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 
 export default function App() {
@@ -137,14 +137,7 @@ export default function App() {
     handleToggleAdminRole,
   } = useSettings(session, showNotice);
 
-  useEffect(() => {
-    applyAppTokens(document.documentElement);
-    try {
-      delete document.documentElement.dataset.mtheme;
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  useDayNightTheme();
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;

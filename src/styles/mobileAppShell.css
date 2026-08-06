@@ -106,6 +106,10 @@
 .mobile-shell.app-shell .mobile-bottom-chrome {
   background: var(--app-chrome);
   border-top: 1px solid var(--app-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
 }
 

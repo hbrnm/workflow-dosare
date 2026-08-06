@@ -7,6 +7,8 @@
 body {
   margin: 0;
   font-family: "Inter", system-ui, sans-serif;
+  background: var(--app-bg, #0d1117);
+  color: var(--app-text, #c9d1d9);
   overscroll-behavior-y: contain;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -49,14 +51,10 @@ input, textarea, select, [contenteditable="true"] {
 /* Thin scrollbar for content areas */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #dad4c6 transparent;
-}
-.scrollbar-thin::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  scrollbar-color: var(--app-border, #dad4c6) transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #dad4c6;
+  background: var(--app-border, #dad4c6);
   border-radius: 3px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
