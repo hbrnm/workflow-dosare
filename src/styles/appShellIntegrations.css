@@ -1,0 +1,491 @@
+/* Integrări dark — Flux, piese hover, Programator (sub .app-shell) */
+
+/* ── Flux: sub-etape & coloane ── */
+.app-shell .app-flux-substep-bar {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+}
+
+.app-shell .app-flux-substep {
+  background: var(--app-surface);
+  color: var(--app-muted);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-flux-substep:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-substep.is-active {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+  border-color: var(--app-muted-2);
+}
+
+.app-shell .app-flux-column {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-flux-filter-bar {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-flux-chip {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-chip:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-flux-chip.is-active {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+  border-color: var(--app-muted-2);
+}
+
+.app-shell .app-flux-alert-banner {
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+  color: color-mix(in srgb, var(--app-danger) 80%, var(--app-text));
+}
+
+.app-shell .app-flux-alert-banner button {
+  background: var(--app-surface);
+  border-color: color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+  color: inherit;
+}
+
+.app-shell .app-flux-alert-banner button:hover {
+  background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
+}
+
+/* ── Flux: carduri ── */
+.app-shell .app-flux-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-card:hover {
+  border-color: var(--app-muted-2);
+}
+
+.app-shell .app-flux-card.is-alert {
+  background: color-mix(in srgb, var(--app-danger) 6%, var(--app-surface));
+}
+
+.app-shell .app-flux-card select {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-card select:hover {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-flux-aging {
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+}
+
+.app-shell .app-flux-aging.is-warn {
+  background: color-mix(in srgb, var(--app-accent) 15%, var(--app-surface));
+  color: var(--app-accent);
+}
+
+.app-shell .app-flux-aging.is-danger {
+  background: color-mix(in srgb, var(--app-danger) 15%, var(--app-surface));
+  color: var(--app-danger);
+}
+
+.app-shell .app-flux-stack {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-flux-stack-header {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-stack-header:hover {
+  border-color: var(--app-muted-2);
+}
+
+.app-shell .app-flux-stack-badge {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-flux-empty {
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-flux-casco {
+  background: color-mix(in srgb, var(--app-accent) 20%, var(--app-surface));
+  color: var(--app-accent);
+}
+
+.app-shell .app-flux-contact-bar {
+  border-color: var(--app-border);
+}
+
+.app-shell .app-flux-contact-btn {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
+
+.app-shell .app-flux-contact-btn:hover {
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+}
+
+/* ── Piese comandate (hover pe card Flux) ── */
+.app-shell .app-piese-panel {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-piese-panel input[type="date"] {
+  background: var(--app-surface-muted) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.app-shell .app-piese-toggle {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-piese-toggle.is-checked {
+  background: color-mix(in srgb, var(--app-success) 12%, var(--app-surface));
+  border-color: color-mix(in srgb, var(--app-success) 40%, var(--app-border));
+  color: var(--app-success);
+}
+
+.app-shell .app-piese-schedule-panel {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-piese-schedule-panel input {
+  background: var(--app-surface-muted) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.app-shell .app-piese-schedule-panel .app-piese-btn-cancel {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-piese-schedule-panel .app-piese-btn-cancel:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
+
+.app-shell .app-piese-schedule-panel .app-piese-btn-save {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.app-shell .app-piese-schedule-panel .app-piese-btn-save:hover {
+  background: var(--app-accent-hover);
+}
+
+/* Tailwind amber/emerald hardcodat în piese (mobil + desktop compact) */
+.app-shell .m-piese-sosite-meta,
+.app-shell .bg-amber-50 {
+  background: var(--app-surface-2) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-muted) !important;
+}
+
+.app-shell .border-amber-200 {
+  border-color: var(--app-border) !important;
+}
+
+.app-shell .text-\[\#7A5316\],
+.app-shell .text-\[\#5C4810\],
+.app-shell .text-\[\#9A7A30\] {
+  color: var(--app-muted) !important;
+}
+
+.app-shell .bg-\[\#FFF8E8\] {
+  background: var(--app-surface) !important;
+}
+
+.app-shell .bg-emerald-50 {
+  background: color-mix(in srgb, var(--app-success) 10%, var(--app-surface)) !important;
+}
+
+.app-shell .border-emerald-300 {
+  border-color: color-mix(in srgb, var(--app-success) 35%, var(--app-border)) !important;
+}
+
+.app-shell .text-\[\#1F7A45\] {
+  color: var(--app-success) !important;
+}
+
+/* ── Programator ── */
+.app-shell .app-prog-panel {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-panel-header {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-prog-cal-header {
+  background: var(--app-surface-2);
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-prog-cal-grid {
+  background: var(--app-border);
+}
+
+.app-shell .app-prog-cal-cell {
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-cal-cell.is-alt-month {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-prog-cal-cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--app-accent);
+}
+
+.app-shell .app-prog-cal-cell.is-today .app-prog-cal-date {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.app-shell .app-prog-cal-cell.is-over {
+  background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-cell.is-over:hover {
+  background: color-mix(in srgb, var(--app-danger) 14%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-cell.is-full {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-cell.is-full:hover {
+  background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-cell.is-ok {
+  background: color-mix(in srgb, var(--app-success) 8%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-cell.is-ok:hover {
+  background: color-mix(in srgb, var(--app-success) 14%, var(--app-surface));
+}
+
+.app-shell .app-prog-cal-badge {
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+}
+
+.app-shell .app-prog-cal-badge.is-over {
+  background: var(--app-danger);
+  color: #fff;
+}
+
+.app-shell .app-prog-cal-badge.is-full {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.app-shell .app-prog-cal-badge.is-ok {
+  background: color-mix(in srgb, var(--app-success) 70%, #000);
+  color: #fff;
+}
+
+.app-shell .app-prog-schedule-popover {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.app-shell .app-prog-schedule-popover-header {
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-schedule-popover button.app-prog-action {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-schedule-popover button.app-prog-action:hover {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-prog-schedule-popover button.app-prog-action.is-active {
+  background: var(--app-surface-muted);
+  border-color: var(--app-accent);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-arrived-list {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-prog-arrived-list button {
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-arrived-list button:hover {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-prog-pending-banner {
+  background: color-mix(in srgb, var(--app-accent) 10%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+  color: var(--app-muted);
+}
+
+.app-shell .app-prog-pending-banner button {
+  background: var(--app-surface);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-pending-banner button:hover {
+  background: var(--app-surface-2);
+  border-color: var(--app-accent);
+}
+
+.app-shell .app-prog-upcoming {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-prog-upcoming-chip {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-upcoming-chip:hover {
+  border-color: var(--app-accent);
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--app-surface));
+}
+
+.app-shell .app-prog-upcoming-chip.is-active {
+  background: var(--app-surface-muted);
+  border-color: var(--app-accent);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-capacity {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-prog-capacity input {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-nav-btn {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-nav-btn:hover {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-prog-nav-today {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-nav-today:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-prog-range {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.app-shell .app-prog-sidebar-header {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.app-shell .app-prog-tool-wa {
+  background: color-mix(in srgb, var(--app-success) 12%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-success) 35%, var(--app-border));
+  color: var(--app-success);
+}
+
+.app-shell .app-prog-tool-wa:hover {
+  background: color-mix(in srgb, var(--app-success) 20%, var(--app-surface));
+}
+
+.app-shell .app-prog-tool-print {
+  background: var(--app-surface-muted);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-tool-print:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-prog-slot-add {
+  color: var(--app-accent);
+}
+
+.app-shell .app-prog-slot-add:hover {
+  color: var(--app-text-strong);
+}
+
+.app-shell .bg-\[\#FDFCF9\],
+.app-shell .bg-\[\#FBF3E6\] {
+  background: var(--app-surface) !important;
+}
+
+.app-shell .bg-\[\#EEF5EE\] {
+  background: color-mix(in srgb, var(--app-success) 10%, var(--app-surface)) !important;
+}
+
+.app-shell .divide-\[\#EFEAE1\]\/60 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--app-border) !important;
+}
+
+.app-shell .text-\[\#C2BCB0\] {
+  color: var(--app-muted-2) !important;
+}

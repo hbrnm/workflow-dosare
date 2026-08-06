@@ -42,9 +42,9 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   const alertThreshold = getClaimAlertDays(claim);
   const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
 
-  let agingClass = "text-[#5B6572] bg-[#F3F2EE]";
-  if (days >= 3 && days <= 5) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
-  if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
+  let agingClass = "app-flux-aging";
+  if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";
+  if (days > 5 || overdue || claim.blocat) agingClass = "app-flux-aging is-danger";
 
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
   const isPartOverdue = isPartsOrderOverdue(claim, pieseAlertDays);
@@ -73,8 +73,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative bg-white border border-[#E4E1D9] border-l-[3px] rounded-lg p-2 shadow-xs transition-all duration-150 cursor-pointer select-none hover:shadow-md hover:border-[#1B2430]/30 ${
-        claim.blocat || overdue ? "bg-[#FFFBFB]" : ""
+      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 transition-all duration-150 cursor-pointer select-none hover:shadow-md ${
+        claim.blocat || overdue ? "is-alert" : ""
       }`}
       style={{ borderLeftColor: phaseColorHex }}
     >
@@ -82,13 +82,13 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 min-w-0 flex-wrap">
-            <span className="font-mono font-extrabold text-[13px] text-[#1B2430] truncate">
+            <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate">
               {claim.numarInmatriculare || "FĂRĂ NR."}
             </span>
             {claim.numarDosar && (
               <button
                 type="button"
-                className="text-[10px] font-mono text-[#8A8375] hover:text-[var(--app-accent,#C98A2B)] shrink-0"
+                className="text-[10px] font-mono text-[var(--app-muted)] hover:text-[var(--app-accent)] shrink-0"
                 title={`Dosar #${claim.numarDosar} — click copiere`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -99,13 +99,13 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               </button>
             )}
             {claim.tipAsigurare === "CASCO" && (
-              <span className="text-[8px] font-bold uppercase px-1 rounded bg-[#F4E3C6] text-[#8A5A0E]">C</span>
+              <span className="text-[8px] font-bold uppercase px-1 rounded app-flux-casco">C</span>
             )}
             {claim.blocat && (
-              <span className="text-[8px] font-extrabold text-[#D6473F] uppercase">Blocat</span>
+              <span className="text-[8px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
             )}
           </div>
-          <p className="text-[11px] text-[#6B6558] truncate mt-0.5" title={claim.client || claim.marcaModel}>
+          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5" title={claim.client || claim.marcaModel}>
             {claim.client || claim.marcaModel || "—"}
           </p>
         </div>
@@ -123,7 +123,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           value={claim.status}
           onChange={(e) => onMoveToStatus(claim, e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="w-full bg-[#FAF8F5] border border-[#E4E1D9] rounded-md px-2 py-1 font-bold text-[#1B2430] text-[11px] cursor-pointer hover:bg-white focus:outline-none focus:ring-1 focus:ring-[var(--app-accent,#C98A2B)]"
+          className="w-full rounded-md px-2 py-1 font-bold text-[11px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
           title="Schimbă stadiul dosarului"
         >
           {STATUSES.map((s) => (
@@ -136,7 +136,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* Alertă piese — o linie */}
       {alertLine && (
-        <p className="mt-1.5 text-[10px] font-bold text-[#B23A2E] truncate flex items-center gap-1">
+        <p className="mt-1.5 text-[10px] font-bold text-[var(--app-danger)] truncate flex items-center gap-1">
           <Bell size={10} className="shrink-0" />
           {alertLine}
         </p>
@@ -160,14 +160,14 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {/* Contact — vizibil la hover */}
       {claim.telefonClient && (
         <div
-          className="flex items-center justify-end gap-1 mt-1.5 pt-1 border-t border-[#E4E1D9]/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <a
             href={telLink(claim.telefonClient)}
             onClick={(e) => e.stopPropagation()}
             title={`Sună: ${claim.telefonClient}`}
-            className="p-1 rounded-md bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+            className="app-flux-contact-btn p-1 rounded-md transition-colors"
           >
             <Phone size={11} />
           </a>
@@ -201,23 +201,23 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
   }
 
   return (
-    <div className="border border-[#E4E1D9] rounded-lg p-1 bg-[#FAF8F5] space-y-1">
+    <div className="app-flux-stack rounded-lg p-1 space-y-1">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between bg-white px-2 py-1.5 rounded-md border border-[#E4E1D9] hover:border-[#1B2430]/40 cursor-pointer select-none transition-colors text-left"
+        className="app-flux-stack-header w-full flex items-center justify-between px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors text-left"
         title={expanded ? "Restrânge" : "Extinde dosarele"}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-extrabold text-[12px] text-[#1B2430] uppercase truncate">
+          <span className="font-mono font-extrabold text-[12px] uppercase truncate">
             {plate}
           </span>
           {brand && (
-            <span className="text-[10px] text-[#6B6558] truncate">{brand}</span>
+            <span className="text-[10px] text-[var(--app-muted)] truncate">{brand}</span>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <span className="bg-[#1B2430] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+          <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             {groupClaims.length}
           </span>
           {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -299,11 +299,11 @@ export default function TablouPeFazeRedesign({
   }, [claims, quickFilter, selectedSubStatus, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 font-sans text-[#1B2430]">
+    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 font-sans text-[var(--app-text)]">
 
       {/* 1. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (
-        <div className="flex items-center justify-between gap-3 bg-[#FBEAE9] border border-[#EFC3C0] rounded-lg px-3 py-2 text-[12px] text-[#8C2E28]">
+        <div className="app-flux-alert-banner flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[12px]">
           <span>
             <b>{overduePartClaims.length}</b> dosare cu piese de verificat
             {overdueDeliveryClaims.length > 0 && (
@@ -315,7 +315,7 @@ export default function TablouPeFazeRedesign({
               <button
                 type="button"
                 onClick={() => setQuickFilter("piese")}
-                className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white border border-[#EFC3C0] hover:bg-[#FFF5F4]"
+                className="text-[11px] font-bold px-2 py-0.5 rounded-md border"
               >
                 Vezi filtru
               </button>
@@ -323,7 +323,7 @@ export default function TablouPeFazeRedesign({
             <button
               type="button"
               onClick={() => setDismissAlertBanner(true)}
-              className="text-[#8C2E28] hover:bg-[#EFC3C0]/40 p-1 rounded-md font-bold"
+              className="hover:opacity-80 p-1 rounded-md font-bold"
               aria-label="Închide"
             >
               ✕
@@ -333,14 +333,14 @@ export default function TablouPeFazeRedesign({
       )}
 
       {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
-      <div className="flex items-center gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2 shadow-2xs">
+      <div className="app-flux-filter-bar flex items-center gap-2.5 flex-wrap rounded-xl p-2">
         {/* Chips de filtrare rapidă */}
         <div className="flex items-center gap-2 flex-wrap text-[12px] font-semibold">
           <button
             type="button"
             onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "atentie" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
+            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+              quickFilter === "atentie" ? "is-active" : ""
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#D6473F]" />
@@ -351,8 +351,8 @@ export default function TablouPeFazeRedesign({
           <button
             type="button"
             onClick={() => setQuickFilter(quickFilter === "piese" ? "toate" : "piese")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "piese" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
+            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+              quickFilter === "piese" ? "is-active" : ""
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#D69A1E]" />
@@ -363,8 +363,8 @@ export default function TablouPeFazeRedesign({
           <button
             type="button"
             onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "programate" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
+            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+              quickFilter === "programate" ? "is-active" : ""
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#2E5C8A]" />
@@ -375,8 +375,8 @@ export default function TablouPeFazeRedesign({
           <button
             type="button"
             onClick={() => setQuickFilter(quickFilter === "lucru" ? "toate" : "lucru")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "lucru" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
+            className={`app-flux-chip px-3 py-1 rounded-full transition-all flex items-center gap-1.5 ${
+              quickFilter === "lucru" ? "is-active" : ""
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#2F6B4E]" />
@@ -388,7 +388,7 @@ export default function TablouPeFazeRedesign({
             <button
               type="button"
               onClick={() => setSelectedSubStatus(null)}
-              className="px-2.5 py-0.5 rounded-full bg-[#D6473F] text-white font-bold text-[11px]"
+              className="px-2.5 py-0.5 rounded-full bg-[var(--app-danger)] text-white font-bold text-[11px]"
             >
               Filtru sub-etapă ✕
             </button>
@@ -417,7 +417,7 @@ export default function TablouPeFazeRedesign({
                   if (claim) onMoveToStatus(claim, phase.statuses[0]);
                 }
               }}
-              className="bg-white border border-[#E4E1D9] rounded-2xl overflow-hidden flex flex-col h-auto md:h-full shadow-2xs"
+              className="app-flux-column rounded-2xl overflow-hidden flex flex-col h-auto md:h-full"
             >
               {/* Header Coloană Fază */}
               <div
@@ -436,7 +436,7 @@ export default function TablouPeFazeRedesign({
               </div>
 
               {/* Sub-steps Pills inside Phase Header */}
-              <div className="flex items-center gap-1 flex-wrap p-2 bg-black/5 border-b border-[#E4E1D9]">
+              <div className="app-flux-substep-bar flex items-center gap-1 flex-wrap p-2 border-b">
                 {phase.statuses.map((stKey) => {
                   const stDef = getStatusDefinition(stKey);
                   const stCount = filteredClaims.filter((c) => c.status === stKey).length;
@@ -447,10 +447,8 @@ export default function TablouPeFazeRedesign({
                       key={stKey}
                       type="button"
                       onClick={() => setSelectedSubStatus(isActive ? null : stKey)}
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-all ${
-                        isActive
-                          ? "bg-[#1B2430] text-white border-[#1B2430]"
-                          : "bg-white/80 text-[#5B6572] border-[#E4E1D9] hover:bg-white"
+                      className={`app-flux-substep text-[10px] font-semibold px-1.5 py-0.5 rounded transition-all ${
+                        isActive ? "is-active" : ""
                       }`}
                     >
                       {stDef.num}. {stDef.label} {stCount > 0 ? `(${stCount})` : ""}
@@ -474,7 +472,7 @@ export default function TablouPeFazeRedesign({
 
                   if (groups.length === 0) {
                     return (
-                      <div className="col-span-2 border border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic">
+                      <div className="app-flux-empty col-span-2 border border-dashed rounded-xl p-5 text-center text-[12px] italic">
                         Niciun dosar în această fază
                       </div>
                     );
