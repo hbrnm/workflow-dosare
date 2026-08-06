@@ -9,14 +9,16 @@ export default function StageTabLabel({
   className = "",
   onClick,
   title,
+  selected = false,
 }) {
-  const active = count > 0;
+  const isNavButton = Tag === "button" && onClick;
+  const active = selected || (!isNavButton && count > 0);
   return (
     <Tag
       type={Tag === "button" ? "button" : undefined}
       onClick={onClick}
-      title={title ?? (active ? `${count} dosare — ${label}` : `Niciun dosar — ${label}`)}
-      className={`app-brief-tab app-brief-tab--etapa px-2.5 py-1 rounded-lg font-bold border transition-colors text-left ${active ? "is-active" : ""} ${className}`}
+      title={title ?? (count > 0 ? `${count} dosare — ${label}` : `Niciun dosar — ${label}`)}
+      className={`app-brief-tab app-brief-tab--etapa px-2.5 py-1 rounded-lg font-bold border transition-colors text-left ${active ? "is-active" : ""} ${selected ? "is-selected" : ""} ${className}`}
     >
       <span className="font-mono opacity-70">{String(num).padStart(2, "0")}.</span>{" "}
       {label}{" "}

@@ -32,7 +32,7 @@ const copyClaimNumber = async (numarDosar, onNotify) => {
 // ---------------------------------------------------------------------------
 // KANBAN CARD — vizual minimal, funcții păstrate (status, piese, contact)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify, hideStatusSelect = false }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
@@ -114,7 +114,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </span>
       </div>
 
-      {/* Rând 2: stadiu — select compact */}
+      {/* Stadiu — ascuns când cardul e deja în secțiunea etapei */}
+      {!hideStatusSelect && (
       <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
         <select
           value={claim.status}
@@ -130,6 +131,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           ))}
         </select>
       </div>
+      )}
 
       {/* Alertă piese — o linie */}
       {alertLine && (
@@ -175,7 +177,23 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify }) {
+function renderClaimGroups(stageClaims, props) {
+  const groupedMap = new Map();
+  stageClaims.forEach((c) => {
+    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
+    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
+    if (!groupedMap.has(key)) groupedMap.set(key, []);
+    groupedMap.get(key).push(c);
+  });
+
+  return Array.from(groupedMap.entries()).map(([groupKey, groupClaims]) => (
+    <div key={groupKey} className="min-w-0">
+      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} hideStatusSelect {...props} />
+    </div>
+  ));
+}
+
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
@@ -193,6 +211,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         canEdit={canEditFn(first)}
         pragRidicare={pragRidicare}
         onNotify={onNotify}
+        hideStatusSelect={hideStatusSelect}
       />
     );
   }
@@ -235,6 +254,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               canEdit={canEditFn(c)}
               pragRidicare={pragRidicare}
               onNotify={onNotify}
+              hideStatusSelect={hideStatusSelect}
             />
           ))}
         </div>
@@ -262,6 +282,8 @@ export default function TablouPeFazeRedesign({
   onNotify,
 }) {
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
+  const [focusedStage, setFocusedStage] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   const overduePartClaims = useMemo(() => {
@@ -289,8 +311,36 @@ export default function TablouPeFazeRedesign({
     return list;
   }, [claims, quickFilter, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
 
+  const statusCounts = useMemo(() => {
+    const counts = {};
+    STATUSES.forEach((s) => { counts[s.key] = 0; });
+    claims.forEach((c) => {
+      if (counts[c.status] !== undefined) counts[c.status]++;
+    });
+    return counts;
+  }, [claims]);
+
+  const cardProps = {
+    onOpen,
+    onMoveToStatus,
+    onTogglePieseSosite,
+    onScheduleFromPiese,
+    onPatchPieseDates,
+    canEditFn,
+    pragRidicare,
+    onNotify,
+    hideStatusSelect: true,
+  };
+
+  const visibleStages = useMemo(() => {
+    if (focusedStage) {
+      return STATUSES.filter((s) => s.key === focusedStage);
+    }
+    return STATUSES.filter((s) => filteredClaims.some((c) => c.status === s.key));
+  }, [focusedStage, filteredClaims]);
+
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 font-sans text-[var(--app-text)]">
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]">
 
       {/* 1. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (
@@ -350,81 +400,98 @@ export default function TablouPeFazeRedesign({
         </div>
       </div>
 
-      {/* 3. COLOANE PE ETAPE (STATUSES — ca în Brief) */}
-      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-thin">
-        <div className="flex gap-3 h-full min-w-max pb-1 px-0.5">
-          {STATUSES.map((status) => {
+      {/* 3. Navigare etape — focus pe una sau toate (vertical, fără scroll lateral) */}
+      <div className="app-brief-panel rounded-xl p-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <button
+            type="button"
+            onClick={() => setFocusedStage(null)}
+            className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")}`}
+          >
+            Toate etapele
+          </button>
+          {STATUSES.map((s) => (
+            <StageTabLabel
+              key={s.key}
+              as="button"
+              num={s.num}
+              label={s.label}
+              count={statusCounts[s.key] || 0}
+              selected={focusedStage === s.key}
+              onClick={() => setFocusedStage(focusedStage === s.key ? null : s.key)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 4. Board vertical — secțiuni etapă, grid responsive */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
+        {visibleStages.length === 0 ? (
+          <div className="app-flux-empty border border-dashed rounded-xl p-8 text-center text-[13px]">
+            Niciun dosar pentru filtrele selectate.
+          </div>
+        ) : (
+          visibleStages.map((status) => {
             const stageClaims = filteredClaims.filter((c) => c.status === status.key);
-            const totalAll = claims.filter((c) => c.status === status.key).length;
+            const totalAll = statusCounts[status.key] || 0;
+            const phaseAccent = getPhaseColumnColors(status.phase).bg;
+            const isDragTarget = dragOverStage === status.key;
 
             return (
-              <div
+              <section
                 key={status.key}
+                id={`flux-stage-${status.key}`}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(status.key);
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
+                  setDragOverStage(status.key);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setDragOverStage((prev) => (prev === status.key ? null : prev));
+                  }
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
+                  setDragOverStage(null);
                   const claimId = e.dataTransfer.getData("text/plain");
                   if (claimId && onMoveToStatus) {
                     const claim = claims.find((cl) => cl.id === claimId);
                     if (claim) onMoveToStatus(claim, status.key);
                   }
                 }}
-                className="app-flux-column w-[260px] shrink-0 rounded-2xl overflow-hidden flex flex-col h-full max-h-full"
+                className={`app-flux-stage-section rounded-xl overflow-hidden ${isDragTarget ? "is-drag-over" : ""}`}
+                style={{ "--flux-phase-accent": phaseAccent }}
               >
-                <div className="p-2 shrink-0 border-b border-[var(--app-border-soft)]">
+                <div
+                  className="app-flux-stage-header p-2 border-b border-[var(--app-border-soft)]"
+                  style={{ borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
+                >
                   <StageTabLabel
                     num={status.num}
                     label={status.label}
                     count={totalAll}
-                    className="w-full block"
+                    className="w-full pointer-events-none"
                   />
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 grid grid-cols-1 gap-1.5 auto-rows-min content-start scrollbar-thin min-h-[120px]">
-                  {(() => {
-                    const groupedMap = new Map();
-                    stageClaims.forEach((c) => {
-                      const plate = (c.numarInmatriculare || "").trim().toUpperCase();
-                      const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
-                      if (!groupedMap.has(key)) groupedMap.set(key, []);
-                      groupedMap.get(key).push(c);
-                    });
-
-                    const groups = Array.from(groupedMap.entries());
-
-                    if (groups.length === 0) {
-                      return (
-                        <div className="app-flux-empty border border-dashed rounded-xl p-4 text-center text-[11px] italic">
-                          Niciun dosar
-                        </div>
-                      );
-                    }
-
-                    return groups.map(([groupKey, groupClaims]) => (
-                      <div key={groupKey} className="min-w-0">
-                        <StackedPhaseCardGroup
-                          groupKey={groupKey}
-                          groupClaims={groupClaims}
-                          onOpen={onOpen}
-                          onMoveToStatus={onMoveToStatus}
-                          onTogglePieseSosite={onTogglePieseSosite}
-                          onScheduleFromPiese={onScheduleFromPiese}
-                          onPatchPieseDates={onPatchPieseDates}
-                          canEditFn={canEditFn}
-                          pragRidicare={pragRidicare}
-                          onNotify={onNotify}
-                        />
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
+                {stageClaims.length === 0 ? (
+                  <div className="app-flux-stage-drop m-2 py-6 border border-dashed rounded-lg text-center text-[11px] text-[var(--app-muted)]">
+                    Niciun dosar aici · trage un card sau schimbă etapa din dosar
+                  </div>
+                ) : (
+                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 auto-rows-min">
+                    {renderClaimGroups(stageClaims, cardProps)}
+                  </div>
+                )}
+              </section>
             );
-          })}
-        </div>
+          })
+        )}
       </div>
 
     </div>

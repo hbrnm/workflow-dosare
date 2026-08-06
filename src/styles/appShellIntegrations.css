@@ -130,6 +130,49 @@
   color: var(--app-muted);
 }
 
+/* Flux — board vertical (secțiuni etapă, fără scroll lateral) */
+.app-shell .app-flux-stage-section {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+}
+
+.app-shell .app-flux-stage-section.is-drag-over {
+  border-color: var(--app-accent);
+  background: color-mix(in srgb, var(--app-accent) 4%, var(--app-surface));
+}
+
+.app-shell .app-flux-stage-header {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-flux-stage-drop {
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.app-shell .app-flux-stage-section.is-drag-over .app-flux-stage-drop {
+  border-color: var(--app-accent);
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface));
+}
+
+.app-shell .app-brief-tab--toate_etape.is-active {
+  background: var(--app-surface-muted);
+  border-color: var(--app-muted-2);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-brief-tab--toate_etape:not(.is-active) {
+  color: var(--app-muted);
+}
+
+.app-shell .app-brief-tab--etapa.is-selected {
+  background: var(--app-surface-muted);
+  border-color: var(--app-accent);
+  color: var(--app-text-strong);
+  opacity: 1;
+}
+
 .app-shell .app-flux-casco {
   background: color-mix(in srgb, var(--app-accent) 20%, var(--app-surface));
   color: var(--app-accent);
