@@ -5,6 +5,7 @@ import {
   FileText,
   Save,
   Trash2,
+  Link2,
 } from "lucide-react";
 import {
   STATUSES,
@@ -28,6 +29,7 @@ import { compressImage } from "../../utils/imageUtils";
 import { nowISO } from "../../utils/dateUtils";
 import { supabase } from "../../supabaseClient";
 import VehicleDamageDiagram from "../inspection/VehicleDamageDiagram";
+import { buildTrackingUrl } from "../tracking/TrackPage";
 
 export default function ClaimDetail({
   claim: initial,
@@ -268,6 +270,23 @@ export default function ClaimDetail({
                   </li>
                 ))}
               </ul>
+            )}
+            {fullEdit && claim.trackingToken && (
+              <button
+                type="button"
+                className="v2-btn-secondary w-full"
+                onClick={async () => {
+                  const url = buildTrackingUrl(claim.trackingToken);
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    showNotice?.("Link tracking copiat.", "success");
+                  } catch {
+                    window.prompt("Copiază linkul tracking:", url);
+                  }
+                }}
+              >
+                <Link2 size={14} /> Copiază link tracking client
+              </button>
             )}
             {deleteOk && (
               <button

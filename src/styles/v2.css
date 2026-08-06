@@ -154,3 +154,23 @@
 .v2-nav button.active {
   color: var(--v2-accent);
 }
+
+.v2-sidebar {
+  background: rgba(15, 20, 25, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.v2-legacy-light {
+  color-scheme: light;
+}
+.v2-legacy-light input,
+.v2-legacy-light select,
+.v2-legacy-light textarea {
+  color: #23282e;
+}
+
+@media (min-width: 768px) {
+  .v2-toast {
+    bottom: 1.5rem;
+  }
+}
