@@ -676,36 +676,118 @@ export function warpPerspective(sourceCanvas, corners, options = {}) {
   return out;
 }
 
-/** Filtru scan: hârtie albă, text contrastat */
+/** Filtru scan: hârtie albă, text contrastat (fără a spăla griurile medii). */
 export function enhanceScan(canvas, { mode = "document" } = {}) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const p = img.data;
 
   if (mode === "photo") {
-    // contrast ușor color
     for (let i = 0; i < p.length; i += 4) {
       for (let c = 0; c < 3; c++) {
         let v = p[i + c];
-        v = (v - 128) * 1.15 + 128 + 8;
+        v = (v - 128) * 1.12 + 128;
         p[i + c] = clamp(v, 0, 255);
       }
     }
   } else {
+    const levels = estimateDocumentLevels(p);
     for (let i = 0; i < p.length; i += 4) {
-      let lum = 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
-      // S-curve + whitening paper
-      lum = (lum - 128) * 1.35 + 128 + 18;
-      if (lum > 165) lum = Math.min(255, lum * 1.12);
-      else if (lum < 110) lum = Math.max(0, lum * 0.82);
-      lum = clamp(lum, 0, 255);
-      p[i] = lum;
-      p[i + 1] = lum;
-      p[i + 2] = lum;
+      const lum = 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
+      const v = applyDocumentLevels(lum, levels);
+      p[i] = v;
+      p[i + 1] = v;
+      p[i + 2] = v;
     }
   }
   ctx.putImageData(img, 0, 0);
   return canvas;
+}
+
+/**
+ * Estimează puncte negru/alb din histogramă (hârtie + cerneală).
+ * Exportat pentru teste.
+ */
+export function estimateDocumentLevels(rgba, sampleStep = 4) {
+  const hist = new Uint32Array(256);
+  let count = 0;
+  for (let i = 0; i < rgba.length; i += 4 * sampleStep) {
+    const lum = Math.round(
+      0.2126 * rgba[i] + 0.7152 * rgba[i + 1] + 0.0722 * rgba[i + 2]
+    );
+    hist[clamp(lum, 0, 255)]++;
+    count++;
+  }
+  if (!count) {
+    return { black: 20, white: 235, mean: 128, p10: 40, p90: 220 };
+  }
+
+  const percentile = (pct) => {
+    const target = (pct / 100) * count;
+    let acc = 0;
+    for (let v = 0; v < 256; v++) {
+      acc += hist[v];
+      if (acc >= target) return v;
+    }
+    return 255;
+  };
+
+  let sum = 0;
+  for (let v = 0; v < 256; v++) sum += v * hist[v];
+  const mean = sum / count;
+
+  const p5 = percentile(5);
+  const p10 = percentile(10);
+  const p90 = percentile(90);
+  const p95 = percentile(95);
+
+  // Ink / paper anchors — keep a usable range even on washed photos
+  let black = Math.min(p10, p5 + 8);
+  let white = Math.max(p90, p95 - 6);
+
+  // Already-bright / flash photos: pull white point down so stretch darkens midtones
+  if (mean > 175 || p90 > 245) {
+    black = Math.min(black, Math.max(12, p5));
+    white = Math.min(white, 232);
+  }
+  // Dark photos: don't crush; lift black slightly via stretch target, not additive lift
+  if (mean < 95) {
+    black = Math.max(8, Math.min(black, 35));
+    white = Math.max(white, 200);
+  }
+
+  if (white - black < 48) {
+    const mid = (black + white) / 2;
+    black = clamp(mid - 40, 0, 200);
+    white = clamp(mid + 40, 55, 255);
+  }
+
+  return { black, white, mean, p10, p90 };
+}
+
+/**
+ * Mapează luminanța pe interval tip scan (text închis, hârtie aproape albă).
+ * Fără paperLift global — cauza principală a paginilor „prea deschise”.
+ */
+export function applyDocumentLevels(lum, levels, opts = {}) {
+  const black = levels.black ?? 25;
+  const white = levels.white ?? 230;
+  const inkTarget = opts.inkTarget ?? 18;
+  const paperTarget = opts.paperTarget ?? 248;
+  const span = Math.max(1, white - black);
+
+  // Normalize 0..1 within document range
+  let t = clamp((lum - black) / span, 0, 1);
+
+  // Midtones slightly darker so gray print / stamps stay visible on bright pages
+  const gamma = opts.midGamma ?? 1.15;
+  t = Math.pow(t, gamma);
+
+  // Soft ends: keep ink near black, paper near white
+  const shaped = t * t * (3 - 2 * t);
+  const blended = t * 0.55 + shaped * 0.45;
+
+  return clamp(inkTarget + blended * (paperTarget - inkTarget), 0, 255);
 }
 
 /**
@@ -812,7 +894,7 @@ export function analyzeImageQuality(imageData, width, height) {
 }
 
 /**
- * Pro mode: lumină + contrast adaptiv + unsharp (anti-blur) + albire hârtie.
+ * Pro mode: levels adaptive (fără paper-lift) + unsharp pentru text clar.
  */
 export function enhanceScanPro(canvas, qualityHints = {}) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -822,32 +904,35 @@ export function enhanceScanPro(canvas, qualityHints = {}) {
   const p = img.data;
   const n = w * h;
 
-  const mean = qualityHints.meanBrightness ?? 128;
-  const needsBrighten = mean < 105 || (qualityHints.darkRatio || 0) > 0.35;
-  const needsExtraContrast = (qualityHints.contrast ?? 50) < 45;
+  const levels = estimateDocumentLevels(p);
+  // Prefer live quality hints when available (mean/overexposure)
+  if (Number.isFinite(qualityHints.meanBrightness)) {
+    levels.mean = qualityHints.meanBrightness;
+  }
+  const overexposed =
+    (qualityHints.issues || []).some((i) => i.code === "overexposed") ||
+    levels.mean > 185 ||
+    (qualityHints.brightRatio || 0) > 0.5;
   const needsSharpen =
     (qualityHints.blurMetric ?? 999) < 220 ||
-    (qualityHints.issues || []).some((i) => i.code === "blur");
-  const overexposed = (qualityHints.issues || []).some((i) => i.code === "overexposed");
+    (qualityHints.issues || []).some((i) => i.code === "blur") ||
+    (qualityHints.contrast ?? 50) < 42;
 
-  const brightGain = needsBrighten ? clamp(1.15 + (105 - mean) / 180, 1.12, 1.55) : 1.06;
-  const contrastGain = needsExtraContrast ? 1.55 : 1.38;
-  const paperLift = needsBrighten ? 28 : overexposed ? 6 : 16;
+  const levelOpts = {
+    inkTarget: overexposed ? 12 : 16,
+    paperTarget: overexposed ? 242 : 250,
+    midGamma: overexposed ? 1.28 : 1.18,
+  };
 
   const gray = new Float32Array(n);
   for (let i = 0, px = 0; i < p.length; i += 4, px++) {
-    let lum = 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
-    lum *= brightGain;
-    lum = (lum - 128) * contrastGain + 128 + paperLift;
-    if (overexposed && lum > 200) lum = 200 + (lum - 200) * 0.45;
-    if (lum > 170) lum = Math.min(255, lum * 1.1);
-    else if (lum < 105) lum = Math.max(0, lum * 0.78);
-    gray[px] = clamp(lum, 0, 255);
+    const lum = 0.2126 * p[i] + 0.7152 * p[i + 1] + 0.0722 * p[i + 2];
+    gray[px] = applyDocumentLevels(lum, levels, levelOpts);
   }
 
   const out = new Float32Array(n);
   if (needsSharpen) {
-    const amount = 1.35;
+    const amount = overexposed ? 1.15 : 1.05;
     for (let y = 1; y < h - 1; y++) {
       for (let x = 1; x < w - 1; x++) {
         const i = y * w + x;
