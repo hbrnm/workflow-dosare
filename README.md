@@ -26,12 +26,18 @@ Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
 - Tab **Capture**: caută dosar → cameră live / galerie → salvare automată pe dosar
 - Ține minte ultimul dosar folosit
 
+### Decontare
+- Tab **Decontare** pe dosar: nr./dată factură, termen plată, sumă, atașare factură, încasat
+- Alerte **Plăți restante** în app (+ pe Dashboard pe asigurător)
+- Migrare: `supabase-migration-25-decontare.sql`
+
 ## Migrări Supabase (obligatoriu)
 
 Rulează în ordine în **SQL Editor**:
 
 1. [`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql) — câmpuri recepție / avarii / roluri staff  
-2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`
+2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`  
+3. [`database/migrations/supabase-migration-25-decontare.sql`](database/migrations/supabase-migration-25-decontare.sql) — `termen_plata`, `suma_decont`
 
 ## Setup local / test
 

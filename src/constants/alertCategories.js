@@ -1,5 +1,5 @@
 import {
-  AlertOctagon, Car, Clock, Boxes, PackageCheck, Truck, ShoppingCart,
+  AlertOctagon, Car, Clock, Boxes, PackageCheck, Truck, ShoppingCart, Wallet,
 } from "lucide-react";
 
 /**
@@ -102,6 +102,18 @@ export const ALERT_CATEGORIES = [
     borderClass: "border-[#C98A2B]/60",
     chipActive: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40",
     chipIdle: "text-[#3E6B45]",
+  },
+  {
+    key: "restante",
+    label: "Plăți Restante",
+    shortLabel: "Restante",
+    emoji: "💳",
+    icon: Wallet,
+    hex: "#B23A2E",
+    badgeClass: "bg-[#B23A2E] text-white",
+    borderClass: "border-[#B23A2E]",
+    chipActive: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40",
+    chipIdle: "text-[#B23A2E]",
   },
 ];
 

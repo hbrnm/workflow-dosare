@@ -6,6 +6,7 @@ import {
   Save,
   Trash2,
   Link2,
+  Wallet,
 } from "lucide-react";
 import {
   STATUSES,
@@ -26,10 +27,15 @@ import {
 } from "../../constants/roles";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
-import { nowISO } from "../../utils/dateUtils";
+import { nowISO, todayISO } from "../../utils/dateUtils";
 import { supabase } from "../../supabaseClient";
 import VehicleDamageDiagram from "../inspection/VehicleDamageDiagram";
 import { buildTrackingUrl } from "../tracking/TrackPage";
+import {
+  getEffectivePaymentDue,
+  isPaymentOverdue,
+  getDaysPaymentOverdue,
+} from "../../utils/settlementUtils";
 
 export default function ClaimDetail({
   claim: initial,
@@ -143,6 +149,7 @@ export default function ClaimDetail({
       { key: "general", label: "General" },
       { key: "avarii", label: "Avarii" },
       { key: "media", label: "Media" },
+      { key: "decontare", label: "Decontare" },
       { key: "status", label: "Status" },
     ],
     []
@@ -392,6 +399,166 @@ export default function ClaimDetail({
                   ))}
                 </ul>
               </section>
+            )}
+          </div>
+        )}
+
+        {tab === "decontare" && (
+          <div className="mx-auto max-w-lg space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[var(--v2-text)]">
+              <Wallet size={16} className="text-[var(--v2-accent)]" />
+              Factură & încasare
+            </div>
+
+            {isPaymentOverdue(claim) && (
+              <div className="rounded-xl border border-[var(--v2-danger)]/40 bg-[#3d1e1c] px-3 py-2 text-sm text-[#ffc4bf]">
+                Plată restantă de {getDaysPaymentOverdue(claim)} zile
+                {getEffectivePaymentDue(claim) ? ` · scadență ${getEffectivePaymentDue(claim)}` : ""}
+              </div>
+            )}
+
+            <Field
+              label="Nr. factură"
+              value={claim.financiar?.numarFactura || ""}
+              disabled={!fullEdit}
+              onChange={(v) =>
+                setClaim((c) => ({
+                  ...c,
+                  financiar: { ...(c.financiar || {}), numarFactura: v },
+                }))
+              }
+            />
+            <Field
+              label="Data factură"
+              type="date"
+              value={(claim.financiar?.dataFactura || "").toString().slice(0, 10)}
+              disabled={!fullEdit}
+              onChange={(v) =>
+                setClaim((c) => ({
+                  ...c,
+                  financiar: { ...(c.financiar || {}), dataFactura: v || null },
+                }))
+              }
+            />
+            <Field
+              label="Termen plată"
+              type="date"
+              value={(claim.termenPlata || "").toString().slice(0, 10)}
+              disabled={!fullEdit}
+              onChange={(v) => setField("termenPlata", v || null)}
+            />
+            <p className="text-[10px] text-[var(--v2-muted)]">
+              Dacă nu setezi termen, se folosește data facturii + 30 zile.
+              {getEffectivePaymentDue(claim)
+                ? ` Efectiv: ${getEffectivePaymentDue(claim)}`
+                : ""}
+            </p>
+            <Field
+              label="Sumă decont (RON)"
+              type="number"
+              value={claim.sumaDecont ?? ""}
+              disabled={!fullEdit}
+              onChange={(v) => setField("sumaDecont", v === "" ? 0 : Number(v))}
+            />
+
+            {fullEdit && (
+              <label className="v2-btn-secondary inline-flex cursor-pointer items-center gap-2 text-xs">
+                <FileText size={14} />
+                Încarcă factura (PDF / imagine)
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = e.target.files;
+                    if (!files?.length) return;
+                    try {
+                      const file = files[0];
+                      if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+                        showNotice?.(`Fișier prea mare (max ${MAX_UPLOAD_SIZE_BYTES / (1024 * 1024)}MB)`, "error");
+                        return;
+                      }
+                      const uploaded = await uploadStorageItem(
+                        supabase,
+                        "documente-dosare",
+                        claim.id,
+                        file,
+                        "documente"
+                      );
+                      const entry = { ...uploaded, tip: "factura" };
+                      setClaim((c) => ({
+                        ...c,
+                        tipDocumente: [...(c.tipDocumente || []), entry],
+                        documente: [...(c.documente || []), entry],
+                      }));
+                      showNotice?.("Factura a fost atașată.", "success");
+                    } catch (err) {
+                      showNotice?.(err.message || "Upload eșuat", "error");
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+
+            <ul className="space-y-1">
+              {(claim.tipDocumente || [])
+                .filter((d) => d.tip === "factura")
+                .map((d) => (
+                  <li key={d.id || d.path}>
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-[var(--v2-accent)] underline"
+                    >
+                      Factură — {d.nume}
+                    </a>
+                  </li>
+                ))}
+            </ul>
+
+            <label className="flex items-center gap-3 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] px-3 py-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={!!claim.incasat}
+                disabled={!fullEdit}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setClaim((c) => ({
+                    ...c,
+                    incasat: checked,
+                    dataIncasarii: checked ? c.dataIncasarii || todayISO() : null,
+                  }));
+                }}
+              />
+              <span className="text-sm font-medium text-[var(--v2-text)]">Marcat ca încasat / decontat</span>
+            </label>
+            {claim.incasat && (
+              <Field
+                label="Data încasării"
+                type="date"
+                value={(claim.dataIncasarii || "").toString().slice(0, 10)}
+                disabled={!fullEdit}
+                onChange={(v) => setField("dataIncasarii", v || null)}
+              />
+            )}
+
+            {fullEdit && claim.status !== "facturat" && (
+              <button
+                type="button"
+                className="v2-btn-secondary w-full"
+                onClick={() =>
+                  setClaim((c) => ({
+                    ...c,
+                    status: "facturat",
+                    dataSchimbareStatus: nowISO(),
+                  }))
+                }
+              >
+                Treci statusul pe „Facturat asigurător”
+              </button>
             )}
           </div>
         )}

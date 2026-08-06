@@ -1,9 +1,17 @@
 import React, { useMemo } from "react";
-import { BarChart3, Clock, Wallet } from "lucide-react";
+import { BarChart3, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween } from "../../utils/dateUtils";
+import {
+  groupRestanteByInsurer,
+  isPaymentOverdue,
+  getDaysPaymentOverdue,
+  getSettlementAmount,
+  getEffectivePaymentDue,
+  isSettlementCandidate,
+} from "../../utils/settlementUtils";
 
-/** Dashboard KPI scurt — Faza 1B (fără export Excel greu). */
+/** Dashboard KPI + restanțe decontare. */
 export default function KpiDashboard({ claims, onOpen }) {
   const stats = useMemo(() => {
     const list = claims || [];
@@ -13,22 +21,16 @@ export default function KpiDashboard({ claims, onOpen }) {
       facturate.length === 0
         ? null
         : Math.round(
-            facturate.reduce((acc, c) => acc + daysBetween(c.dataDeschiderii), 0) /
-              facturate.length
+            facturate.reduce((acc, c) => acc + daysBetween(c.dataDeschiderii), 0) / facturate.length
           );
 
-    const restanteByInsurer = {};
-    list
-      .filter((c) => c.status === "facturat" && !c.incasat)
-      .forEach((c) => {
-        const key = c.asigurator || "Neprecizat";
-        const amount =
-          Number(c.financiar?.valoareAcceptPlata) ||
-          Number(c.valoareAcceptataReglata) ||
-          Number(c.financiar?.pieseFacturateFaraTva) ||
-          0;
-        restanteByInsurer[key] = (restanteByInsurer[key] || 0) + amount;
-      });
+    const restanteByInsurer = groupRestanteByInsurer(list);
+    const overduePayments = list
+      .filter(isPaymentOverdue)
+      .sort((a, b) => getDaysPaymentOverdue(b) - getDaysPaymentOverdue(a))
+      .slice(0, 10);
+    const totalRestante = restanteByInsurer.reduce((s, r) => s + r.value, 0);
+    const openSettlements = list.filter(isSettlementCandidate).length;
 
     const perStatus = STATUSES.map((s) => ({
       ...s,
@@ -39,9 +41,10 @@ export default function KpiDashboard({ claims, onOpen }) {
       total: list.length,
       active: active.length,
       avgDays,
-      restanteByInsurer: Object.entries(restanteByInsurer)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value),
+      restanteByInsurer,
+      totalRestante,
+      openSettlements,
+      overduePayments,
       perStatus,
       overdue: active
         .filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5))
@@ -56,7 +59,9 @@ export default function KpiDashboard({ claims, onOpen }) {
           <BarChart3 size={20} className="text-[var(--v2-accent)]" />
           Dashboard
         </h1>
-        <p className="text-xs text-[var(--v2-muted)]">KPI-uri rapide — dosare active, timp mediu, restanțe</p>
+        <p className="text-xs text-[var(--v2-muted)]">
+          KPI-uri + restanțe decontare (fără email — doar în app)
+        </p>
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -69,37 +74,72 @@ export default function KpiDashboard({ claims, onOpen }) {
           icon={<Clock size={14} />}
         />
         <Kpi
-          label="Asigurători cu restanțe"
-          value={stats.restanteByInsurer.length}
+          label="De încasat"
+          value={
+            stats.totalRestante > 0
+              ? `${Math.round(stats.totalRestante).toLocaleString("ro-RO")}`
+              : "0"
+          }
+          sub={`${stats.openSettlements} dosare · RON`}
           icon={<Wallet size={14} />}
         />
       </div>
 
       <section className="mb-4 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-3">
-        <h2 className="mb-2 text-sm font-semibold text-[var(--v2-text)]">Pe status</h2>
-        <div className="space-y-1.5">
-          {stats.perStatus.filter((s) => s.count > 0).map((s) => {
-            const colors = getPhaseColors(s.key);
-            return (
-              <div key={s.key} className="flex items-center gap-2 text-sm">
-                <span className="h-2 w-2 rounded-full" style={{ background: colors.bar }} />
-                <span className="flex-1 truncate text-[var(--v2-muted)]">{s.label}</span>
-                <span className="font-semibold text-[var(--v2-text)]">{s.count}</span>
-              </div>
-            );
-          })}
-        </div>
+        <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--v2-text)]">
+          <AlertTriangle size={14} className="text-[var(--v2-danger)]" />
+          Plăți restante (scadență depășită)
+        </h2>
+        {stats.overduePayments.length === 0 ? (
+          <p className="text-xs text-[var(--v2-muted)]">Nicio plată restantă.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--v2-border)]">
+            {stats.overduePayments.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm hover:opacity-80"
+                  onClick={() => onOpen(c.id)}
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium text-[var(--v2-text)]">{c.numarInmatriculare}</span>
+                    <span className="block truncate text-[10px] text-[var(--v2-muted)]">
+                      {c.asigurator || "—"} · scadență {getEffectivePaymentDue(c) || "—"}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block font-semibold text-[var(--v2-danger)]">
+                      +{getDaysPaymentOverdue(c)}z
+                    </span>
+                    <span className="text-[10px] text-[var(--v2-muted)]">
+                      {getSettlementAmount(c)
+                        ? `${getSettlementAmount(c).toLocaleString("ro-RO")} RON`
+                        : "—"}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mb-4 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-3">
         <h2 className="mb-2 text-sm font-semibold text-[var(--v2-text)]">Restanțe pe asigurător</h2>
         {stats.restanteByInsurer.length === 0 ? (
-          <p className="text-xs text-[var(--v2-muted)]">Nicio restanță marcată (facturat & neîncasat).</p>
+          <p className="text-xs text-[var(--v2-muted)]">Nicio sumă de încasat deschisă.</p>
         ) : (
           <ul className="space-y-1.5">
             {stats.restanteByInsurer.map((r) => (
               <li key={r.name} className="flex justify-between text-sm">
-                <span className="text-[var(--v2-muted)]">{r.name}</span>
+                <span className="text-[var(--v2-muted)]">
+                  {r.name}
+                  <span className="text-[10px]">
+                    {" "}
+                    · {r.count} dos.
+                    {r.overdueCount ? ` · ${r.overdueCount} restante` : ""}
+                  </span>
+                </span>
                 <span className="font-semibold text-[var(--v2-accent)]">
                   {r.value > 0 ? `${r.value.toLocaleString("ro-RO")} RON` : "—"}
                 </span>
@@ -107,6 +147,24 @@ export default function KpiDashboard({ claims, onOpen }) {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="mb-4 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-3">
+        <h2 className="mb-2 text-sm font-semibold text-[var(--v2-text)]">Pe status</h2>
+        <div className="space-y-1.5">
+          {stats.perStatus
+            .filter((s) => s.count > 0)
+            .map((s) => {
+              const colors = getPhaseColors(s.key);
+              return (
+                <div key={s.key} className="flex items-center gap-2 text-sm">
+                  <span className="h-2 w-2 rounded-full" style={{ background: colors.bar }} />
+                  <span className="flex-1 truncate text-[var(--v2-muted)]">{s.label}</span>
+                  <span className="font-semibold text-[var(--v2-text)]">{s.count}</span>
+                </div>
+              );
+            })}
+        </div>
       </section>
 
       <section className="rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-3">
@@ -141,7 +199,9 @@ function Kpi({ label, value, sub, accent, icon }) {
         {icon}
         {label}
       </div>
-      <div className={`mt-1 text-2xl font-bold ${accent ? "text-[var(--v2-accent)]" : "text-[var(--v2-text)]"}`}>
+      <div
+        className={`mt-1 text-2xl font-bold ${accent ? "text-[var(--v2-accent)]" : "text-[var(--v2-text)]"}`}
+      >
         {value}
       </div>
       {sub && <div className="text-[10px] text-[var(--v2-muted)]">{sub}</div>}
