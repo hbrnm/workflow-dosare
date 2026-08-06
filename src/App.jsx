@@ -723,6 +723,13 @@ export default function App() {
               </button>
             )}
             <button
+              onClick={() => openQuickCapture()}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-white text-[#3B5166] text-[13px] font-bold hover:bg-[#FAF8F5] shadow-sm transition-all active:scale-95"
+              title="Captură rapidă poze & scan documente"
+            >
+              <Camera size={16} className="text-[#C98A2B]" /> <span>Poze &amp; Doc</span>
+            </button>
+            <button
               onClick={() => openNew()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
             >
@@ -1085,6 +1092,7 @@ export default function App() {
         onOpenClaim={openExisting}
         onSwitchView={setView}
         onOpenNewClaim={openNew}
+        onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}
       />
     </div>

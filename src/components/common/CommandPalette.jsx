@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search, FileText, Layers, Sunrise, LayoutGrid, List, BarChart3, CalendarClock,
-  Wallet, Plus, Download, X, ArrowRight, CornerDownLeft, Car, ShieldCheck
+  Wallet, Plus, Download, X, ArrowRight, CornerDownLeft, Car, ShieldCheck, Camera
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import Pill from "./Pill";
@@ -13,6 +13,7 @@ export default function CommandPalette({
   onOpenClaim,
   onSwitchView,
   onOpenNewClaim,
+  onOpenQuickCapture,
   onExportExcel,
 }) {
   const [query, setQuery] = useState("");
@@ -58,6 +59,7 @@ export default function CommandPalette({
     // Actions List
     const actions = [
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
+      { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte cu auto-crop, cameră live", icon: Camera, handler: onOpenQuickCapture },
       { type: "action", id: "excel", label: "Exportă Excel", sub: "Descarcă toate dosarele în format .xlsx", icon: Download, handler: onExportExcel },
     ];
 
@@ -91,7 +93,7 @@ export default function CommandPalette({
     );
 
     return [...matchedClaims, ...matchedViews, ...matchedActions];
-  }, [query, claims, onOpenNewClaim, onExportExcel]);
+  }, [query, claims, onOpenNewClaim, onOpenQuickCapture, onExportExcel]);
 
   // Keyboard navigation within list
   const handleKeyDownList = (e) => {
