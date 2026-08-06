@@ -25,6 +25,33 @@ import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
+import ClaimScheduleFields from "../common/ClaimScheduleFields";
+
+const PRE_PROGRAMAT_STATUSES = [
+  "deschidere",
+  "reconstatare",
+  "accept_plata",
+  "piese_comandate",
+  "primit",
+  "cerere_reparatie",
+];
+
+function applyClaimStatusChange(prev, newStatusKey) {
+  const updates = {
+    status: newStatusKey,
+    dataSchimbareStatus: prev.status !== newStatusKey ? nowISO() : prev.dataSchimbareStatus,
+  };
+
+  if (newStatusKey === "programat" && !prev.dataProgramare) {
+    updates.dataProgramare = `${todayISO()}T09:00:00`;
+  }
+
+  if (PRE_PROGRAMAT_STATUSES.includes(newStatusKey)) {
+    updates.dataProgramare = null;
+  }
+
+  return { ...prev, ...updates };
+}
 
 function NotionPropertyRow({ icon: Icon, label, children, full }) {
   return (
@@ -356,6 +383,18 @@ export default function ClaimModal({
       }
     }
 
+    if (form.status === "programat" && !form.dataProgramare) {
+      onNotify("Selectează data și ora programării pentru statusul „Programat”.", "error");
+      return;
+    }
+
+    const scheduleChanged = form.dataProgramare !== claim?.dataProgramare;
+    const statusToProgramat = form.status === "programat" && claim?.status !== "programat";
+    const shouldOpenProgramator =
+      form.status === "programat" &&
+      Boolean(form.dataProgramare) &&
+      (scheduleChanged || statusToProgramat);
+
     let effectiveStatus = form.status;
     if (form.ridicata && form.status !== "facturat") {
       effectiveStatus = "predat_client";
@@ -408,7 +447,7 @@ export default function ClaimModal({
       telefonClient,
       dataUltimeiActualizari: nowISO(),
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
-    }, { openProgramator });
+    }, { openProgramator: openProgramator || shouldOpenProgramator });
   };
 
   const insertSlashCommand = (prefix) => {
@@ -1143,11 +1182,7 @@ export default function ClaimModal({
                               key={s.key}
                               type="button"
                               onClick={() => {
-                                setForm((f) => ({
-                                  ...f,
-                                  status: s.key,
-                                  dataSchimbareStatus: f.status !== s.key ? nowISO() : f.dataSchimbareStatus,
-                                }));
+                                setForm((f) => applyClaimStatusChange(f, s.key));
                               }}
                               title={`${s.num}. ${s.label}`}
                               className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
@@ -1169,12 +1204,7 @@ export default function ClaimModal({
                         <select
                           value={form.status}
                           onChange={(e) => {
-                            const newStatusKey = e.target.value;
-                            setForm((f) => ({
-                              ...f,
-                              status: newStatusKey,
-                              dataSchimbareStatus: f.status !== newStatusKey ? nowISO() : f.dataSchimbareStatus,
-                            }));
+                            setForm((f) => applyClaimStatusChange(f, e.target.value));
                           }}
                           className="font-bold text-[11.5px] py-1 px-2.5 border border-[#DAD4C6] rounded-lg bg-[#FAF8F5] text-[#23282E] focus:border-[#3B5166] cursor-pointer"
                         >
@@ -1186,17 +1216,25 @@ export default function ClaimModal({
                         </select>
                       </div>
 
+                      {form.status === "programat" && (
+                        <ClaimScheduleFields
+                          dataProgramare={form.dataProgramare}
+                          readOnly={readOnly}
+                          onChange={(iso) => set("dataProgramare", iso)}
+                        />
+                      )}
+
                       {isPieseComandateStatus(form.status) && (
                         <MobilePieseSositeRow
                           claim={form}
                           canEdit={!readOnly}
                           onToggle={(_c, val) => set("pieseSosite", val)}
                           onSchedule={(_c, iso) => {
-                            setForm((f) => ({
+                            setForm((f) => applyClaimStatusChange({
                               ...f,
                               pieseSosite: true,
                               dataProgramare: iso,
-                            }));
+                            }, "programat"));
                             onNotify?.(
                               `Programare setată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""} — salvează dosarul.`.trim(),
                               "success"
