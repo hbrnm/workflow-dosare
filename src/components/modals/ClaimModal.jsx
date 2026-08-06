@@ -23,6 +23,12 @@ import { supabase } from "../../supabaseClient";
 import { fileToDataUrl } from "../../utils/documentScanner";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+  modalHeaderClass,
+} from "../common/modalShellClasses";
 import ClaimTimeline from "../common/ClaimTimeline";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
@@ -140,6 +146,7 @@ export default function ClaimModal({
   onNotify,
   onJumpTo,
   themeId = "atelier",
+  desktopUi = false,
 }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [isDragging, setIsDragging] = useState(false);
@@ -702,23 +709,32 @@ export default function ClaimModal({
   };
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3 overflow-hidden" data-mtheme={themeId}>
+    <div
+      className={modalOverlayClass(desktopUi, { dense: true })}
+      {...modalOverlayProps(desktopUi, themeId)}
+    >
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
-        className="m-modal-panel relative bg-[#FAF8F5] w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col overflow-hidden"
+        className={modalPanelClass(
+          desktopUi,
+          "relative w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-lg flex flex-col overflow-hidden bg-[var(--app-surface)] sm:border sm:border-[var(--app-border)]"
+        )}
       >
         
-        {/* Notion Top Bar Navigation & Actions */}
+        {/* Top Bar Navigation & Actions */}
         <div 
           onMouseDown={handleMouseDown}
-          className="m-modal-header flex items-center justify-between px-3 py-2 bg-[#1C2127] text-white shrink-0 select-none border-b border-white/10"
+          className={modalHeaderClass(
+            desktopUi,
+            "flex items-center justify-between px-3 py-2 select-none cursor-move"
+          )}
         >
           <div className="flex items-center gap-2 min-w-0 pr-2">
             <span className="text-[16px] shrink-0">📄</span>
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="font-extrabold text-[13px] tracking-tight text-white truncate">
+                <span className={`font-semibold text-[13px] tracking-tight truncate ${desktopUi ? "text-[var(--app-text)]" : "text-white"}`}>
                   {isNew ? "Dosar Nou" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
                 </span>
                 {/* Single status chip — elimină nevoia de badge-uri duplicate */}
@@ -741,7 +757,7 @@ export default function ClaimModal({
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-[#A69F91] font-mono block truncate">
+              <span className={`text-[10px] font-mono block truncate ${desktopUi ? "text-[var(--app-muted)]" : "text-[#A69F91]"}`}>
                 {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr."} · {form.marcaModel || "Model neprecizat"}
               </span>
             </div>
@@ -766,7 +782,9 @@ export default function ClaimModal({
                   className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
                     form.blocat
                       ? "text-white bg-[#B23A2E] border-[#B23A2E] hover:bg-[#9A3228]"
-                      : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                      : desktopUi
+                        ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                        : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
                   }`}
                   title={form.blocat ? "Deblochează dosarul" : "Marchează dosarul ca blocat"}
                 >

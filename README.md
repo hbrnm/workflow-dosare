@@ -1,58 +1,28 @@
-# Workflow Daune 2.0
+# Workflow Dosare Daună
 
-PWA (Vite + React + Supabase) pentru service auto.
+PWA (Vite + React + Supabase) pentru service auto — **versiunea activă: v1 (familiar) + polish desktop/Flux**.
 
-Versiunea anterioară: [`src/App.v1.jsx`](src/App.v1.jsx).
+Experimentul **2.0** rămâne în cod (`src/App.v2.jsx`) dar nu e pornit implicit.
 
-## Ce include acum
+## Ce rulează acum (v1)
 
-### Faza 1A — Nucleu
-- Wizard **Recepție** (VIN, marcă, model, km, tip dosar)
-- **Diagramă avarii** interactivă
-- Poze + documente tipizate
-- Statusuri pipeline + roluri `receptioner` / `mecanic` / `admin`
+- **Flux** kanban pe faze — carduri compacte, 2 pe rând, status prescurtat
+- **Piese comandate** — date comandă/livrare + bifă „Au sosit piesele?” la hover pe card
+- **Brief alerte**, **Tabel dosare**, **Programator**, **Dashboard**, **Rapoarte**
+- **Desktop** minimalist — sidebar fix doar icoane, tokeni light, modale proprii
+- **Mobil** — layout + teme vizuale (Atelier, Sport, Forge, Pulse…)
+- **Programări** din dosar, onorat/neonorat în Programator
+- Command palette (Ctrl+K), export Excel, branding atelier
 
-### Faza 1B — Operațional
-- **Flux** pe faze (mutare status)
-- **Alerte** operaționale
-- **Programări** (calendar din v1)
-- **Dashboard** KPI (active, timp mediu, restanțe asigurători)
+## Polish desktop (recent)
 
-### Faza 2 — Client
-- Link **tracking public**: `https://domeniul-tau/?track=TOKEN`
-- Texte prietenoase pe fază, bară progres, banner **gata de ridicare**
-- Mesaj opțional de la service + preview link
-- Migrare: `supabase-migration-27-tracking-polish.sql`
+- Sidebar **icon-only**, fără extindere la hover
+- Teme mobile **doar pe telefon** — desktop separat vizual
+- Carduri Flux mai curate (status: Acord, Lucru, Piese…)
 
-### Capture rapidă (curte / tabletă)
-- Tab **Capture**: caută dosar → cameră live / galerie → salvare automată pe dosar
-- Ține minte ultimul dosar folosit
-
-### Decontare
-- Tab **Decontare** pe dosar: nr./dată factură, termen plată, sumă, atașare factură, încasat
-- Alerte **Plăți restante** în app (+ pe Dashboard pe asigurător)
-- Migrare: `supabase-migration-25-decontare.sql`
-
-### Deviz & piese
-- Tab **Deviz**: linii piesă + bifă INL / REV / REP / UNI
-- Valori Audatex vs achiziție + marjă
-- Import/stocare fișiere Audatex / DAT / PDF (fără API)
-- Migrare: `supabase-migration-26-deviz.sql`
-
-## Migrări Supabase (obligatoriu)
-
-Rulează în ordine în **SQL Editor**:
-
-1. [`database/migrations/supabase-migration-23-v2-mvp.sql`](database/migrations/supabase-migration-23-v2-mvp.sql) — câmpuri recepție / avarii / roluri staff  
-2. [`database/migrations/supabase-migration-24-tracking.sql`](database/migrations/supabase-migration-24-tracking.sql) — token + RPC `get_public_tracking`  
-3. [`database/migrations/supabase-migration-25-decontare.sql`](database/migrations/supabase-migration-25-decontare.sql) — `termen_plata`, `suma_decont`  
-4. [`database/migrations/supabase-migration-26-deviz.sql`](database/migrations/supabase-migration-26-deviz.sql) — `devize` jsonb  
-5. [`database/migrations/supabase-migration-27-tracking-polish.sql`](database/migrations/supabase-migration-27-tracking-polish.sql) — `mesaj_client` + RPC tracking
-
-## Setup local / test
+## Setup local
 
 ```bash
-git checkout cursor/workflow-daune-2-mvp-c50e
 cp .env.example .env   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install
 npm run dev
@@ -60,13 +30,29 @@ npm run dev
 
 Deschide `http://localhost:5173`.
 
-### Preview Vercel
-Deploy branch-ul `cursor/workflow-daune-2-mvp-c50e` (nu `main`) → primești un URL de preview.  
-Merge pe `main` doar după ce ai testat + migrările 23–24.
+## Migrări Supabase (v1 — obligatorii)
 
-### Tracking client
-1. Deschide un dosar → **Copiază link tracking client**
-2. Deschide linkul într-o fereastră privată (fără login)
+Rulează în **SQL Editor** dacă lipsesc:
 
-## Revenire la v1
-În `src/main.jsx` importă din `./App.v1.jsx`.
+1. [`database/migrations/supabase-migration-21.sql`](database/migrations/supabase-migration-21.sql) — `termen_livrare_piese`
+2. [`database/migrations/supabase-migration-22.sql`](database/migrations/supabase-migration-22.sql) — `programare_status` (onorat/neonorat)
+
+## Workflow Daune 2.0 (experimental, oprit)
+
+Codul 2.0 (recepție, deviz, decontare, tracking client) e în `src/App.v2.jsx` + `src/features/*`.
+
+Pentru a testa 2.0 temporar, în `src/main.jsx`:
+
+```js
+import App from './App.v2.jsx'
+import './styles/v2.css'
+```
+
+Migrări 2.0 (doar dacă activezi v2): `supabase-migration-23` … `27` — vezi fișierele din `database/migrations/`.
+
+## Revenire
+
+| Versiune | Entry point |
+|----------|-------------|
+| **v1 (implicit)** | `import App from './App.jsx'` |
+| **2.0 (experiment)** | `import App from './App.v2.jsx'` + `v2.css` |
