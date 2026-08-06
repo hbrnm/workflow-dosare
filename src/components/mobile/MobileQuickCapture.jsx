@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
   CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
@@ -6,267 +6,11 @@ import {
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
-import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
+import { uploadStorageItem } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
 import { todayISO } from "../../utils/dateUtils";
-
-// Function to process scanned document page with CamScanner auto-crop, contrast enhancement and high compression
-function processScanImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const rawCanvas = document.createElement("canvas");
-          const rawCtx = rawCanvas.getContext("2d");
-
-          const MAX_DIM = 1600;
-          let w = img.width;
-          let h = img.height;
-          if (w > MAX_DIM || h > MAX_DIM) {
-            if (w > h) {
-              h = Math.round((h * MAX_DIM) / w);
-              w = MAX_DIM;
-            } else {
-              w = Math.round((w * MAX_DIM) / h);
-              h = MAX_DIM;
-            }
-          }
-
-          rawCanvas.width = w;
-          rawCanvas.height = h;
-          rawCtx.drawImage(img, 0, 0, w, h);
-
-          const imgData = rawCtx.getImageData(0, 0, w, h);
-          const data = imgData.data;
-
-          // 1. Edge & paper bounding box detection (CamScanner style Auto-Crop)
-          let top = 0, bottom = h - 1, left = 0, right = w - 1;
-          const rowBright = new Array(h).fill(0);
-          const colBright = new Array(w).fill(0);
-          const step = 4;
-
-          for (let y = 0; y < h; y += step) {
-            let sum = 0, cnt = 0;
-            for (let x = 0; x < w; x += step) {
-              const idx = (y * w + x) * 4;
-              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              cnt++;
-            }
-            rowBright[y] = sum / cnt;
-          }
-
-          for (let x = 0; x < w; x += step) {
-            let sum = 0, cnt = 0;
-            for (let y = 0; y < h; y += step) {
-              const idx = (y * w + x) * 4;
-              sum += (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-              cnt++;
-            }
-            colBright[x] = sum / cnt;
-          }
-
-          const validRows = [...rowBright].filter(v => v > 0).sort((a, b) => a - b);
-          const medianVal = validRows[Math.floor(validRows.length / 2)] || 128;
-          const cutoff = Math.max(70, medianVal * 0.7);
-
-          while (top < h * 0.25 && rowBright[top] < cutoff) top += step;
-          while (bottom > h * 0.75 && rowBright[bottom] < cutoff) bottom -= step;
-          while (left < w * 0.25 && colBright[left] < cutoff) left += step;
-          while (right > w * 0.75 && colBright[right] < cutoff) right -= step;
-
-          const cropX = Math.max(0, left);
-          const cropY = Math.max(0, top);
-          const cropW = Math.max(100, right - left + 1);
-          const cropH = Math.max(100, bottom - top + 1);
-
-          // 2. Render cropped & enhanced document page
-          const finalCanvas = document.createElement("canvas");
-          finalCanvas.width = cropW;
-          finalCanvas.height = cropH;
-          const finalCtx = finalCanvas.getContext("2d");
-
-          finalCtx.drawImage(rawCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-          // 3. CamScanner High-Contrast Scanner Filter (White paper, black text)
-          const croppedData = finalCtx.getImageData(0, 0, cropW, cropH);
-          const pixels = croppedData.data;
-          for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i + 1];
-            const b = pixels[i + 2];
-            let lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-
-            // Thresholding: paper becomes clean white, text becomes sharp black
-            if (lum > 120) {
-              lum = Math.min(255, lum * 1.25);
-            } else {
-              lum = Math.max(0, lum * 0.75);
-            }
-
-            pixels[i] = lum;
-            pixels[i + 1] = lum;
-            pixels[i + 2] = lum;
-          }
-          finalCtx.putImageData(croppedData, 0, 0);
-
-          // 4. Maximum compression JPEG output (65% quality)
-          const dataUrl = finalCanvas.toDataURL("image/jpeg", 0.65);
-          resolve(dataUrl);
-        } catch (err) {
-          reject(new Error("Eroare la autocropare și procesare scan."));
-        }
-      };
-      img.onerror = () => reject(new Error("Eroare la încărcarea imaginii."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Eroare la citirea imaginii."));
-    reader.readAsDataURL(file);
-  });
-}
-
-
-
-// MODAL CAMERĂ STIL IPHONE/SAMSUNG - FĂRĂ BUTOANE DE OK, SALVARE AUTOMATĂ LIVE
-function LiveStreamCameraModal({ claim, initialCategorie = "receptie", onSavePhoto, onClose }) {
-  const [categorie, setCategorie] = useState(initialCategorie);
-  const [photoCount, setPhotoCount] = useState(0);
-  const [flash, setFlash] = useState(false);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-
-  useEffect(() => {
-    let active = true;
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        if (active) {
-          streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        }
-      } catch (err) {
-        console.warn("Camera video stream failed:", err);
-      }
-    }
-    startCamera();
-    return () => {
-      active = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, []);
-
-  const capturePhotoInstantly = async () => {
-    if (!videoRef.current) return;
-    setFlash(true);
-    setTimeout(() => setFlash(false), 120);
-
-    try {
-      const video = videoRef.current;
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `Foto_${categorie}_${Date.now()}.jpg`, { type: "image/jpeg" });
-        setPhotoCount((c) => c + 1);
-        // Salvare automată silențioasă în fundal fără nicio confirmare "OK"
-        await onSavePhoto([file], categorie);
-      }, "image/jpeg", 0.70);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[10000] bg-black flex flex-col items-center justify-between text-white overflow-hidden select-none">
-      {/* HEADER CAMERA - SELECTOR CATEGORII */}
-      <div className="w-full flex items-center justify-between px-4 py-3 bg-black/90 z-20 shrink-0 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCategorie("receptie")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-              categorie === "receptie" ? "bg-[#C98A2B] text-white shadow-sm" : "bg-white/10 text-white/70"
-            }`}
-          >
-            Recepție
-          </button>
-          <button
-            type="button"
-            onClick={() => setCategorie("reconstatare")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-              categorie === "reconstatare" ? "bg-[#3B5166] text-white shadow-sm" : "bg-white/10 text-white/70"
-            }`}
-          >
-            Reconstatare
-          </button>
-          <button
-            type="button"
-            onClick={() => setCategorie("predare")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all ${
-              categorie === "predare" ? "bg-[#3E6B45] text-white shadow-sm" : "bg-white/10 text-white/70"
-            }`}
-          >
-            Predare
-          </button>
-        </div>
-
-        <button onClick={onClose} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-          <X size={22} />
-        </button>
-      </div>
-
-      {/* VIZOR LIVE CAMERA FULLSCREEN */}
-      <div className="relative flex-1 w-full flex items-center justify-center bg-black overflow-hidden">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-        
-        {/* Flash Effect la Poza */}
-        {flash && <div className="absolute inset-0 bg-white z-30 transition-opacity duration-100" />}
-
-        {/* Indicator Poze Salvate */}
-        <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md border border-white/20 text-emerald-400 px-3.5 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-          <span>{photoCount} poze salvate direct</span>
-        </div>
-      </div>
-
-      {/* FOOTER CAMERA - DECLANȘATOR NATIV IPHONE / SAMSUNG */}
-      <div className="w-full py-6 px-8 bg-black/90 z-20 flex items-center justify-between shrink-0 border-t border-white/10">
-        <div className="w-16 text-center text-[11px] font-bold text-white/60 uppercase">
-          {categorie}
-        </div>
-
-        {/* SHUTTER BUTTON CERC NATIV */}
-        <button
-          type="button"
-          onClick={capturePhotoInstantly}
-          className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center active:scale-90 transition-transform shadow-2xl bg-white/10"
-        >
-          <div className="w-16 h-16 rounded-full bg-white active:bg-gray-300 transition-colors shadow-inner" />
-        </button>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white rounded-xl shadow-md"
-        >
-          Gata
-        </button>
-      </div>
-    </div>
-  );
-}
+import { processScanImage, categoryLabel } from "../../utils/scanUtils";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 
 export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn, onNotify }) {
   const [query, setQuery] = useState("");
@@ -712,7 +456,7 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-0.5 scrollbar-thin">
                 {selectedClaim.poze.map((p, idx) => {
-                  const catLabel = p.categoria ? (p.categoria === "receptie" ? "RECEPȚIE" : p.categoria === "reconstatare" ? "RECONST." : p.categoria === "predare" ? "PREDARE" : "GENERAL") : null;
+                  const catLabel = categoryLabel(p.categoria);
                   return (
                     <div
                       key={idx}
@@ -922,7 +666,6 @@ export default function MobileQuickCapture({ claims, onOpen, onPatch, canEditFn,
       {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}
       {showLiveCamera && selectedClaim && (
         <LiveStreamCameraModal
-          claim={selectedClaim}
           initialCategorie={cameraCategory}
           onSavePhoto={handleMobilePhotoCapture}
           onClose={() => setShowLiveCamera(false)}
