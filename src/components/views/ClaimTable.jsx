@@ -209,7 +209,20 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
 
               return (
                 <React.Fragment key={key}>
-                  <tr className="app-table-group-header">
+                  <tr
+                    className={`app-table-group-header cursor-pointer select-none ${expanded ? "is-expanded" : ""}`}
+                    onClick={() => toggleGroup(key)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleGroup(key);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={expanded}
+                    title={expanded ? "Click pentru a restrânge" : "Click pentru a extinde dosarele"}
+                  >
                     <td className={`${cellMuted} font-mono text-[11px] whitespace-nowrap`}>×{group.length}</td>
                     <td className={cell} />
                     <td className={`${cellMuted} truncate`} title={sharedInsurer !== "—" ? sharedInsurer : undefined}>
@@ -231,14 +244,10 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
                     </td>
                     <td className={cellMuted}>—</td>
                     <td className={`${cell} text-right whitespace-nowrap`}>
-                      <button
-                        type="button"
-                        onClick={() => toggleGroup(key)}
-                        className="app-table-group-toggle inline-flex items-center gap-1 text-[11px] font-bold"
-                      >
+                      <span className="app-table-group-toggle inline-flex items-center gap-1 text-[11px] font-bold">
                         {expanded ? "Restrânge" : "Extinde"}
                         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </button>
+                      </span>
                     </td>
                   </tr>
                   {expanded && group.map((c, i) => renderRow(c, i, { inGroup: true }))}

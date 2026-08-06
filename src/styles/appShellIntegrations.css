@@ -955,6 +955,18 @@
   background: var(--app-surface-2);
   border-top: 1px solid var(--app-border);
   color: var(--app-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.app-shell .app-table-group-header:hover,
+.app-shell .app-table-group-header:focus-visible {
+  background: color-mix(in srgb, var(--app-accent) 6%, var(--app-surface-2));
+  outline: none;
+}
+
+.app-shell .app-table-group-header.is-expanded {
+  background: color-mix(in srgb, var(--app-accent) 4%, var(--app-surface-2));
 }
 
 .app-shell .app-table-group-header td {
