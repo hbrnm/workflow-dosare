@@ -256,3 +256,191 @@
   min-width: 22rem;
   width: min(36rem, 42vw);
 }
+
+/* —— Modale mobil (dark shell) —— */
+.m-themed-modal {
+  padding: 0 !important;
+  align-items: stretch !important;
+}
+
+.m-themed-modal .m-modal-panel {
+  background: var(--app-surface);
+  border: none;
+  border-radius: 0;
+  max-height: 100dvh;
+  height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-themed-modal .m-modal-header {
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.m-themed-modal .m-modal-header-icon {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.m-themed-modal .m-modal-body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.m-themed-modal .app-mobile-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.m-themed-modal .app-mobile-input,
+.m-themed-modal select.app-mobile-input {
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  min-height: 2.75rem;
+}
+
+.m-themed-modal .app-mobile-input:focus,
+.m-themed-modal select.app-mobile-input:focus {
+  border-color: var(--app-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 25%, transparent);
+}
+
+.m-themed-modal .m-modal-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
+}
+
+.m-themed-modal .m-modal-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.m-themed-modal .m-modal-btn-secondary {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.m-themed-modal .m-modal-btn-secondary:hover {
+  background: var(--app-surface-muted);
+}
+
+/* Setări — taburi & conținut */
+.m-themed-modal .m-settings-tabs {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+}
+
+.m-themed-modal .m-settings-tab {
+  color: var(--app-muted);
+  border-color: transparent;
+}
+
+.m-themed-modal .m-settings-tab.is-active {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: var(--app-surface);
+  border-radius: var(--app-radius) var(--app-radius) 0 0;
+}
+
+.m-themed-modal .m-settings-tab-badge {
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-settings-tab-badge.is-active {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.m-themed-modal .flex-1.min-h-0.overflow-y-auto {
+  background: var(--app-bg);
+}
+
+.m-themed-modal .bg-white,
+.m-themed-modal .bg-\[\#FAF8F5\] {
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text);
+}
+
+.m-themed-modal .text-\[\#23282E\],
+.m-themed-modal .text-\[\#3B5166\] {
+  color: var(--app-text) !important;
+}
+
+.m-themed-modal .text-\[\#6B6558\],
+.m-themed-modal .text-\[\#8A8375\] {
+  color: var(--app-muted) !important;
+}
+
+.m-themed-modal input,
+.m-themed-modal select,
+.m-themed-modal textarea {
+  background: var(--app-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.m-themed-modal input:focus,
+.m-themed-modal select:focus,
+.m-themed-modal textarea:focus {
+  border-color: var(--app-accent) !important;
+  outline: none;
+}
+
+.m-themed-modal .flex.items-center.justify-between.px-4.py-2\.5.bg-white.border-t {
+  background: var(--app-chrome) !important;
+  border-color: var(--app-border) !important;
+}
+
+.m-themed-modal .flex.items-center.justify-between.px-4.py-2\.5.bg-white.border-t button {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Dosare — listă mobil */
+.mobile-shell.app-shell .m-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
+}
+
+.mobile-shell.app-shell .m-filter-pill {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-filter-pill.is-active {
+  background: color-mix(in srgb, var(--app-accent) 18%, var(--app-surface));
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+}
+
+.mobile-shell.app-shell .m-stack-badge {
+  background: color-mix(in srgb, var(--app-accent) 20%, var(--app-surface));
+  color: var(--app-accent);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-call-btn {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  border-radius: 0.5rem;
+}
+
+.mobile-shell.app-shell .m-claim-card:hover {
+  border-color: color-mix(in srgb, var(--app-accent) 45%, var(--app-border));
+}

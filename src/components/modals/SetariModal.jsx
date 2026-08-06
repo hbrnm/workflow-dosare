@@ -283,7 +283,7 @@ export default function SetariModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-3 pt-2 gap-1 shrink-0 overflow-x-auto">
+        <div className={`m-settings-tabs flex border-b px-2 pt-2 gap-1 shrink-0 overflow-x-auto scrollbar-thin ${desktopUi ? "border-[var(--app-border)] bg-[var(--app-surface-2)]" : ""}`}>
           {[
             { id: "general", label: "Parametri Generali", icon: Wrench },
             { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
@@ -295,17 +295,16 @@ export default function SetariModal({
             return (
               <button
                 key={id}
+                type="button"
                 onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap ${
-                  active
-                    ? "border-[#C98A2B] text-[#C98A2B] bg-white rounded-t-lg shadow-xs"
-                    : "border-transparent text-[#6B6558] hover:text-[#23282E]"
-                }`}
+                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap shrink-0 ${
+                  active ? "is-active" : ""
+                } ${desktopUi && active ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface)] rounded-t-lg" : ""} ${desktopUi && !active ? "border-transparent text-[var(--app-muted)]" : ""}`}
               >
                 <Icon size={15} />
                 <span>{label}</span>
                 {badge !== undefined && (
-                  <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full ${active ? "bg-[#C98A2B] text-white" : "bg-[#DAD4C6] text-[#23282E]"}`}>
+                  <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
                     {badge}
                   </span>
                 )}

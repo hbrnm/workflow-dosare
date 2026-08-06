@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Settings, LogOut, Monitor, X, Lightbulb,
+  Settings, LogOut,
   Camera, BarChart3, List, CalendarClock,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
@@ -8,13 +8,7 @@ import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
-import {
-  loadMobileTab,
-  saveMobileTab,
-  isMobileCoachDismissed,
-  dismissMobileCoach,
-  softHaptic,
-} from "../../utils/mobilePrefs";
+import { loadMobileTab, saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
 
 const MOBILE_TABS = [
@@ -40,7 +34,6 @@ export default function MobileAppLayout({
   alertBuckets = null,
   totalAlertsCount = 0,
   branding = null,
-  onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
   search = "",
@@ -49,7 +42,6 @@ export default function MobileAppLayout({
 }) {
   const [activeTab, setActiveTab] = useState(() => loadMobileTab());
   const [focusClaimId, setFocusClaimId] = useState(null);
-  const [showCoach, setShowCoach] = useState(() => !isMobileCoachDismissed());
 
   useEffect(() => {
     saveMobileTab(activeTab);
@@ -88,11 +80,6 @@ export default function MobileAppLayout({
     setActiveTab(id);
   };
 
-  const handleDismissCoach = () => {
-    dismissMobileCoach();
-    setShowCoach(false);
-  };
-
   return (
     <div
       className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden"
@@ -124,16 +111,6 @@ export default function MobileAppLayout({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {onSwitchToDesktop && (
-            <button
-              type="button"
-              onClick={onSwitchToDesktop}
-              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-              title="Mod desktop"
-            >
-              <Monitor size={16} />
-            </button>
-          )}
           {onOpenSettings && (
             <button
               type="button"
@@ -156,32 +133,6 @@ export default function MobileAppLayout({
       </header>
 
       <main className="mobile-main flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
-        {showCoach && (
-          <div className="m-coach mb-3 rounded-2xl border border-[#DAD4C6] bg-white p-3.5 shadow-sm flex gap-3 items-start">
-            <div
-              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white"
-              style={{ backgroundColor: "var(--m-accent)" }}
-            >
-              <Lightbulb size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="m-display font-extrabold text-[13px] text-[#23282E]">Pe teren, rapid</p>
-              <p className="text-[11.5px] text-[#6B6558] mt-0.5 leading-snug">
-                Caută nr. auto → selectează dosarul → <strong>Fotografiază</strong>.
-                Deschide un dosar pentru status, telefon și pasul următor.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleDismissCoach}
-              className="m-press shrink-0 p-1.5 rounded-lg text-[#8A8375] hover:bg-[#FAF8F5]"
-              aria-label="Închide tipul"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
-
         {activeTab === "capture" ? (
           <MobileQuickCapture
             claims={filteredClaims}
