@@ -1018,3 +1018,70 @@ html[data-mtheme="forge"] .m-themed-modal option {
   color: #fff !important;
 }
 
+/* ========== Piese sosite checkbox — keep readable on dark themes ========== */
+.mobile-shell[data-mtheme="forge"] .m-piese-sosite-toggle,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-sosite-toggle,
+.m-themed-modal[data-mtheme="forge"] .m-piese-sosite-toggle,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-sosite-toggle {
+  background: #21262D !important;
+  border-color: #D29922 !important;
+  color: #E6EDF3 !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-sosite-toggle.is-checked,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-sosite-toggle.is-checked,
+.m-themed-modal[data-mtheme="forge"] .m-piese-sosite-toggle.is-checked,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-sosite-toggle.is-checked {
+  background: rgba(46, 160, 67, 0.18) !important;
+  border-color: #3FB950 !important;
+  color: #3FB950 !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-sosite-meta,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-sosite-meta {
+  background: rgba(210, 153, 34, 0.12) !important;
+  border-color: rgba(210, 153, 34, 0.45) !important;
+  color: #E3B341 !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-sosite-hint,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-sosite-hint {
+  color: #8B949E !important;
+}
+
+.mobile-shell[data-mtheme="pulse"] .m-piese-sosite-toggle,
+.m-claim-sheet[data-mtheme="pulse"] .m-piese-sosite-toggle,
+.m-themed-modal[data-mtheme="pulse"] .m-piese-sosite-toggle {
+  background: #282828 !important;
+  border-color: #1ED760 !important;
+  color: #fff !important;
+}
+.mobile-shell[data-mtheme="pulse"] .m-piese-sosite-toggle.is-checked,
+.m-claim-sheet[data-mtheme="pulse"] .m-piese-sosite-toggle.is-checked,
+.m-themed-modal[data-mtheme="pulse"] .m-piese-sosite-toggle.is-checked {
+  background: rgba(30, 215, 96, 0.16) !important;
+  border-color: #1ED760 !important;
+  color: #1ED760 !important;
+}
+
+.mobile-shell[data-mtheme="forge"] .m-piese-programare-btn,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-programare-btn,
+.m-themed-modal[data-mtheme="forge"] .m-piese-programare-btn,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-programare-btn {
+  background: #238636 !important;
+  color: #fff !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-schedule-panel,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-schedule-panel,
+.m-themed-modal[data-mtheme="forge"] .m-piese-schedule-panel,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-schedule-panel {
+  background: #161B22 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+.mobile-shell[data-mtheme="forge"] .m-piese-schedule-panel input,
+.m-claim-sheet[data-mtheme="forge"] .m-piese-schedule-panel input,
+.m-themed-modal[data-mtheme="forge"] .m-piese-schedule-panel input,
+html[data-mtheme="forge"] .m-themed-modal .m-piese-schedule-panel input {
+  background: #0D1117 !important;
+  border-color: #30363D !important;
+  color: #E6EDF3 !important;
+}
+

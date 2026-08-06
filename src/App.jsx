@@ -837,6 +837,16 @@ export default function App() {
                   onOpen={openExisting}
                   onMoveToStatus={handleMoveToStatus}
                   onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
+                  onScheduleFromPiese={async (claim, iso) => {
+                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
+                    if (ok !== false) {
+                      showNotice(
+                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                        "success"
+                      );
+                    }
+                    return ok;
+                  }}
                   onAddInStatus={openNew}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}

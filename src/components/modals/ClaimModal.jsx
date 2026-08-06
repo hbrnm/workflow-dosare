@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
-  FolderOpen, PackageCheck, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
+  FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
   CheckSquare, Square, Download, Calendar, Eye, Layers
 } from "lucide-react";
 import {
-  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors,
+  STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
 import { fmtDate, fmtDateTime, todayISO, daysBetween, nowISO, telLink, waLink, uid, fmtProgramare } from "../../utils/dateUtils";
@@ -24,6 +24,7 @@ import { fileToDataUrl } from "../../utils/documentScanner";
 import DatePickerInput from "../common/DatePickerInput";
 import StageBar from "../common/StageBar";
 import ClaimTimeline from "../common/ClaimTimeline";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 function NotionPropertyRow({ icon: Icon, label, children, full }) {
   return (
@@ -904,8 +905,8 @@ export default function ClaimModal({
                         </div>
                       </div>
 
-                      {/* Dată Comandă Piese */}
-                      {form.status === "piese_comandate" && (
+                      {/* Dată Comandă Piese — detalii în coloana Date Dosar */}
+                      {isPieseComandateStatus(form.status) && (
                         <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-xl">
                           <label className="block text-[10.5px] font-bold text-[#7A5316] mb-0.5 flex items-center gap-1">
                             <CalendarClock size={12} className="text-[#7A5316]" /> Dată Comandă Piese
@@ -917,19 +918,6 @@ export default function ClaimModal({
                             placeholder="zi/lună/an"
                           />
                         </div>
-                      )}
-
-                      {/* Piese sosite checkbox */}
-                      {form.status === "piese_comandate" && (
-                        <label className="flex items-center gap-2 text-[11.5px] font-bold text-[#3E6B45] cursor-pointer bg-[#EEF5EE] p-2 rounded-xl border border-[#3E6B45]/20">
-                          <input
-                            type="checkbox"
-                            checked={!!form.pieseSosite}
-                            onChange={(e) => set("pieseSosite", e.target.checked)}
-                            className="rounded accent-[#3E6B45] w-4 h-4"
-                          />
-                          <span>Confirmare: Toate piesele au sosit în service</span>
-                        </label>
                       )}
 
                       {/* Linii reparații */}
@@ -1146,6 +1134,26 @@ export default function ClaimModal({
                           ))}
                         </select>
                       </div>
+
+                      {isPieseComandateStatus(form.status) && (
+                        <MobilePieseSositeRow
+                          claim={form}
+                          canEdit={!readOnly}
+                          onToggle={(_c, val) => set("pieseSosite", val)}
+                          onSchedule={(_c, iso) => {
+                            setForm((f) => ({
+                              ...f,
+                              pieseSosite: true,
+                              dataProgramare: iso,
+                            }));
+                            onNotify?.(
+                              `Programare setată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""} — salvează dosarul.`.trim(),
+                              "success"
+                            );
+                            return true;
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
 
