@@ -1,0 +1,17 @@
+{
+  "name": "Workflow Daune 2.0",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "vite-dev",
+      "command": "npm run dev -- --host",
+      "description": "Vite dev server for the Workflow Daune 2.0 PWA (http://localhost:5173)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "vite",
+      "port": 5173
+    }
+  ]
+}

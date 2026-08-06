@@ -4,5 +4,6 @@ dist/
 .env.local
 .env.*.local
 debug-*.log
-.cursor/
+.cursor/*
+!.cursor/environment.json
 vendor-inspect*.txt
