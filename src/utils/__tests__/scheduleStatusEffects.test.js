@@ -1,6 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { applyScheduleStatusEffects, isAwaitingSchedule } from "../scheduleStatusEffects";
 
+describe("scheduleStatusEffects programareStatus", () => {
+  it("clears programareStatus when rescheduling", () => {
+    const { patch } = applyScheduleStatusEffects(
+      { id: "1", status: "programat", dataProgramare: "2026-08-10T09:00:00", programareStatus: "onorata" },
+      { dataProgramare: "2026-08-12T10:00:00" }
+    );
+    expect(patch.programareStatus).toBeNull();
+  });
+});
+
 describe("scheduleStatusEffects", () => {
   beforeEach(() => {
     vi.setSystemTime(new Date("2026-08-05T12:00:00.000Z"));

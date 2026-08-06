@@ -49,6 +49,13 @@ export function applyScheduleStatusEffects(current, patch = {}) {
   const hasDateKey = hasOwn(patch, "dataProgramare");
   const settingDate = hasDateKey && Boolean(patch.dataProgramare);
   const clearingDate = hasDateKey && !patch.dataProgramare;
+  const dateChanged =
+    hasDateKey &&
+    String(patch.dataProgramare || "") !== String(current.dataProgramare || "");
+
+  if (dateChanged || clearingDate) {
+    next.programareStatus = null;
+  }
 
   // 2) Nu demota statusuri avansate când UI forțează status: programat la editare dată
   if (

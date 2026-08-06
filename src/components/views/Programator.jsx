@@ -6,6 +6,9 @@ import {
   todayISO, daysBetween
 } from "../../utils/dateUtils";
 import { isProgramatorClaim } from "../../constants/config";
+import { getProgramareChipClass } from "../../utils/programareStatus";
+import ProgramatorClaimCard from "./ProgramatorClaimCard";
+import ProgramareNeonorataModal from "../modals/ProgramareNeonorataModal";
 
 export const SLOTURI_ORARE = [
   "08:00 - 08:30",
@@ -131,6 +134,42 @@ export default function Programator({
   // State for scheduling a specific slot
   const [activeSlotForScheduling, setActiveSlotForScheduling] = useState(null);
   const [selectingFromArrived, setSelectingFromArrived] = useState(false);
+  const [neonorataClaim, setNeonorataClaim] = useState(null);
+
+  const handleMarkNeonorata = (claim) => {
+    if (onPatch) {
+      onPatch(claim.id, { programareStatus: "neonorata" });
+    }
+    setNeonorataClaim(claim);
+  };
+
+  const handleCloseNeonorataModal = () => {
+    const claimId = neonorataClaim?.id;
+    if (claimId && onPatch) {
+      const current = claims.find((c) => c.id === claimId);
+      if (current?.programareStatus === "neonorata") {
+        onPatch(claimId, { programareStatus: null });
+      }
+    }
+    setNeonorataClaim(null);
+  };
+
+  const handleCancelProgramare = async (claim) => {
+    if (onPatch) {
+      await onPatch(claim.id, { dataProgramare: null, programareStatus: null });
+    }
+    setNeonorataClaim(null);
+  };
+
+  const handleRescheduleProgramare = async (claim, iso) => {
+    if (onPatch) {
+      await onPatch(claim.id, { dataProgramare: iso, programareStatus: null });
+    }
+    setNeonorataClaim(null);
+    const day = iso.slice(0, 10);
+    setActiveDateStr(day);
+    setWeekOffset(0);
+  };
 
   const prevWeek = () => {
     setWeekOffset(prev => prev - 1);
@@ -301,6 +340,11 @@ export default function Programator({
             <CalendarClock size={16} className="inline mr-1.5 text-[#3B5166] mb-0.5" />
             Programator Service
           </div>
+          <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-[#6B6558]">
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#2F8F5B]" /> Onorată</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#D6473F]" /> Neonorată</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#E7EEF5] border border-[#2E5C8A]/30" /> Neconfirmată</span>
+          </div>
           
           {/* Calendar controls */}
           <div className="flex items-center gap-1">
@@ -455,7 +499,7 @@ export default function Programator({
                       }
                     }
                   }}
-                  className={`p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
+                  className={`p-1 flex flex-col justify-between cursor-pointer transition-all min-h-[4.75rem] ${
                     isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
                   } ${capClass}`}
                 >
@@ -469,35 +513,35 @@ export default function Programator({
                       </span>
                     )}
                   </div>
-                  {/* Micro list of cars */}
-                  <div className="mt-1.5 space-y-1 text-[12px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
-                    {dayClaims.slice(0, total > 5 ? 4 : 5).map(c => (
-                      <div
-                        key={c.id}
-                        draggable={true}
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          e.dataTransfer.setData("text/plain", c.id);
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDateStr(cell.iso);
-                          setActiveSlotForScheduling(null);
-                          setSelectingFromArrived(false);
-                          if (onOpen) onOpen(c);
-                        }}
-                        className="truncate cursor-pointer hover:text-[#C98A2B] hover:underline active:opacity-60 transition-colors"
-                        title="Click pentru a deschide dosarul · Trage pentru a muta în altă zi"
-                      >
-                        🚗 {c.numarInmatriculare || "FĂRĂ NR."}{c.numarDosar ? ` (#${c.numarDosar})` : ""}
-                      </div>
-                    ))}
-                    {total > 5 && (
-                      <div className="text-[11px] text-[#8A8375] font-normal italic pl-3">
-                        +{total - 4} altele
-                      </div>
-                    )}
+                  {/* Compact chips — mai multe programări pe aceeași zi */}
+                  <div className="mt-1 flex flex-wrap gap-0.5 content-start min-h-[1.25rem]">
+                    {dayClaims.map((c) => {
+                      const time = c.dataProgramare?.slice(11, 16) || "";
+                      const plate = (c.numarInmatriculare || "—").slice(-7);
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            e.dataTransfer.setData("text/plain", c.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDateStr(cell.iso);
+                            setActiveSlotForScheduling(null);
+                            setSelectingFromArrived(false);
+                            if (onOpen) onOpen(c);
+                          }}
+                          className={`max-w-[54px] truncate text-[8.5px] font-mono font-extrabold px-1 py-0.5 rounded border leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
+                          title={`${time ? `${time} · ` : ""}${c.numarInmatriculare || "—"}${c.numarDosar ? ` (#${c.numarDosar})` : ""} · ${c.client || ""}`}
+                        >
+                          {plate}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -561,47 +605,18 @@ export default function Programator({
 
                   {hasItems ? (
                     <div className="space-y-1">
-                      {items.map(c => {
-                        const conflict = checkMasinaSchimbConflict(claims, c.id, c.masinaSchimb, c.dataProgramare || "");
-                        return (
-                          <div
-                            key={c.id}
-                            onClick={() => onOpen(c)}
-                            draggable={true}
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", c.id);
-                              e.dataTransfer.effectAllowed = "move";
-                            }}
-                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[13px] flex flex-col hover:shadow-2xs active:opacity-60"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
-                                {c.numarDosar && (
-                                  <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
-                                    #{c.numarDosar}
-                                  </span>
-                                )}
-                                <span className="text-[#8A8375] shrink-0">·</span>
-                                <span className="font-bold text-[#23282E] truncate">{c.client || "—"}</span>
-                              </div>
-                              <span className="text-[11.5px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[150px]">{c.marcaModel || "—"}</span>
-                            </div>
-                            {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
-                              <div className="text-[11.5px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1.5 mt-1.5 truncate flex items-center gap-1">
-                                <span className="text-[#8A8375]">⚙️</span>
-                                <span className="truncate">{c.ceEsteDeReparat}</span>
-                              </div>
-                            )}
-                            {c.masinaSchimb && (
-                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1.5 w-max flex items-center gap-1 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
-                                🚗 Auto Schimb: {c.masinaSchimb}
-                                {conflict && <span>⚠️ Conflict!</span>}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {items.map((c) => (
+                        <ProgramatorClaimCard
+                          key={c.id}
+                          claim={c}
+                          claims={claims}
+                          onOpen={onOpen}
+                          onPatch={onPatch}
+                          canEdit={canEditFn}
+                          onMarkNeonorata={handleMarkNeonorata}
+                          checkMasinaSchimbConflict={checkMasinaSchimbConflict}
+                        />
+                      ))}
                     </div>
                   ) : isSchedulingThisSlot ? (
                     <div className="bg-[#FDFCF9] border border-[#DAD4C6] rounded-lg p-2.5 space-y-2 text-[11px] shadow-xs">
@@ -690,6 +705,15 @@ export default function Programator({
         </div>
 
       </div>
+
+      {neonorataClaim && (
+        <ProgramareNeonorataModal
+          claim={claims.find((c) => c.id === neonorataClaim.id) || neonorataClaim}
+          onClose={handleCloseNeonorataModal}
+          onCancel={handleCancelProgramare}
+          onReschedule={handleRescheduleProgramare}
+        />
+      )}
     </div>
   );
 }
