@@ -29,6 +29,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
       const baseClaim = emptyClaim("deschidere");
       const result = await onSave({
         ...baseClaim,
+        tipAsigurare: "CASCO",
         numarInmatriculare: numarInmatriculare.trim().toUpperCase(),
         numarDosar: numarDosar.trim(),
         client: client.trim().toUpperCase(),

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../supabaseClient";
-import { INSURERS } from "../constants/config";
+import { INSURERS, cacheStatusAlertOverrides } from "../constants/config";
 import {
   DEFAULT_BRANDING,
   normalizeBranding,
@@ -19,6 +19,7 @@ export function useSettings(session, showNotice) {
   const [usersList, setUsersList] = useState([]);
   const [customInsurers, setCustomInsurers] = useState(INSURERS);
   const [branding, setBranding] = useState(() => loadCachedBranding());
+  const [termeneAlertaStatus, setTermeneAlertaStatus] = useState({});
 
   const myEmail = session?.user?.email || "";
 
@@ -61,7 +62,7 @@ export function useSettings(session, showNotice) {
 
       const { data: adminData } = await supabase
         .from("setari")
-        .select("admin_emails")
+        .select("admin_emails, termene_alerta_status")
         .eq("id", 1)
         .maybeSingle();
 
@@ -87,11 +88,16 @@ export function useSettings(session, showNotice) {
       const data = {
         ...(publicData || settingsFromTable || {}),
         admin_emails: adminData?.admin_emails,
+        termene_alerta_status: adminData?.termene_alerta_status,
       };
 
       if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
       if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
       if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
+      if (data?.termene_alerta_status && typeof data.termene_alerta_status === "object") {
+        setTermeneAlertaStatus(data.termene_alerta_status);
+        cacheStatusAlertOverrides(data.termene_alerta_status);
+      }
       if (Array.isArray(data?.asiguratori) && data.asiguratori.length > 0) {
         setCustomInsurers(data.asiguratori);
         try {
@@ -199,6 +205,21 @@ export function useSettings(session, showNotice) {
     setPragInactivitate(n);
     const { error } = await supabase.from("setari").upsert({ id: 1, prag_inactivitate_zile: n });
     if (error) showNotice(error.message, "error");
+  };
+
+  const saveTermeneAlertaStatus = async (map) => {
+    const next = map && typeof map === "object" ? map : {};
+    setTermeneAlertaStatus(next);
+    cacheStatusAlertOverrides(next);
+    const { error } = await supabase.from("setari").upsert({ id: 1, termene_alerta_status: next });
+    if (error) {
+      showNotice(
+        "Praguri alertă salvate local. Rulează migrarea 21 în Supabase pentru sync cloud: " + error.message,
+        "warning"
+      );
+      return false;
+    }
+    return true;
   };
 
   const saveBranding = async (nextRaw) => {
@@ -342,6 +363,8 @@ export function useSettings(session, showNotice) {
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
+    saveTermeneAlertaStatus,
+    termeneAlertaStatus,
     saveBranding,
     uploadBrandingLogo,
     handleAddUser,

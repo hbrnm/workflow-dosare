@@ -3,15 +3,15 @@
 // ---------------------------------------------------------------------------
 
 export const STATUSES = [
-  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", phase: "start" },
-  { key: "reconstatare",     num: 2, label: "Reconstatare",              phase: "eval"  },
-  { key: "accept_plata",     num: 3, label: "Accept de plată",           phase: "eval"  },
-  { key: "piese_comandate",  num: 4, label: "Piese comandate",           phase: "lucru" },
-  { key: "programat",        num: 5, label: "Programat",                 phase: "lucru" },
-  { key: "in_lucru",         num: 6, label: "În lucru",                  phase: "lucru" },
-  { key: "gata_de_ridicare", num: 7, label: "Gata de ridicare",          phase: "final" },
-  { key: "predat_client",    num: 8, label: "Predat client",            phase: "final" },
-  { key: "facturat",         num: 9, label: "Facturat asigurător",       phase: "final" },
+  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", phase: "start", alertDays: 3 },
+  { key: "reconstatare",     num: 2, label: "Reconstatare",              phase: "eval",  alertDays: 5 },
+  { key: "accept_plata",     num: 3, label: "Accept de plată",           phase: "eval",  alertDays: 5 },
+  { key: "piese_comandate",  num: 4, label: "Piese comandate",           phase: "lucru", alertDays: 4 },
+  { key: "programat",        num: 5, label: "Programat",                 phase: "lucru", alertDays: 3 },
+  { key: "in_lucru",         num: 6, label: "În lucru",                  phase: "lucru", alertDays: 7 },
+  { key: "gata_de_ridicare", num: 7, label: "Gata de ridicare",          phase: "final", alertDays: 3 },
+  { key: "predat_client",    num: 8, label: "Predat client",            phase: "final", alertDays: 14 },
+  { key: "facturat",         num: 9, label: "Facturat asigurător",       phase: "final", alertDays: 30 },
 ];
 
 export const STATUS_MIGRATION = {
@@ -77,6 +77,45 @@ export function isPieseComandateStatus(statusKey) {
 
 export function getPhaseColors(statusKey) {
   return PHASE_COLORS[getStatusDefinition(statusKey).phase] || PHASE_COLORS.start;
+}
+
+const STATUS_ALERT_OVERRIDES_KEY = "workflow_dosare_termene_alerta";
+
+/** Praguri alertă per stadiu — din Setări (localStorage) sau default din STATUSES. */
+export function getStatusAlertOverrides() {
+  try {
+    const raw = localStorage.getItem(STATUS_ALERT_OVERRIDES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function cacheStatusAlertOverrides(overrides) {
+  try {
+    localStorage.setItem(STATUS_ALERT_OVERRIDES_KEY, JSON.stringify(overrides || {}));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getStatusAlertDays(statusKey, overrides) {
+  const key = getStatusDefinition(statusKey).key;
+  const map = overrides || getStatusAlertOverrides();
+  if (map[key] != null && map[key] !== "") {
+    const n = Number(map[key]);
+    if (!Number.isNaN(n) && n > 0) return n;
+  }
+  const def = STATUSES.find((s) => s.key === key);
+  return def?.alertDays ?? 3;
+}
+
+/** Prag efectiv pentru un dosar: termenAlertaZile setat explicit, altfel per stadiu. */
+export function getClaimAlertDays(claim, overrides) {
+  if (claim?.termenAlertaZile != null && claim.termenAlertaZile > 0) {
+    return claim.termenAlertaZile;
+  }
+  return getStatusAlertDays(claim?.status, overrides);
 }
 
 export const PIPELINE_PHASES = [

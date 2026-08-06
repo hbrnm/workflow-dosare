@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   Clock, Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -16,7 +16,15 @@ const PHASE_COLOR_MAP = {
   final: { bg: "#2F6B4E", soft: "#E7F1EC" },
 };
 
-const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
+const copyClaimNumber = async (numarDosar, onNotify) => {
+  if (!numarDosar?.trim()) return;
+  try {
+    await navigator.clipboard.writeText(numarDosar.trim());
+    onNotify?.(`Nr. dosar copiat: ${numarDosar.trim()}`, "success");
+  } catch {
+    onNotify?.("Nu am putut copia în clipboard.", "error");
+  }
+};
 
 const SHORT_STATUS_LABELS = {
   deschidere: "1.Acord",
@@ -33,10 +41,11 @@ const SHORT_STATUS_LABELS = {
 // ---------------------------------------------------------------------------
 // KANBAN CARD REDESIGN (OPTIMIZAT COMPACT PE VERTICALĂ)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
+  const alertThreshold = getClaimAlertDays(claim);
   const phaseColorHex = PHASE_COLOR_MAP[statusDef.phase]?.bg || "#1E2A44";
 
   const currentStatusKey = statusDef.key;
@@ -46,12 +55,21 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   if (days >= 3 && days <= 5) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
   if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
-  const isPartOverdue = (claim.status === "piese_comandate" || currentStatusKey === "piese_comandate") && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
+  const pieseAlertDays = getStatusAlertDays("piese_comandate");
+  const isPartOverdue = isPieseComandateStatus(claim.status) && !claim.pieseSosite && days > pieseAlertDays;
 
   return (
     <div
       id={`claim-card-${claim.id}`}
       draggable={true}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && claim.numarDosar) {
+          e.preventDefault();
+          e.stopPropagation();
+          copyClaimNumber(claim.numarDosar, onNotify);
+        }
+      }}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
@@ -70,7 +88,22 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
             {claim.numarInmatriculare || "FĂRĂ NR."}
           </span>
           {claim.numarDosar && (
-            <span className="text-[10px] font-mono text-[#8A8375]" title={`Dosar #${claim.numarDosar}`}>
+            <span
+              role="button"
+              tabIndex={0}
+              className="text-[10px] font-mono text-[#8A8375] hover:text-[#C98A2B] cursor-copy select-all"
+              title={`Dosar #${claim.numarDosar} — Ctrl+C sau click pentru copiere`}
+              onClick={(e) => {
+                e.stopPropagation();
+                copyClaimNumber(claim.numarDosar, onNotify);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.stopPropagation();
+                  copyClaimNumber(claim.numarDosar, onNotify);
+                }
+              }}
+            >
               #{claim.numarDosar}
             </span>
           )}
@@ -142,6 +175,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           compact
           onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
           onSchedule={onScheduleFromPiese}
+          onPatchDates={onPatchPieseDates}
         />
       )}
 
@@ -156,7 +190,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {/* 5. FOOTER CURAT: AGING + APEL & WHATSAPP */}
       <div className="flex items-center justify-between pt-1 border-t border-[#E4E1D9]/60 text-[10px]">
         <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
-          <Clock size={10} /> {days} zile
+          <Clock size={10} /> {days}z / {alertThreshold}z
         </span>
 
         {claim.telefonClient && (
@@ -178,7 +212,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
   );
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEditFn, pragRidicare }) {
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
@@ -192,8 +226,10 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         onMoveToStatus={onMoveToStatus}
         onTogglePieseSosite={onTogglePieseSosite}
         onScheduleFromPiese={onScheduleFromPiese}
+        onPatchPieseDates={onPatchPieseDates}
         canEdit={canEditFn(first)}
         pragRidicare={pragRidicare}
+        onNotify={onNotify}
       />
     );
   }
@@ -246,8 +282,10 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               onMoveToStatus={onMoveToStatus}
               onTogglePieseSosite={onTogglePieseSosite}
               onScheduleFromPiese={onScheduleFromPiese}
+              onPatchPieseDates={onPatchPieseDates}
               canEdit={canEditFn(c)}
               pragRidicare={pragRidicare}
+              onNotify={onNotify}
             />
           ))}
         </div>
@@ -265,20 +303,22 @@ export default function TablouPeFazeRedesign({
   onMoveToStatus,
   onTogglePieseSosite,
   onScheduleFromPiese,
+  onPatchPieseDates,
   onAddInStatus,
   onDuplicate,
   canEditFn,
   pragRidicare,
   quickFilter,
-  setQuickFilter
+  setQuickFilter,
+  onNotify,
 }) {
   const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
+  const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
-  // Dosare cu piese întârziate (peste pragul de zile fără confirmare de sosire)
   const overduePartClaims = useMemo(() => {
-    return claims.filter((c) => c.status === "piese_comandate" && !c.pieseSosite && daysBetween(c.dataSchimbareStatus) > PART_OVERDUE_DAYS);
-  }, [claims]);
+    return claims.filter((c) => c.status === "piese_comandate" && !c.pieseSosite && daysBetween(c.dataSchimbareStatus) > pieseAlertDays);
+  }, [claims, pieseAlertDays]);
 
   // Alerte și grupări dosare
   const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
@@ -311,7 +351,7 @@ export default function TablouPeFazeRedesign({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px]">🔔</span>
             <span>
-              <b>{overduePartClaims.length} dosare</b> peste pragul de <b>{PART_OVERDUE_DAYS} zile</b> fără confirmare de sosire piese:
+              <b>{overduePartClaims.length} dosare</b> peste pragul de <b>{pieseAlertDays} zile</b> fără confirmare de sosire piese:
             </span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {overduePartClaims.map((c) => (
@@ -501,8 +541,10 @@ export default function TablouPeFazeRedesign({
                       onMoveToStatus={onMoveToStatus}
                       onTogglePieseSosite={onTogglePieseSosite}
                       onScheduleFromPiese={onScheduleFromPiese}
+                      onPatchPieseDates={onPatchPieseDates}
                       canEditFn={canEditFn}
                       pragRidicare={pragRidicare}
+                      onNotify={onNotify}
                     />
                   ));
                 })()}

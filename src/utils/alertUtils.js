@@ -1,5 +1,5 @@
 import { daysBetween } from "./dateUtils";
-import { getStatusDefinition } from "../constants/config";
+import { getStatusDefinition, getClaimAlertDays } from "../constants/config";
 
 /** Canonical alert type keys used by Brief, MobileBrief, and AlerteModal. */
 export const ALERT_TYPES = [
@@ -36,10 +36,11 @@ export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
 
 export function isStageOverdue(claim) {
   if (claim?.alerteAck) return false;
+  const threshold = getClaimAlertDays(claim);
   return Boolean(
     claim.status !== "facturat" &&
     !(claim.gataDeRidicare && !claim.ridicata) &&
-    daysBetween(claim.dataSchimbareStatus) >= (claim.termenAlertaZile || 3)
+    daysBetween(claim.dataSchimbareStatus) >= threshold
   );
 }
 
