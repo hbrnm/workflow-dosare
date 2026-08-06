@@ -40,10 +40,10 @@ export function isProgramatorClaim(claim) {
 }
 
 export const PHASE_COLORS = {
-  start: { bar: "#3B5166", tint: "#EEF1F3" },
-  eval:  { bar: "#4A6FA5", tint: "#ECF1F7" },
-  lucru: { bar: "#C98A2B", tint: "#FBF3E6" },
-  final: { bar: "#3E6B45", tint: "#EEF5EE" },
+  start: { bar: "#3B5166", tint: "#EEF1F3", bg: "#1E2A44", soft: "#E9EBF1" },
+  eval:  { bar: "#4A6FA5", tint: "#ECF1F7", bg: "#2E5C8A", soft: "#E7EEF5" },
+  lucru: { bar: "#C98A2B", tint: "#FBF3E6", bg: "#B8791E", soft: "#FBF0DE" },
+  final: { bar: "#3E6B45", tint: "#EEF5EE", bg: "#2F6B4E", soft: "#E7F1EC" },
 };
 
 export const INSURANCE_TYPES = ["CASCO", "RCA", "Regie Proprie", "Fără asigurare"];
@@ -77,6 +77,12 @@ export function isPieseComandateStatus(statusKey) {
 
 export function getPhaseColors(statusKey) {
   return PHASE_COLORS[getStatusDefinition(statusKey).phase] || PHASE_COLORS.start;
+}
+
+/** Culori coloană kanban (bg header + fundal soft). */
+export function getPhaseColumnColors(phaseKey) {
+  const p = PHASE_COLORS[phaseKey] || PHASE_COLORS.start;
+  return { bg: p.bg || p.bar, soft: p.soft || p.tint };
 }
 
 const STATUS_ALERT_OVERRIDES_KEY = "workflow_dosare_termene_alerta";

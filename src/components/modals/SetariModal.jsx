@@ -53,8 +53,6 @@ export default function SetariModal({
   const [tvaDefault, setTvaDefault] = useState(21);
   const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
-  const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
-  const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
   const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "Dosare Daună");
   const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
@@ -624,40 +622,6 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Bell size={16} className="text-[#C98A2B]" /> Preferințe Notificări &amp; Vizualizare
-                </h3>
-
-                <div className="space-y-3">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
-                    <div>
-                      <span className="block text-[13px] font-bold text-[#23282E]">Evidențiere pulsantă pentru alertele critice</span>
-                      <span className="block text-[11px] text-[#8A8375]">Butoanele din antet vor lumina pulsatoriu când există întârzieri pe etapă</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={visualPulseEnabled}
-                      onChange={(e) => setVisualPulseEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C98A2B]"
-                    />
-                  </div>
-
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
-                    <div>
-                      <span className="block text-[13px] font-bold text-[#23282E]">Mod afișare compact pe mobil</span>
-                      <span className="block text-[11px] text-[#8A8375]">Reduce spațierea pe ecran pentru a afișa mai multe dosare simultan</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={compactCards}
-                      onChange={(e) => setCompactCards(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C98A2B]"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {typeof onMobileThemeChange === "function" && (
                 <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
                   <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">

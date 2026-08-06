@@ -11,17 +11,7 @@ import {
   getDaysPastDeliveryDeadline,
 } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
-
-const CATEGORY_META = [
-  { key: "stagnate", label: "Termene Depășite", emoji: "🚨", active: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40", idle: "text-[#B23A2E]" },
-  { key: "livrare_piese", label: "Termen Livrare", emoji: "🚚", active: "bg-[#D6473F] text-white border-[#D6473F] ring-[#D6473F]/40", idle: "text-[#D6473F]" },
-  { key: "accept_plata", label: "Accept Fără Piese", emoji: "🛒", active: "bg-[#2C4160] text-white border-[#2C4160] ring-[#2C4160]/40", idle: "text-[#2C4160]" },
-  { key: "neridicate", label: "Mașini Neridicate", emoji: "📦", active: "bg-[#C98A2B] text-white border-[#C98A2B] ring-[#C98A2B]/40", idle: "text-[#C98A2B]" },
-  { key: "inactivitate", label: "Fără Activitate", emoji: "⏱️", active: "bg-[#7A5316] text-white border-[#7A5316] ring-[#7A5316]/40", idle: "text-[#7A5316]" },
-  { key: "blocate", label: "Dosare Blocate", emoji: "⚠️", active: "bg-[#4A5568] text-white border-[#4A5568] ring-[#4A5568]/40", idle: "text-[#4A5568]" },
-  { key: "masini_schimb", label: "Auto Schimb", emoji: "🚗", active: "bg-[#A36C1D] text-white border-[#A36C1D] ring-[#A36C1D]/40", idle: "text-[#A36C1D]" },
-  { key: "piese", label: "Piese Neprogramate", emoji: "📦", active: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40", idle: "text-[#3E6B45]" },
-];
+import { ALERT_CATEGORIES } from "../../constants/alertCategories";
 
 export default function AlerteModal({
   claims = [],
@@ -92,7 +82,7 @@ export default function AlerteModal({
         </div>
 
         <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 shrink-0 text-center">
-          {CATEGORY_META.map((cat) => {
+          {ALERT_CATEGORIES.map((cat) => {
             const active = activeTab === cat.key;
             const count = buckets.counts[cat.key] || 0;
             return (
@@ -102,11 +92,11 @@ export default function AlerteModal({
                 onClick={() => setActiveTab(cat.key)}
                 className={`p-2 rounded-xl border transition-all ${
                   active
-                    ? `${cat.active} shadow-md ring-2`
+                    ? `${cat.chipActive} shadow-md ring-2`
                     : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
                 }`}
               >
-                <span className={`text-[10px] font-extrabold uppercase block truncate ${active ? "text-white" : cat.idle}`}>
+                <span className={`text-[10px] font-extrabold uppercase block truncate ${active ? "text-white" : cat.chipIdle}`}>
                   {cat.emoji} {cat.label}
                 </span>
                 <span className="font-extrabold text-[17px] block mt-0.5">{count}</span>

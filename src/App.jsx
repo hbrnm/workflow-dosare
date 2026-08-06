@@ -34,6 +34,7 @@ import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { darkenHex } from "./constants/branding";
+import { APP_TOKEN_DEFAULTS } from "./constants/appTokens";
 import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
 
 export default function App() {
@@ -159,8 +160,12 @@ export default function App() {
   } = useSettings(session, showNotice);
 
   useEffect(() => {
-    if (!branding?.accentColor) return;
-    document.documentElement.style.setProperty("--brand-accent", branding.accentColor);
+    Object.entries(APP_TOKEN_DEFAULTS).forEach(([key, val]) => {
+      document.documentElement.style.setProperty(key, val);
+    });
+    const accent = branding?.accentColor || APP_TOKEN_DEFAULTS["--app-accent"];
+    document.documentElement.style.setProperty("--app-accent", accent);
+    document.documentElement.style.setProperty("--brand-accent", accent);
   }, [branding?.accentColor]);
 
   const myEmail = session?.user?.email || "";
@@ -545,12 +550,12 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
+    <div className="h-screen flex app-shell overflow-hidden relative font-sans">
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
       {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
-      <aside className={`hidden md:flex flex-col ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>
+      <aside className={`hidden md:flex flex-col app-chrome ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>
 
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
@@ -597,7 +602,7 @@ export default function App() {
                 onClick={() => setView(id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
                   active
-                    ? "bg-[#C98A2B] text-white font-bold shadow-md"
+                    ? "app-accent-bg font-bold shadow-md"
                     : "text-white/70 hover:text-white hover:bg-white/10"
                 }`}
                 title={label}
@@ -625,7 +630,7 @@ export default function App() {
             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
             title="Centru Setări"
           >
-            <div className="w-6 h-6 rounded-full bg-[#C98A2B] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+            <div className="w-6 h-6 rounded-full app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
               {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
             </div>
             <span className={`transition-all duration-200 truncate max-w-[120px] ${navHovered ? "opacity-100" : "opacity-0"}`}>
@@ -639,19 +644,19 @@ export default function App() {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Breadcrumb & Action Header */}
-        <header className="relative h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <header className="relative h-14 app-header border-b px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
 
           {/* Left Navigation / Segmented Switch */}
           <div className="flex items-center gap-2 text-[13px]">
             {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              <div className="flex items-center bg-[#EFEAE1] border border-[#DAD4C6] p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px]">
+              <div className="flex items-center app-segment-track border p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px]">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "flux"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
+                      ? "app-accent-bg shadow-xs"
+                      : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
                   <Layers size={13} />
@@ -663,8 +668,8 @@ export default function App() {
                   onClick={() => setDosareSubView("brief")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "brief"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
+                      ? "app-accent-bg shadow-xs"
+                      : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
                   <Sunrise size={13} />
@@ -681,8 +686,8 @@ export default function App() {
                   onClick={() => setDosareSubView("list")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     dosareSubView === "list"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
+                      ? "app-accent-bg shadow-xs"
+                      : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
                   <List size={13} />
@@ -734,7 +739,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl app-accent-bg text-[13px] font-bold shadow-sm transition-all active:scale-95"
             >
               <Plus size={16} /> <span>Dosar nou</span>
             </button>

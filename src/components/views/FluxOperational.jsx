@@ -1,20 +1,14 @@
 import React, { useState, useMemo } from "react";
 import {
-  Clock, Bell, Phone, ChevronDown, ChevronUp
+  Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays } from "../../constants/config";
+import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
+import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
-// Culori oficiale per fază din redesign
-const PHASE_COLOR_MAP = {
-  start: { bg: "#1E2A44", soft: "#E9EBF1" },
-  eval:  { bg: "#2E5C8A", soft: "#E7EEF5" },
-  lucru: { bg: "#B8791E", soft: "#FBF0DE" },
-  final: { bg: "#2F6B4E", soft: "#E7F1EC" },
-};
+// Culori oficiale per fază — sursă unică config.js
 
 const copyClaimNumber = async (numarDosar, onNotify) => {
   if (!numarDosar?.trim()) return;
@@ -39,25 +33,28 @@ const SHORT_STATUS_LABELS = {
 };
 
 // ---------------------------------------------------------------------------
-// KANBAN CARD REDESIGN (OPTIMIZAT COMPACT PE VERTICALĂ)
+// KANBAN CARD — vizual minimal, funcții păstrate (status, piese, contact)
 // ---------------------------------------------------------------------------
 export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify }) {
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
   const overdue = isStageOverdue(claim);
   const alertThreshold = getClaimAlertDays(claim);
-  const phaseColorHex = PHASE_COLOR_MAP[statusDef.phase]?.bg || "#1E2A44";
+  const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
 
-  const currentStatusKey = statusDef.key;
-  const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
-
-  let agingClass = "text-[#5B6572]";
+  let agingClass = "text-[#5B6572] bg-[#F3F2EE]";
   if (days >= 3 && days <= 5) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
   if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
 
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
   const isPartOverdue = isPartsOrderOverdue(claim, pieseAlertDays);
   const termenDepasit = isDeliveryDeadlineOverdue(claim);
+
+  const alertLine = isPartOverdue
+    ? termenDepasit
+      ? `Livrare +${getDaysPastDeliveryDeadline(claim)}z`
+      : `Piese ${days}z`
+    : null;
 
   return (
     <div
@@ -76,143 +73,106 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative bg-white border rounded-xl p-2.5 shadow-xs transition-all duration-150 cursor-pointer select-none space-y-1.5 hover:shadow-md ${
-        claim.blocat || overdue
-          ? "border-[#EAC3C0] bg-gradient-to-b from-[#FBEAE9]/60 to-white"
-          : "border-[#E4E1D9] hover:border-[#1B2430]"
+      className={`card group relative bg-white border border-[#E4E1D9] border-l-[3px] rounded-lg p-2 shadow-xs transition-all duration-150 cursor-pointer select-none hover:shadow-md hover:border-[#1B2430]/30 ${
+        claim.blocat || overdue ? "bg-[#FFFBFB]" : ""
       }`}
+      style={{ borderLeftColor: phaseColorHex }}
     >
-      {/* 1. TOP ROW: Nr. Înmatriculare + Asigurare Badge + Vehicul */}
-      <div className="flex items-center justify-between gap-1 flex-wrap">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-bold text-[13px] text-[#1B2430] tracking-tight group-hover:text-[#B8791E] transition-colors truncate">
-            {claim.numarInmatriculare || "FĂRĂ NR."}
-          </span>
-          {claim.numarDosar && (
-            <span
-              role="button"
-              tabIndex={0}
-              className="text-[10px] font-mono text-[#8A8375] hover:text-[#C98A2B] cursor-copy select-all"
-              title={`Dosar #${claim.numarDosar} — Ctrl+C sau click pentru copiere`}
-              onClick={(e) => {
-                e.stopPropagation();
-                copyClaimNumber(claim.numarDosar, onNotify);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
+      {/* Rând 1: identificare + vechime */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1 min-w-0 flex-wrap">
+            <span className="font-mono font-extrabold text-[13px] text-[#1B2430] truncate">
+              {claim.numarInmatriculare || "FĂRĂ NR."}
+            </span>
+            {claim.numarDosar && (
+              <button
+                type="button"
+                className="text-[10px] font-mono text-[#8A8375] hover:text-[var(--app-accent,#C98A2B)] shrink-0"
+                title={`Dosar #${claim.numarDosar} — click copiere`}
+                onClick={(e) => {
                   e.stopPropagation();
                   copyClaimNumber(claim.numarDosar, onNotify);
-                }
-              }}
-            >
-              #{claim.numarDosar}
-            </span>
-          )}
-          {/* Tip asigurare — discret, doar relevant vizual */}
-          <span
-            className={`text-[9px] font-bold px-1 py-0.2 rounded ${
-              claim.tipAsigurare === "CASCO"
-                ? "bg-[#F4E3C6] text-[#8A5A0E]"
-                : "text-[#8A8375]"  
-            }`}
-          >
-            {claim.tipAsigurare || "RCA"}
-          </span>
-        </div>
-        <span className="text-[11px] text-[#5B6572] font-medium truncate max-w-[110px]" title={claim.marcaModel || claim.client}>
-          {claim.marcaModel || claim.client || "—"}
-        </span>
-      </div>
-
-      {/* 2. BARA VIZUALĂ DE PROGRES & SELEKTOR UNIC DE STADIU */}
-      <div className="space-y-1 my-0.5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5">
-          {STATUSES.map((s, idx) => {
-            const isDone = idx < currentIndex;
-            const isCurrent = idx === currentIndex;
-            return (
-              <div
-                key={s.key}
-                className="h-full flex-1 rounded-xs transition-all"
-                style={{
-                  backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
-                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35,
                 }}
-              />
-            );
-          })}
-        </div>
-
-        <div className="text-[10.5px] font-bold text-[#1B2430] flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-[#5B6572] font-semibold">{statusDef.num}/9</span> ·
-            <select
-              value={claim.status}
-              onChange={(e) => {
-                e.stopPropagation();
-                onMoveToStatus(claim, e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-md px-2 py-0.5 font-extrabold text-[#1B2430] text-[11px] cursor-pointer hover:bg-white focus:outline-none transition-colors shadow-2xs"
-              title="Alege stadiul dosarului din listă"
-            >
-              {STATUSES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.num}. {s.label}
-                </option>
-              ))}
-            </select>
+              >
+                #{claim.numarDosar}
+              </button>
+            )}
+            {claim.tipAsigurare === "CASCO" && (
+              <span className="text-[8px] font-bold uppercase px-1 rounded bg-[#F4E3C6] text-[#8A5A0E]">C</span>
+            )}
+            {claim.blocat && (
+              <span className="text-[8px] font-extrabold text-[#D6473F] uppercase">Blocat</span>
+            )}
           </div>
-
-          {claim.blocat && <span className="text-[#D6473F] text-[9.5px] font-extrabold">🛑 BLOCAT</span>}
+          <p className="text-[11px] text-[#6B6558] truncate mt-0.5" title={claim.client || claim.marcaModel}>
+            {claim.client || claim.marcaModel || "—"}
+          </p>
         </div>
-      </div>
-
-      {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (+ Programare) */}
-      {isPieseComandateStatus(claim.status) && (
-        <MobilePieseSositeRow
-          claim={claim}
-          canEdit={canEdit}
-          compact
-          onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
-          onSchedule={onScheduleFromPiese}
-          onPatchDates={onPatchPieseDates}
-        />
-      )}
-
-      {/* 4. PART OVERDUE ALERT BANNER ON CARD */}
-      {isPartOverdue && (
-        <div className="flex items-center gap-1 bg-[#FBEAE9] text-[#8C2E28] text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border border-[#EFC3C0]">
-          <Bell size={10} className="shrink-0 animate-bounce" />
-          <span>
-            {termenDepasit
-              ? `Termen livrare depășit (+${getDaysPastDeliveryDeadline(claim)}z) — verifică stocul`
-              : `Fără confirmare sosire (${days} zile)`}
-          </span>
-        </div>
-      )}
-
-      {/* 5. FOOTER CURAT: AGING + APEL & WHATSAPP */}
-      <div className="flex items-center justify-between pt-1 border-t border-[#E4E1D9]/60 text-[10px]">
-        <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
-          <Clock size={10} /> {days}z / {alertThreshold}z
+        <span
+          className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+          title={`${days} zile în stadiu · prag ${alertThreshold} zile`}
+        >
+          {days}z
         </span>
-
-        {claim.telefonClient && (
-          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <a
-              href={telLink(claim.telefonClient)}
-              onClick={(e) => e.stopPropagation()}
-              title={`Sună clientul: ${claim.telefonClient}`}
-              className="p-1 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
-            >
-              <Phone size={11} />
-            </a>
-            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
-          </div>
-        )}
       </div>
 
+      {/* Rând 2: stadiu — select compact */}
+      <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+        <select
+          value={claim.status}
+          onChange={(e) => onMoveToStatus(claim, e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full bg-[#FAF8F5] border border-[#E4E1D9] rounded-md px-2 py-1 font-bold text-[#1B2430] text-[11px] cursor-pointer hover:bg-white focus:outline-none focus:ring-1 focus:ring-[var(--app-accent,#C98A2B)]"
+          title="Schimbă stadiul dosarului"
+        >
+          {STATUSES.map((s) => (
+            <option key={s.key} value={s.key}>
+              {SHORT_STATUS_LABELS[s.key] || s.label} — {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Alertă piese — o linie */}
+      {alertLine && (
+        <p className="mt-1.5 text-[10px] font-bold text-[#B23A2E] truncate flex items-center gap-1">
+          <Bell size={10} className="shrink-0" />
+          {alertLine}
+        </p>
+      )}
+
+      {/* Piese comandate — bloc funcțional compact */}
+      {isPieseComandateStatus(claim.status) && (
+        <div className="mt-1.5">
+          <MobilePieseSositeRow
+            claim={claim}
+            canEdit={canEdit}
+            compact
+            onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
+            onSchedule={onScheduleFromPiese}
+            onPatchDates={onPatchPieseDates}
+          />
+        </div>
+      )}
+
+      {/* Contact — vizibil la hover */}
+      {claim.telefonClient && (
+        <div
+          className="flex items-center justify-end gap-1 mt-1.5 pt-1 border-t border-[#E4E1D9]/50 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <a
+            href={telLink(claim.telefonClient)}
+            onClick={(e) => e.stopPropagation()}
+            title={`Sună: ${claim.telefonClient}`}
+            className="p-1 rounded-md bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
+          >
+            <Phone size={11} />
+          </a>
+          <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
+        </div>
+      )}
     </div>
   );
 }
@@ -240,45 +200,31 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
   }
 
   return (
-    <div className="border-2 border-[#1B2430]/30 rounded-xl p-1.5 bg-[#F4F6F8] space-y-1.5 shadow-xs">
-      {/* Header Comasat Interactiv */}
-      <div
+    <div className="border border-[#E4E1D9] rounded-lg p-1 bg-[#FAF8F5] space-y-1">
+      <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#E4E1D9] hover:border-[#1B2430] cursor-pointer select-none transition-colors"
-        title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate cele 3 dosare comasate"}
+        className="w-full flex items-center justify-between bg-white px-2 py-1.5 rounded-md border border-[#E4E1D9] hover:border-[#1B2430]/40 cursor-pointer select-none transition-colors text-left"
+        title={expanded ? "Restrânge" : "Extinde dosarele"}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-extrabold text-[13px] text-[#1B2430] uppercase">
-            🚗 {plate}
+          <span className="font-mono font-extrabold text-[12px] text-[#1B2430] uppercase truncate">
+            {plate}
           </span>
-          <span className="text-[11px] text-[#5B6572] font-semibold truncate max-w-[120px]">
-            {brand}
-          </span>
+          {brand && (
+            <span className="text-[10px] text-[#6B6558] truncate">{brand}</span>
+          )}
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="bg-[#B8791E] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
-            {groupClaims.length} dosare
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="bg-[#1B2430] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            {groupClaims.length}
           </span>
-          <span className="text-[#1B2430] font-bold text-[12px] flex items-center gap-0.5">
-            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </span>
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </div>
-      </div>
+      </button>
 
-      {/* Când este restrâns */}
-      {!expanded && (
-        <div
-          onClick={() => setExpanded(true)}
-          className="bg-white/80 border border-dashed border-[#E4E1D9] p-2 rounded-lg text-[11px] text-[#1B2430] font-bold text-center flex items-center justify-center gap-1 cursor-pointer hover:bg-white transition-colors"
-        >
-          <span>Apasă pentru a deschide cele {groupClaims.length} dosare comasate</span>
-          <ChevronDown size={13} />
-        </div>
-      )}
-
-      {/* Când este extins */}
       {expanded && (
-        <div className="space-y-1.5 pt-1 border-t border-[#1B2430]/15">
+        <div className="space-y-1 pt-0.5">
           {groupClaims.map((c) => (
             <PhaseCardRedesign
               key={c.id}
@@ -356,37 +302,32 @@ export default function TablouPeFazeRedesign({
 
       {/* 1. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (
-        <div className="flex items-center justify-between gap-3 bg-[#FBEAE9] border border-[#EFC3C0] rounded-xl p-2.5 text-[12px] text-[#8C2E28] shadow-xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px]">🔔</span>
-            <span>
-              <b>{overduePartClaims.length} dosare</b> necesită verificare piese
-              {overdueDeliveryClaims.length > 0 && (
-                <> — <b>{overdueDeliveryClaims.length}</b> cu termen livrare depășit (verifică stocul fizic)</>
-              )}
-              {overdueDeliveryClaims.length === 0 && (
-                <> — peste pragul de <b>{pieseAlertDays} zile</b> fără confirmare</>
-              )}
-              :
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {overduePartClaims.map((c) => (
-                <span key={c.id} className="bg-white border border-[#EFC3C0] px-2 py-0.5 rounded-full font-mono font-bold text-[11px] text-[#1B2430]">
-                  {c.numarInmatriculare || "—"}
-                  {isDeliveryDeadlineOverdue(c)
-                    ? ` · livrare +${getDaysPastDeliveryDeadline(c)}z`
-                    : ` · ${daysBetween(c.dataSchimbareStatus)}z`}
-                </span>
-              ))}
-            </div>
+        <div className="flex items-center justify-between gap-3 bg-[#FBEAE9] border border-[#EFC3C0] rounded-lg px-3 py-2 text-[12px] text-[#8C2E28]">
+          <span>
+            <b>{overduePartClaims.length}</b> dosare cu piese de verificat
+            {overdueDeliveryClaims.length > 0 && (
+              <> · <b>{overdueDeliveryClaims.length}</b> termen livrare depășit</>
+            )}
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {quickFilter !== "piese" && (
+              <button
+                type="button"
+                onClick={() => setQuickFilter("piese")}
+                className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white border border-[#EFC3C0] hover:bg-[#FFF5F4]"
+              >
+                Vezi filtru
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setDismissAlertBanner(true)}
+              className="text-[#8C2E28] hover:bg-[#EFC3C0]/40 p-1 rounded-md font-bold"
+              aria-label="Închide"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDismissAlertBanner(true)}
-            className="text-[#8C2E28] hover:bg-[#EFC3C0]/40 p-1 rounded-md text-[13px] font-bold"
-          >
-            ✕
-          </button>
         </div>
       )}
 
@@ -458,7 +399,7 @@ export default function TablouPeFazeRedesign({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
         {PIPELINE_PHASES.map((phase) => {
           const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
-          const phaseColors = PHASE_COLOR_MAP[phase.key] || { bg: "#1E2A44" };
+          const phaseColors = getPhaseColumnColors(phase.key);
 
           return (
             <div
