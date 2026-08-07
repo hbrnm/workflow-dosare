@@ -26,6 +26,7 @@ const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
 const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
 import CommandPalette from "./components/common/CommandPalette";
+import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
@@ -380,6 +381,24 @@ export default function App() {
     openExisting(fresh || claimOrRef);
   }, [claims, openExisting]);
 
+  const clearSearch = useCallback(() => setSearch(""), [setSearch]);
+
+  const handleSearchSelectDesktop = useCallback(
+    (claim) => {
+      clearSearch();
+      handleOpenClaim(claim);
+    },
+    [clearSearch, handleOpenClaim]
+  );
+
+  const handleSearchSelectMobile = useCallback(
+    (claim) => {
+      clearSearch();
+      openMobileClaim(claim);
+    },
+    [clearSearch, openMobileClaim]
+  );
+
   const activeModalClaim = useMemo(() => {
     if (!modalClaim?.id) return modalClaim;
     return claims.find((c) => c.id === modalClaim.id) || modalClaim;
@@ -410,6 +429,15 @@ export default function App() {
       <ErrorBoundary>
         <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
+        {!modalClaim && !fieldClaim && (
+          <SearchResultsOverlay
+            query={search}
+            claims={userClaims}
+            onSelect={handleSearchSelectMobile}
+            onClear={clearSearch}
+            onNotify={showNotice}
+          />
+        )}
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
             claims={claims}
@@ -1075,6 +1103,16 @@ export default function App() {
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
       />
+
+      {!modalClaim && !isCommandPaletteOpen && (
+        <SearchResultsOverlay
+          query={search}
+          claims={userClaims}
+          onSelect={handleSearchSelectDesktop}
+          onClear={clearSearch}
+          onNotify={showNotice}
+        />
+      )}
     </div>
   );
 }

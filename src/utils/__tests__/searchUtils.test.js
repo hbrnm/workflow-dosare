@@ -3,6 +3,7 @@ import {
   claimMatchesSearch,
   getSearchHighlightIds,
   isSearchHighlighted,
+  filterClaimsBySearch,
 } from "../searchUtils";
 
 describe("searchUtils", () => {
@@ -13,14 +14,18 @@ describe("searchUtils", () => {
     numarDosar: "10328417",
     asigurator: "Omniasig",
     vin: "VF123",
+    marcaModel: "Dacia Logan",
+    telefonClient: "0712345678",
   };
 
-  it("matches plate, client, dosar, asigurator, vin", () => {
+  it("matches plate, client, dosar, asigurator, vin, model, phone", () => {
     expect(claimMatchesSearch(claim, "b101")).toBe(true);
     expect(claimMatchesSearch(claim, "popescu")).toBe(true);
     expect(claimMatchesSearch(claim, "10328417")).toBe(true);
     expect(claimMatchesSearch(claim, "omniasig")).toBe(true);
     expect(claimMatchesSearch(claim, "vf123")).toBe(true);
+    expect(claimMatchesSearch(claim, "logan")).toBe(true);
+    expect(claimMatchesSearch(claim, "0712")).toBe(true);
     expect(claimMatchesSearch(claim, "xyz")).toBe(false);
   });
 
@@ -35,6 +40,16 @@ describe("searchUtils", () => {
     expect(ids?.has("c1")).toBe(true);
     const ids2 = getSearchHighlightIds(claims, "client");
     expect(ids2?.size).toBe(2);
+  });
+
+  it("filterClaimsBySearch returns claim list for popup", () => {
+    const claims = [
+      claim,
+      { ...claim, id: "c2", numarInmatriculare: "B202XYZ", client: "Alt" },
+    ];
+    expect(filterClaimsBySearch(claims, "")).toEqual([]);
+    expect(filterClaimsBySearch(claims, "b101").map((c) => c.id)).toEqual(["c1"]);
+    expect(filterClaimsBySearch(claims, "b", { limit: 1 })).toHaveLength(1);
   });
 
   it("isSearchHighlighted checks set membership", () => {
