@@ -716,6 +716,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   background: var(--app-surface-2);
   border-color: var(--app-border);
   color: var(--app-muted);
+  font-size: var(--m-type-body);
+  font-weight: 700;
 }
 
 .mobile-shell.app-shell .m-filter-pill.is-active {
@@ -1009,7 +1011,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-ui-row-reason,
 .mobile-shell.app-shell .m-ui-row-note {
   display: block;
-  font-size: var(--m-type-meta);
+  font-size: var(--m-type-body);
+  font-weight: 700;
   color: var(--app-muted);
   margin-top: 0.15rem;
   line-height: 1.35;
@@ -1081,10 +1084,10 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: var(--m-type-micro);
+  font-size: var(--m-type-body);
   font-weight: 700;
   font-family: ui-monospace, monospace;
-  padding: 0.2rem 0.45rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 0.4rem;
   background: var(--app-surface-2);
   border: 1px solid var(--app-border);

@@ -97,7 +97,7 @@ export default function MobileClaimsList({
         </div>
       </header>
 
-      <div className="flex gap-1.5 text-[10.5px] font-bold overflow-x-auto pb-0.5 scrollbar-none">
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {[
             { id: "toate", label: `Toate (${allClaimsCount ?? claims.length})` },
             { id: "in_lucru", label: "În lucru" },
@@ -122,12 +122,12 @@ export default function MobileClaimsList({
       <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
         {groupedClaims.length === 0 ? (
           <div className="p-6 text-center rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface)] space-y-3">
-            <p className="text-[13px] font-extrabold text-[var(--app-text-strong)]">
+            <p className="m-type-body text-[var(--app-text-strong)]">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Niciun dosar pentru filtrele alese"
                 : "Niciun dosar încă"}
             </p>
-            <p className="text-[11.5px] text-[var(--app-muted)] font-semibold">
+            <p className="m-type-body m-muted">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Șterge căutarea (bară jos) sau schimbă filtrul de status."
                 : "Creează un dosar nou ca să poți fotografia pe teren."}
@@ -183,7 +183,7 @@ export default function MobileClaimsList({
                     <span className="m-vehicle-model truncate">{c.marcaModel || "—"}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       {c.status === "programat" && c.dataProgramare && (
-                        <span className="font-mono text-[11px] font-bold text-[var(--app-text-strong)]">
+                        <span className="m-type-body font-mono text-[var(--app-text-strong)]">
                           {formatProgramareShort(c.dataProgramare)}
                         </span>
                       )}
@@ -196,9 +196,10 @@ export default function MobileClaimsList({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)] text-[11px]">
-                    <div className="flex items-center gap-1.5 m-muted">
-                      <User size={12} /> <span className="font-semibold text-[var(--app-text)] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)]">
+                    <div className="flex items-center gap-1.5 m-muted min-w-0">
+                      <User size={14} className="shrink-0" />
+                      <span className="m-type-body text-[var(--app-text)] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -255,7 +256,7 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
             <span className="m-plate tracking-wide">
               {plate}
             </span>
-            <span className="m-stack-badge text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <span className="m-stack-badge m-type-body px-2 py-0.5 rounded-full">
               ×{group.length}
             </span>
           </div>
@@ -263,7 +264,7 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
             <p className="m-vehicle-model mt-1 leading-snug truncate">{subline}</p>
           )}
         </div>
-        <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-[var(--app-muted)]">
+        <div className="shrink-0 flex items-center gap-1 m-type-body text-[var(--app-muted)]">
           <span>{expanded ? "Restrânge" : "Extinde"}</span>
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </div>
@@ -291,12 +292,12 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
                       className="m-dosar-num uppercase truncate hover:text-[var(--app-accent)]"
                     />
                     {c.blocat && (
-                      <span className="px-1.5 py-0.5 text-[9px] bg-[var(--app-danger)] text-white font-bold rounded shrink-0">
+                      <span className="m-ui-chip is-danger shrink-0">
                         BLOCAT
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded text-[var(--app-muted)] shrink-0" title={sDef.label}>
+                  <span className="m-ui-chip shrink-0" title={sDef.label}>
                     {sDef.num}. {getStatusShortLabel(c.status)}
                   </span>
                 </div>
@@ -311,19 +312,19 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
                   />
                 )}
 
-                <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--app-muted)]">
-                  <span className="truncate">{c.marcaModel || c.client || "—"}</span>
+                <div className="flex items-center justify-between m-type-body text-[var(--app-muted)]">
+                  <span className="m-vehicle-model truncate">{c.marcaModel || c.client || "—"}</span>
                   {c.status === "programat" && c.dataProgramare && (
-                    <span className="font-mono text-[11px] font-bold text-[var(--app-text-strong)] shrink-0">
+                    <span className="m-type-body font-mono text-[var(--app-text-strong)] shrink-0">
                       {formatProgramareShort(c.dataProgramare)}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between pt-1.5 border-t border-[var(--app-border)] text-[11px]">
+                <div className="flex items-center justify-between pt-1.5 border-t border-[var(--app-border)]">
                   <div className="flex items-center gap-1.5 text-[var(--app-muted)] min-w-0">
-                    <User size={12} className="shrink-0" />
-                    <span className="font-semibold text-[var(--app-text)] truncate max-w-[140px]">
+                    <User size={14} className="shrink-0" />
+                    <span className="m-type-body text-[var(--app-text)] truncate max-w-[140px]">
                       {c.client || "Client neprecizat"}
                     </span>
                   </div>
