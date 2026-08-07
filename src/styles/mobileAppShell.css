@@ -96,17 +96,12 @@
 
 /* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 4.1rem;
-  height: var(--app-vvh, 100dvh);
-  min-height: var(--app-vvh, 100dvh);
-  min-height: -webkit-fill-available;
+  --mobile-bottom-chrome: 5rem;
   background: var(--app-bg);
-  /* Extra paint beyond the shell box on iOS letterbox gaps */
-  box-shadow: 0 70vh 0 70vh var(--app-bg), 0 -40vh 0 40vh var(--app-bg);
 }
 
 .mobile-shell.app-shell .mobile-main {
-  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.5rem);
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
@@ -280,13 +275,16 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
 }
 
+/*
+ * Bottom search dock — solid app-bg slab that reaches the physical bottom
+ * (incl. home indicator). Kills the iOS black letterbox by filling it with
+ * the same color as the page; search pill sits inside the slab.
+ */
 .mobile-shell.app-shell .mobile-bottom-chrome--float {
-  /* Transparent — page/list remains visible through the bottom zone */
-  background: transparent !important;
+  background: var(--app-bg) !important;
   border: none;
   box-shadow: none;
-  /* Sit low: tiny gap only (home indicator handled lightly) */
-  padding: 0 0.75rem max(0.12rem, calc(env(safe-area-inset-bottom, 0px) * 0.25));
+  padding: 0.55rem 0.85rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -294,15 +292,13 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
   pointer-events: auto;
   position: relative;
   z-index: 1;
-  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 88%, transparent);
   backdrop-filter: blur(18px) saturate(1.2);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
   border-radius: 999px;
   padding: 0.35rem 0.4rem;
-  box-shadow:
-    0 10px 28px color-mix(in srgb, var(--app-text) 14%, transparent),
-    0 1px 0 color-mix(in srgb, #fff 35%, transparent) inset;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--app-text) 12%, transparent);
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
