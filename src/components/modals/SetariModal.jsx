@@ -269,8 +269,6 @@ export default function SetariModal({
     >
       <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
 
-      <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
-
         {/* Header — doar desktop; pe mobil rămâne bara de taburi rotunjită */}
         {desktopUi ? (
           <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
