@@ -7,9 +7,9 @@ export const MOBILE_TABS = ["capture", "brief", "dosare", "programari"];
 export function loadMobileTab() {
   try {
     const id = localStorage.getItem(MOBILE_TAB_KEY);
-    return MOBILE_TABS.includes(id) ? id : "capture";
+    return MOBILE_TABS.includes(id) ? id : "brief";
   } catch {
-    return "capture";
+    return "brief";
   }
 }
 

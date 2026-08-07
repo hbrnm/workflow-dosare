@@ -1,22 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  Settings, LogOut,
-  Camera, BarChart3, List, CalendarClock,
-} from "lucide-react";
+import { Settings, LogOut } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
-import { loadMobileTab, saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
+import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
-
-const MOBILE_TABS = [
-  { id: "capture", label: "Foto & Doc", Icon: Camera },
-  { id: "brief", label: "Brief", Icon: BarChart3 },
-  { id: "dosare", label: "Dosare", Icon: List },
-  { id: "programari", label: "Programări", Icon: CalendarClock },
-];
 
 export default function MobileAppLayout({
   claims,
@@ -40,7 +30,8 @@ export default function MobileAppLayout({
   setSearch,
   highlightClaimIds = null,
 }) {
-  const [activeTab, setActiveTab] = useState(() => loadMobileTab());
+  // Home mobil = Brief; navigarea spre Foto/Dosare/Programări e din Acces rapid.
+  const [activeTab, setActiveTab] = useState("brief");
   const [focusClaimId, setFocusClaimId] = useState(null);
 
   useEffect(() => {
@@ -53,11 +44,6 @@ export default function MobileAppLayout({
     setActiveTab("capture");
     onCaptureFocusConsumed?.();
   }, [captureFocusClaimId, onCaptureFocusConsumed]);
-
-  const tabs = useMemo(() => MOBILE_TABS.map((t) => ({
-    ...t,
-    badge: t.id === "brief" ? totalAlertsCount : 0,
-  })), [totalAlertsCount]);
 
   const filteredClaims = useMemo(() => {
     const q = search.trim();
@@ -80,12 +66,20 @@ export default function MobileAppLayout({
     setActiveTab(id);
   };
 
+  const goBrief = () => handleTabChange("brief");
+
   return (
     <div
       className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden"
     >
       <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 border-b select-none z-30">
-        <div className="flex items-center gap-2 min-w-0">
+        <button
+          type="button"
+          onClick={goBrief}
+          className="flex items-center gap-2 min-w-0 text-left m-press"
+          title="Brief"
+          aria-label="Deschide Brief"
+        >
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
@@ -104,10 +98,12 @@ export default function MobileAppLayout({
               {branding?.atelierNume || "Dosare Daună"}
             </span>
             <span className="text-[10px] opacity-70 block truncate max-w-[150px]">
-              {userEmail || "Operator"}
+              {activeTab === "brief"
+                ? (totalAlertsCount ? `${totalAlertsCount} alerte` : "Brief")
+                : (userEmail || "Operator")}
             </span>
           </div>
-        </div>
+        </button>
 
         <div className="flex items-center gap-1.5 shrink-0">
           {onOpenSettings && (
@@ -185,41 +181,8 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      <div className="mobile-bottom-chrome fixed bottom-0 left-0 right-0 z-50 flex flex-col">
+      <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
         <MobileSearchBar value={search} onChange={handleSearchChange} />
-        <nav
-          className="m-nav-bar border-t px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] grid grid-cols-4 gap-0 select-none"
-          aria-label="Navigare mobilă"
-        >
-        {tabs.map(({ id, label, Icon, badge }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => handleTabChange(id)}
-              className={`m-nav-item relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 ${
-                active ? "is-active" : "opacity-80 hover:opacity-100"
-              }`}
-            >
-              <span className="m-nav-icon relative inline-flex h-5 w-5 shrink-0 items-center justify-center">
-                <Icon size={20} strokeWidth={2} aria-hidden />
-                {badge > 0 && (
-                  <span
-                    className="absolute -right-2.5 -top-1.5 min-w-[14px] h-3.5 px-1 rounded-full text-white text-[8px] font-black flex items-center justify-center leading-none"
-                    style={{ backgroundColor: "var(--m-danger)" }}
-                  >
-                    {badge > 99 ? "99+" : badge}
-                  </span>
-                )}
-              </span>
-              <span className="m-nav-label w-full truncate text-center text-[9.5px] leading-tight tracking-tight">
-                {label}
-              </span>
-            </button>
-          );
-        })}
-        </nav>
       </div>
     </div>
   );

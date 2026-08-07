@@ -94,19 +94,47 @@
   color: var(--app-text);
 }
 
-/* Bottom chrome: căutare + nav (thumb zone) */
+/* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 8.25rem;
+  --mobile-bottom-chrome: 5.25rem;
 }
 
 .mobile-shell.app-shell .mobile-main {
-  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.75rem);
 }
 
 .mobile-shell.app-shell .mobile-bottom-chrome {
   background: var(--app-chrome);
   border-top: 1px solid var(--app-border);
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0 0.85rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
+  pointer-events: auto;
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  border-radius: 999px;
+  padding: 0.35rem 0.4rem;
+  box-shadow:
+    0 10px 28px color-mix(in srgb, var(--app-text) 14%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 35%, transparent) inset;
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
+  background: color-mix(in srgb, var(--app-surface) 72%, transparent);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 1px 0 color-mix(in srgb, #fff 8%, transparent) inset;
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
@@ -119,11 +147,20 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .mobile-shell.app-shell .mobile-search-input {
-  min-height: 2.75rem;
+  min-height: 2.85rem;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--app-text);
+}
+
+.mobile-shell.app-shell .mobile-search-input::placeholder {
+  color: var(--app-muted);
+  opacity: 0.85;
 }
 
 .mobile-shell.app-shell .mobile-search-input:focus {
-  border-color: var(--app-accent);
+  border-color: transparent;
   outline: none;
 }
 
