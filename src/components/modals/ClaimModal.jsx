@@ -863,59 +863,46 @@ export default function ClaimModal({
           </div>
         </div>
 
-        {/* BARA DE TAB-URI COMPACTĂ LA TOP */}
-        <div className="bg-[#23282E] px-3 py-1.5 border-b border-[#3B424E] flex items-center justify-between gap-1.5 overflow-x-auto text-[11px] shrink-0 scrollbar-none z-30">
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setActiveTab("general")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                activeTab === "general" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              <FileText size={14} /> Date Dosar &amp; Vehicul
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("media")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                activeTab === "media" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              <ImageIcon size={14} /> Poze &amp; Documente
-              {((Array.isArray(form.poze) ? form.poze.length : 0) + (Array.isArray(form.documente) ? form.documente.length : 0)) > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                  {(Array.isArray(form.poze) ? form.poze.length : 0) + (Array.isArray(form.documente) ? form.documente.length : 0)}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("financial")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                activeTab === "financial" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              <Wallet size={14} /> Financiar &amp; Audatex
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab("history")}
-              className={`px-3 py-1.5 rounded-lg font-extrabold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                activeTab === "history" ? "bg-[#C98A2B] text-white shadow-xs" : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-              }`}
-            >
-              <History size={14} /> Istoric &amp; Notițe
-              {Array.isArray(form.note) && form.note.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-white/20 font-mono">
-                  {form.note.length}
-                </span>
-              )}
-            </button>
-          </div>
+        {/* Tab track — same pill language as Setări */}
+        <div className="m-settings-tabs m-settings-tabs--pill flex shrink-0 overflow-x-auto scrollbar-thin z-30">
+          {[
+            { id: "general", label: desktopUi ? "Date Dosar & Vehicul" : "Dosar", icon: FileText },
+            {
+              id: "media",
+              label: desktopUi ? "Poze & Documente" : "Media",
+              icon: ImageIcon,
+              badge:
+                (Array.isArray(form.poze) ? form.poze.length : 0) +
+                (Array.isArray(form.documente) ? form.documente.length : 0),
+            },
+            { id: "financial", label: desktopUi ? "Financiar & Audatex" : "Financiar", icon: Wallet },
+            {
+              id: "history",
+              label: desktopUi ? "Istoric & Notițe" : "Istoric",
+              icon: History,
+              badge: Array.isArray(form.note) ? form.note.length : 0,
+            },
+          ].map(({ id, label, icon: Icon, badge }) => {
+            const active = activeTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
+                  active ? "is-active" : ""
+                }`}
+              >
+                <Icon size={14} />
+                <span>{label}</span>
+                {badge > 0 && (
+                  <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {readOnly && (
@@ -1896,15 +1883,15 @@ export default function ClaimModal({
           </fieldset>
         </div>
 
-        {/* NOTION FOOTER DOCKED BAR */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#DAD4C6] bg-white shrink-0 shadow-sm">
+        {/* Footer — pill actions, not a full-bleed slab */}
+        <div className="m-claim-footer shrink-0">
           {readOnly ? (
             <span />
           ) : (
             <button
               type="button"
               onClick={() => onDelete(claim.id)}
-              className="flex items-center gap-1 text-[#B23A2E] text-[12px] font-bold hover:bg-[#B23A2E]/10 px-3 py-1.5 rounded-lg transition-colors"
+              className="m-claim-footer-btn flex items-center gap-1 text-[#B23A2E] text-[12px] font-bold hover:bg-[#B23A2E]/10 px-3 py-1.5 transition-colors"
             >
               <Trash2 size={13} /> Șterge dosar
             </button>
@@ -1914,7 +1901,7 @@ export default function ClaimModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 rounded-lg border border-[#C7C0B0] text-[12.5px] font-bold text-[#4A443A] hover:bg-[#EFEAE1] transition-colors"
+              className="m-claim-footer-btn px-4 py-1.5 border border-[var(--app-border)] text-[12.5px] font-bold text-[var(--app-text)] hover:bg-[var(--app-surface-2)] transition-colors"
             >
               {readOnly ? "Închide" : "Anulează"}
             </button>
@@ -1922,7 +1909,7 @@ export default function ClaimModal({
               <button
                 type="button"
                 onClick={handleSave}
-                className="flex items-center gap-1.5 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-extrabold hover:bg-[#B37A22] shadow-sm transition-colors"
+                className="m-claim-footer-primary flex items-center gap-1.5 px-5 py-1.5 text-[12.5px] font-extrabold shadow-sm transition-colors"
               >
                 <Save size={14} /> Salvează modificările
               </button>

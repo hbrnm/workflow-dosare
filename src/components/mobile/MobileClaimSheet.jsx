@@ -129,10 +129,9 @@ export default function MobileClaimSheet({
       className="m-claim-sheet app-shell fixed inset-0 z-[9000] flex flex-col font-sans"
       style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
-      {/* Header */}
-      <header className="px-3.5 py-3 flex items-center justify-between shrink-0 border-b" style={{ background: "var(--app-chrome)", color: "var(--app-chrome-text)", borderColor: "var(--app-border)" }}>
+      <header className="m-sheet-header shrink-0">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+          <div className="m-sheet-header-kicker">
             {claim.numarDosar ? `Dosar ${claim.numarDosar}` : "Fără nr. dosar"}
           </div>
           <input
@@ -142,8 +141,8 @@ export default function MobileClaimSheet({
             onBlur={handleBlurPlate}
             disabled={readOnly}
             placeholder="NR. AUTO"
-            className="w-full bg-transparent font-mono font-extrabold text-[22px] text-white tracking-wide outline-none placeholder:text-white/30 disabled:opacity-80"
-            style={{ fontFamily: "'Space Grotesk', monospace" }}
+            className="w-full bg-transparent font-mono font-extrabold text-[22px] tracking-wide outline-none placeholder:opacity-30 disabled:opacity-80"
+            style={{ fontFamily: "'Space Grotesk', monospace", color: "inherit" }}
           />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
@@ -151,15 +150,15 @@ export default function MobileClaimSheet({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+            className="m-sheet-close"
             aria-label="Închide"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-28">
+      <div className="m-sheet-body">
         {/* Status */}
         <section className="m-sheet-card">
           <div className="flex items-center justify-between gap-2">
@@ -194,7 +193,7 @@ export default function MobileClaimSheet({
                     key={s.key}
                     type="button"
                     onClick={() => handleStatusChange(s.key)}
-                    className={`m-status-option w-full text-left px-3 py-2 rounded-xl text-[13px] font-bold transition-colors ${
+                    className={`m-status-option w-full text-left px-3 py-2 rounded-full text-[13px] font-bold transition-colors ${
                       active ? "is-active" : ""
                     }`}
                   >
@@ -263,7 +262,7 @@ export default function MobileClaimSheet({
               <div className="flex items-center gap-1.5 shrink-0">
                 <a
                   href={telLink(phone)}
-                  className="m-call-btn p-2"
+                  className="m-call-btn p-2 rounded-full"
                   title="Sună"
                 >
                   <Phone size={16} />
@@ -279,7 +278,7 @@ export default function MobileClaimSheet({
           <button
             type="button"
             onClick={() => onMoveToStatus?.(claim, nextStatus.key)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-[var(--app-accent)] text-[var(--app-accent-text)] active:scale-[0.98] transition-transform"
+            className="m-sheet-cta"
           >
             <div className="text-left min-w-0">
               <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pas următor</div>
@@ -310,7 +309,7 @@ export default function MobileClaimSheet({
                 <button
                   type="button"
                   onClick={() => onCapturePhotos(claim)}
-                  className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-extrabold active:scale-[0.98]"
+                  className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-extrabold active:scale-[0.98]"
                 >
                   <Camera size={14} /> Fotografiază acum
                 </button>
@@ -324,7 +323,7 @@ export default function MobileClaimSheet({
                   href={p.url || p}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-20 h-20 shrink-0 rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
+                  className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
                 >
                   <img src={p.url || p} alt="" className="w-full h-full object-cover" />
                 </a>
@@ -336,7 +335,7 @@ export default function MobileClaimSheet({
             <button
               type="button"
               onClick={() => onCapturePhotos(claim)}
-              className="m-ui-select-row justify-center gap-2 font-extrabold text-[12.5px]"
+              className="m-sheet-link"
             >
               <Camera size={16} /> Adaugă poze
             </button>
@@ -349,7 +348,7 @@ export default function MobileClaimSheet({
             Notiță rapidă
           </h3>
           {latestNote && (
-            <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-xl px-3 py-2 border border-[var(--app-border)]">
+            <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-2xl px-3 py-2 border border-[var(--app-border)]">
               <div className="text-[10px] font-bold mb-0.5 opacity-80">
                 {fmtDateTime(latestNote.data)}
               </div>
@@ -369,13 +368,13 @@ export default function MobileClaimSheet({
                   }
                 }}
                 placeholder="Adaugă notiță…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[13px] font-semibold outline-none focus:bg-[var(--app-surface)]"
+                className="flex-1 min-w-0 px-3 py-2 rounded-full border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[13px] font-semibold outline-none focus:bg-[var(--app-surface)]"
               />
               <button
                 type="button"
                 onClick={handleAddNote}
                 disabled={!noteDraft.trim()}
-                className="m-btn-primary px-3 py-2 rounded-xl text-[12px] font-extrabold disabled:opacity-40"
+                className="m-btn-primary px-3.5 py-2 rounded-full text-[12px] font-extrabold disabled:opacity-40"
               >
                 Adaugă
               </button>
@@ -383,11 +382,10 @@ export default function MobileClaimSheet({
           )}
         </section>
 
-        {/* Open full modal */}
         <button
           type="button"
           onClick={() => onOpenFull?.(claim)}
-          className="m-ui-select-row justify-center gap-2 py-3 font-extrabold text-[13px]"
+          className="m-sheet-link"
         >
           <ExternalLink size={15} />
           Detalii complete
