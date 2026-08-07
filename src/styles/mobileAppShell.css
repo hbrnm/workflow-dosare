@@ -103,6 +103,197 @@
   padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.75rem);
 }
 
+.mobile-shell.app-shell .mobile-main--no-header {
+  padding-top: calc(3.85rem + env(safe-area-inset-top, 0px));
+}
+
+/* Floating brand + nav menu (replaces fixed header) */
+.mobile-shell.app-shell .m-float-brand-wrap {
+  position: fixed;
+  top: calc(0.65rem + env(safe-area-inset-top, 0px));
+  left: 0.75rem;
+  z-index: 60;
+  max-width: min(18.5rem, calc(100vw - 1.5rem));
+}
+
+.mobile-shell.app-shell .m-float-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 100%;
+  padding: 0.4rem 0.55rem 0.4rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: var(--app-text);
+  box-shadow:
+    0 8px 24px color-mix(in srgb, var(--app-text) 12%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 35%, transparent) inset;
+  text-align: left;
+}
+
+.mobile-shell.app-shell .m-float-brand.is-open {
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-float-brand-mark {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.mobile-shell.app-shell .m-float-brand-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-float-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.mobile-shell.app-shell .m-float-brand-name {
+  font-family: var(--app-font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-float-brand-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-float-brand-chevron {
+  flex-shrink: 0;
+  color: var(--app-muted);
+  transition: transform 0.15s ease;
+}
+
+.mobile-shell.app-shell .m-float-brand-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.mobile-shell.app-shell .m-float-menu {
+  margin-top: 0.45rem;
+  padding: 0.45rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 75%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--app-text) 16%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mobile-shell.app-shell .m-float-menu-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  padding: 0.35rem 0.55rem 0.2rem;
+}
+
+.mobile-shell.app-shell .m-float-menu-meta {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--app-muted);
+  padding: 0.15rem 0.55rem 0.35rem;
+}
+
+.mobile-shell.app-shell .m-float-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.55rem;
+  border-radius: 0.7rem;
+  border: none;
+  background: transparent;
+  color: var(--app-text);
+  text-align: left;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-active {
+  background: var(--app-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 18%, transparent);
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-danger {
+  color: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-float-menu-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-danger .m-float-menu-icon {
+  color: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-float-menu-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-float-menu-badge {
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--app-danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-shell.app-shell .m-float-menu-divider {
+  height: 1px;
+  margin: 0.35rem 0.35rem;
+  background: var(--app-border);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-brand,
+html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-float-brand-chevron {
+    transition: none;
+  }
+}
+
 .mobile-shell.app-shell .mobile-bottom-chrome {
   background: var(--app-chrome);
   border-top: 1px solid var(--app-border);

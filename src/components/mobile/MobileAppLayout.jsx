@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Settings, LogOut } from "lucide-react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, ChevronDown,
+} from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
@@ -7,6 +9,13 @@ import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
 import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
+
+const NAV_ITEMS = [
+  { id: "brief", label: "Brief", Icon: BarChart3 },
+  { id: "capture", label: "Foto & Doc", Icon: Camera },
+  { id: "dosare", label: "Dosare", Icon: List },
+  { id: "programari", label: "Programări", Icon: CalendarClock },
+];
 
 export default function MobileAppLayout({
   claims,
@@ -30,9 +39,11 @@ export default function MobileAppLayout({
   setSearch,
   highlightClaimIds = null,
 }) {
-  // Home mobil = Brief; navigarea spre Foto/Dosare/Programări e din Acces rapid.
+  // Home mobil = Brief; navigarea e din brand-ul floating.
   const [activeTab, setActiveTab] = useState("brief");
   const [focusClaimId, setFocusClaimId] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     saveMobileTab(activeTab);
@@ -42,8 +53,27 @@ export default function MobileAppLayout({
     if (!captureFocusClaimId) return;
     setFocusClaimId(captureFocusClaimId);
     setActiveTab("capture");
+    setMenuOpen(false);
     onCaptureFocusConsumed?.();
   }, [captureFocusClaimId, onCaptureFocusConsumed]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   const filteredClaims = useMemo(() => {
     const q = search.trim();
@@ -64,70 +94,113 @@ export default function MobileAppLayout({
   const handleTabChange = (id) => {
     softHaptic(8);
     setActiveTab(id);
+    setMenuOpen(false);
   };
 
-  const goBrief = () => handleTabChange("brief");
+  const activeNav = NAV_ITEMS.find((t) => t.id === activeTab) || NAV_ITEMS[0];
+  const atelierName = branding?.atelierNume || "Dosare Daună";
+  const atelierShort = (branding?.atelierShort || "WD").slice(0, 2);
 
   return (
-    <div
-      className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden"
-    >
-      <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 border-b select-none z-30">
+    <div className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden">
+      <div className="m-float-brand-wrap" ref={menuRef}>
         <button
           type="button"
-          onClick={goBrief}
-          className="flex items-center gap-2 min-w-0 text-left m-press"
-          title="Brief"
-          aria-label="Deschide Brief"
+          className={`m-float-brand m-press ${menuOpen ? "is-open" : ""}`}
+          onClick={() => {
+            softHaptic(8);
+            setMenuOpen((v) => !v);
+          }}
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          aria-label="Meniu navigare"
         >
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              className="w-7 h-7 rounded-lg object-contain bg-white/10 shrink-0"
+              className="m-float-brand-mark object-contain"
             />
           ) : (
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-[var(--app-text-strong)] shadow-xs shrink-0 border border-[var(--app-border)] bg-[var(--app-surface-2)]"
-            >
-              {(branding?.atelierShort || "WD").slice(0, 2)}
-            </div>
+            <span className="m-float-brand-mark m-float-brand-initials">{atelierShort}</span>
           )}
-          <div className="min-w-0">
-            <span className="m-display font-extrabold text-[13.5px] tracking-tight block truncate">
-              {branding?.atelierNume || "Dosare Daună"}
+          <span className="m-float-brand-text min-w-0">
+            <span className="m-float-brand-name truncate">{atelierName}</span>
+            <span className="m-float-brand-sub truncate">
+              {activeNav.label}
+              {activeTab === "brief" && totalAlertsCount > 0 ? ` · ${totalAlertsCount}` : ""}
             </span>
-            <span className="text-[10px] opacity-70 block truncate max-w-[150px]">
-              {activeTab === "brief"
-                ? (totalAlertsCount ? `${totalAlertsCount} alerte` : "Brief")
-                : (userEmail || "Operator")}
-            </span>
-          </div>
+          </span>
+          <ChevronDown size={14} className={`m-float-brand-chevron ${menuOpen ? "is-open" : ""}`} />
         </button>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onOpenSettings && (
+        {menuOpen ? (
+          <div className="m-float-menu" role="menu">
+            <div className="m-float-menu-label">Navigare</div>
+            {NAV_ITEMS.map(({ id, label, Icon }) => {
+              const active = activeTab === id;
+              const badge = id === "brief" ? totalAlertsCount : 0;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  className={`m-float-menu-item ${active ? "is-active" : ""}`}
+                  onClick={() => handleTabChange(id)}
+                >
+                  <span className="m-float-menu-icon">
+                    <Icon size={15} />
+                  </span>
+                  <span className="m-float-menu-item-label">{label}</span>
+                  {badge > 0 ? (
+                    <span className="m-float-menu-badge">{badge > 99 ? "99+" : badge}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+
+            <div className="m-float-menu-divider" />
+            <div className="m-float-menu-label">Cont</div>
+            {userEmail ? (
+              <div className="m-float-menu-meta truncate">{userEmail}</div>
+            ) : null}
+            {onOpenSettings ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenSettings();
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Settings size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Setări</span>
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={onOpenSettings}
-              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-              title="Setări"
+              role="menuitem"
+              className="m-float-menu-item is-danger"
+              onClick={() => {
+                softHaptic(8);
+                setMenuOpen(false);
+                onLogout?.();
+              }}
             >
-              <Settings size={16} />
+              <span className="m-float-menu-icon">
+                <LogOut size={15} />
+              </span>
+              <span className="m-float-menu-item-label">Deconectare</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-            title="Deconectare"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
+          </div>
+        ) : null}
+      </div>
 
-      <main className="mobile-main flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
+      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
         {activeTab === "capture" ? (
           <MobileQuickCapture
             claims={filteredClaims}
