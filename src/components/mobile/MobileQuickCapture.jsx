@@ -28,6 +28,7 @@ export default function MobileQuickCapture({
   focusClaimId = null,
   onFocusClaimConsumed,
   highlightClaimIds = null,
+  onMobileShellLockChange,
 }) {
   const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
@@ -55,6 +56,23 @@ export default function MobileQuickCapture({
   useEffect(() => {
     if (selectedClaimId) saveLastCaptureClaimId(selectedClaimId);
   }, [selectedClaimId]);
+
+  // Prevent App from switching to desktop shell on landscape rotate while capture UI is open.
+  useEffect(() => {
+    const locked =
+      showLiveCamera ||
+      showLiveScanner ||
+      Boolean(activeScanCrop) ||
+      Boolean(previewMedia);
+    onMobileShellLockChange?.(locked);
+    return () => onMobileShellLockChange?.(false);
+  }, [
+    showLiveCamera,
+    showLiveScanner,
+    activeScanCrop,
+    previewMedia,
+    onMobileShellLockChange,
+  ]);
 
   // Drop stale last-claim if it no longer exists / isn't editable
   useEffect(() => {

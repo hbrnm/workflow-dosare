@@ -36,6 +36,7 @@ import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
+import { isCompactMobileViewport } from "./utils/viewport";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -54,13 +55,9 @@ export default function App() {
   const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
   const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
 
-  const [isMobileScreen, setIsMobileScreen] = useState(() => {
-    try {
-      return window.innerWidth < 768;
-    } catch (err) {
-      return false;
-    }
-  });
+  const [isMobileScreen, setIsMobileScreen] = useState(() => isCompactMobileViewport());
+  /** Keep mobile shell mounted while camera/scanner is open across orientation changes. */
+  const [lockMobileShell, setLockMobileShell] = useState(false);
 
   const [displayMode, setDisplayMode] = useState(() => {
     try {
@@ -71,12 +68,13 @@ export default function App() {
   });
 
   useEffect(() => {
-    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const activeMode = displayMode || (isMobileScreen ? "mobile" : "desktop");
+  const activeMode =
+    displayMode || (isMobileScreen || lockMobileShell ? "mobile" : "desktop");
 
   const toggleDisplayMode = (mode) => {
     setDisplayMode(mode);
@@ -460,6 +458,7 @@ export default function App() {
             search={search}
             setSearch={setSearch}
             highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={setLockMobileShell}
           />
         </Suspense>
 

@@ -39,6 +39,7 @@ export default function MobileAppLayout({
   search = "",
   setSearch,
   highlightClaimIds = null,
+  onMobileShellLockChange,
 }) {
   const [activeTab, setActiveTab] = useState(() => loadMobileTab());
   const [focusClaimId, setFocusClaimId] = useState(null);
@@ -144,6 +145,7 @@ export default function MobileAppLayout({
             focusClaimId={focusClaimId}
             onFocusClaimConsumed={() => setFocusClaimId(null)}
             highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={onMobileShellLockChange}
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
