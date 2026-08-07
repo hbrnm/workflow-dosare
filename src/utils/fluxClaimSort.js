@@ -6,12 +6,12 @@ export function getClaimStageDays(claim) {
   return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
 }
 
-/** Timestamp deschidere — pentru sortare stabilă (gol = la final). */
+/** Timestamp deschidere — pentru sortare (fără dată = 0, rămâne la final la desc). */
 export function getClaimOpenedAt(claim) {
   const raw = claim?.dataDeschiderii || claim?.dataSchimbareStatus || "";
-  if (!raw) return Number.POSITIVE_INFINITY;
+  if (!raw) return 0;
   const t = Date.parse(raw);
-  return Number.isFinite(t) ? t : Number.POSITIVE_INFINITY;
+  return Number.isFinite(t) ? t : 0;
 }
 
 /** Scor alertă — mai mare = mai urgent (blocat > termen > piese > stagnare). */
@@ -26,7 +26,8 @@ export function getClaimAlertScore(claim, pieseAlertDays) {
 
 function getGroupSortValue(groupClaims, sortKey, pieseAlertDays) {
   if (sortKey === "deschidere") {
-    return Math.min(...groupClaims.map(getClaimOpenedAt));
+    // Cel mai recent din grup — pentru „ultimul deschis” sus-stânga
+    return Math.max(...groupClaims.map(getClaimOpenedAt));
   }
   if (sortKey === "vechime") {
     return Math.max(...groupClaims.map(getClaimStageDays));
@@ -45,9 +46,10 @@ export function groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays) {
 
   const compareClaims = (a, b) => {
     if (sortKey === "deschidere") {
-      const diff = getClaimOpenedAt(a) - getClaimOpenedAt(b);
+      // Cel mai recent deschis primul (grid: sus-stânga → dreapta)
+      const diff = getClaimOpenedAt(b) - getClaimOpenedAt(a);
       if (diff !== 0) return diff;
-      return String(a.numarDosar || "").localeCompare(String(b.numarDosar || ""), "ro");
+      return String(b.numarDosar || "").localeCompare(String(a.numarDosar || ""), "ro");
     }
     if (sortKey === "vechime") return getClaimStageDays(b) - getClaimStageDays(a);
     const diff = getClaimAlertScore(b, pieseAlertDays) - getClaimAlertScore(a, pieseAlertDays);
@@ -58,7 +60,7 @@ export function groupAndSortStageClaims(stageClaims, sortKey, pieseAlertDays) {
 
   return Array.from(groupedMap.entries()).sort(([, ga], [, gb]) => {
     if (sortKey === "deschidere") {
-      const diff = getGroupSortValue(ga, sortKey, pieseAlertDays) - getGroupSortValue(gb, sortKey, pieseAlertDays);
+      const diff = getGroupSortValue(gb, sortKey, pieseAlertDays) - getGroupSortValue(ga, sortKey, pieseAlertDays);
       if (diff !== 0) return diff;
       const plateA = (ga[0]?.numarInmatriculare || "").trim();
       const plateB = (gb[0]?.numarInmatriculare || "").trim();

@@ -31,13 +31,13 @@ describe("fluxClaimSort", () => {
     expect(flat[0].id).toBe("2");
   });
 
-  it("sorts by opening date ascending when sortKey is deschidere", () => {
+  it("sorts by opening date descending when sortKey is deschidere (newest first)", () => {
     const grouped = groupAndSortStageClaims(
       claims.filter((c) => c.status === "deschidere"),
       "deschidere",
       4,
     );
     const flat = grouped.flatMap(([, g]) => g);
-    expect(flat.map((c) => c.id)).toEqual(["1", "2"]);
+    expect(flat.map((c) => c.id)).toEqual(["2", "1"]);
   });
 });
