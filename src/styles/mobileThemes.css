@@ -8,6 +8,9 @@
 
 .mobile-shell .m-display {
   font-family: var(--m-font-display, "Space Grotesk", sans-serif);
+  font-size: var(--m-type-title, 1.05rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .mobile-shell .m-bg { background-color: var(--m-bg); }
@@ -206,7 +209,7 @@
 .mobile-shell[data-mtheme="pulse"] .m-hub-greeting {
   font-family: var(--m-font-display);
   font-weight: 800;
-  font-size: 1.45rem;
+  font-size: var(--m-type-display, 1.5rem);
   letter-spacing: -0.02em;
   color: var(--m-text);
 }
@@ -223,7 +226,7 @@
   flex-shrink: 0;
   border-radius: 999px;
   padding: 0.45rem 0.9rem;
-  font-size: 11.5px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   border: none;
   background: #2A2A2A;
@@ -259,7 +262,7 @@
   color: #fff;
   text-align: left;
   font-weight: 700;
-  font-size: 12px;
+  font-size: var(--m-type-meta, 0.75rem);
   overflow: hidden;
   transition: transform 0.12s ease, opacity 0.12s ease;
 }
@@ -288,7 +291,7 @@
   color: #fff;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: var(--m-type-meta, 0.75rem);
   padding: 0.55rem 1rem;
 }
 .mobile-shell[data-mtheme="pulse"] .bg-white { background-color: var(--m-surface) !important; }
@@ -480,7 +483,7 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   transform: none !important;
 }
 .mobile-shell[data-mtheme="forge"][data-nav="pill"] .m-nav-label {
-  font-size: 9px;
+  font-size: var(--m-type-micro, 0.65rem);
   font-weight: 650;
 }
 
@@ -495,7 +498,7 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   flex-shrink: 0;
   border-radius: 999px;
   padding: 0.4rem 0.85rem;
-  font-size: 11.5px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   border: 1px solid #30363D;
   background: #21262D;
@@ -510,12 +513,12 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
 .mobile-shell[data-mtheme="forge"] .m-inbox-title {
   font-family: var(--m-font-display);
   font-weight: 800;
-  font-size: 1.7rem;
+  font-size: var(--m-type-display, 1.5rem);
   letter-spacing: -0.03em;
   color: #fff;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-count {
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   color: #8B949E;
   background: #21262D;
@@ -530,7 +533,7 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   overflow: hidden;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-section-label {
-  font-size: 12px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   color: #8B949E;
   padding: 0.85rem 0.95rem 0.35rem;
@@ -562,7 +565,7 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-row-label {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 600;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-chevron { color: #8B949E; }
@@ -571,7 +574,7 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   border: 1px solid #30363D;
   color: #E6EDF3;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   padding: 0.35rem 0.7rem;
 }
@@ -587,26 +590,26 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-meta {
   display: block;
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: #8B949E;
   font-weight: 600;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-alert-title {
   display: block;
-  font-size: 13.5px;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 700;
   margin-top: 0.15rem;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-alert-reason {
   display: block;
-  font-size: 11.5px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: #8B949E;
   margin-top: 0.2rem;
   line-height: 1.35;
 }
 .mobile-shell[data-mtheme="forge"] .m-inbox-alert-note {
   display: block;
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: #6e7681;
   margin-top: 0.15rem;
   line-height: 1.35;
@@ -815,12 +818,12 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
 .m-login-title {
   font-family: "IBM Plex Sans", "Space Grotesk", sans-serif;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: var(--m-type-title, 1.05rem);
   letter-spacing: -0.02em;
   color: #fff;
 }
 .m-login-sub {
-  font-size: 11.5px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: #8B949E;
   font-weight: 600;
 }
@@ -828,7 +831,7 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   color: #8B949E;
   text-transform: uppercase;
@@ -840,7 +843,7 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
   border: 1px solid #30363D;
   border-radius: 10px;
   color: #E6EDF3;
-  font-size: 14px;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 600;
   padding: 0.7rem 0.85rem;
   outline: none;
@@ -851,7 +854,7 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
   box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.25);
 }
 .m-login-error {
-  font-size: 12px;
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 700;
   color: #F85149;
   background: rgba(248, 81, 73, 0.12);
@@ -869,7 +872,7 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
   color: #fff;
   border: 1px solid rgba(46, 160, 67, 0.5);
   border-radius: 10px;
-  font-size: 13.5px;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 800;
   padding: 0.75rem 1rem;
   transition: background 0.15s ease, transform 0.12s ease;
@@ -878,7 +881,7 @@ html[data-mtheme="forge"] .wa-popover-muted:hover {
 .m-login-submit:active { transform: scale(0.98); }
 .m-login-submit:disabled { opacity: 0.55; cursor: not-allowed; }
 .m-login-hint {
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: #8B949E;
   font-weight: 600;
   line-height: 1.4;

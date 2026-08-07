@@ -81,7 +81,7 @@ export default function MobileClaimsList({
     <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       <header className="m-ui-hero">
         <div className="flex items-end justify-between gap-3">
-          <h1 className="m-ui-title" style={{ fontSize: "1.55rem" }}>Dosare</h1>
+          <h1 className="m-ui-title">Dosare</h1>
           <div className="flex items-center gap-2">
             <span className="m-ui-count">{filtered.length}</span>
             <button

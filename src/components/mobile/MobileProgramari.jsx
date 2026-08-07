@@ -105,7 +105,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
     <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       <header className="m-ui-hero">
         <div className="flex items-end justify-between gap-3">
-          <h1 className="m-ui-title" style={{ fontSize: "1.55rem" }}>Programări</h1>
+          <h1 className="m-ui-title">Programări</h1>
           <span className="m-ui-count">{filteredProgramari.length}</span>
         </div>
       </header>
@@ -124,7 +124,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
             style={{ minHeight: "4.25rem", padding: "0.6rem 0.65rem" }}
           >
             <span className="m-brief-tile-label">{tile.label}</span>
-            <span className="m-brief-tile-count" style={{ fontSize: "1.15rem" }}>{tile.count}</span>
+            <span className="m-brief-tile-count">{tile.count}</span>
           </button>
         ))}
       </div>

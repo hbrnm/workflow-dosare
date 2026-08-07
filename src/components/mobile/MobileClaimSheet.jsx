@@ -143,8 +143,8 @@ export default function MobileClaimSheet({
             onBlur={handleBlurPlate}
             disabled={readOnly}
             placeholder="NR. AUTO"
-            className="w-full bg-transparent font-mono font-extrabold text-[22px] tracking-wide outline-none placeholder:opacity-30 disabled:opacity-80"
-            style={{ fontFamily: "'Space Grotesk', monospace", color: "inherit" }}
+            className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
+            style={{ color: "inherit" }}
           />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">

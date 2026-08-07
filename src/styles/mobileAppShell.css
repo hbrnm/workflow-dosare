@@ -23,6 +23,13 @@
   --m-shadow: none;
   --m-font-body: var(--app-font-body);
   --m-font-display: var(--app-font-display);
+  /* Mobile type scale — 5 steps; identity text = body (Acces rapid) */
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
 }
 
 .mobile-shell.app-shell .m-header-bar {
@@ -162,7 +169,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: var(--m-type-meta);
   font-weight: 800;
   color: var(--app-text-strong);
 }
@@ -182,7 +189,7 @@
 }
 
 .mobile-shell.app-shell .m-float-menu-label {
-  font-size: 0.62rem;
+  font-size: var(--m-type-micro);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -191,7 +198,7 @@
 }
 
 .mobile-shell.app-shell .m-float-menu-meta {
-  font-size: 0.68rem;
+  font-size: var(--m-type-micro);
   font-weight: 600;
   color: var(--app-muted);
   padding: 0.15rem 0.55rem 0.35rem;
@@ -208,7 +215,7 @@
   background: transparent;
   color: var(--app-text);
   text-align: left;
-  font-size: 0.86rem;
+  font-size: var(--m-type-body);
   font-weight: 700;
 }
 
@@ -249,7 +256,7 @@
   border-radius: 999px;
   background: var(--app-danger);
   color: #fff;
-  font-size: 0.62rem;
+  font-size: var(--m-type-micro);
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -469,7 +476,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .app-login-hint {
-  font-size: 11px;
+  font-size: var(--m-type-meta, 0.75rem);
   color: var(--app-muted);
 }
 
@@ -507,6 +514,12 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .m-themed-modal {
   padding: 0 !important;
   align-items: stretch !important;
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
 }
 
 .m-themed-modal .m-modal-panel {
@@ -540,7 +553,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .m-themed-modal .app-mobile-label {
-  font-size: 11px;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   color: var(--app-muted);
   text-transform: uppercase;
@@ -752,18 +765,27 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-brief-kicker,
 .mobile-shell.app-shell .m-ui-kicker {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--app-muted);
 }
 
-.mobile-shell.app-shell .m-brief-title,
+.mobile-shell.app-shell .m-brief-title {
+  margin: 0;
+  font-family: var(--app-font-display);
+  font-size: var(--m-type-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--app-text-strong);
+}
+
 .mobile-shell.app-shell .m-ui-title {
   margin: 0;
   font-family: var(--app-font-display);
-  font-size: 1.85rem;
+  font-size: var(--m-type-page);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -772,7 +794,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .mobile-shell.app-shell .m-brief-count,
 .mobile-shell.app-shell .m-ui-count {
-  font-size: 0.72rem;
+  font-size: var(--m-type-meta);
   font-weight: 700;
   color: var(--app-muted);
   padding: 0.3rem 0.65rem;
@@ -852,7 +874,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .mobile-shell.app-shell .m-brief-tile-label,
 .mobile-shell.app-shell .m-ui-tile-label {
-  font-size: 0.78rem;
+  font-size: var(--m-type-meta);
   font-weight: 700;
   color: var(--app-muted);
   line-height: 1.2;
@@ -867,7 +889,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-ui-tile-count {
   margin-top: auto;
   font-family: var(--app-font-display);
-  font-size: 1.35rem;
+  font-size: var(--m-type-page);
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--app-text-strong);
@@ -884,7 +906,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .mobile-shell.app-shell .m-brief-panel-label,
 .mobile-shell.app-shell .m-ui-panel-label {
-  font-size: 0.68rem;
+  font-size: var(--m-type-micro);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -946,7 +968,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-brief-shortcut-label,
 .mobile-shell.app-shell .m-ui-shortcut-label {
   flex: 1;
-  font-size: 0.9rem;
+  font-size: var(--m-type-body);
   font-weight: 700;
   min-width: 0;
 }
@@ -966,7 +988,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-brief-row-meta,
 .mobile-shell.app-shell .m-ui-row-meta {
   display: block;
-  font-size: 0.68rem;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   color: var(--app-muted);
   letter-spacing: 0.01em;
@@ -975,7 +997,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-brief-row-title,
 .mobile-shell.app-shell .m-ui-row-title {
   display: block;
-  font-size: 0.86rem;
+  font-size: var(--m-type-body);
   font-weight: 700;
   color: var(--app-text-strong);
   margin-top: 0.1rem;
@@ -987,7 +1009,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-ui-row-reason,
 .mobile-shell.app-shell .m-ui-row-note {
   display: block;
-  font-size: 0.72rem;
+  font-size: var(--m-type-meta);
   color: var(--app-muted);
   margin-top: 0.15rem;
   line-height: 1.35;
@@ -1013,7 +1035,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border: 1px solid var(--app-border);
   background: var(--app-surface-2);
   color: var(--app-muted);
-  font-size: 0.68rem;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   padding: 0.28rem 0.55rem;
   border-radius: 0.5rem;
@@ -1059,7 +1081,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.65rem;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   font-family: ui-monospace, monospace;
   padding: 0.2rem 0.45rem;
@@ -1131,7 +1153,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-muted);
   border-radius: 0.75rem;
   padding: 0.65rem 0.85rem;
-  font-size: 0.72rem;
+  font-size: var(--m-type-meta);
   font-weight: 600;
   text-align: center;
 }
@@ -1148,6 +1170,12 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .m-claim-sheet.app-shell {
   background: var(--app-bg);
   color: var(--app-text);
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
 }
 
 .m-claim-sheet .m-sheet-header {
@@ -1167,7 +1195,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .m-claim-sheet .m-sheet-header-kicker {
-  font-size: 0.62rem;
+  font-size: var(--m-type-micro);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1225,7 +1253,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
   background: color-mix(in srgb, var(--app-surface) 70%, transparent);
   color: var(--app-text);
-  font-size: 0.8125rem;
+  font-size: var(--m-type-body);
   font-weight: 800;
 }
 
@@ -1254,10 +1282,10 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border-bottom: 1px solid var(--app-border);
 }
 
-/* Shared claim typography — plate / dosar / model same size as Acces rapid (0.9rem) */
+/* Shared claim typography — plate / dosar / model = body (Acces rapid) */
 .m-plate {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.9rem;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -1267,14 +1295,14 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .m-dosar-num {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.9rem;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 700;
   color: var(--app-text-strong);
   line-height: 1.25;
 }
 
 .m-vehicle-model {
-  font-size: 0.9rem;
+  font-size: var(--m-type-body, 0.9rem);
   font-weight: 700;
   color: var(--app-muted);
   line-height: 1.25;
@@ -1290,7 +1318,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .mobile-shell.app-shell .m-brief-row-title.m-vehicle-model {
-  font-size: 0.9rem;
+  font-size: var(--m-type-body);
   font-weight: 700;
   margin-top: 0.15rem;
 }
@@ -1448,3 +1476,120 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-accent-text);
   border: none;
 }
+
+
+/* ── Mobile type scale utilities + Tailwind half-step collapse ── */
+.m-type-display {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-display, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.m-type-page {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-page, 1.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.m-type-title {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-title, 1.05rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.m-type-body {
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.m-type-meta {
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.m-type-micro {
+  font-size: var(--m-type-micro, 0.65rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/*
+  Collapse common arbitrary Tailwind px sizes into the 5-step scale
+  inside mobile surfaces. Keep 16px for search/inputs (iOS zoom).
+*/
+.mobile-shell.app-shell .text-\[8px\],
+.mobile-shell.app-shell .text-\[9px\],
+.mobile-shell.app-shell .text-\[9\.5px\],
+.mobile-shell.app-shell .text-\[10px\],
+.mobile-shell.app-shell .text-\[10\.5px\],
+.m-claim-sheet .text-\[8px\],
+.m-claim-sheet .text-\[9px\],
+.m-claim-sheet .text-\[9\.5px\],
+.m-claim-sheet .text-\[10px\],
+.m-claim-sheet .text-\[10\.5px\],
+.m-themed-modal .text-\[8px\],
+.m-themed-modal .text-\[9px\],
+.m-themed-modal .text-\[9\.5px\],
+.m-themed-modal .text-\[10px\],
+.m-themed-modal .text-\[10\.5px\] {
+  font-size: var(--m-type-micro) !important;
+}
+
+.mobile-shell.app-shell .text-\[11px\],
+.mobile-shell.app-shell .text-\[11\.5px\],
+.mobile-shell.app-shell .text-\[12px\],
+.mobile-shell.app-shell .text-\[12\.5px\],
+.m-claim-sheet .text-\[11px\],
+.m-claim-sheet .text-\[11\.5px\],
+.m-claim-sheet .text-\[12px\],
+.m-claim-sheet .text-\[12\.5px\],
+.m-themed-modal .text-\[11px\],
+.m-themed-modal .text-\[11\.5px\],
+.m-themed-modal .text-\[12px\],
+.m-themed-modal .text-\[12\.5px\] {
+  font-size: var(--m-type-meta) !important;
+}
+
+.mobile-shell.app-shell .text-\[13px\],
+.mobile-shell.app-shell .text-\[13\.5px\],
+.mobile-shell.app-shell .text-\[14px\],
+.mobile-shell.app-shell .text-\[15px\],
+.m-claim-sheet .text-\[13px\],
+.m-claim-sheet .text-\[13\.5px\],
+.m-claim-sheet .text-\[14px\],
+.m-claim-sheet .text-\[15px\],
+.m-themed-modal .text-\[13px\],
+.m-themed-modal .text-\[13\.5px\],
+.m-themed-modal .text-\[14px\],
+.m-themed-modal .text-\[15px\] {
+  font-size: var(--m-type-body) !important;
+}
+
+.mobile-shell.app-shell .text-\[18px\],
+.m-claim-sheet .text-\[18px\],
+.m-themed-modal .text-\[18px\] {
+  font-size: var(--m-type-page) !important;
+}
+
+/* Oversized plate/inputs → identity body (Acces rapid) */
+.mobile-shell.app-shell .text-\[22px\],
+.m-claim-sheet .text-\[22px\],
+.m-themed-modal .text-\[22px\] {
+  font-size: var(--m-type-body) !important;
+}
+
+.mobile-shell.app-shell .mobile-search-input.text-\[16px\],
+.m-themed-modal input.text-\[16px\],
+.m-themed-modal textarea.text-\[16px\],
+.m-claim-sheet input.text-\[16px\] {
+  font-size: 16px !important;
+}
+
