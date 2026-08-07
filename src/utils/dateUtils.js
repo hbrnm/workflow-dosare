@@ -115,9 +115,15 @@ export const WA_TEMPLATES = [
   },
   {
     key: "acte",
-    label: "📋 Solicitare Acte / Talon",
-    text: (c, brandName = "service") =>
-      `Buna ziua! Referitor la dosarul de dauna ${c.numarDosar || ""} (${c.numarInmatriculare || ""}), va rugam sa ne trimiteti o copie dupa talon / buletin. (${brandName})`
+    label: "📋 Solicitare Acte / Împuterniciri",
+    text: (c) => {
+      const ref = [c.numarDosar, c.numarInmatriculare].filter(Boolean).join(" / ") || "—";
+      return (
+        `Buna ziua! Referitor la dosarul de dauna ${ref}, va anuntam ca am primit aprobarea de reparatie ` +
+        `si va rugam conform solicitarii asiguratorului sa ne transmiteti in vederea completarii dosarului ` +
+        `imputernicire leasing + imputernicire utilizator. Va multumesc! Alex, Auto Wash.`
+      );
+    },
   },
   {
     key: "auto_schimb",
