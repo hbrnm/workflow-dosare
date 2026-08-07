@@ -96,12 +96,12 @@
 
 /* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 5rem;
+  --mobile-bottom-chrome: 3.6rem;
   background: var(--app-bg);
 }
 
 .mobile-shell.app-shell .mobile-main {
-  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
@@ -276,16 +276,27 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
 }
 
 /*
- * Bottom search dock — solid app-bg slab that reaches the physical bottom
- * (incl. home indicator). Kills the iOS black letterbox by filling it with
- * the same color as the page; search pill sits inside the slab.
+ * Bottom search — tight around the pill, pinned as low as possible.
+ * Safe-area strip is painted behind (absolute), so it doesn't lift the bar.
  */
 .mobile-shell.app-shell .mobile-bottom-chrome--float {
   background: var(--app-bg) !important;
   border: none;
   box-shadow: none;
-  padding: 0.55rem 0.85rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.15rem 0.7rem 0.2rem;
   pointer-events: none;
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: var(--app-bg);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
@@ -297,7 +308,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
   border-radius: 999px;
-  padding: 0.35rem 0.4rem;
+  padding: 0.3rem 0.35rem;
   box-shadow: 0 8px 22px color-mix(in srgb, var(--app-text) 12%, transparent);
 }
 
