@@ -1326,6 +1326,43 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   margin-top: 0.15rem;
 }
 
+/* Brief claim rows — no model; compact single-line identity + status */
+.mobile-shell.app-shell .m-brief-claim-row {
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.mobile-shell.app-shell .m-brief-claim-identity {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  max-width: 58%;
+  overflow: hidden;
+}
+
+.mobile-shell.app-shell .m-brief-claim-identity .m-plate,
+.mobile-shell.app-shell .m-brief-claim-identity .m-dosar-num {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-claim-status {
+  margin-left: auto;
+  min-width: 0;
+  max-width: 34%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.25;
+}
+
 .mobile-shell.app-shell .m-fab-plus {
   width: 2.35rem;
   height: 2.35rem;
