@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { todayISO, telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
+import { isPendingArrivalToday } from "../../utils/scheduleStatusEffects";
 import { STATUSES } from "../../constants/config";
 import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -43,9 +44,9 @@ export default function BriefZilnic({
 
   const { counts, totalAlertsCount: totalActiuniUrgente } = buckets;
 
-  // 1. Programări intrări astăzi
+  // 1. Programări intrări astăzi — dispar după bifă „În lucru”
   const programariAzi = useMemo(() =>
-    claims.filter((c) => c.dataProgramare && c.dataProgramare.slice(0, 10) === todayStr)
+    claims.filter((c) => isPendingArrivalToday(c, todayStr))
       .sort((a, b) => a.dataProgramare.localeCompare(b.dataProgramare)),
     [claims, todayStr]);
 
@@ -241,7 +242,7 @@ export default function BriefZilnic({
           <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
             {programariAzi.length === 0 ? (
               <div className="app-brief-empty text-center py-6 text-[11.5px] italic rounded-xl my-auto">
-                Nicio mașină programată sau intrată astăzi.
+                Nicio mașină programată azi în așteptare.
               </div>
             ) : (
               programariAzi.map((c) => (

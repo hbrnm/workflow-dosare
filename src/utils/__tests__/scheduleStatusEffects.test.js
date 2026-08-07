@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { applyScheduleStatusEffects, isAwaitingSchedule } from "../scheduleStatusEffects";
+import { applyScheduleStatusEffects, isAwaitingSchedule, isPendingArrivalToday } from "../scheduleStatusEffects";
 
 describe("scheduleStatusEffects programareStatus", () => {
   it("clears programareStatus when rescheduling", () => {
@@ -98,5 +98,48 @@ describe("scheduleStatusEffects", () => {
     expect(patch.status).toBe("in_lucru");
     expect(patch.adusaFizic).toBe(true);
     expect(patch.financiar?.dataAdusaFizic).toBeTruthy();
+  });
+});
+
+describe("isPendingArrivalToday", () => {
+  beforeEach(() => {
+    vi.setSystemTime(new Date("2026-08-05T12:00:00.000Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("includes programat claims scheduled today", () => {
+    expect(
+      isPendingArrivalToday({
+        status: "programat",
+        dataProgramare: "2026-08-05T09:00:00",
+      })
+    ).toBe(true);
+  });
+
+  it("excludes in_lucru even if appointment was today", () => {
+    expect(
+      isPendingArrivalToday({
+        status: "in_lucru",
+        dataProgramare: "2026-08-05T09:00:00",
+        adusaFizic: true,
+      })
+    ).toBe(false);
+  });
+
+  it("excludes other days and non-programat", () => {
+    expect(
+      isPendingArrivalToday({
+        status: "programat",
+        dataProgramare: "2026-08-06T09:00:00",
+      })
+    ).toBe(false);
+    expect(
+      isPendingArrivalToday({
+        status: "piese_comandate",
+        dataProgramare: "2026-08-05T09:00:00",
+      })
+    ).toBe(false);
   });
 });
