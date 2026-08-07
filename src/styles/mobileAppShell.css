@@ -276,40 +276,28 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
 }
 
 /*
- * Bottom search — tight around the pill, pinned as low as possible.
- * Safe-area strip is painted behind (absolute), so it doesn't lift the bar.
+ * Floating search like Cursor composer — only the pill, no bottom slab.
+ * Page content shows through; chrome itself is fully transparent.
  */
 .mobile-shell.app-shell .mobile-bottom-chrome--float {
-  background: var(--app-bg) !important;
+  background: transparent !important;
   border: none;
   box-shadow: none;
-  padding: 0.15rem 0.7rem 0.2rem;
+  padding: 0 0.75rem max(0.35rem, env(safe-area-inset-bottom, 0px));
   pointer-events: none;
-}
-
-.mobile-shell.app-shell .mobile-bottom-chrome--float::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--app-bg);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
   pointer-events: auto;
   position: relative;
   z-index: 1;
-  background: color-mix(in srgb, var(--app-surface) 88%, transparent);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
-  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, var(--app-border) 65%, transparent);
   border-radius: 999px;
   padding: 0.3rem 0.35rem;
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--app-text) 12%, transparent);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--app-text) 14%, transparent);
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
