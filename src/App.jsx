@@ -460,6 +460,9 @@ export default function App() {
             setSearch={setSearch}
             highlightClaimIds={highlightClaimIds}
             onMobileShellLockChange={setLockMobileShell}
+            hideBottomChrome={Boolean(
+              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen
+            )}
           />
         </Suspense>
 
