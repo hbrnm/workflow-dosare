@@ -79,6 +79,17 @@ export function fmtDateTime(iso) {
   return `${dd}/${mm}/${yyyy}, ${hh}:${min}`;
 }
 
+/** Badge scurt pe carduri Programat: „15/08 09:00”. */
+export function formatProgramareShort(iso) {
+  if (!iso) return "";
+  const raw = String(iso);
+  const day = raw.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return "";
+  const [, m, d] = day.split("-");
+  const time = raw.slice(11, 16);
+  return time && /^\d{2}:\d{2}$/.test(time) ? `${d}/${m} ${time}` : `${d}/${m}`;
+}
+
 export function fmtProgramare(iso) {
   if (!iso) return "—";
   return fmtDateTime(iso);

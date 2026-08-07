@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
-import { daysBetween, telLink } from "../../utils/dateUtils";
+import { daysBetween, telLink, formatProgramareShort } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
@@ -21,6 +21,11 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
   const overdue = isStageOverdue(claim);
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
+  const scheduleLabel =
+    claim.status === "programat" && claim.dataProgramare
+      ? formatProgramareShort(claim.dataProgramare)
+      : "";
+  const stageMeta = scheduleLabel || `${days}z în etapă`;
 
   if (compact) {
     return (
@@ -110,8 +115,8 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
               <Copy size={11} />
             </button>
           </div>
-          <span className="text-[#8A8375] font-mono text-[9.5px]">
-            {days}z în etapă
+          <span className="text-[#8A8375] font-mono text-[9.5px]" title={scheduleLabel ? `Programat ${scheduleLabel}` : undefined}>
+            {stageMeta}
           </span>
           <button
             disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
@@ -270,8 +275,8 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </button>
         </div>
 
-        <span className="text-[#8A8375] font-mono text-[9.5px] flex items-center gap-1">
-          <Clock size={10} /> {days}z în etapă
+        <span className="text-[#8A8375] font-mono text-[9.5px] flex items-center gap-1" title={scheduleLabel ? `Programat ${scheduleLabel}` : undefined}>
+          <Clock size={10} /> {stageMeta}
         </span>
 
         <button

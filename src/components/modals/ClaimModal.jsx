@@ -32,15 +32,7 @@ import {
 import ClaimTimeline from "../common/ClaimTimeline";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
-
-const PRE_PROGRAMAT_STATUSES = [
-  "deschidere",
-  "reconstatare",
-  "accept_plata",
-  "piese_comandate",
-  "primit",
-  "cerere_reparatie",
-];
+import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 
 function applyClaimStatusChange(prev, newStatusKey) {
   const statusChanged = prev.status !== newStatusKey;
@@ -435,8 +427,7 @@ export default function ClaimModal({
     } else if (
       form.dataProgramare &&
       form.status !== "programat" &&
-      !["in_lucru", "gata_de_ridicare", "predat_client", "facturat"].includes(form.status) &&
-      (form.pieseSosite || form.status === "piese_comandate" || form.status === "piese_sosite")
+      shouldPromoteToProgramatOnSchedule(form)
     ) {
       effectiveStatus = "programat";
     }

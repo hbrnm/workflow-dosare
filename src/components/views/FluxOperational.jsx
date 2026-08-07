@@ -3,7 +3,7 @@ import {
   Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
-import { daysBetween, telLink } from "../../utils/dateUtils";
+import { daysBetween, telLink, formatProgramareShort } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline, getDaysInStage } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
@@ -47,6 +47,14 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       ? `Livrare +${getDaysPastDeliveryDeadline(claim)}z`
       : `Piese ${days}z`
     : null;
+
+  const scheduleLabel =
+    claim.status === "programat" && claim.dataProgramare
+      ? formatProgramareShort(claim.dataProgramare)
+      : "";
+  const ageTitle = scheduleLabel
+    ? `Programat ${scheduleLabel}${overdue ? ` · +${days}z peste dată` : ""}`
+    : `${days} zile în stadiu · prag ${alertThreshold} zile`;
 
   return (
     <div
@@ -97,9 +105,9 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </div>
         <span
           className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
-          title={`${days} zile în stadiu · prag ${alertThreshold} zile`}
+          title={ageTitle}
         >
-          {days}z
+          {scheduleLabel || `${days}z`}
         </span>
       </div>
 
@@ -180,7 +188,21 @@ function getClaimAgingMeta(claim) {
   let agingClass = "app-flux-aging";
   if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";
   if (days > 5 || overdue || claim.blocat) agingClass = "app-flux-aging is-danger";
-  return { days, agingClass, alertThreshold: getClaimAlertDays(claim), overdue };
+  const scheduleLabel =
+    claim.status === "programat" && claim.dataProgramare
+      ? formatProgramareShort(claim.dataProgramare)
+      : "";
+  return {
+    days,
+    agingClass,
+    alertThreshold: getClaimAlertDays(claim),
+    overdue,
+    scheduleLabel,
+    badgeText: scheduleLabel || `${days}z`,
+    badgeTitle: scheduleLabel
+      ? `Programat ${scheduleLabel}${overdue ? ` · +${days}z peste dată` : ""}`
+      : `${days} zile (cel mai vechi) · prag ${getClaimAlertDays(claim)} zile`,
+  };
 }
 
 function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect, highlightClaimIds }) {
@@ -201,7 +223,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
     const cDays = getClaimStageDays(c);
     return cDays > bestDays ? c : best;
   }, first);
-  const { days, agingClass, alertThreshold } = getClaimAgingMeta(leadClaim);
+  const { days, agingClass, alertThreshold, badgeText, badgeTitle } = getClaimAgingMeta(leadClaim);
 
   if (groupClaims.length === 1) {
     return (
@@ -243,6 +265,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               </div>
               <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5">
                 {subline || "—"}
+                {badgeText && leadClaim.status === "programat" ? ` · ${badgeText}` : ""}
               </p>
             </div>
             <ChevronUp size={14} className="shrink-0 text-[var(--app-muted)] mt-0.5" />
@@ -295,9 +318,9 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         <div className="shrink-0 flex items-center gap-1">
           <span
             className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
-            title={`${days} zile (cel mai vechi) · prag ${alertThreshold} zile`}
+            title={badgeTitle}
           >
-            {days}z
+            {badgeText}
           </span>
           <ChevronDown size={14} className="text-[var(--app-muted)]" />
         </div>

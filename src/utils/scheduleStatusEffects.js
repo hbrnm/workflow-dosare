@@ -17,12 +17,29 @@ export const POST_PROGRAMAT_STATUSES = [
   "facturat",
 ];
 
+/** Statusuri din care o programare nouă promovează automat la „Programat”. */
+export const PRE_PROGRAMAT_STATUSES = [
+  "deschidere",
+  "reconstatare",
+  "accept_plata",
+  "piese_comandate",
+  "piese_sosite",
+  "primit",
+  "cerere_reparatie",
+];
+
 export function isAwaitingSchedule(claim) {
   return Boolean(
     claim?.pieseSosite ||
     claim?.status === "piese_comandate" ||
     claim?.status === "piese_sosite"
   );
+}
+
+export function shouldPromoteToProgramatOnSchedule(claim) {
+  if (!claim) return false;
+  if (POST_SCHEDULE_STATUSES.includes(claim.status)) return false;
+  return PRE_PROGRAMAT_STATUSES.includes(claim.status) || isAwaitingSchedule(claim);
 }
 
 function hasOwn(obj, key) {
@@ -65,11 +82,12 @@ export function applyScheduleStatusEffects(current, patch = {}) {
     delete next.status;
   }
 
-  // 1) Programare nouă din piese gata → Programat
+  // 1) Programare nouă din Accept / Piese / etape anterioare → Programat
+  // (alerta Accept dispare automat — nu mai e pe accept_plata)
   if (settingDate) {
     const alreadyBeyondParts =
       POST_SCHEDULE_STATUSES.includes(current.status);
-    if (isAwaitingSchedule(current) && !alreadyBeyondParts) {
+    if (shouldPromoteToProgramatOnSchedule(current) && !alreadyBeyondParts) {
       next.status = "programat";
       next.dataSchimbareStatus = nowISO();
       notices.push('Dosar mutat automat în „Programat".');
