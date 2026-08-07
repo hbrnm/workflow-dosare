@@ -84,7 +84,7 @@ export default function MobileAppLayout({
     <div
       className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden"
     >
-      <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b select-none z-30">
+      <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 border-b select-none z-30">
         <div className="flex items-center gap-2 min-w-0">
           {branding?.logoUrl ? (
             <img

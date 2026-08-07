@@ -79,22 +79,25 @@ export default function MobileClaimsList({
   }, [filtered]);
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 pb-4">
-      <div className="m-list-toolbar rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-extrabold text-[15px] text-[var(--app-text-strong)] truncate">
-            {atelierNume} ({filtered.length})
-          </h2>
-          <button
-            type="button"
-            onClick={onNew}
-            className="m-btn-primary shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-[12px] font-extrabold"
-          >
-            <Plus size={15} /> Dosar Nou
-          </button>
+    <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
+      <header className="m-ui-hero">
+        <p className="m-ui-kicker">{atelierNume}</p>
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="m-ui-title" style={{ fontSize: "1.55rem" }}>Dosare</h1>
+          <div className="flex items-center gap-2">
+            <span className="m-ui-count">{filtered.length}</span>
+            <button
+              type="button"
+              onClick={onNew}
+              className="m-btn-primary shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-[12px] font-extrabold"
+            >
+              <Plus size={15} /> Dosar
+            </button>
+          </div>
         </div>
+      </header>
 
-        <div className="flex gap-1.5 text-[10.5px] font-bold overflow-x-auto pb-0.5 scrollbar-none">
+      <div className="flex gap-1.5 text-[10.5px] font-bold overflow-x-auto pb-0.5 scrollbar-none">
           {[
             { id: "toate", label: `Toate (${allClaimsCount ?? claims.length})` },
             { id: "in_lucru", label: "În lucru" },
@@ -114,7 +117,6 @@ export default function MobileClaimsList({
               {label}
             </button>
           ))}
-        </div>
       </div>
 
       <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
@@ -152,17 +154,17 @@ export default function MobileClaimsList({
                   key={c.id}
                   id={`mobile-claim-${c.id}`}
                   onClick={() => onOpen(c)}
-                  className={`m-claim-card rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] hover:border-[var(--app-accent)] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+                  className={`m-claim-card p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
+                      <span className="font-mono font-extrabold text-[14px] text-[var(--app-text-strong)] uppercase">
                         {c.numarInmatriculare || "—"}
                       </span>
-                      {c.blocat && <span className="px-1.5 py-0.2 text-[9.5px] bg-[#B23A2E] text-white font-bold rounded">BLOCAT</span>}
+                      {c.blocat && <span className="m-ui-chip is-danger">BLOCAT</span>}
                     </div>
-                    <span className="text-[10.5px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded text-[#3B5166]">
-                      {sDef.num}. {sDef.label}
+                    <span className="m-ui-chip">
+                      {sDef.num}. {getStatusShortLabel(c.status) || sDef.label}
                     </span>
                   </div>
 
@@ -175,11 +177,11 @@ export default function MobileClaimsList({
                     />
                   )}
 
-                  <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
-                    <span>{c.marcaModel || "—"}</span>
+                  <div className="flex items-center justify-between text-[12px] font-semibold m-muted">
+                    <span className="text-[var(--app-text)]">{c.marcaModel || "—"}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       {c.status === "programat" && c.dataProgramare && (
-                        <span className="font-mono text-[11px] font-bold text-[#2C4160]">
+                        <span className="font-mono text-[11px] font-bold text-[var(--app-text-strong)]">
                           {formatProgramareShort(c.dataProgramare)}
                         </span>
                       )}
@@ -187,14 +189,14 @@ export default function MobileClaimsList({
                         value={c.numarDosar}
                         onNotify={onNotify}
                         prefix=""
-                        className="font-mono text-[11px] text-[#8A8375] hover:text-[#C98A2B]"
+                        className="font-mono text-[11px] m-muted hover:text-[var(--app-accent)]"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-[#EFEAE1] text-[11px]">
-                    <div className="flex items-center gap-1.5 text-[#8A8375]">
-                      <User size={12} /> <span className="font-semibold text-[#23282E] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)] text-[11px]">
+                    <div className="flex items-center gap-1.5 m-muted">
+                      <User size={12} /> <span className="font-semibold text-[var(--app-text)] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -206,13 +208,12 @@ export default function MobileClaimsList({
                           </a>
                         </>
                       )}
-                      <ChevronRight size={16} className="text-[#8A8375]" />
+                      <ChevronRight size={16} className="m-brief-chevron" />
                     </div>
                   </div>
                 </div>
               );
             }
-
             // Stacked interactive accordion group on Mobile
             return (
               <MobileStackedGroupCard

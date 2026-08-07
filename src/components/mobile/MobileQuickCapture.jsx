@@ -364,19 +364,20 @@ export default function MobileQuickCapture({
   };
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
+    <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       
       {/* 1. SELECTARE & CĂUTARE DOSAR */}
-      <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
+      <div className="m-ui-panel m-ui-panel-pad space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-extrabold text-[14px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Dosar pentru foto
-          </h2>
+          <div>
+            <p className="m-ui-kicker">Captură</p>
+            <h2 className="m-ui-title" style={{ fontSize: "1.25rem" }}>Dosar pentru foto</h2>
+          </div>
           {onNew && (
             <button
               type="button"
               onClick={() => { softHaptic(8); onNew(); }}
-              className="m-press flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11.5px] font-extrabold shadow-sm"
+              className="m-btn-primary m-press flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11.5px] font-extrabold"
             >
               <Plus size={14} /> Dosar
             </button>
@@ -385,7 +386,7 @@ export default function MobileQuickCapture({
 
         {selectedClaim && (
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1 min-w-0">
+            <span className="m-ui-chip is-accent min-w-0">
               <Check size={11} className="shrink-0" />
               <span className="truncate">Selectat: {selectedClaim.numarInmatriculare || selectedClaim.numarDosar}</span>
             </span>
@@ -393,7 +394,7 @@ export default function MobileQuickCapture({
               <button
                 type="button"
                 onClick={() => onOpen(selectedClaim)}
-                className="m-press text-[10.5px] font-extrabold text-[#3B5166] shrink-0"
+                className="m-brief-ghost-btn shrink-0"
               >
                 Deschide
               </button>
@@ -405,14 +406,14 @@ export default function MobileQuickCapture({
         <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 px-2 space-y-2">
-              <p className="text-[12px] text-[#8A8375] font-semibold">
+              <p className="text-[12px] m-muted font-semibold">
                 {searchQuery.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
               </p>
               {onNew && (
                 <button
                   type="button"
                   onClick={() => { softHaptic(8); onNew(); }}
-                  className="m-press inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold"
+                  className="m-btn-primary m-press inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-extrabold"
                 >
                   <Plus size={14} /> Creează dosar nou
                 </button>
@@ -426,30 +427,24 @@ export default function MobileQuickCapture({
                   key={c.id}
                   id={`mobile-claim-${c.id}`}
                   onClick={() => selectClaim(c.id)}
-                  className={`m-press p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
-                    isSelected
-                      ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
-                      : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
+                  className={`m-ui-select-row m-press cursor-pointer ${
+                    isSelected ? "is-selected" : ""
                   } ${!isSelected && isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
-                  {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL (O SINGURĂ LINIE FLUIDĂ) */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className={`shrink-0 whitespace-nowrap font-mono text-[11.5px] font-extrabold px-2 py-0.5 rounded-lg border ${
-                      isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
-                    }`}>
+                    <span className="m-ui-chip shrink-0">
                       Dosar: {c.numarDosar || "Fără nr."}
                     </span>
-                    <span className={`text-[11px] font-semibold truncate ${isSelected ? "text-white/80" : "text-[#6B6558]"}`}>
+                    <span className="text-[11px] font-semibold truncate m-muted">
                       {c.marcaModel || ""}
                     </span>
                   </div>
 
-                  {/* DREAPTA: NUMĂR ÎNMATRICULARE (O SINGURĂ LINIE FLUIDĂ) */}
                   <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                    <span className={`font-mono font-extrabold text-[12.5px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
+                    <span className="font-mono font-extrabold text-[12.5px] uppercase text-[var(--app-text-strong)]">
                       {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
-                    {isSelected && <CheckCircle2 size={16} className="text-[#F3D9A8]" />}
+                    {isSelected && <CheckCircle2 size={16} className="text-[var(--app-accent)]" />}
                   </div>
                 </div>
               );
@@ -460,14 +455,14 @@ export default function MobileQuickCapture({
 
       {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
       {!selectedClaim && (
-        <div className="rounded-xl border border-dashed border-[#DAD4C6] bg-[#FAF8F5] px-3 py-2.5 text-[11.5px] font-semibold text-[#6B6558] text-center">
+        <div className="m-ui-hint">
           Selectează un dosar de mai sus ca să fotografiezi.
         </div>
       )}
-      <div className={`bg-white rounded-2xl border p-3.5 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
+      <div className={`m-ui-panel m-ui-panel-pad space-y-3 transition-opacity ${selectedClaim ? "" : "opacity-60 pointer-events-none"}`}>
         
         {uploading && (
-          <div className="flex items-center justify-center gap-2 p-2 bg-[#FAF8F5] border border-[#C98A2B]/40 rounded-xl text-[12px] font-bold text-[#C98A2B]">
+          <div className="flex items-center justify-center gap-2 p-2 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
             <Loader2 size={16} className="animate-spin" /> Se încarcă...
           </div>
         )}
@@ -497,22 +492,22 @@ export default function MobileQuickCapture({
           <button
             type="button"
             onClick={() => { softHaptic(12); setShowLiveCamera(true); }}
-            className="m-press w-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-[#1C2127] text-white shadow-md active:scale-[0.98] transition-transform"
+            className="m-ui-primary-cta m-press"
             title="Deschide camera"
           >
-            <Camera size={32} className="text-[#C98A2B]" />
-            <span className="text-[15px] font-extrabold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <Camera size={32} className="text-[var(--app-accent)]" />
+            <span className="text-[15px] font-extrabold" style={{ fontFamily: "var(--app-font-display)" }}>
               Fotografiază
             </span>
-            <span className="text-[11px] font-semibold text-white/60 capitalize">{cameraCategory}</span>
+            <span className="text-[11px] font-semibold opacity-60 capitalize">{cameraCategory}</span>
           </button>
 
           {/* Mai mult: Scan Acte / Galerie */}
-          <div className="border-t border-[#EFEAE1] pt-2">
+          <div className="border-t border-[var(--app-border)] pt-2">
             <button
               type="button"
               onClick={() => setShowMoreActions((v) => !v)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold text-[#6B6558]"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold m-muted"
             >
               Mai mult
               <ChevronDown size={14} className={`transition-transform ${showMoreActions ? "rotate-180" : ""}`} />
@@ -523,18 +518,18 @@ export default function MobileQuickCapture({
                 <button
                   type="button"
                   onClick={openLiveDocumentScanner}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  className="m-ui-select-row justify-center gap-1.5 font-extrabold text-[11.5px]"
                   title="Scanner documente"
                 >
-                  <FileText size={16} className="text-[#C98A2B]" />
+                  <FileText size={16} className="text-[var(--app-accent)]" />
                   <span>Scan Acte</span>
                 </button>
 
                 <label
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  className="m-ui-select-row justify-center gap-1.5 font-extrabold text-[11.5px] cursor-pointer"
                   title="Alege Poze din Galerie sau Fișiere PDF"
                 >
-                  <ImageIcon size={16} className="text-[#3B5166]" />
+                  <ImageIcon size={16} />
                   <span>Galerie / PDF</span>
                   <input
                     type="file"
@@ -559,12 +554,12 @@ export default function MobileQuickCapture({
 
       {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT (CU POSIBILITATE DE ȘTERGERE) */}
       {selectedClaim && (
-        <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
-            <h3 className="font-extrabold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              <FileCheck size={16} className="text-[#3E6B45]" /> Fișiere Atașate pe {selectedClaim.numarInmatriculare}
+        <div className="m-ui-panel m-ui-panel-pad space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
+            <h3 className="font-extrabold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "var(--app-font-display)" }}>
+              <FileCheck size={16} className="text-[var(--app-accent)]" /> Fișiere pe {selectedClaim.numarInmatriculare}
             </h3>
-            <span className="text-[10.5px] font-bold text-[#8A8375] font-mono">
+            <span className="m-ui-chip">
               {(displayPoze.length || selectedClaim.poze?.length || 0)} poze · {(displayDocs.length || selectedClaim.documente?.length || 0)} doc
             </span>
           </div>

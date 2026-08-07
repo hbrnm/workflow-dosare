@@ -521,13 +521,15 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
 }
 
-/* ── Brief inbox (Cursor-inspired, atelier-mapped) ── */
+/* ── Mobile UI language (Brief + shared m-ui-* aliases) ── */
 
-.mobile-shell.app-shell .m-brief-hero {
+.mobile-shell.app-shell .m-brief-hero,
+.mobile-shell.app-shell .m-ui-hero {
   padding-top: 0.15rem;
 }
 
-.mobile-shell.app-shell .m-brief-kicker {
+.mobile-shell.app-shell .m-brief-kicker,
+.mobile-shell.app-shell .m-ui-kicker {
   margin: 0;
   font-size: 0.68rem;
   font-weight: 700;
@@ -536,7 +538,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-muted);
 }
 
-.mobile-shell.app-shell .m-brief-title {
+.mobile-shell.app-shell .m-brief-title,
+.mobile-shell.app-shell .m-ui-title {
   margin: 0;
   font-family: var(--app-font-display);
   font-size: 1.85rem;
@@ -546,7 +549,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-text-strong);
 }
 
-.mobile-shell.app-shell .m-brief-count {
+.mobile-shell.app-shell .m-brief-count,
+.mobile-shell.app-shell .m-ui-count {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--app-muted);
@@ -557,13 +561,15 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   white-space: nowrap;
 }
 
-.mobile-shell.app-shell .m-brief-tiles {
+.mobile-shell.app-shell .m-brief-tiles,
+.mobile-shell.app-shell .m-ui-tiles {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.55rem;
 }
 
-.mobile-shell.app-shell .m-brief-tile {
+.mobile-shell.app-shell .m-brief-tile,
+.mobile-shell.app-shell .m-ui-tile {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -579,17 +585,20 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
 }
 
-.mobile-shell.app-shell .m-brief-tile:active {
+.mobile-shell.app-shell .m-brief-tile:active,
+.mobile-shell.app-shell .m-ui-tile:active {
   transform: scale(0.98);
 }
 
-.mobile-shell.app-shell .m-brief-tile.is-active {
+.mobile-shell.app-shell .m-brief-tile.is-active,
+.mobile-shell.app-shell .m-ui-tile.is-active {
   border-color: color-mix(in srgb, var(--app-text-strong) 45%, var(--app-border));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 12%, transparent);
   background: var(--app-bg);
 }
 
-.mobile-shell.app-shell .m-brief-tile-icon {
+.mobile-shell.app-shell .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile-icon {
   width: 1.7rem;
   height: 1.7rem;
   border-radius: 0.5rem;
@@ -599,35 +608,42 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: #fff;
 }
 
-.mobile-shell.app-shell .m-brief-tile.tone-steel .m-brief-tile-icon {
+.mobile-shell.app-shell .m-brief-tile.tone-steel .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-steel .m-ui-tile-icon {
   background: #2C4160;
 }
 
-.mobile-shell.app-shell .m-brief-tile.tone-accent .m-brief-tile-icon {
+.mobile-shell.app-shell .m-brief-tile.tone-accent .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-accent .m-ui-tile-icon {
   background: var(--app-accent);
   color: var(--app-accent-text);
 }
 
-.mobile-shell.app-shell .m-brief-tile.tone-danger .m-brief-tile-icon {
+.mobile-shell.app-shell .m-brief-tile.tone-danger .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-danger .m-ui-tile-icon {
   background: var(--app-danger);
 }
 
-.mobile-shell.app-shell .m-brief-tile.tone-ok .m-brief-tile-icon {
+.mobile-shell.app-shell .m-brief-tile.tone-ok .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-ok .m-ui-tile-icon {
   background: #3E6B45;
 }
 
-.mobile-shell.app-shell .m-brief-tile-label {
+.mobile-shell.app-shell .m-brief-tile-label,
+.mobile-shell.app-shell .m-ui-tile-label {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--app-muted);
   line-height: 1.2;
 }
 
-.mobile-shell.app-shell .m-brief-tile.is-active .m-brief-tile-label {
+.mobile-shell.app-shell .m-brief-tile.is-active .m-brief-tile-label,
+.mobile-shell.app-shell .m-ui-tile.is-active .m-ui-tile-label {
   color: var(--app-text);
 }
 
-.mobile-shell.app-shell .m-brief-tile-count {
+.mobile-shell.app-shell .m-brief-tile-count,
+.mobile-shell.app-shell .m-ui-tile-count {
   margin-top: auto;
   font-family: var(--app-font-display);
   font-size: 1.35rem;
@@ -637,14 +653,16 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   line-height: 1;
 }
 
-.mobile-shell.app-shell .m-brief-panel {
+.mobile-shell.app-shell .m-brief-panel,
+.mobile-shell.app-shell .m-ui-panel {
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   border-radius: 1rem;
   overflow: hidden;
 }
 
-.mobile-shell.app-shell .m-brief-panel-label {
+.mobile-shell.app-shell .m-brief-panel-label,
+.mobile-shell.app-shell .m-ui-panel-label {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -654,7 +672,9 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .mobile-shell.app-shell .m-brief-shortcut,
-.mobile-shell.app-shell .m-brief-row-main {
+.mobile-shell.app-shell .m-brief-row-main,
+.mobile-shell.app-shell .m-ui-shortcut,
+.mobile-shell.app-shell .m-ui-row-main {
   display: flex;
   align-items: center;
   gap: 0.7rem;
@@ -668,12 +688,17 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .mobile-shell.app-shell .m-brief-shortcut.has-divider,
 .mobile-shell.app-shell .m-brief-row.has-divider,
-.mobile-shell.app-shell .m-brief-claim-row.has-divider {
+.mobile-shell.app-shell .m-brief-claim-row.has-divider,
+.mobile-shell.app-shell .m-ui-shortcut.has-divider,
+.mobile-shell.app-shell .m-ui-row.has-divider,
+.mobile-shell.app-shell .m-ui-claim-row.has-divider {
   border-bottom: 1px solid var(--app-border);
 }
 
 .mobile-shell.app-shell .m-brief-shortcut-icon,
-.mobile-shell.app-shell .m-brief-row-icon {
+.mobile-shell.app-shell .m-brief-row-icon,
+.mobile-shell.app-shell .m-ui-shortcut-icon,
+.mobile-shell.app-shell .m-ui-row-icon {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: 0.55rem;
@@ -685,34 +710,40 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   flex-shrink: 0;
 }
 
-.mobile-shell.app-shell .m-brief-shortcut-icon {
+.mobile-shell.app-shell .m-brief-shortcut-icon,
+.mobile-shell.app-shell .m-ui-shortcut-icon {
   background: color-mix(in srgb, var(--app-accent) 85%, #2C4160);
   color: var(--app-accent-text);
 }
 
-.mobile-shell.app-shell .m-brief-row-icon.is-work {
+.mobile-shell.app-shell .m-brief-row-icon.is-work,
+.mobile-shell.app-shell .m-ui-row-icon.is-work {
   background: var(--app-accent);
   color: var(--app-accent-text);
 }
 
-.mobile-shell.app-shell .m-brief-shortcut-label {
+.mobile-shell.app-shell .m-brief-shortcut-label,
+.mobile-shell.app-shell .m-ui-shortcut-label {
   flex: 1;
   font-size: 0.9rem;
   font-weight: 700;
   min-width: 0;
 }
 
-.mobile-shell.app-shell .m-brief-chevron {
+.mobile-shell.app-shell .m-brief-chevron,
+.mobile-shell.app-shell .m-ui-chevron {
   color: var(--app-muted);
   opacity: 0.7;
 }
 
-.mobile-shell.app-shell .m-brief-list {
+.mobile-shell.app-shell .m-brief-list,
+.mobile-shell.app-shell .m-ui-list {
   overflow-y: auto;
   max-height: min(52vh, 28rem);
 }
 
-.mobile-shell.app-shell .m-brief-row-meta {
+.mobile-shell.app-shell .m-brief-row-meta,
+.mobile-shell.app-shell .m-ui-row-meta {
   display: block;
   font-size: 0.68rem;
   font-weight: 700;
@@ -720,7 +751,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   letter-spacing: 0.01em;
 }
 
-.mobile-shell.app-shell .m-brief-row-title {
+.mobile-shell.app-shell .m-brief-row-title,
+.mobile-shell.app-shell .m-ui-row-title {
   display: block;
   font-size: 0.86rem;
   font-weight: 700;
@@ -730,7 +762,9 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .mobile-shell.app-shell .m-brief-row-reason,
-.mobile-shell.app-shell .m-brief-row-note {
+.mobile-shell.app-shell .m-brief-row-note,
+.mobile-shell.app-shell .m-ui-row-reason,
+.mobile-shell.app-shell .m-ui-row-note {
   display: block;
   font-size: 0.72rem;
   color: var(--app-muted);
@@ -738,12 +772,14 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   line-height: 1.35;
 }
 
-.mobile-shell.app-shell .m-brief-row-note {
+.mobile-shell.app-shell .m-brief-row-note,
+.mobile-shell.app-shell .m-ui-row-note {
   font-style: italic;
   opacity: 0.9;
 }
 
-.mobile-shell.app-shell .m-brief-row-actions {
+.mobile-shell.app-shell .m-brief-row-actions,
+.mobile-shell.app-shell .m-ui-row-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -751,7 +787,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   padding: 0 0.85rem 0.7rem 3.4rem;
 }
 
-.mobile-shell.app-shell .m-brief-ghost-btn {
+.mobile-shell.app-shell .m-brief-ghost-btn,
+.mobile-shell.app-shell .m-ui-ghost-btn {
   border: 1px solid var(--app-border);
   background: var(--app-surface-2);
   color: var(--app-muted);
@@ -761,17 +798,20 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border-radius: 0.5rem;
 }
 
-.mobile-shell.app-shell .m-brief-empty {
+.mobile-shell.app-shell .m-brief-empty,
+.mobile-shell.app-shell .m-ui-empty {
   text-align: center;
   padding: 2rem 1.1rem;
   space-y: 0.4rem;
 }
 
-.mobile-shell.app-shell .m-brief-empty > * + * {
+.mobile-shell.app-shell .m-brief-empty > * + *,
+.mobile-shell.app-shell .m-ui-empty > * + * {
   margin-top: 0.35rem;
 }
 
-.mobile-shell.app-shell .m-brief-empty-icon {
+.mobile-shell.app-shell .m-brief-empty-icon,
+.mobile-shell.app-shell .m-ui-empty-icon {
   color: #3E6B45;
 }
 
@@ -779,4 +819,122 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   .mobile-shell.app-shell .m-brief-tile {
     transition: none;
   }
+}
+
+
+/* Shared panel padding variant (forms / rich cards) */
+.mobile-shell.app-shell .m-ui-panel-pad {
+  padding: 0.85rem;
+}
+
+.mobile-shell.app-shell .m-ui-panel-pad > .m-ui-panel-label:first-child,
+.mobile-shell.app-shell .m-ui-panel-pad > .m-brief-panel-label:first-child {
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+}
+
+.mobile-shell.app-shell .m-ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.4rem;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-time {
+  background: #2C4160;
+  border-color: #2C4160;
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-accent {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-danger {
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-ui-primary-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 1.15rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+}
+
+.mobile-shell.app-shell .m-ui-primary-cta:active {
+  transform: scale(0.98);
+}
+
+.mobile-shell.app-shell .m-ui-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  text-align: left;
+}
+
+.mobile-shell.app-shell .m-ui-select-row.is-selected {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 45%, var(--app-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 12%, transparent);
+}
+
+.mobile-shell.app-shell .m-ui-hint {
+  border: 1px dashed var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.mobile-shell.app-shell .m-sheet-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  box-shadow: none;
+}
+
+.mobile-shell.app-shell .m-claim-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  box-shadow: none;
+}
+
+.mobile-shell.app-shell .m-claim-card:hover {
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-header-bar {
+  box-shadow: none;
+  border-bottom: 1px solid var(--app-border);
 }
