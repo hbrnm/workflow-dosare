@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { BarChart3, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
 import { daysBetween } from "../../utils/dateUtils";
+import { isStageOverdue } from "../../utils/alertUtils";
 import {
   groupRestanteByInsurer,
   isPaymentOverdue,
@@ -47,7 +48,7 @@ export default function KpiDashboard({ claims, onOpen }) {
       overduePayments,
       perStatus,
       overdue: active
-        .filter((c) => daysBetween(c.dataSchimbareStatus) >= (c.termenAlertaZile || 5))
+        .filter(isStageOverdue)
         .slice(0, 8),
     };
   }, [claims]);

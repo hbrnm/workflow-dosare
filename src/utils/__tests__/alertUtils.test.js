@@ -32,10 +32,36 @@ describe('alertUtils', () => {
   });
 
   it('isStageOverdue should detect overdue stage based on dataSchimbareStatus', () => {
-    const claim = { status: 'in_lucru', dataSchimbareStatus: isoDaysAgo(4), termenAlertaZile: 3 };
+    // programat default alertDays = 3; frozen termenAlertaZile pe dosar e ignorat
+    const claim = { status: 'programat', dataSchimbareStatus: isoDaysAgo(4), termenAlertaZile: 99 };
     expect(isStageOverdue(claim)).toBe(true);
     const claim2 = { status: 'facturat', dataSchimbareStatus: isoDaysAgo(10) };
     expect(isStageOverdue(claim2)).toBe(false);
+    // in_lucru default = 7 zile — 4 zile nu declanșează încă
+    expect(isStageOverdue({
+      status: 'in_lucru',
+      dataSchimbareStatus: isoDaysAgo(4),
+      termenAlertaZile: 1,
+    })).toBe(false);
+  });
+
+  it('isStageOverdue respects Setări overrides from localStorage', () => {
+    const store = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => { store.set(k, String(v)); },
+      removeItem: (k) => { store.delete(k); },
+    });
+    localStorage.setItem(
+      'workflow_dosare_termene_alerta',
+      JSON.stringify({ in_lucru: 2 })
+    );
+    expect(isStageOverdue({
+      status: 'in_lucru',
+      dataSchimbareStatus: isoDaysAgo(3),
+      termenAlertaZile: 99,
+    })).toBe(true);
+    vi.unstubAllGlobals();
   });
 
   it('isInactiveClaim should detect inactivity excluding closed statuses', () => {
@@ -96,9 +122,9 @@ describe('alertUtils', () => {
       { id: '1', blocat: true, motivBlocare: 'Litigiu', status: 'in_lucru' },
       {
         id: '2',
-        status: 'in_lucru',
+        status: 'programat',
         dataSchimbareStatus: isoDaysAgo(5),
-        termenAlertaZile: 3,
+        termenAlertaZile: 99,
       },
       {
         id: '3',

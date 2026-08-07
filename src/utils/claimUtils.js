@@ -1,4 +1,4 @@
-import { INSURERS, STATUS_MIGRATION, STATUSES } from "../constants/config";
+import { INSURERS, STATUS_MIGRATION, STATUSES, getStatusAlertDays } from "../constants/config";
 import { uid, todayISO, nowISO } from "./dateUtils";
 
 export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
@@ -28,7 +28,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     numarInmatriculare: "", vin: "", marcaModel: "", marca: "", model: "", kilometraj: null,
     status: status === "primit" ? "deschidere" : status,
     dataDeschiderii: todayISO(), dataSchimbareStatus: nowISO(), dataUltimeiActualizari: nowISO(),
-    termenAlertaZile: 3, dataProgramare: "", dataComandaPiese: null, termenLivrarePiese: null, note: [], documente: [],
+    termenAlertaZile: getStatusAlertDays(status === "primit" ? "deschidere" : status), dataProgramare: "", dataComandaPiese: null, termenLivrarePiese: null, note: [], documente: [],
     adusaFizic: false, ceEsteDeReparat: "",
     operatiuni: { inl: false, rev: false, rep: false, uni: false },
     manopera: {
@@ -483,7 +483,7 @@ export function fromDb(row) {
     dataDeschiderii: row.data_deschiderii || todayISO(),
     dataSchimbareStatus: row.data_schimbare_status || row.created_at || nowISO(),
     dataUltimeiActualizari: row.data_ultimei_actualizari || nowISO(),
-    termenAlertaZile: row.termen_alerta_zile || 3,
+    termenAlertaZile: row.termen_alerta_zile || getStatusAlertDays(status),
     dataProgramare: row.data_programare || "",
     dataComandaPiese: row.data_comanda_piese || null,
     termenLivrarePiese: row.termen_livrare_piese || null,
