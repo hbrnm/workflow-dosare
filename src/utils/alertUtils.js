@@ -101,6 +101,18 @@ export function isBlocked(claim) {
   return Boolean(claim?.blocat);
 }
 
+/** Ultima notiță internă de pe dosar (cele mai noi sunt primele). */
+export function getLatestClaimNoteText(claim, { maxLen = 140 } = {}) {
+  const notes = Array.isArray(claim?.note) ? claim.note : [];
+  for (const n of notes) {
+    const text = String(n?.text || "").trim().replace(/\s+/g, " ");
+    if (!text) continue;
+    if (text.length <= maxLen) return text;
+    return `${text.slice(0, maxLen - 1)}…`;
+  }
+  return "";
+}
+
 /** Auto la schimb cu zile Audatex depășite. */
 export function isLoanerOverdue(claim) {
   if (claim?.alerteAck) return false;
@@ -216,12 +228,14 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   const items = [];
 
   blocate.forEach((c) => {
+    const motiv = String(c.motivBlocare || "").trim();
     items.push({
       id: `blocate-${c.id}`,
       claim: c,
       type: "blocate",
       title: "Dosar Blocat",
-      reason: c.motivBlocare || "Lipsă motiv specificat",
+      reason: motiv || "Lipsă motiv specificat",
+      noteSnippet: getLatestClaimNoteText(c),
       severity: "critical",
     });
   });
@@ -329,10 +343,16 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
 
   const totalAlertsCount = ALERT_TYPES.reduce((sum, key) => sum + counts[key], 0);
 
+  const itemsWithNotes = items.map((item) =>
+    item.noteSnippet != null
+      ? item
+      : { ...item, noteSnippet: getLatestClaimNoteText(item.claim) },
+  );
+
   return {
     byType,
     counts,
-    items,
+    items: itemsWithNotes,
     totalAlertsCount,
     blocate,
     masiniSchimb,

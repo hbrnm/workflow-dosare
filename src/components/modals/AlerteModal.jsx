@@ -10,6 +10,7 @@ import {
   getDaysInStage,
   getDaysSinceLastActivity,
   getDaysPastDeliveryDeadline,
+  getLatestClaimNoteText,
 } from "../../utils/alertUtils";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { getDaysPaymentOverdue } from "../../utils/settlementUtils";
@@ -262,6 +263,12 @@ export default function AlerteModal({
                       "restante",
                     ].includes(item.type);
                     const showOrderParts = item.type === "accept_plata";
+                    const blockReason =
+                      item.type === "blocate"
+                        ? String(item.reason || c.motivBlocare || "").trim()
+                        : "";
+                    const noteText =
+                      item.noteSnippet || getLatestClaimNoteText(c);
 
                     return (
                       <li key={item.id}>
@@ -289,18 +296,32 @@ export default function AlerteModal({
                           )}
 
                           <div className="app-alerte-row-body min-w-0">
-                            <DosarNumber
-                              value={c.numarDosar}
-                              onNotify={onNotify}
-                              empty="fără nr."
-                              className="app-alerte-dosar hover:text-[var(--app-accent)]"
-                            />
-                            <span className="app-alerte-plate font-mono font-bold">
-                              {c.numarInmatriculare || "—"}
-                            </span>
-                            <span className="app-alerte-status-chip" title={stFull}>
-                              {stShort}
-                            </span>
+                            <div className="app-alerte-row-main">
+                              <DosarNumber
+                                value={c.numarDosar}
+                                onNotify={onNotify}
+                                empty="fără nr."
+                                className="app-alerte-dosar hover:text-[var(--app-accent)]"
+                              />
+                              <span className="app-alerte-plate font-mono font-bold">
+                                {c.numarInmatriculare || "—"}
+                              </span>
+                              <span className="app-alerte-status-chip" title={stFull}>
+                                {stShort}
+                              </span>
+                            </div>
+                            {blockReason ? (
+                              <p className="app-alerte-reason" title={blockReason}>
+                                <span className="app-alerte-meta-label">Motiv</span>
+                                {blockReason}
+                              </p>
+                            ) : null}
+                            {noteText ? (
+                              <p className="app-alerte-note" title={noteText}>
+                                <span className="app-alerte-meta-label">Notă</span>
+                                {noteText}
+                              </p>
+                            ) : null}
                           </div>
 
                           <div
