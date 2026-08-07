@@ -116,11 +116,13 @@ export function getStatusAlertDays(statusKey, overrides) {
   return def?.alertDays ?? 3;
 }
 
-/** Prag efectiv pentru un dosar: termenAlertaZile setat explicit, altfel per stadiu. */
+/**
+ * Prag efectiv pentru un dosar: din Setări (per stadiu), live.
+ * Nu folosim termenAlertaZile înghețat pe dosar — altfel schimbarea pragurilor
+ * din Setări nu ar afecta cardurile / Brief până la următoarea schimbare de status.
+ * Câmpul pe dosar rămâne ca snapshot la mutare status (rapoarte / DB).
+ */
 export function getClaimAlertDays(claim, overrides) {
-  if (claim?.termenAlertaZile != null && claim.termenAlertaZile > 0) {
-    return claim.termenAlertaZile;
-  }
   return getStatusAlertDays(claim?.status, overrides);
 }
 

@@ -3,8 +3,9 @@ import {
   Phone, Car, AlertTriangle, PackageCheck, Wrench, Paintbrush,
   ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check
 } from "lucide-react";
-import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
+import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
+import { isStageOverdue } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -15,7 +16,8 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
   const hasKnownStatus = idx >= 0;
   const statusDef = getStatusDefinition(claim.status);
   const days = daysBetween(claim.dataSchimbareStatus);
-  const overdue = days >= (claim.termenAlertaZile || 3);
+  const alertThreshold = getClaimAlertDays(claim);
+  const overdue = isStageOverdue(claim);
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
   const neridicataAlert = claim.gataDeRidicare && !claim.ridicata && zileNeridicata >= (pragRidicare || 3);
 
@@ -40,7 +42,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             </span>
             <div className="flex items-center gap-1 shrink-0">
               <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
-              <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
+              <AlertBadge days={days} threshold={alertThreshold} />
             </div>
           </div>
 
@@ -141,7 +143,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </span>
           <div className="flex items-center gap-1 shrink-0">
             <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
-            <AlertBadge days={days} threshold={claim.termenAlertaZile || 3} />
+            <AlertBadge days={days} threshold={alertThreshold} />
           </div>
         </div>
 

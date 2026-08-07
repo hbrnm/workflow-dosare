@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { STATUSES, getStatusDefinition } from "../../constants/config";
+import { STATUSES, getStatusDefinition, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
 import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
@@ -139,7 +139,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
               📦 {c.dataComandaPiese}
             </span>
           )}
-          {overdue && <AlertBadge days={days} threshold={c.termenAlertaZile || 3} />}
+          {overdue && <AlertBadge days={days} threshold={getClaimAlertDays(c)} />}
         </td>
         <td className={`${cellMuted} whitespace-nowrap`}>{fmtDate(c.dataDeschiderii)}</td>
         <td className={`${cell} whitespace-nowrap text-right`} onClick={(e) => e.stopPropagation()}>
