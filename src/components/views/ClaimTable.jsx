@@ -17,7 +17,7 @@ import {
 
 export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimIds = null }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortDir, setSortDir] = useState("asc");
   const [focusedStage, setFocusedStage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
 
