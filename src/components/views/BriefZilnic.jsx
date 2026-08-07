@@ -7,22 +7,15 @@ import {
 import { todayISO, telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
 import { STATUSES } from "../../constants/config";
-import { getAlertStyle, getAlertIcon } from "../../constants/alertCategories";
+import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 
 const ALERT_TABS = [
-  { key: "toate", label: "Toate", count: (c, total) => total },
-  { key: "blocate", label: "🛑 Blocate", count: (c) => c.blocate },
-  { key: "masini_schimb", label: "🚗 Auto Schimb", count: (c) => c.masini_schimb },
-  { key: "stagnate", label: "⏳ Stagnate", count: (c) => c.stagnate },
-  { key: "livrare_piese", label: "🚚 Termen livrare", count: (c) => c.livrare_piese },
-  { key: "piese", label: "📦 Piese Neprogramate", count: (c) => c.piese },
-  { key: "neridicate", label: "📞 Neridicate", count: (c) => c.neridicate },
-  { key: "accept_plata", label: "🛒 Accept fără piese", count: (c) => c.accept_plata },
-  { key: "inactivitate", label: "⏱️ Inactive", count: (c) => c.inactivitate },
+  { key: "toate", label: "Toate" },
+  ...ALERT_GROUPS.map((g) => ({ key: g.key, label: g.label })),
 ];
 
 export default function BriefZilnic({
@@ -135,16 +128,20 @@ export default function BriefZilnic({
 
           {/* Tab-uri de filtrare alerte */}
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            {ALERT_TABS.map(({ key, label, count }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActiveAlertTab(key)}
-                className={alertTabClass(key, activeAlertTab)}
-              >
-                {label} ({key === "toate" ? totalActiuniUrgente : count(counts)})
-              </button>
-            ))}
+            {ALERT_TABS.map(({ key, label }) => {
+              const n = key === "toate" ? totalActiuniUrgente : countAlertsForGroup(counts, key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveAlertTab(key)}
+                  className={alertTabClass(key, activeAlertTab)}
+                >
+                  {label}
+                  {n > 0 ? ` (${n})` : ""}
+                </button>
+              );
+            })}
           </div>
         </div>
 

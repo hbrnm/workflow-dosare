@@ -1,6 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { AlertTriangle, Bell } from "lucide-react";
-import { ALERT_CATEGORIES, getAlertCategory } from "../../constants/alertCategories";
+import {
+  ALERT_GROUPS,
+  getAlertCategory,
+  countAlertsForGroup,
+} from "../../constants/alertCategories";
+import { filterAlertItems } from "../../utils/alertUtils";
 import { getStatusDefinition } from "../../constants/config";
 
 export default function AlertsPanel({ buckets, onOpen }) {
@@ -8,10 +13,7 @@ export default function AlertsPanel({ buckets, onOpen }) {
   const items = buckets?.items || [];
   const counts = buckets?.counts || {};
 
-  const filtered = useMemo(() => {
-    if (tab === "toate") return items;
-    return items.filter((i) => i.type === tab);
-  }, [items, tab]);
+  const filtered = useMemo(() => filterAlertItems(items, tab), [items, tab]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -28,13 +30,13 @@ export default function AlertsPanel({ buckets, onOpen }) {
         <p className="text-xs text-[var(--v2-muted)]">Dosare care cer atenție acum</p>
         <div className="mt-3 flex gap-1 overflow-x-auto scrollbar-none">
           <TabBtn active={tab === "toate"} onClick={() => setTab("toate")} label="Toate" count={items.length} />
-          {ALERT_CATEGORIES.map((c) => (
+          {ALERT_GROUPS.map((c) => (
             <TabBtn
               key={c.key}
               active={tab === c.key}
               onClick={() => setTab(c.key)}
-              label={c.shortLabel || c.label}
-              count={counts[c.key] || 0}
+              label={c.label}
+              count={countAlertsForGroup(counts, c)}
             />
           ))}
         </div>

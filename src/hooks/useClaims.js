@@ -159,6 +159,17 @@ export function useClaims(session, showNotice) {
       effectivePatch = schedulePatch;
       scheduleNotices.forEach((msg) => showNotice(msg, "success"));
 
+      const nextStatus = effectivePatch.status ?? current.status;
+      if (nextStatus !== current.status) {
+        effectivePatch = {
+          ...effectivePatch,
+          alerteAck: false,
+          dataSchimbareStatus: effectivePatch.dataSchimbareStatus || nowISO(),
+          termenAlertaZile:
+            effectivePatch.termenAlertaZile ?? getStatusAlertDays(nextStatus),
+        };
+      }
+
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
       const patchPayload = toDbPatch(current, effectivePatch, { updatedByEmail: myEmail });
       const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, { id });
@@ -212,6 +223,8 @@ export function useClaims(session, showNotice) {
         dataSchimbareStatus: changedAt,
         dataUltimeiActualizari: changedAt,
         updatedByEmail: myEmail,
+        // „Rezolvat” e snooze până la următoarea mutare de status
+        alerteAck: false,
       };
 
       // Apply immediately to UI

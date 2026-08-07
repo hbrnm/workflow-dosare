@@ -112,9 +112,26 @@ describe('alertUtils', () => {
     })).toBe(false);
   });
 
-  it('normalizeAlertTab maps depasite → stagnate', () => {
-    expect(normalizeAlertTab('depasite')).toBe('stagnate');
+  it('normalizeAlertTab maps legacy tabs to compact groups', () => {
+    expect(normalizeAlertTab('depasite')).toBe('intarzieri');
+    expect(normalizeAlertTab('stagnate')).toBe('intarzieri');
     expect(normalizeAlertTab('blocate')).toBe('blocate');
+    expect(normalizeAlertTab('livrare_piese')).toBe('piese');
+    expect(normalizeAlertTab('neridicate')).toBe('predare');
+  });
+
+  it('filterAlertItems groups multiple types under Întârzieri / Piese', () => {
+    const items = [
+      { id: 'a', type: 'stagnate', claim: { id: '1' } },
+      { id: 'b', type: 'inactivitate', claim: { id: '2' } },
+      { id: 'c', type: 'livrare_piese', claim: { id: '3' } },
+      { id: 'd', type: 'accept_plata', claim: { id: '4' } },
+      { id: 'e', type: 'blocate', claim: { id: '5' } },
+    ];
+    expect(filterAlertItems(items, 'intarzieri').map((i) => i.id)).toEqual(['a', 'b']);
+    expect(filterAlertItems(items, 'piese').map((i) => i.id)).toEqual(['c', 'd']);
+    expect(filterAlertItems(items, 'depasite').map((i) => i.id)).toEqual(['a', 'b']);
+    expect(filterAlertItems(items, 'blocate')).toHaveLength(1);
   });
 
   it('buildAlertBuckets returns unified counts and items', () => {
@@ -184,7 +201,19 @@ describe('alertUtils', () => {
     expect(onlyBlocked[0].type).toBe('blocate');
 
     const viaAlias = filterAlertItems(buckets.items, 'depasite');
-    expect(viaAlias).toHaveLength(1);
-    expect(viaAlias[0].type).toBe('stagnate');
+    expect(viaAlias.length).toBeGreaterThanOrEqual(1);
+    expect(viaAlias.every((i) => ['stagnate', 'inactivitate'].includes(i.type))).toBe(true);
+    expect(buckets.counts.intarzieri).toBe(
+      (buckets.counts.stagnate || 0) + (buckets.counts.inactivitate || 0)
+    );
+  });
+
+  it('accept_plata alert uses short Accept plată title', () => {
+    const buckets = buildAlertBuckets([
+      { id: 'a1', status: 'accept_plata', blocat: false },
+    ]);
+    expect(buckets.items[0].title).toBe('Accept plată');
+    expect(buckets.counts.accept_plata).toBe(1);
   });
 });
+

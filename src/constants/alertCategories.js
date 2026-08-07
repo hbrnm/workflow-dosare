@@ -1,131 +1,224 @@
 import {
-  AlertOctagon, Car, Clock, Boxes, PackageCheck, Truck, ShoppingCart, Wallet,
+  AlertOctagon, Clock, Boxes, PackageCheck, Wallet,
+  Car, Truck, ShoppingCart,
 } from "lucide-react";
 
 /**
- * Sursă unică pentru categoriile de alertă — Brief, AlerteModal, mobil.
- * Culori aliniate cu semantica atelier (amber / steel / danger / success).
+ * Tipuri fine (detecție / titlu pe card) — păstrate pentru motivul exact al alertei.
  */
-export const ALERT_CATEGORIES = [
-  {
-    key: "stagnate",
-    label: "Termene Depășite",
-    shortLabel: "Termene",
-    emoji: "🚨",
-    icon: Clock,
-    hex: "#B23A2E",
-    badgeClass: "bg-[#B23A2E] text-white",
-    borderClass: "border-[#B23A2E]",
-    chipActive: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40",
-    chipIdle: "text-[#B23A2E]",
-  },
-  {
-    key: "livrare_piese",
-    label: "Termen Livrare",
-    shortLabel: "Livrare",
-    emoji: "🚚",
-    icon: Truck,
-    hex: "#D6473F",
-    badgeClass: "bg-[#D6473F] text-white",
-    borderClass: "border-[#D6473F]",
-    chipActive: "bg-[#D6473F] text-white border-[#D6473F] ring-[#D6473F]/40",
-    chipIdle: "text-[#D6473F]",
-  },
-  {
-    key: "accept_plata",
-    label: "Accept Fără Piese",
-    shortLabel: "Accept",
-    emoji: "🛒",
-    icon: ShoppingCart,
-    hex: "#2C4160",
-    badgeClass: "bg-[#2C4160] text-white",
-    borderClass: "border-[#2C4160]",
-    chipActive: "bg-[#2C4160] text-white border-[#2C4160] ring-[#2C4160]/40",
-    chipIdle: "text-[#2C4160]",
-  },
-  {
-    key: "neridicate",
-    label: "Mașini Neridicate",
-    shortLabel: "Neridicate",
-    emoji: "📦",
-    icon: PackageCheck,
-    hex: "#3E6B45",
-    badgeClass: "bg-[#3E6B45] text-white",
-    borderClass: "border-[#3E6B45]",
-    chipActive: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40",
-    chipIdle: "text-[#3E6B45]",
-  },
-  {
-    key: "inactivitate",
-    label: "Fără Activitate",
-    shortLabel: "Inactiv",
-    emoji: "⏱️",
-    icon: Clock,
-    hex: "#7A5316",
-    badgeClass: "bg-[#7A5316] text-white",
-    borderClass: "border-[#7A5316]",
-    chipActive: "bg-[#7A5316] text-white border-[#7A5316] ring-[#7A5316]/40",
-    chipIdle: "text-[#7A5316]",
-  },
-  {
+export const ALERT_TYPE_META = {
+  blocate: {
     key: "blocate",
-    label: "Dosare Blocate",
-    shortLabel: "Blocate",
-    emoji: "⚠️",
+    label: "Blocat",
     icon: AlertOctagon,
     hex: "#4A5568",
     badgeClass: "bg-[#4A5568] text-white",
     borderClass: "border-[#4A5568]",
-    chipActive: "bg-[#4A5568] text-white border-[#4A5568] ring-[#4A5568]/40",
-    chipIdle: "text-[#4A5568]",
   },
-  {
+  stagnate: {
+    key: "stagnate",
+    label: "Întârziere etapă",
+    icon: Clock,
+    hex: "#B23A2E",
+    badgeClass: "bg-[#B23A2E] text-white",
+    borderClass: "border-[#B23A2E]",
+  },
+  inactivitate: {
+    key: "inactivitate",
+    label: "Fără activitate",
+    icon: Clock,
+    hex: "#7A5316",
+    badgeClass: "bg-[#7A5316] text-white",
+    borderClass: "border-[#7A5316]",
+  },
+  livrare_piese: {
+    key: "livrare_piese",
+    label: "Livrare piese",
+    icon: Truck,
+    hex: "#D6473F",
+    badgeClass: "bg-[#D6473F] text-white",
+    borderClass: "border-[#D6473F]",
+  },
+  piese: {
+    key: "piese",
+    label: "Piese neprogramate",
+    icon: Boxes,
+    hex: "#3E6B45",
+    badgeClass: "bg-[#3E6B45] text-white",
+    borderClass: "border-[#3E6B45]",
+  },
+  accept_plata: {
+    key: "accept_plata",
+    label: "Accept plată",
+    icon: ShoppingCart,
+    hex: "#2C4160",
+    badgeClass: "bg-[#2C4160] text-white",
+    borderClass: "border-[#2C4160]",
+  },
+  neridicate: {
+    key: "neridicate",
+    label: "Neridicate",
+    icon: PackageCheck,
+    hex: "#3E6B45",
+    badgeClass: "bg-[#3E6B45] text-white",
+    borderClass: "border-[#3E6B45]",
+  },
+  masini_schimb: {
     key: "masini_schimb",
-    label: "Auto Schimb",
-    shortLabel: "Schimb",
-    emoji: "🚗",
+    label: "Auto schimb",
     icon: Car,
     hex: "#C98A2B",
     badgeClass: "bg-[#C98A2B] text-white",
     borderClass: "border-[#C98A2B]",
-    chipActive: "bg-[#C98A2B] text-white border-[#C98A2B] ring-[#C98A2B]/40",
-    chipIdle: "text-[#C98A2B]",
   },
-  {
-    key: "piese",
-    label: "Piese Neprogramate",
-    shortLabel: "Piese",
-    emoji: "📦",
-    icon: Boxes,
-    hex: "#7A5316",
-    badgeClass: "bg-[#7A5316] text-white",
-    borderClass: "border-[#C98A2B]/60",
-    chipActive: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40",
-    chipIdle: "text-[#3E6B45]",
-  },
-  {
+  restante: {
     key: "restante",
-    label: "Plăți Restante",
-    shortLabel: "Restante",
-    emoji: "💳",
+    label: "Plată restantă",
     icon: Wallet,
     hex: "#B23A2E",
     badgeClass: "bg-[#B23A2E] text-white",
     borderClass: "border-[#B23A2E]",
+  },
+};
+
+/**
+ * Grupuri UI — Brief, mobil, Centru Alerte.
+ * 5 filtre scurte în loc de 9 denumiri lungi.
+ */
+export const ALERT_GROUPS = [
+  {
+    key: "blocate",
+    label: "Blocate",
+    hint: "Dosare blocate / litigiu",
+    icon: AlertOctagon,
+    hex: "#4A5568",
+    types: ["blocate"],
+    chipActive: "bg-[#4A5568] text-white border-[#4A5568] ring-[#4A5568]/40",
+    chipIdle: "text-[#4A5568]",
+  },
+  {
+    key: "intarzieri",
+    label: "Întârzieri",
+    hint: "Etapă depășită sau fără activitate",
+    icon: Clock,
+    hex: "#B23A2E",
+    types: ["stagnate", "inactivitate"],
+    chipActive: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40",
+    chipIdle: "text-[#B23A2E]",
+  },
+  {
+    key: "piese",
+    label: "Piese",
+    hint: "Livrare, neprogramate, accept plată",
+    icon: Boxes,
+    hex: "#2C4160",
+    types: ["livrare_piese", "piese", "accept_plata"],
+    chipActive: "bg-[#2C4160] text-white border-[#2C4160] ring-[#2C4160]/40",
+    chipIdle: "text-[#2C4160]",
+  },
+  {
+    key: "predare",
+    label: "Predare",
+    hint: "Neridicate și auto la schimb depășit",
+    icon: PackageCheck,
+    hex: "#3E6B45",
+    types: ["neridicate", "masini_schimb"],
+    chipActive: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40",
+    chipIdle: "text-[#3E6B45]",
+  },
+  {
+    key: "plati",
+    label: "Plăți",
+    hint: "Scadențe decontare depășite",
+    icon: Wallet,
+    hex: "#B23A2E",
+    types: ["restante"],
     chipActive: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40",
     chipIdle: "text-[#B23A2E]",
   },
 ];
 
-const byKey = Object.fromEntries(ALERT_CATEGORIES.map((c) => [c.key, c]));
+/** @deprecated folosește ALERT_GROUPS — păstrat ca alias pentru importuri vechi */
+export const ALERT_CATEGORIES = ALERT_GROUPS.map((g) => ({
+  ...g,
+  shortLabel: g.label,
+  emoji: "",
+  badgeClass: `bg-[${g.hex}] text-white`,
+  borderClass: `border-[${g.hex}]`,
+}));
 
+const groupByKey = Object.fromEntries(ALERT_GROUPS.map((g) => [g.key, g]));
+
+const typeToGroupKey = {};
+ALERT_GROUPS.forEach((g) => {
+  g.types.forEach((t) => {
+    typeToGroupKey[t] = g.key;
+  });
+});
+
+/** Tip vechi / alias → cheie grup UI */
+export const ALERT_TAB_TO_GROUP = {
+  toate: "toate",
+  depasite: "intarzieri",
+  stagnate: "intarzieri",
+  inactivitate: "intarzieri",
+  livrare_piese: "piese",
+  accept_plata: "piese",
+  piese: "piese",
+  neridicate: "predare",
+  masini_schimb: "predare",
+  restante: "plati",
+  plati: "plati",
+  blocate: "blocate",
+  intarzieri: "intarzieri",
+  predare: "predare",
+};
+
+export function getAlertGroup(key) {
+  return groupByKey[key] || null;
+}
+
+export function resolveAlertGroupKey(tab) {
+  if (!tab || tab === "toate") return "toate";
+  return ALERT_TAB_TO_GROUP[tab] || typeToGroupKey[tab] || tab;
+}
+
+export function getAlertTypesForTab(tab) {
+  const groupKey = resolveAlertGroupKey(tab);
+  if (groupKey === "toate") return null;
+  const group = getAlertGroup(groupKey);
+  return group ? group.types : [groupKey];
+}
+
+export function countAlertsForGroup(counts = {}, groupOrKey) {
+  const group = typeof groupOrKey === "string" ? getAlertGroup(groupOrKey) : groupOrKey;
+  if (!group) return 0;
+  return group.types.reduce((sum, t) => sum + (counts[t] || 0), 0);
+}
+
+/** Meta pe tip fine — pentru badge / icon pe cardul individual */
 export function getAlertCategory(key) {
-  return byKey[key] || ALERT_CATEGORIES[0];
+  if (ALERT_TYPE_META[key]) return ALERT_TYPE_META[key];
+  const group = getAlertGroup(key);
+  if (group) {
+    return {
+      key: group.key,
+      label: group.label,
+      icon: group.icon,
+      hex: group.hex,
+      badgeClass: `text-white`,
+      borderClass: `border-[${group.hex}]`,
+    };
+  }
+  return ALERT_TYPE_META.stagnate;
 }
 
 export function getAlertStyle(key) {
   const c = getAlertCategory(key);
-  return { badgeColor: c.badgeClass, borderColor: c.borderClass };
+  return {
+    badgeColor: c.badgeClass || "bg-[#B23A2E] text-white",
+    borderColor: c.borderClass || "border-[#B23A2E]",
+  };
 }
 
 export function getAlertIcon(key) {
