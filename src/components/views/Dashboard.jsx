@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
+import { isReadyForPickupOverdue, isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 
@@ -20,7 +20,7 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
   const gataNeridicateCount = claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length;
   
   const overdueList = claims.filter(isStageOverdue)
-    .map((c) => ({ ...c, zileIntarziere: daysBetween(c.dataSchimbareStatus) - getClaimAlertDays(c) }))
+    .map((c) => ({ ...c, zileIntarziere: getDaysInStage(c) - getClaimAlertDays(c) }))
     .sort((a, b) => b.zileIntarziere - a.zileIntarziere);
   
   // Replacement car active monitoring

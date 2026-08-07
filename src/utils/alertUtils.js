@@ -27,6 +27,19 @@ export function normalizeAlertTab(tab) {
   return resolveAlertGroupKey(aliased);
 }
 
+/**
+ * Ancoră pentru alerta de etapă.
+ * Pe „Programat” cu dată setată: ceasul pornește de la data programării în atelier
+ * (nu de la momentul mutării în status) — altfel o programare la +15 zile
+ * ar alarma greșit dacă pragul e 7.
+ */
+export function getStageAlertAnchor(claim) {
+  if (claim?.status === "programat" && claim?.dataProgramare) {
+    return claim.dataProgramare;
+  }
+  return claim?.dataSchimbareStatus || null;
+}
+
 // După ce un dosar este gata de ridicare, el este urmărit separat de alertele
 // de întârziere ale etapelor din flux.
 export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
@@ -41,16 +54,23 @@ export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
 
 export function isStageOverdue(claim) {
   if (claim?.alerteAck) return false;
+  if (claim?.status === "facturat") return false;
+  if (claim?.gataDeRidicare && !claim?.ridicata) return false;
+
+  // Programare viitoare: nu e întârziată încă — așteptăm data din calendar
+  if (claim?.status === "programat" && claim?.dataProgramare) {
+    const apptDay = String(claim.dataProgramare).slice(0, 10);
+    if (apptDay > todayISO()) return false;
+  }
+
   const threshold = getClaimAlertDays(claim);
-  return Boolean(
-    claim.status !== "facturat" &&
-    !(claim.gataDeRidicare && !claim.ridicata) &&
-    daysBetween(claim.dataSchimbareStatus) >= threshold
-  );
+  const anchor = getStageAlertAnchor(claim);
+  return Boolean(anchor && daysBetween(anchor) >= threshold);
 }
 
 export function getDaysInStage(claim) {
-  return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
+  const anchor = getStageAlertAnchor(claim);
+  return anchor ? daysBetween(anchor) : 0;
 }
 
 // Dosare cu accept de plată dar pentru care nu au fost comandate încă piesele

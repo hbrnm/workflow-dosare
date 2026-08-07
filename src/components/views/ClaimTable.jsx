@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
-import { isStageOverdue } from "../../utils/alertUtils";
+import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
@@ -110,7 +110,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
 
   const renderRow = (c, i, { inGroup = false } = {}) => {
     const s = getStatusDefinition(c.status);
-    const days = daysBetween(c.dataSchimbareStatus);
+    const days = getDaysInStage(c);
     const overdue = isStageOverdue(c);
     const phone = c.telefonClient || "";
 
