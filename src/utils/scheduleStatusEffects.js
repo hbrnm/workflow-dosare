@@ -1,4 +1,4 @@
-import { nowISO } from "./dateUtils";
+import { nowISO, todayISO } from "./dateUtils";
 
 /** Statusuri după (inclusiv) programare — nu le demotăm la reprogramare. */
 export const POST_SCHEDULE_STATUSES = [
@@ -40,6 +40,16 @@ export function shouldPromoteToProgramatOnSchedule(claim) {
   if (!claim) return false;
   if (POST_SCHEDULE_STATUSES.includes(claim.status)) return false;
   return PRE_PROGRAMAT_STATUSES.includes(claim.status) || isAwaitingSchedule(claim);
+}
+
+/**
+ * Brief „Intrări Programate Astăzi”: doar mașini încă pe Programat.
+ * După bifă „În lucru” (sau stadii ulterioare) dispar din listă.
+ */
+export function isPendingArrivalToday(claim, today = todayISO()) {
+  if (!claim?.dataProgramare) return false;
+  if (String(claim.dataProgramare).slice(0, 10) !== today) return false;
+  return claim.status === "programat";
 }
 
 function hasOwn(obj, key) {
