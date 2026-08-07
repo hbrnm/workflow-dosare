@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, ChevronDown,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -97,7 +97,6 @@ export default function MobileAppLayout({
     setMenuOpen(false);
   };
 
-  const activeNav = NAV_ITEMS.find((t) => t.id === activeTab) || NAV_ITEMS[0];
   const atelierName = branding?.atelierNume || "Dosare Daună";
   const atelierShort = (branding?.atelierShort || "WD").slice(0, 2);
 
@@ -106,14 +105,15 @@ export default function MobileAppLayout({
       <div className="m-float-brand-wrap" ref={menuRef}>
         <button
           type="button"
-          className={`m-float-brand m-press ${menuOpen ? "is-open" : ""}`}
+          className={`m-float-brand m-float-brand--logo m-press ${menuOpen ? "is-open" : ""}`}
           onClick={() => {
             softHaptic(8);
             setMenuOpen((v) => !v);
           }}
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          aria-label="Meniu navigare"
+          aria-label={`Meniu ${atelierName}`}
+          title={atelierName}
         >
           {branding?.logoUrl ? (
             <img
@@ -124,14 +124,6 @@ export default function MobileAppLayout({
           ) : (
             <span className="m-float-brand-mark m-float-brand-initials">{atelierShort}</span>
           )}
-          <span className="m-float-brand-text min-w-0">
-            <span className="m-float-brand-name truncate">{atelierName}</span>
-            <span className="m-float-brand-sub truncate">
-              {activeNav.label}
-              {activeTab === "brief" && totalAlertsCount > 0 ? ` · ${totalAlertsCount}` : ""}
-            </span>
-          </span>
-          <ChevronDown size={14} className={`m-float-brand-chevron ${menuOpen ? "is-open" : ""}`} />
         </button>
 
         {menuOpen ? (

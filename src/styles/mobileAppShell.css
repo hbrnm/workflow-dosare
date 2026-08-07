@@ -104,10 +104,10 @@
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
-  padding-top: calc(3.85rem + env(safe-area-inset-top, 0px));
+  padding-top: calc(3.55rem + env(safe-area-inset-top, 0px));
 }
 
-/* Floating brand + nav menu (replaces fixed header) */
+/* Floating brand logo + nav menu (replaces fixed header) */
 .mobile-shell.app-shell .m-float-brand-wrap {
   position: fixed;
   top: calc(0.65rem + env(safe-area-inset-top, 0px));
@@ -119,9 +119,10 @@
 .mobile-shell.app-shell .m-float-brand {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  max-width: 100%;
-  padding: 0.4rem 0.55rem 0.4rem 0.4rem;
+  justify-content: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  padding: 0.28rem;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
   background: color-mix(in srgb, var(--app-surface) 78%, transparent);
@@ -131,7 +132,6 @@
   box-shadow:
     0 8px 24px color-mix(in srgb, var(--app-text) 12%, transparent),
     0 1px 0 color-mix(in srgb, #fff 35%, transparent) inset;
-  text-align: left;
 }
 
 .mobile-shell.app-shell .m-float-brand.is-open {
@@ -139,8 +139,8 @@
 }
 
 .mobile-shell.app-shell .m-float-brand-mark {
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 100%;
+  height: 100%;
   border-radius: 999px;
   flex-shrink: 0;
   background: var(--app-surface-2);
@@ -151,40 +151,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 800;
   color: var(--app-text-strong);
-}
-
-.mobile-shell.app-shell .m-float-brand-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.15;
-}
-
-.mobile-shell.app-shell .m-float-brand-name {
-  font-family: var(--app-font-display);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--app-text-strong);
-}
-
-.mobile-shell.app-shell .m-float-brand-sub {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: var(--app-muted);
-}
-
-.mobile-shell.app-shell .m-float-brand-chevron {
-  flex-shrink: 0;
-  color: var(--app-muted);
-  transition: transform 0.15s ease;
-}
-
-.mobile-shell.app-shell .m-float-brand-chevron.is-open {
-  transform: rotate(180deg);
 }
 
 .mobile-shell.app-shell .m-float-menu {
