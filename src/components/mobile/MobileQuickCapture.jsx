@@ -156,9 +156,7 @@ export default function MobileQuickCapture({
       }
 
       if (noiPoze.length > 0) {
-        const currentPoze = selectedClaim.poze || [];
-        const updatedPoze = [...noiPoze, ...currentPoze];
-        await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
+        await onPatch(selectedClaim.id, { appendPoze: noiPoze }, { canEditFn });
       }
     } catch (err) {
       onNotify("Eroare la încărcare poză: " + err.message, "error");
@@ -189,9 +187,7 @@ export default function MobileQuickCapture({
       }
 
       if (noiDocs.length > 0) {
-        const currentDocs = selectedClaim.documente || [];
-        const updatedDocs = [...noiDocs, ...currentDocs];
-        await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
+        await onPatch(selectedClaim.id, { appendDocumente: noiDocs }, { canEditFn });
         onNotify(`📄 ${noiDocs.length} document(e) atașat(e) pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
@@ -293,8 +289,7 @@ export default function MobileQuickCapture({
       const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
 
       const uploadedDoc = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, pdfFile, "documente");
-      const currentDocs = selectedClaim.documente || [];
-      await onPatch(selectedClaim.id, { documente: [uploadedDoc, ...currentDocs] }, { canEditFn });
+      await onPatch(selectedClaim.id, { appendDocumente: [uploadedDoc] }, { canEditFn });
 
       setScanSession(null);
       onNotify(`📄 Documentul scanat „${fileName}” a fost atașat pe dosar!`, "success");
@@ -325,8 +320,9 @@ export default function MobileQuickCapture({
         }
       }
 
-      const updatedPoze = currentPoze.filter((_, i) => i !== idx);
-      await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
+      if (targetItem) {
+        await onPatch(selectedClaim.id, { removePoze: [targetItem] }, { canEditFn });
+      }
       onNotify("Fotografia a fost ștearsă din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
@@ -356,8 +352,9 @@ export default function MobileQuickCapture({
         }
       }
 
-      const updatedDocs = currentDocs.filter((_, i) => i !== idx);
-      await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
+      if (targetItem) {
+        await onPatch(selectedClaim.id, { removeDocumente: [targetItem] }, { canEditFn });
+      }
       onNotify("Documentul a fost șters din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea documentului: " + err.message, "error");

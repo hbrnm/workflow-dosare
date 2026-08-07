@@ -489,6 +489,7 @@ export default function ClaimModal({
 
   const removeDoc = async (id) => {
     const doc = form.documente.find((d) => d.id === id);
+    if (!doc) return;
     if (doc?.path) {
       const { error } = await supabase.storage.from("documente-dosare").remove([doc.path]);
       if (error) {
@@ -496,7 +497,9 @@ export default function ClaimModal({
         return;
       }
     }
-    setForm((f) => ({ ...f, documente: f.documente.filter((d) => d.id !== id) }));
+    const nextDocs = form.documente.filter((d) => d.id !== id);
+    setForm((f) => ({ ...f, documente: nextDocs }));
+    await persistMediaPatch({ removeDocumente: [doc] });
   };
 
   const handleUploadPoze = async (fileList, categoria = "generale") => {
@@ -559,12 +562,11 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
     }
-    const mergedPoze = [...noi, ...form.poze];
-    setForm((f) => ({ ...f, poze: mergedPoze }));
+    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
     setUploadingPoze(false);
     if (noi.length) {
       onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}".`, "success");
-      await persistMediaPatch({ poze: mergedPoze });
+      await persistMediaPatch({ appendPoze: noi });
     }
   };
 
@@ -624,8 +626,7 @@ export default function ClaimModal({
     setUploadingDocumente(false);
     if (noi.length) {
       onNotify(`${noi.length} document(e) încărcat(e).`, "success");
-      const mergedDocs = [...noi, ...form.documente];
-      await persistMediaPatch({ documente: mergedDocs });
+      await persistMediaPatch({ appendDocumente: noi });
     }
   };
 
@@ -739,7 +740,7 @@ export default function ClaimModal({
     }
     const nextPoze = form.poze.filter((p) => p.id !== poza.id);
     setForm((f) => ({ ...f, poze: nextPoze }));
-    await persistMediaPatch({ poze: nextPoze });
+    await persistMediaPatch({ removePoze: [poza] });
   };
 
   return (
