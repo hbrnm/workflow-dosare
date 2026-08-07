@@ -35,6 +35,16 @@ describe("scheduleStatusEffects", () => {
     expect(notices[0]).toMatch(/Programat/);
   });
 
+  it("promotes accept_plata to programat when scheduled (clears accept alert)", () => {
+    const { patch, notices } = applyScheduleStatusEffects(
+      { id: "1", status: "accept_plata" },
+      { dataProgramare: "2026-08-20T09:00:00" }
+    );
+    expect(patch.status).toBe("programat");
+    expect(patch.dataProgramare).toBe("2026-08-20T09:00:00");
+    expect(notices[0]).toMatch(/Programat/);
+  });
+
   it("does not demote in_lucru when reschedule sends status programat", () => {
     const { patch } = applyScheduleStatusEffects(
       { id: "1", status: "in_lucru", dataProgramare: "2026-08-09T09:00:00" },

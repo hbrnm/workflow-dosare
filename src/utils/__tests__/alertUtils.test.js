@@ -249,5 +249,13 @@ describe('alertUtils', () => {
     expect(buckets.items[0].title).toBe('Accept plată');
     expect(buckets.counts.accept_plata).toBe(1);
   });
+
+  it('accept_plata alert clears when claim moves to programat', () => {
+    const buckets = buildAlertBuckets([
+      { id: 'a1', status: 'programat', dataProgramare: '2026-08-20T09:00:00', blocat: false },
+    ]);
+    expect(buckets.counts.accept_plata).toBe(0);
+    expect(buckets.items.some((i) => i.type === 'accept_plata')).toBe(false);
+  });
 });
 

@@ -3,7 +3,7 @@ import { Plus, ChevronRight, User, Phone, ChevronDown, ChevronUp } from "lucide-
 import { getStatusDefinition, isPieseComandateStatus, getStatusShortLabel } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
-import { telLink } from "../../utils/dateUtils";
+import { telLink, formatProgramareShort } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
 
@@ -177,12 +177,19 @@ export default function MobileClaimsList({
 
                   <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
                     <span>{c.marcaModel || "—"}</span>
-                    <DosarNumber
-                      value={c.numarDosar}
-                      onNotify={onNotify}
-                      prefix=""
-                      className="font-mono text-[11px] text-[#8A8375] hover:text-[#C98A2B]"
-                    />
+                    <div className="flex items-center gap-2 shrink-0">
+                      {c.status === "programat" && c.dataProgramare && (
+                        <span className="font-mono text-[11px] font-bold text-[#2C4160]">
+                          {formatProgramareShort(c.dataProgramare)}
+                        </span>
+                      )}
+                      <DosarNumber
+                        value={c.numarDosar}
+                        onNotify={onNotify}
+                        prefix=""
+                        className="font-mono text-[11px] text-[#8A8375] hover:text-[#C98A2B]"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#EFEAE1] text-[11px]">
@@ -303,6 +310,11 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
 
                 <div className="flex items-center justify-between text-[11.5px] font-semibold text-[var(--app-muted)]">
                   <span className="truncate">{c.marcaModel || c.client || "—"}</span>
+                  {c.status === "programat" && c.dataProgramare && (
+                    <span className="font-mono text-[11px] font-bold text-[var(--app-text-strong)] shrink-0">
+                      {formatProgramareShort(c.dataProgramare)}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-1.5 border-t border-[var(--app-border)] text-[11px]">
