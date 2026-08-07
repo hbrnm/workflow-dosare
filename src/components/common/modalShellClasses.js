@@ -6,9 +6,10 @@ export function modalOverlayClass(desktopUi, { dense = false } = {}) {
       ? "app-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-3 overflow-hidden"
       : "app-modal-overlay fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto";
   }
+  // z-[9000]: above floating search (z-50). Edge-to-edge — no leftover bottom chrome.
   return dense
-    ? "m-themed-modal fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-0 sm:p-3 overflow-hidden"
-    : "m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto";
+    ? "m-themed-modal fixed inset-0 z-[9000] bg-[var(--app-bg)] flex items-stretch justify-center p-0 overflow-hidden"
+    : "m-themed-modal fixed inset-0 z-[9000] bg-[var(--app-bg)] flex items-stretch justify-center p-0 overflow-hidden";
 }
 
 export function modalOverlayProps(desktopUi, themeId) {
