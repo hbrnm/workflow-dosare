@@ -275,6 +275,7 @@ export default function AlerteModal({
                           }}
                           role="button"
                           tabIndex={0}
+                          title={item.reason || item.title}
                         >
                           {metric ? (
                             <div className="app-alerte-metric" title={metric.hint}>
@@ -283,39 +284,26 @@ export default function AlerteModal({
                             </div>
                           ) : (
                             <div className="app-alerte-metric is-icon" style={{ color: activeCat.hex }}>
-                              <ActiveIcon size={20} />
+                              <ActiveIcon size={18} />
                             </div>
                           )}
 
                           <div className="app-alerte-row-body min-w-0">
-                            <div className="app-alerte-row-top">
-                              <span className="app-alerte-dosar">
-                                {c.numarDosar || c.numarInmatriculare || "(fără nr.)"}
-                              </span>
-                              {c.tipAsigurare && (
-                                <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>
-                                  {c.tipAsigurare}
-                                </Pill>
-                              )}
-                              <span className="app-alerte-type-tag" style={{ background: `${activeCat.hex}18`, color: activeCat.hex }}>
-                                {item.title}
-                              </span>
-                            </div>
-
-                            <p className="app-alerte-identity">
-                              {[c.client || "Client neintrodus", c.numarInmatriculare, c.marcaModel]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </p>
-
-                            <p className="app-alerte-reason">{item.reason}</p>
-
-                            <div className="app-alerte-row-meta">
-                              <span className="app-alerte-status-chip">{st.label}</span>
-                              {c.asigurator && (
-                                <span className="app-alerte-insurer">{c.asigurator}</span>
-                              )}
-                            </div>
+                            <span className="app-alerte-dosar">
+                              {c.numarDosar || c.numarInmatriculare || "(fără nr.)"}
+                            </span>
+                            {c.tipAsigurare && (
+                              <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>
+                                {c.tipAsigurare}
+                              </Pill>
+                            )}
+                            <span className="app-alerte-identity">
+                              {[c.client, c.numarInmatriculare].filter(Boolean).join(" · ") || "—"}
+                            </span>
+                            <span className="app-alerte-status-chip">{st.label}</span>
+                            {c.asigurator && (
+                              <span className="app-alerte-insurer">{c.asigurator}</span>
+                            )}
                           </div>
 
                           <div
