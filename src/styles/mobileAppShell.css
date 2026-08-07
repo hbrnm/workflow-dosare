@@ -568,8 +568,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 /* Setări — taburi & conținut */
 .m-themed-modal .m-settings-tabs {
-  background: var(--app-surface-2);
-  border-color: var(--app-border);
+  background: transparent;
+  border-color: transparent;
 }
 
 .m-themed-modal .m-settings-tab {
@@ -579,9 +579,9 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 
 .m-themed-modal .m-settings-tab.is-active {
   color: var(--app-accent);
-  border-color: var(--app-accent);
-  background: var(--app-surface);
-  border-radius: var(--app-radius) var(--app-radius) 0 0;
+  border-color: transparent;
+  background: transparent;
+  border-radius: 999px;
 }
 
 .m-themed-modal .m-settings-tab-badge {
@@ -781,7 +781,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   gap: 0.55rem;
   min-height: 5.1rem;
   padding: 0.75rem 0.8rem 0.7rem;
-  border-radius: 1rem;
+  border-radius: 1.35rem;
   border: 1px solid var(--app-border);
   background:
     linear-gradient(160deg, color-mix(in srgb, var(--app-surface) 88%, var(--app-bg)), var(--app-surface));
@@ -806,7 +806,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-ui-tile-icon {
   width: 1.7rem;
   height: 1.7rem;
-  border-radius: 0.5rem;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

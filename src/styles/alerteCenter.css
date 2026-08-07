@@ -85,8 +85,19 @@
 
 .app-alerte-cats-mobile .app-alerte-cat {
   flex: 0 0 auto;
-  min-width: 9.5rem;
-  max-width: 12rem;
+  min-width: auto;
+  max-width: none;
+  padding: 0.5rem 0.85rem;
+}
+
+.app-alerte-cats-mobile .app-alerte-cat-hint {
+  display: none;
+}
+
+.app-alerte-cats-mobile .app-alerte-cat-text {
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
 }
 
 /* Desktop sidebar */
@@ -120,8 +131,8 @@
   align-items: center;
   gap: 0.55rem;
   width: 100%;
-  padding: 0.55rem 0.6rem;
-  border-radius: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
   border: 1px solid transparent;
   background: transparent;
   text-align: left;
@@ -474,8 +485,8 @@
 }
 
 .app-alerte-btn-primary {
-  padding: 0.28rem 0.55rem;
-  border-radius: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 700;
   background: #2c4160;
@@ -488,8 +499,8 @@
 }
 
 .app-alerte-btn-secondary {
-  padding: 0.28rem 0.55rem;
-  border-radius: 0.4rem;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 700;
   background: var(--app-surface, #fff);
@@ -532,8 +543,8 @@
 }
 
 .app-alerte-btn-close {
-  padding: 0.35rem 0.9rem;
-  border-radius: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 650;
   border: 1px solid var(--app-border, #c7c0b0);
