@@ -5,9 +5,11 @@ import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
 export default function LiveStreamCameraModal({ initialCategorie = "receptie", onSavePhoto, onClose }) {
   const [categorie, setCategorie] = useState(initialCategorie);
   const [photoCount, setPhotoCount] = useState(0);
+  const [lastThumbUrl, setLastThumbUrl] = useState(null);
   const [flash, setFlash] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const thumbUrlRef = useRef(null);
 
   useEffect(() => {
     setCategorie(initialCategorie);
@@ -37,8 +39,20 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
+      if (thumbUrlRef.current) {
+        URL.revokeObjectURL(thumbUrlRef.current);
+        thumbUrlRef.current = null;
+      }
     };
   }, []);
+
+  const setThumbFromBlob = (blob) => {
+    if (!blob) return;
+    const nextUrl = URL.createObjectURL(blob);
+    if (thumbUrlRef.current) URL.revokeObjectURL(thumbUrlRef.current);
+    thumbUrlRef.current = nextUrl;
+    setLastThumbUrl(nextUrl);
+  };
 
   const capturePhotoInstantly = async () => {
     if (!videoRef.current) return;
@@ -60,6 +74,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
 
       canvas.toBlob(async (blob) => {
         if (!blob) return;
+        setThumbFromBlob(blob);
         const file = new File([blob], `Foto_${categorie}_${Date.now()}.jpg`, { type: "image/jpeg" });
         setPhotoCount((c) => c + 1);
         await onSavePhoto([file], categorie);
@@ -96,10 +111,25 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
       <div className="relative flex-1 w-full flex items-center justify-center bg-black overflow-hidden">
         <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         {flash && <div className="absolute inset-0 bg-white z-30 transition-opacity duration-100" />}
-        <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-md border border-white/20 text-emerald-400 px-3.5 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-          <span>{photoCount} poze salvate direct</span>
-        </div>
+        {lastThumbUrl ? (
+          <div
+            className="absolute top-4 left-4 z-20 pointer-events-none"
+            aria-live="polite"
+            aria-label={`${photoCount} ${photoCount === 1 ? "poză salvată" : "poze salvate"}`}
+          >
+            <div className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-white/90 shadow-lg bg-black/40 ring-1 ring-black/40">
+              <img
+                src={lastThumbUrl}
+                alt="Ultima poză salvată"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+              <span className="absolute bottom-0.5 right-0.5 min-w-[1.15rem] h-[1.15rem] px-1 rounded-md bg-emerald-500 text-white text-[10px] font-extrabold leading-[1.15rem] text-center tabular-nums shadow-sm">
+                {photoCount}
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="w-full py-6 px-8 bg-black/90 z-20 flex items-center justify-between shrink-0 border-t border-white/10">
