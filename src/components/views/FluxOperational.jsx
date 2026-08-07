@@ -18,7 +18,7 @@ import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from 
 import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 
-const STAGE_SORT_KEY = "alerte";
+const STAGE_SORT_KEY = "deschidere";
 
 // Culori oficiale per fază — sursă unică config.js
 
@@ -499,7 +499,7 @@ export default function TablouPeFazeRedesign({
                   />
                   {stageClaims.length > 0 && (
                     <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
-                      Urgent sus
+                      Ultimele deschise →
                     </span>
                   )}
                 </div>
