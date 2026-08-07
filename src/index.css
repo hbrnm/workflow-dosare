@@ -77,3 +77,19 @@ input, textarea, select, [contenteditable="true"] {
 .animate-pulse-red {
   animation: pulse-red-glow 0.8s infinite ease-in-out;
 }
+
+/* Undo toast countdown — keep visible regardless of theme remaps */
+.undo-toast-panel {
+  background: #161b22 !important;
+}
+.undo-toast-track {
+  height: 4px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  z-index: 2;
+}
+.undo-toast-progress {
+  display: block !important;
+  height: 100% !important;
+  min-height: 4px !important;
+}
+

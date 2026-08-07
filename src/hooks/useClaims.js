@@ -99,7 +99,11 @@ export function useClaims(session, showNotice) {
         pendingDeletes.current.delete(id);
         const { error } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
         if (error) {
-          showNotice(error.message, "error");
+          const raw = error.message || "";
+          const friendly = /foreign key|update or delete on table/i.test(raw)
+            ? "Nu am putut șterge dosarul (legate de istoric). Rulează migrarea 28 în Supabase, apoi reîncearcă."
+            : raw || "Eroare la ștergerea dosarului.";
+          showNotice(friendly, "error");
           // Restore on error
           setClaims((prev) => {
             const already = prev.some((c) => c.id === id);
