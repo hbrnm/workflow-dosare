@@ -102,65 +102,49 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
   };
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
-      
-      <div className="bg-[#1C2127] text-white p-4 rounded-2xl shadow-md space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-extrabold text-[15px] tracking-tight flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <CalendarClock size={18} className="text-[#C98A2B]" />
-            <span>Programări</span>
-          </h2>
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-extrabold bg-[#C98A2B] text-white">
-            {filteredProgramari.length}
-          </span>
+    <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
+      <header className="m-ui-hero">
+        <p className="m-ui-kicker">Agenda atelier</p>
+        <div className="flex items-end justify-between gap-3">
+          <h1 className="m-ui-title" style={{ fontSize: "1.55rem" }}>Programări</h1>
+          <span className="m-ui-count">{filteredProgramari.length}</span>
         </div>
-        <p className="text-[11.5px] text-[#A69F91]">
+        <p className="text-[11.5px] m-muted mt-1.5 font-semibold">
           Programare → status automat. Reprogramarea nu coboară un dosar deja în lucru.
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
-        <button
-          type="button"
-          onClick={() => setFilterMode("azi")}
-          className={`py-2 px-2 rounded-xl border text-center transition-all ${
-            filterMode === "azi" ? "bg-[#2C4160] text-white border-[#2C4160] shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6]"
-          }`}
-        >
-          Azi ({countAzi})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterMode("viitoare")}
-          className={`py-2 px-2 rounded-xl border text-center transition-all ${
-            filterMode === "viitoare" ? "bg-[#C98A2B] text-white border-[#C98A2B] shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6]"
-          }`}
-        >
-          Viitoare ({countViitoare})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterMode("toate")}
-          className={`py-2 px-2 rounded-xl border text-center transition-all ${
-            filterMode === "toate" ? "bg-[#3B5166] text-white border-[#3B5166] shadow-xs" : "bg-white text-[#6B6558] border-[#DAD4C6]"
-          }`}
-        >
-          Toate ({programari.length})
-        </button>
+      <div className="m-brief-tiles" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: "0.45rem" }}>
+        {[
+          { key: "azi", label: "Azi", count: countAzi, tone: "accent" },
+          { key: "viitoare", label: "Viitoare", count: countViitoare, tone: "steel" },
+          { key: "toate", label: "Toate", count: programari.length, tone: "ok" },
+        ].map((tile) => (
+          <button
+            key={tile.key}
+            type="button"
+            onClick={() => setFilterMode(tile.key)}
+            className={`m-brief-tile tone-${tile.tone} ${filterMode === tile.key ? "is-active" : ""}`}
+            style={{ minHeight: "4.25rem", padding: "0.6rem 0.65rem" }}
+          >
+            <span className="m-brief-tile-label">{tile.label}</span>
+            <span className="m-brief-tile-count" style={{ fontSize: "1.15rem" }}>{tile.count}</span>
+          </button>
+        ))}
       </div>
 
       <div className="space-y-2.5 flex-1 overflow-y-auto pr-0.5">
         {filteredProgramari.length === 0 ? (
-          <div className="p-6 text-center bg-white border border-dashed border-[#DAD4C6] rounded-2xl font-bold space-y-2">
-            <Calendar size={24} className="mx-auto text-[#8A8375]" />
-            <div className="text-[13px] text-[#23282E]">
+          <div className="m-ui-panel m-brief-empty">
+            <Calendar size={24} className="mx-auto m-brief-empty-icon" />
+            <div className="font-bold text-[13px]">
               {filterMode === "azi"
                 ? "Nicio programare azi"
                 : filterMode === "viitoare"
                   ? "Nicio programare viitoare"
                   : "Nicio programare"}
             </div>
-            <p className="text-[11.5px] text-[#8A8375] font-semibold">
+            <p className="text-[11.5px] m-muted font-semibold">
               {filterMode === "azi"
                 ? "Verifică „Viitoare” sau deschide un dosar ca să setezi data."
                 : "Programezi din dosar — pe teren poți trece rapid în lucru."}
@@ -169,7 +153,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
               <button
                 type="button"
                 onClick={() => setFilterMode("viitoare")}
-                className="inline-flex items-center justify-center px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold"
+                className="m-btn-primary inline-flex items-center justify-center px-3 py-2 rounded-xl text-[12px] font-extrabold"
               >
                 Vezi viitoare ({countViitoare})
               </button>
@@ -245,37 +229,33 @@ function MobileProgramareStackCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-              <div
-                className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs space-y-2.5 hover:border-[#C98A2B] transition-all"
-              >
-                <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
+              <div className="m-ui-panel m-ui-panel-pad space-y-2.5">
+                <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-extrabold text-[12px] bg-[#2C4160] text-white px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1">
+                    <span className="m-ui-chip is-time">
                       <Clock size={11} />
                       {c.dataProgramare.slice(11, 16) || "08:00"}
                     </span>
-                    <span className="font-mono font-extrabold text-[13.5px] text-[#23282E] uppercase">
+                    <span className="font-mono font-extrabold text-[13.5px] uppercase text-[var(--app-text-strong)]">
                       {c.numarInmatriculare || "—"}
                     </span>
                     {stacked && (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#C98A2B] text-white">
-                        ×{group.length}
-                      </span>
+                      <span className="m-ui-chip is-accent">×{group.length}</span>
                     )}
                   </div>
-                  <span className="text-[10.5px] font-mono text-[#8A8375] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6] font-semibold">
+                  <span className="m-ui-chip">
                     {c.dataProgramare.slice(0, 10)}
                   </span>
                 </div>
 
                 <div className="space-y-1 text-[11.5px]">
-                  <div className="flex items-center justify-between text-[#6B6558] font-semibold">
-                    <span className="truncate flex items-center gap-1">
-                      <Car size={13} className="text-[#C98A2B] shrink-0" />
+                  <div className="flex items-center justify-between m-muted font-semibold">
+                    <span className="truncate flex items-center gap-1 text-[var(--app-text)]">
+                      <Car size={13} className="text-[var(--app-accent)] shrink-0" />
                       {c.marcaModel || "Model nespecificat"}
                     </span>
                     {!stacked && (
-                      <span className="text-[10px] text-[#8A8375] font-mono">
+                      <span className="text-[10px] m-muted font-mono">
                         Nr: {c.numarDosar || "—"}
                       </span>
                     )}
@@ -284,7 +264,7 @@ function MobileProgramareStackCard({
                     <button
                       type="button"
                       onClick={() => setExpanded((v) => !v)}
-                      className="w-full flex items-center justify-between gap-2 text-[#8A8375] text-[11px] font-semibold py-0.5"
+                      className="w-full flex items-center justify-between gap-2 m-muted text-[11px] font-semibold py-0.5"
                     >
                       <span className="truncate font-mono">
                         {group.map((g) => `#${g.numarDosar || "?"}`).join(" · ")}
@@ -295,44 +275,42 @@ function MobileProgramareStackCard({
                       </span>
                     </button>
                   ) : (
-                    <div className="flex items-center justify-between gap-2 text-[#8A8375] text-[11px]">
+                    <div className="flex items-center justify-between gap-2 m-muted text-[11px]">
                       <span className="truncate flex items-center gap-1">
-                        <User size={12} className="shrink-0 text-[#8A8375]" />
+                        <User size={12} className="shrink-0" />
                         {c.client || "Client neintrodus"}
                       </span>
-                      <span className="shrink-0 text-[10px] font-bold text-[#3B5166] bg-[#EEF1F3] px-1.5 py-0.5 rounded">
-                        {statusLabel}
-                      </span>
+                      <span className="m-ui-chip">{statusLabel}</span>
                     </div>
                   )}
                 </div>
 
                 {stacked && expanded && (
-                  <div className="space-y-1.5 border-t border-[#EFEAE1] pt-2">
+                  <div className="space-y-1.5 border-t border-[var(--app-border)] pt-2">
                     {group.map((g) => (
                       <button
                         key={g.id}
                         type="button"
                         onClick={() => onOpen(g)}
-                        className="w-full flex items-center justify-between gap-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] px-2.5 py-2 text-left"
+                        className="m-ui-select-row"
                       >
                         <div className="min-w-0">
-                          <div className="font-mono font-bold text-[12px] text-[#23282E]">
+                          <div className="font-mono font-bold text-[12px] text-[var(--app-text-strong)]">
                             #{g.numarDosar || "—"}
                           </div>
-                          <div className="text-[10.5px] text-[#8A8375] truncate">
+                          <div className="text-[10.5px] m-muted truncate">
                             {g.client || "—"} · {getStatusDefinition(g.status).label}
                           </div>
                         </div>
-                        <ChevronRight size={14} className="text-[#8A8375] shrink-0" />
+                        <ChevronRight size={14} className="m-brief-chevron shrink-0" />
                       </button>
                     ))}
                   </div>
                 )}
 
                 {isEditing ? (
-                  <div className="bg-[#FAF8F5] border border-[#C98A2B]/60 p-2.5 rounded-xl space-y-2 animate-in fade-in duration-150">
-                    <div className="text-[10.5px] font-bold text-[#7A5316] flex items-center gap-1">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-accent)]/50 p-2.5 rounded-xl space-y-2">
+                    <div className="text-[10.5px] font-bold text-[var(--app-accent)] flex items-center gap-1">
                       <Edit3 size={12} /> Modifică Data &amp; Ora{stacked ? " (toate dosarele pe mașină)" : ""}:
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -340,34 +318,34 @@ function MobileProgramareStackCard({
                         type="date"
                         value={editDate}
                         onChange={(e) => setEditDate(e.target.value)}
-                        className="bg-white border border-[#DAD4C6] rounded-lg p-1.5 text-[12px] font-bold text-[#23282E]"
+                        className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg p-1.5 text-[12px] font-bold text-[var(--app-text)]"
                       />
                       <input
                         type="time"
                         value={editTime}
                         onChange={(e) => setEditTime(e.target.value)}
-                        className="bg-white border border-[#DAD4C6] rounded-lg p-1.5 text-[12px] font-bold text-[#23282E]"
+                        className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg p-1.5 text-[12px] font-bold text-[var(--app-text)]"
                       />
                     </div>
                     <div className="flex justify-end gap-1.5 pt-1">
                       <button
                         type="button"
                         onClick={() => setEditingClaimId(null)}
-                        className="px-2.5 py-1 rounded-lg border border-[#DAD4C6] text-[11px] font-bold text-[#6B6558] hover:bg-gray-100"
+                        className="m-brief-ghost-btn px-2.5 py-1"
                       >
                         Anulează
                       </button>
                       <button
                         type="button"
                         onClick={() => onSaveProgramare(editingClaim.id)}
-                        className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#C98A2B] text-white text-[11px] font-extrabold hover:bg-[#B37A22] shadow-xs"
+                        className="m-btn-primary flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-extrabold"
                       >
                         <Save size={12} /> Salvează
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="pt-2 border-t border-[#EFEAE1] space-y-2">
+                  <div className="pt-2 border-t border-[var(--app-border)] space-y-2">
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1 flex-wrap">
                         {phone && (
@@ -386,7 +364,7 @@ function MobileProgramareStackCard({
                           <button
                             type="button"
                             onClick={() => onStartEdit(c)}
-                            className="flex items-center gap-1 px-2 py-1 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-gray-100 text-[#6B6558] text-[10.5px] font-bold transition-colors"
+                            className="m-brief-ghost-btn flex items-center gap-1"
                           >
                             <Edit3 size={11} /> Data
                           </button>
@@ -396,7 +374,7 @@ function MobileProgramareStackCard({
                       <button
                         type="button"
                         onClick={() => (stacked ? setExpanded(true) : onOpen(c))}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2C4160] text-white hover:bg-[#1E2D44] text-[11px] font-bold transition-colors shadow-2xs"
+                        className="m-btn-primary flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                       >
                         <span>{stacked ? "Dosare" : "Deschide"}</span>
                         <ChevronRight size={13} />
@@ -409,7 +387,7 @@ function MobileProgramareStackCard({
                           <button
                             type="button"
                             onClick={() => onMarkInLucru(c)}
-                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11px] font-extrabold"
+                            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[11px] font-extrabold"
                           >
                             <Wrench size={12} /> În lucru
                           </button>
@@ -418,7 +396,7 @@ function MobileProgramareStackCard({
                           <button
                             type="button"
                             onClick={() => onClearProgramare(c)}
-                            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] text-[11px] font-bold"
+                            className="m-brief-ghost-btn flex items-center justify-center gap-1 px-2.5 py-1.5"
                           >
                             <XCircle size={12} /> Anulează prog.
                           </button>

@@ -27,12 +27,12 @@ describe("mobilePrefs", () => {
   });
 
   it("persists valid tabs and falls back for invalid ones", () => {
+    expect(loadMobileTab()).toBe("brief");
+    saveMobileTab("capture");
+    expect(localStorage.getItem(MOBILE_TAB_KEY)).toBe("capture");
     expect(loadMobileTab()).toBe("capture");
-    saveMobileTab("brief");
-    expect(localStorage.getItem(MOBILE_TAB_KEY)).toBe("brief");
-    expect(loadMobileTab()).toBe("brief");
     saveMobileTab("not-a-tab");
-    expect(loadMobileTab()).toBe("brief");
+    expect(loadMobileTab()).toBe("capture");
   });
 
   it("remembers last capture claim id", () => {
