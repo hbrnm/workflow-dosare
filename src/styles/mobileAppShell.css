@@ -96,12 +96,12 @@
 
 /* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 5rem;
+  --mobile-bottom-chrome: 3.6rem;
   background: var(--app-bg);
 }
 
 .mobile-shell.app-shell .mobile-main {
-  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
