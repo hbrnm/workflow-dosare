@@ -257,16 +257,13 @@ export default function MobileBrief({
       <span className="m-brief-row-icon is-work">
         <Crosshair size={14} />
       </span>
-      <span className="min-w-0 flex-1 text-left">
-        <span className="m-brief-row-plate">
-          <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-          <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-        </span>
-        <span className="m-brief-row-title m-vehicle-model">{c.marcaModel || "Model neprecizat"}</span>
-        <span className="m-brief-row-reason">
-          {getStatusShortLabel(c.status)}
-          {c.dataProgramare ? ` · ${String(c.dataProgramare).slice(0, 10)}` : ""}
-        </span>
+      <span className="m-brief-claim-identity">
+        <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+        <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+      </span>
+      <span className="m-brief-claim-status">
+        {getStatusShortLabel(c.status)}
+        {c.dataProgramare ? ` · ${String(c.dataProgramare).slice(0, 10)}` : ""}
       </span>
       <ChevronRight size={16} className="m-brief-chevron shrink-0" />
     </button>
