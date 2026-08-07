@@ -258,7 +258,7 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobile-shell.app-shell .m-float-brand-chevron {
+  .mobile-shell.app-shell .m-float-menu {
     transition: none;
   }
 }
