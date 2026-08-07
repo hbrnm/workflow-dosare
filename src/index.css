@@ -77,3 +77,77 @@ input, textarea, select, [contenteditable="true"] {
 .animate-pulse-red {
   animation: pulse-red-glow 0.8s infinite ease-in-out;
 }
+
+/* Undo toast — adaptează la data-app-theme (light / dark) */
+.undo-toast {
+  font-family: var(--app-font-body, "Inter", system-ui, sans-serif);
+}
+
+.undo-toast-panel {
+  background: var(--app-surface, #161b22);
+  border-color: var(--app-border, #30363d);
+  color: var(--app-text-strong, #e6edf3);
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--app-chrome, #010409) 35%, transparent);
+}
+
+.undo-toast-track {
+  height: 4px;
+  background: color-mix(in srgb, var(--app-muted, #8b949e) 28%, transparent);
+  z-index: 2;
+}
+
+.undo-toast-progress {
+  display: block;
+  height: 100%;
+  min-height: 4px;
+  background: var(--app-danger, #f85149);
+}
+
+.undo-toast.is-status .undo-toast-progress {
+  background: #d29922;
+}
+
+.undo-toast-icon {
+  background: color-mix(in srgb, var(--app-danger, #f85149) 16%, var(--app-surface-muted, #21262d));
+  color: var(--app-danger, #f85149);
+}
+
+.undo-toast.is-status .undo-toast-icon {
+  background: color-mix(in srgb, #d29922 18%, var(--app-surface-muted, #21262d));
+  color: #b8870b;
+}
+
+.undo-toast-message {
+  color: var(--app-text-strong, #e6edf3);
+}
+
+.undo-toast-undo {
+  background: color-mix(in srgb, var(--app-danger, #f85149) 14%, var(--app-surface-2, #1c2128));
+  color: var(--app-danger, #f85149);
+  border: 1.5px solid color-mix(in srgb, var(--app-danger, #f85149) 40%, var(--app-border, #30363d));
+}
+
+.undo-toast.is-status .undo-toast-undo {
+  background: color-mix(in srgb, #d29922 16%, var(--app-surface-2, #1c2128));
+  color: #b8870b;
+  border-color: color-mix(in srgb, #d29922 45%, var(--app-border, #30363d));
+}
+
+.undo-toast-close {
+  color: var(--app-muted, #8b949e);
+}
+
+.undo-toast-close:hover {
+  color: var(--app-text-strong, #e6edf3);
+  background: var(--app-surface-muted, #21262d);
+}
+
+html[data-app-theme="light"] .undo-toast.is-status .undo-toast-icon,
+html[data-app-theme="light"] .undo-toast.is-status .undo-toast-undo {
+  color: #9a6700;
+}
+
+html[data-app-theme="light"] .undo-toast-panel {
+  box-shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+}
+
