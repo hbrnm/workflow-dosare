@@ -364,6 +364,17 @@
   font-weight: 800;
   color: var(--app-text-strong, #23282e);
   flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-alerte-plate {
+  font-size: 0.78rem;
+  color: var(--app-text, #3b5166);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .app-alerte-identity {

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Plus, ChevronRight, User, Phone, ChevronDown, ChevronUp } from "lucide-react";
-import { getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
+import { getStatusDefinition, isPieseComandateStatus, getStatusShortLabel } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import { telLink } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
@@ -176,7 +177,12 @@ export default function MobileClaimsList({
 
                   <div className="flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
                     <span>{c.marcaModel || "—"}</span>
-                    <span className="font-mono text-[11px] text-[#8A8375]">Nr: {c.numarDosar || "—"}</span>
+                    <DosarNumber
+                      value={c.numarDosar}
+                      onNotify={onNotify}
+                      prefix=""
+                      className="font-mono text-[11px] text-[#8A8375] hover:text-[#C98A2B]"
+                    />
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#EFEAE1] text-[11px]">
@@ -266,17 +272,21 @@ function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite,
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] uppercase truncate">
-                      {c.numarDosar || "Fără nr."}
-                    </span>
+                    <DosarNumber
+                      value={c.numarDosar}
+                      onNotify={onNotify}
+                      empty="Fără nr."
+                      prefix=""
+                      className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] uppercase truncate hover:text-[var(--app-accent)]"
+                    />
                     {c.blocat && (
                       <span className="px-1.5 py-0.5 text-[9px] bg-[var(--app-danger)] text-white font-bold rounded shrink-0">
                         BLOCAT
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded text-[var(--app-muted)] shrink-0">
-                    {sDef.num}. {sDef.label}
+                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded text-[var(--app-muted)] shrink-0" title={sDef.label}>
+                    {sDef.num}. {getStatusShortLabel(c.status)}
                   </span>
                 </div>
 

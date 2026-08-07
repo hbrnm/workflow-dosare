@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { STATUSES, getStatusDefinition, getClaimAlertDays } from "../../constants/config";
+import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
 import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
@@ -8,6 +8,7 @@ import { downloadClaimsList } from "../../utils/exportClaimsList";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import FluxStageStrip from "../common/FluxStageStrip";
 import {
   isSearchHighlighted,
@@ -15,7 +16,7 @@ import {
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
 
-export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimIds = null }) {
+export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimIds = null, onNotify }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
   const [focusedStage, setFocusedStage] = useState(null);
@@ -120,9 +121,9 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
         onClick={() => onOpen(c)}
         className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
       >
-        <td className={`${cell} font-mono font-semibold whitespace-nowrap`}>
+        <td className={`${cell} font-mono font-semibold whitespace-nowrap`} onClick={(e) => e.stopPropagation()}>
           {inGroup && <span className="text-[var(--app-muted)] mr-1">↳</span>}
-          {c.numarDosar || "—"}
+          <DosarNumber value={c.numarDosar} onNotify={onNotify} prefix="" />
         </td>
         <td className={cell}><Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill></td>
         <td className={`${cellMuted} truncate`} title={c.asigurator || ""}>{c.asigurator || "—"}</td>
@@ -133,7 +134,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
         </td>
         <td className={`${cellMuted} truncate`} title={c.marcaModel || ""}>{c.marcaModel || "—"}</td>
         <td className={`${cell} truncate`} title={`${String(s.num).padStart(2, "0")}. ${s.label}`}>
-          <span className="text-[11px] font-semibold">{String(s.num).padStart(2, "0")}. {s.label}</span>
+          <span className="text-[11px] font-semibold">{String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}</span>
           {c.status === "piese_comandate" && c.dataComandaPiese && (
             <span className="app-table-parts-badge ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">
               📦 {c.dataComandaPiese}

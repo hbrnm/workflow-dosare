@@ -3,15 +3,15 @@
 // ---------------------------------------------------------------------------
 
 export const STATUSES = [
-  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", phase: "start", alertDays: 3 },
-  { key: "reconstatare",     num: 2, label: "Reconstatare",              phase: "eval",  alertDays: 5 },
-  { key: "accept_plata",     num: 3, label: "Accept de plată",           phase: "eval",  alertDays: 5 },
-  { key: "piese_comandate",  num: 4, label: "Piese comandate",           phase: "lucru", alertDays: 4 },
-  { key: "programat",        num: 5, label: "Programat",                 phase: "lucru", alertDays: 3 },
-  { key: "in_lucru",         num: 6, label: "În lucru",                  phase: "lucru", alertDays: 7 },
-  { key: "gata_de_ridicare", num: 7, label: "Gata de ridicare",          phase: "final", alertDays: 3 },
-  { key: "predat_client",    num: 8, label: "Predat client",            phase: "final", alertDays: 14 },
-  { key: "facturat",         num: 9, label: "Facturat asigurător",       phase: "final", alertDays: 30 },
+  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", short: "Acord",     phase: "start", alertDays: 3 },
+  { key: "reconstatare",     num: 2, label: "Reconstatare",              short: "Reconst.",  phase: "eval",  alertDays: 5 },
+  { key: "accept_plata",     num: 3, label: "Accept de plată",           short: "Accept",    phase: "eval",  alertDays: 5 },
+  { key: "piese_comandate",  num: 4, label: "Piese comandate",           short: "Piese",     phase: "lucru", alertDays: 4 },
+  { key: "programat",        num: 5, label: "Programat",                 short: "Prog.",     phase: "lucru", alertDays: 3 },
+  { key: "in_lucru",         num: 6, label: "În lucru",                  short: "Lucru",     phase: "lucru", alertDays: 7 },
+  { key: "gata_de_ridicare", num: 7, label: "Gata de ridicare",          short: "Gata",      phase: "final", alertDays: 3 },
+  { key: "predat_client",    num: 8, label: "Predat client",             short: "Predat",    phase: "final", alertDays: 14 },
+  { key: "facturat",         num: 9, label: "Facturat asigurător",       short: "Facturat",  phase: "final", alertDays: 30 },
 ];
 
 export const STATUS_MIGRATION = {
@@ -68,6 +68,12 @@ export const MAX_DOCUMENTE_PER_DOSAR = 15;
 export function getStatusDefinition(statusKey) {
   const mappedKey = STATUS_MIGRATION[statusKey] || statusKey;
   return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
+}
+
+/** Prescurtare stadiu (UI compact: alerte, carduri). */
+export function getStatusShortLabel(statusKey) {
+  const def = getStatusDefinition(statusKey);
+  return def.short || def.label;
 }
 
 /** True for pipeline step „Piese comandate” (incl. legacy status piese_sosite). */

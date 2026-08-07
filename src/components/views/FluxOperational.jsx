@@ -6,6 +6,7 @@ import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDa
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import StageTabLabel from "../common/StageTabLabel";
 import FluxStageStrip from "../common/FluxStageStrip";
@@ -17,20 +18,11 @@ import {
 import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from "../../utils/fluxClaimSort";
 import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
+import { copyClaimNumber } from "../../utils/copyClaimNumber";
 
 const STAGE_SORT_KEY = "deschidere";
 
 // Culori oficiale per fază — sursă unică config.js
-
-const copyClaimNumber = async (numarDosar, onNotify) => {
-  if (!numarDosar?.trim()) return;
-  try {
-    await navigator.clipboard.writeText(numarDosar.trim());
-    onNotify?.(`Nr. dosar copiat: ${numarDosar.trim()}`, "success");
-  } catch {
-    onNotify?.("Nu am putut copia în clipboard.", "error");
-  }
-};
 
 // ---------------------------------------------------------------------------
 // KANBAN CARD — vizual minimal, funcții păstrate (status, piese, contact)
@@ -86,17 +78,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               {claim.numarInmatriculare || "FĂRĂ NR."}
             </span>
             {claim.numarDosar && (
-              <button
-                type="button"
+              <DosarNumber
+                value={claim.numarDosar}
+                onNotify={onNotify}
                 className="text-[10px] font-mono text-[var(--app-muted)] hover:text-[var(--app-accent)] shrink-0"
-                title={`Dosar #${claim.numarDosar} — click copiere`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  copyClaimNumber(claim.numarDosar, onNotify);
-                }}
-              >
-                #{claim.numarDosar}
-              </button>
+              />
             )}
             {claim.tipAsigurare === "CASCO" && (
               <span className="text-[8px] font-bold uppercase px-1 rounded app-flux-casco">C</span>

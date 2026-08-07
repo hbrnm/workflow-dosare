@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   X, Bell, ChevronRight, CheckCircle2, Phone,
 } from "lucide-react";
-import { getStatusDefinition } from "../../constants/config";
+import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 import {
   buildAlertBuckets,
   normalizeAlertTab,
@@ -14,7 +14,7 @@ import {
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { getDaysPaymentOverdue } from "../../utils/settlementUtils";
 import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup } from "../../constants/alertCategories";
-import Pill from "../common/Pill";
+import DosarNumber from "../common/DosarNumber";
 import WhatsAppButton from "../common/WhatsAppButton";
 import {
   modalOverlayClass,
@@ -247,7 +247,8 @@ export default function AlerteModal({
                   {list.map((item) => {
                     const c = item.claim;
                     const metric = getAlertMetric(item);
-                    const st = getStatusDefinition(c.status);
+                    const stShort = getStatusShortLabel(c.status);
+                    const stFull = getStatusDefinition(c.status).label;
                     const phone = c.telefonClient || "";
                     const showAck = [
                       "stagnate",
@@ -275,7 +276,6 @@ export default function AlerteModal({
                           }}
                           role="button"
                           tabIndex={0}
-                          title={item.reason || item.title}
                         >
                           {metric ? (
                             <div className="app-alerte-metric" title={metric.hint}>
@@ -289,21 +289,18 @@ export default function AlerteModal({
                           )}
 
                           <div className="app-alerte-row-body min-w-0">
-                            <span className="app-alerte-dosar">
-                              {c.numarDosar || c.numarInmatriculare || "(fără nr.)"}
+                            <DosarNumber
+                              value={c.numarDosar}
+                              onNotify={onNotify}
+                              empty="fără nr."
+                              className="app-alerte-dosar hover:text-[var(--app-accent)]"
+                            />
+                            <span className="app-alerte-plate font-mono font-bold">
+                              {c.numarInmatriculare || "—"}
                             </span>
-                            {c.tipAsigurare && (
-                              <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>
-                                {c.tipAsigurare}
-                              </Pill>
-                            )}
-                            <span className="app-alerte-identity">
-                              {[c.client, c.numarInmatriculare].filter(Boolean).join(" · ") || "—"}
+                            <span className="app-alerte-status-chip" title={stFull}>
+                              {stShort}
                             </span>
-                            <span className="app-alerte-status-chip">{st.label}</span>
-                            {c.asigurator && (
-                              <span className="app-alerte-insurer">{c.asigurator}</span>
-                            )}
                           </div>
 
                           <div
