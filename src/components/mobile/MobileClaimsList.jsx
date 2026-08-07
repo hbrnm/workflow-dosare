@@ -110,7 +110,7 @@ export default function MobileClaimsList({
               key={id}
               type="button"
               onClick={() => setStatusFilter(id)}
-              className={`m-filter-pill px-2.5 py-1 rounded-lg border whitespace-nowrap shrink-0 ${
+              className={`m-filter-pill px-2.5 py-1 rounded-full border whitespace-nowrap shrink-0 ${
                 statusFilter === id ? "is-active" : ""
               }`}
             >

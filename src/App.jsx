@@ -654,11 +654,11 @@ export default function App() {
           {/* Segment (dosare) — fără breadcrumb */}
           <div className="flex items-center gap-3 text-[13px] min-w-0">
             {(view === "dosare" || view === "flux" || view === "brief" || view === "list") && (
-              <div className="flex items-center app-segment-track border p-0.5 rounded-lg font-medium text-[11px] shrink-0">
+              <div className="flex items-center app-segment-track border p-0.5 rounded-full font-medium text-[11px] shrink-0">
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "flux"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
@@ -671,7 +671,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("brief")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "brief"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
@@ -689,7 +689,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("list")}
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all cursor-pointer ${
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "list"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"

@@ -53,11 +53,13 @@
 .app-segment-track {
   background: var(--app-surface, #141414);
   border-color: var(--app-border, #2a2a2a);
+  border-radius: 999px;
 }
 
 .app-segment-active {
   background: var(--app-surface-muted, #242424);
   color: var(--app-text-strong, #fff);
+  border-radius: 999px;
 }
 
 .app-display {

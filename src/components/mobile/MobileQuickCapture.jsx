@@ -493,7 +493,7 @@ export default function MobileQuickCapture({
                 key={cat.key}
                 type="button"
                 onClick={() => setCameraCategory(cat.key)}
-                className={`m-capture-cat py-2 px-1 rounded-xl border text-[11.5px] font-extrabold transition-all ${
+                className={`m-capture-cat py-2 px-1 rounded-full border text-[11.5px] font-extrabold transition-all ${
                   cameraCategory === cat.key ? "is-active" : ""
                 }`}
               >

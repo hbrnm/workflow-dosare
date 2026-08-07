@@ -294,8 +294,8 @@ export default function SetariModal({
           </div>
         ) : null}
 
-        {/* Navigation Tabs */}
-        <div className={`m-settings-tabs flex shrink-0 overflow-x-auto scrollbar-thin ${desktopUi ? "border-b border-[var(--app-border)] bg-[var(--app-surface-2)] px-2 pt-2 gap-1" : "m-settings-tabs--pill"}`}>
+        {/* Navigation Tabs — pill language pe mobil și desktop */}
+        <div className="m-settings-tabs m-settings-tabs--pill flex shrink-0 overflow-x-auto scrollbar-thin">
           {[
             { id: "general", label: desktopUi ? "Parametri Generali" : "Parametri", icon: Wrench },
             { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
@@ -309,9 +309,9 @@ export default function SetariModal({
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 ${
-                  desktopUi ? "border-b-2" : "border-0"
-                } ${active ? "is-active" : ""} ${desktopUi && active ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface)] rounded-t-lg" : ""} ${desktopUi && !active ? "border-transparent text-[var(--app-muted)]" : ""}`}
+                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
+                  active ? "is-active" : ""
+                }`}
               >
                 <Icon size={15} />
                 <span>{label}</span>
@@ -323,16 +323,14 @@ export default function SetariModal({
               </button>
             );
           })}
-          {!desktopUi ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="m-settings-close ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
-              aria-label="Închide setările"
-            >
-              <X size={18} />
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="m-settings-close ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
+            aria-label="Închide setările"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Content Body */}

@@ -621,6 +621,7 @@
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   color: var(--app-muted);
+  border-radius: 999px;
 }
 
 .app-shell .app-brief-tab:hover {

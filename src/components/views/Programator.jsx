@@ -416,7 +416,7 @@ export default function Programator({
                   key={c.id}
                   type="button"
                   onClick={() => jumpToProgramare(c)}
-                  className={`app-prog-upcoming-chip flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                  className={`app-prog-upcoming-chip flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
                     isActive ? "is-active" : ""
                   }`}
                   title={`${c.client || ""} · ${c.marcaModel || ""} · dosar ${c.numarDosar || "—"}`}
