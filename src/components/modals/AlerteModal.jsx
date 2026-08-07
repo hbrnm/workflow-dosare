@@ -167,7 +167,7 @@ export default function AlerteModal({
       <div
         className={modalPanelClass(
           desktopUi,
-          "app-alerte-panel w-full max-w-5xl flex flex-col max-h-[92vh] overflow-hidden"
+          "app-alerte-panel w-full max-w-5xl flex flex-col h-full sm:h-auto max-h-[100dvh] sm:max-h-[92vh] overflow-hidden"
         )}
       >
         <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-center justify-between gap-3 px-4 py-3")}>
@@ -221,7 +221,7 @@ export default function AlerteModal({
           </aside>
 
           <section className="app-alerte-main flex-1 min-w-0 flex flex-col min-h-0">
-            <div className="app-alerte-section-head">
+            <div className="app-alerte-section-head hidden sm:block">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="app-alerte-section-icon" style={{ color: activeCat.hex }}>
                   <ActiveIcon size={18} />
@@ -377,7 +377,7 @@ export default function AlerteModal({
           </section>
         </div>
 
-        <div className="app-alerte-footer">
+        <div className="app-alerte-footer hidden sm:flex">
           <button type="button" onClick={onClose} className="app-alerte-btn-close">
             Închide
           </button>

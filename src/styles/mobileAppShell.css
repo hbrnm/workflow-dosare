@@ -1128,6 +1128,100 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   box-shadow: none;
 }
 
+/* Claim sheet — floating cards outside mobile-shell */
+.m-claim-sheet.app-shell {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.m-claim-sheet .m-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.65rem 0.85rem 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1.35rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 75%, transparent);
+  background: color-mix(in srgb, var(--app-chrome) 92%, transparent);
+  color: var(--app-chrome-text);
+  box-shadow: 0 8px 28px color-mix(in srgb, #000 18%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.m-claim-sheet .m-sheet-header-kicker {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.m-claim-sheet .m-sheet-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, #fff 12%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  color: inherit;
+}
+
+.m-claim-sheet .m-sheet-card {
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  border-radius: 1.25rem;
+  padding: 0.9rem;
+  box-shadow: 0 4px 18px color-mix(in srgb, #000 8%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.m-claim-sheet .m-sheet-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 9999px;
+  border: none;
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--app-accent) 28%, transparent);
+}
+
+.m-claim-sheet .m-sheet-cta:active {
+  transform: scale(0.98);
+}
+
+.m-claim-sheet .m-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-text);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.m-claim-sheet .m-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem 0.85rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
 .mobile-shell.app-shell .m-claim-card {
   background: var(--app-surface);
   border: 1px solid var(--app-border);
@@ -1245,6 +1339,78 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-accent-text);
 }
 
+/* Pill tab track — shared (ClaimModal desktop + Setări) */
+.m-settings-tabs--pill {
+  margin: 0.65rem 0.75rem 0;
+  padding: 0.3rem;
+  gap: 0.25rem;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-surface-2) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-settings-tabs--pill .m-settings-tab {
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  color: var(--app-muted);
+  background: transparent;
+  border: none;
+}
+
+.m-settings-tabs--pill .m-settings-tab.is-active {
+  color: var(--app-accent-text);
+  background: var(--app-accent);
+  border-radius: 999px;
+}
+
+.m-settings-tabs--pill .m-settings-tab-badge {
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-muted);
+}
+
+.m-settings-tabs--pill .m-settings-tab.is-active .m-settings-tab-badge,
+.m-settings-tabs--pill .m-settings-tab-badge.is-active {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  color: var(--app-accent-text);
+}
+
 .m-themed-modal .m-settings-close {
   color: var(--app-muted);
+}
+
+.m-themed-modal .m-claim-footer {
+  background: color-mix(in srgb, var(--app-chrome) 94%, transparent) !important;
+  border-color: var(--app-border) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-themed-modal .bg-white.border.border-\[\#DAD4C6\].rounded-xl,
+.m-themed-modal .rounded-xl.border.border-\[\#DAD4C6\] {
+  border-radius: 1.15rem !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, #000 8%, transparent);
+}
+
+.m-claim-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 94%, transparent);
+}
+
+.m-claim-footer .m-claim-footer-btn {
+  border-radius: 9999px;
+}
+
+.m-claim-footer .m-claim-footer-primary {
+  border-radius: 9999px;
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
 }

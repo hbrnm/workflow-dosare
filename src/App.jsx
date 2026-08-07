@@ -500,7 +500,6 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
-              desktopUi
             />
           </Suspense>
         )}
