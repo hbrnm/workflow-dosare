@@ -512,9 +512,9 @@ export default function Programator({
                       </span>
                     )}
                   </div>
-                  {/* Compact chips — comasate pe nr. înmatriculare */}
+                  {/* Compact chips — comasate pe nr. înmatriculare + oră */}
                   <div className="mt-1 flex flex-wrap gap-0.5 content-start min-h-[1.25rem]">
-                    {groupClaimsByPlate(dayClaims).map((group) => {
+                    {groupClaimsByPlateAndSchedule(dayClaims).map((group) => {
                       const lead = group[0];
                       const time = lead.dataProgramare?.slice(11, 16) || "";
                       const plate = (lead.numarInmatriculare || "—").slice(-7);
@@ -524,7 +524,7 @@ export default function Programator({
                         : `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"}${lead.numarDosar ? ` (#${lead.numarDosar})` : ""} · ${lead.client || ""}`;
                       return (
                         <button
-                          key={stacked ? `g-${lead.numarInmatriculare}-${lead.id}` : lead.id}
+                          key={stacked ? `g-${lead.numarInmatriculare}-${lead.dataProgramare}-${lead.id}` : lead.id}
                           type="button"
                           draggable={true}
                           onDragStart={(e) => {
