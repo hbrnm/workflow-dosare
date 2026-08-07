@@ -388,7 +388,7 @@ export default function MobileQuickCapture({
       {/* 1. SELECTARE DOSAR */}
       <div className="m-ui-panel m-ui-panel-pad space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="m-ui-title" style={{ fontSize: "1.25rem" }}>Dosar pentru foto</h2>
+          <h2 className="m-ui-title">Dosar pentru foto</h2>
           {onNew && (
             <button
               type="button"

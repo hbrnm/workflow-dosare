@@ -429,7 +429,7 @@ export default function MobileBrief({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="m-display font-extrabold text-[15px]">De urmărit</h2>
+            <h2 className="m-type-title">De urmărit</h2>
             <button type="button" className="text-[11px] font-bold m-accent-text" onClick={() => go("programari")}>
               Agenda →
             </button>
