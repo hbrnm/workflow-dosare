@@ -13,6 +13,11 @@ import {
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 import { getStatusAlertDays } from "../constants/config";
+import {
+  findCoScheduleSiblings,
+  normalizePlate,
+  isValidPlateKey,
+} from "../utils/plateSchedule";
 
 export function useClaims(session, showNotice) {
   const [claims, setClaims] = useState([]);
@@ -24,6 +29,7 @@ export function useClaims(session, showNotice) {
   const pendingStatusChanges = useRef(new Map()); // id -> { previousClaim, timer }
   const claimsRef = useRef([]);
   const claimWriteQueues = useRef(new Map()); // id -> Promise chain (serialize media writes)
+  const patchClaimRef = useRef(null);
 
   claimsRef.current = claims;
 
@@ -84,6 +90,10 @@ export function useClaims(session, showNotice) {
             documente: unionMediaLists(claim.documente, live.documente),
           }
         : claim;
+      const prevDate = live?.dataProgramare || null;
+      const nextDate = claimToSave.dataProgramare || null;
+      const scheduleChanged = String(prevDate || "") !== String(nextDate || "");
+
       const payload = toDb({
         ...claimToSave,
         createdBy: isNewClaim ? myId : claimToSave.createdBy || myId,
@@ -96,6 +106,34 @@ export function useClaims(session, showNotice) {
         return { success: false };
       }
       await loadAll();
+
+      // After modal save, align sibling dosare pe aceeași mașină
+      if (scheduleChanged && isValidPlateKey(normalizePlate(claimToSave.numarInmatriculare))) {
+        const siblings = findCoScheduleSiblings(claimsRef.current, claimToSave, {
+          mode: nextDate ? "set" : "clear",
+          previousDate: prevDate,
+        });
+        let cascaded = 0;
+        for (const sib of siblings) {
+          if (nextDate && String(sib.dataProgramare || "") === String(nextDate)) continue;
+          if (!nextDate && !sib.dataProgramare) continue;
+          const ok = await patchClaimRef.current?.(sib.id, {
+            dataProgramare: nextDate,
+            programareStatus: null,
+          }, { skipSiblingCascade: true, skipOwnershipCheck: true, quiet: true });
+          if (ok) cascaded += 1;
+        }
+        if (cascaded > 0) {
+          const plate = normalizePlate(claimToSave.numarInmatriculare);
+          showNotice(
+            nextDate
+              ? `Programat și ${cascaded} dosar${cascaded > 1 ? "e" : ""} pe ${plate}.`
+              : `Programare anulată și pe ${cascaded} dosar${cascaded > 1 ? "e" : ""} pe ${plate}.`,
+            "success"
+          );
+        }
+      }
+
       showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.", "success");
       return { success: true, openProgramator };
     },
@@ -176,7 +214,7 @@ export function useClaims(session, showNotice) {
   );
 
   const patchClaim = useCallback(
-    async (id, patch, { canEditFn, skipOwnershipCheck = false } = {}) => {
+    async (id, patch, { canEditFn, skipOwnershipCheck = false, skipSiblingCascade = false, quiet = false } = {}) => {
       const run = async () => {
         const current = claimsRef.current.find((c) => c.id === id);
         if (!current) return false;
@@ -193,7 +231,9 @@ export function useClaims(session, showNotice) {
           effectivePatch
         );
         effectivePatch = schedulePatch;
-        scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+        if (!quiet) {
+          scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+        }
 
         const nextStatus = effectivePatch.status ?? current.status;
         if (nextStatus !== current.status) {
@@ -220,6 +260,41 @@ export function useClaims(session, showNotice) {
           return false;
         }
         setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
+
+        // Co-programează celelalte dosare pe aceeași mașină (aceeași dată/oră)
+        if (
+          !skipSiblingCascade &&
+          Object.prototype.hasOwnProperty.call(patch, "dataProgramare")
+        ) {
+          const nextDate = patch.dataProgramare || null;
+          const siblings = findCoScheduleSiblings(claimsRef.current, current, {
+            mode: nextDate ? "set" : "clear",
+            previousDate: current.dataProgramare,
+          }).filter((sib) => sib.id !== id);
+
+          let cascaded = 0;
+          for (const sib of siblings) {
+            if (!skipOwnershipCheck && canEditFn && !canEditFn(sib)) continue;
+            if (nextDate && String(sib.dataProgramare || "") === String(nextDate)) continue;
+            if (!nextDate && !sib.dataProgramare) continue;
+            const ok = await patchClaimRef.current?.(
+              sib.id,
+              { dataProgramare: nextDate, programareStatus: null },
+              { canEditFn, skipOwnershipCheck, skipSiblingCascade: true, quiet: true }
+            );
+            if (ok) cascaded += 1;
+          }
+          if (cascaded > 0) {
+            const plate = normalizePlate(current.numarInmatriculare);
+            showNotice(
+              nextDate
+                ? `Programat și ${cascaded} dosar${cascaded > 1 ? "e" : ""} pe ${plate}.`
+                : `Programare anulată și pe ${cascaded} dosar${cascaded > 1 ? "e" : ""} pe ${plate}.`,
+              "success"
+            );
+          }
+        }
+
         return true;
       };
 
@@ -230,6 +305,8 @@ export function useClaims(session, showNotice) {
     },
     [enqueueClaimWrite, loadAll, myEmail, showNotice]
   );
+
+  patchClaimRef.current = patchClaim;
 
   /**
    * moveToStatus — schimbă statusul cu undo 5 secunde.
