@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -100,7 +100,6 @@ export default function MobileAppLayout({
   };
 
   const atelierName = branding?.atelierNume || "Dosare Daună";
-  const atelierShort = (branding?.atelierShort || "WD").slice(0, 2);
 
   return (
     <div className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden">
@@ -124,7 +123,9 @@ export default function MobileAppLayout({
               className="m-float-brand-mark object-contain"
             />
           ) : (
-            <span className="m-float-brand-mark m-float-brand-initials">{atelierShort}</span>
+            <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
+              <Menu size={18} strokeWidth={2.25} />
+            </span>
           )}
         </button>
 
@@ -235,7 +236,6 @@ export default function MobileAppLayout({
             onNew={onNewClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
-            atelierNume={branding?.atelierNume}
             onNotify={onNotify}
             highlightClaimIds={highlightClaimIds}
           />

@@ -276,7 +276,6 @@ export default function MobileBrief({
     return (
       <div className="m-brief space-y-4 flex flex-col flex-1 min-h-0 pb-2">
         <header className="m-brief-hero">
-          <p className="m-brief-kicker">{atelierNume}</p>
           <div className="flex items-end justify-between gap-3">
             <h1 className="m-brief-title">Brief</h1>
             <button
