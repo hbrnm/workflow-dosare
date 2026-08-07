@@ -29,37 +29,6 @@ body {
   background: var(--app-bg, #0d1117);
 }
 
-/* iOS PWA: paint past the layout box so letterbox strips match the app */
-@supports (-webkit-touch-callout: none) {
-  html,
-  body,
-  #root {
-    background-color: var(--app-bg, #0d1117);
-  }
-
-  @media all and (display-mode: standalone) {
-    html,
-    body,
-    #root {
-      /* Extend paint below/above the document — kills pure-black letterboxes */
-      box-shadow: 0 100vh 0 100vh var(--app-bg, #0d1117), 0 -50vh 0 50vh var(--app-bg, #0d1117);
-    }
-
-    /* Cover any visualViewport letterbox under fixed chrome */
-    body::after {
-      content: "";
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: max(var(--app-vv-bottom-gap, 0px), env(safe-area-inset-bottom, 0px));
-      background: var(--app-bg, #0d1117);
-      pointer-events: none;
-      z-index: 40;
-    }
-  }
-}
-
 input, textarea, select, [contenteditable="true"] {
   user-select: text;
 }
