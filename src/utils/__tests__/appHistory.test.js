@@ -1,35 +1,36 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  getHistoryState,
-  pushAppState,
-  replaceAppState,
-  backIfOverlay,
-} from "../appHistory";
+import { createBackStack } from "../appHistory";
 
 function installHistoryMock() {
-  let state = {};
-  let href = "https://app.test/";
+  let entries = [{ state: {}, url: "https://app.test/" }];
+  let index = 0;
   const history = {
     get state() {
-      return state;
+      return entries[index]?.state || {};
     },
     replaceState(next, _t, url) {
-      state = next || {};
-      if (url) href = String(url);
+      entries[index] = { state: next || {}, url: url ? String(url) : entries[index].url };
     },
     pushState(next, _t, url) {
-      state = next || {};
-      if (url) href = String(url);
+      entries = entries.slice(0, index + 1);
+      entries.push({ state: next || {}, url: url ? String(url) : entries[index].url });
+      index = entries.length - 1;
     },
-    back: vi.fn(),
+    back: vi.fn(() => {
+      if (index > 0) index -= 1;
+    }),
+    get length() {
+      return entries.length;
+    },
   };
   globalThis.window = {
     history,
     location: {
       get href() {
-        return href;
+        return entries[index]?.url || "https://app.test/";
       },
       get hash() {
+        const href = entries[index]?.url || "";
         const i = href.indexOf("#");
         return i >= 0 ? href.slice(i) : "";
       },
@@ -38,43 +39,63 @@ function installHistoryMock() {
   return history;
 }
 
-describe("appHistory", () => {
+describe("createBackStack", () => {
+  let stack;
   let history;
 
   beforeEach(() => {
     history = installHistoryMock();
+    stack = createBackStack();
+    stack.resetHome();
   });
 
-  it("pushAppState merges into history.state", () => {
-    pushAppState({ overlay: "alerte", mobileTab: "brief" }, "#alerte");
-    expect(getHistoryState().overlay).toBe("alerte");
-    expect(getHistoryState().appShell).toBe(true);
-    expect(window.location.hash).toBe("#alerte");
+  it("starts at home with depth 1 (Back can exit)", () => {
+    expect(stack.depth()).toBe(1);
+    expect(stack.top()).toEqual({ t: "home" });
+    expect(stack.handlePopState()).toBe(null);
   });
 
-  it("replaceAppState updates current entry", () => {
-    pushAppState({ overlay: "setari" }, "#setari");
-    replaceAppState({ overlay: null, mobileTab: "dosare" }, "#m-dosare");
-    expect(getHistoryState().overlay).toBe(null);
-    expect(getHistoryState().mobileTab).toBe("dosare");
+  it("tab push then browser Back returns home", () => {
+    stack.push({ t: "tab", tab: "dosare" });
+    expect(stack.depth()).toBe(2);
+    expect(history.length).toBe(2);
+    const frame = stack.handlePopState();
+    expect(frame).toEqual({ t: "home" });
+    expect(stack.depth()).toBe(1);
   });
 
-  it("backIfOverlay closes and calls history.back when overlay matches", () => {
-    const closeFn = vi.fn();
-    const ref = { current: false };
-    pushAppState({ overlay: "alerte" }, "#alerte");
-    const ok = backIfOverlay("alerte", ref, closeFn);
-    expect(ok).toBe(true);
-    expect(closeFn).toHaveBeenCalledTimes(1);
-    expect(history.back).toHaveBeenCalledTimes(1);
-    expect(ref.current).toBe(true);
+  it("alerte overlay Back returns to previous tab/home", () => {
+    stack.push({ t: "tab", tab: "dosare" });
+    stack.push({ t: "overlay", name: "alerte", alerteTab: "blocate", tab: "dosare" });
+    expect(stack.depth()).toBe(3);
+    const frame = stack.handlePopState();
+    expect(frame).toEqual({ t: "tab", tab: "dosare" });
+    const home = stack.handlePopState();
+    expect(home).toEqual({ t: "home" });
+    expect(stack.handlePopState()).toBe(null);
   });
 
-  it("backIfOverlay returns false when overlay does not match", () => {
-    const closeFn = vi.fn();
-    replaceAppState({ overlay: null }, "/");
-    expect(backIfOverlay("alerte", { current: false }, closeFn)).toBe(false);
-    expect(closeFn).not.toHaveBeenCalled();
-    expect(history.back).not.toHaveBeenCalled();
+  it("dismiss via X pops without double-pop on next handlePopState", () => {
+    stack.push({ t: "overlay", name: "setari", tab: "brief" });
+    expect(stack.dismiss((f) => f.name === "setari")).toBe(true);
+    expect(history.back).toHaveBeenCalled();
+    // Simulated popstate after history.back
+    const frame = stack.handlePopState();
+    expect(frame).toEqual({ t: "home" });
+    expect(stack.depth()).toBe(1);
+  });
+
+  it("replaceTop swaps alerte for field", () => {
+    stack.push({ t: "overlay", name: "alerte", alerteTab: "blocate", tab: "brief" });
+    stack.replaceTop({ t: "overlay", name: "field", id: "c1", tab: "brief" });
+    expect(stack.top()).toMatchObject({ name: "field", id: "c1" });
+    expect(stack.depth()).toBe(2);
+    expect(stack.handlePopState()).toEqual({ t: "home" });
+  });
+
+  it("dedupes identical pushes", () => {
+    stack.push({ t: "tab", tab: "dosare" });
+    stack.push({ t: "tab", tab: "dosare" });
+    expect(stack.depth()).toBe(2);
   });
 });
