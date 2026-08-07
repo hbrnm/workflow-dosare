@@ -13,7 +13,7 @@ import {
 } from "../../utils/alertUtils";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { getDaysPaymentOverdue } from "../../utils/settlementUtils";
-import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup, getAlertCategory } from "../../constants/alertCategories";
+import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup } from "../../constants/alertCategories";
 import Pill from "../common/Pill";
 import WhatsAppButton from "../common/WhatsAppButton";
 import {
@@ -143,7 +143,7 @@ export default function AlerteModal({
         <span className="app-alerte-cat-text">
           <span className="app-alerte-cat-label">{cat.label}</span>
           {!compact && empty && (
-            <span className="app-alerte-cat-hint">Nicio alertă</span>
+            <span className="app-alerte-cat-hint">0</span>
           )}
         </span>
         <span className={`app-alerte-cat-count ${cat.count > 0 ? "has-items" : ""}`}>
@@ -164,25 +164,20 @@ export default function AlerteModal({
           "app-alerte-panel w-full max-w-5xl flex flex-col max-h-[92vh] overflow-hidden"
         )}
       >
-        <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-start justify-between gap-3 px-4 py-3.5")}>
-          <div className="flex items-start gap-3 min-w-0">
+        <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-center justify-between gap-3 px-4 py-3")}>
+          <div className="flex items-center gap-3 min-w-0">
             <div className="app-alerte-header-icon shrink-0">
               <Bell size={18} />
             </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="app-alerte-title app-display">
-                  Centrul de Alerte
-                </h2>
-                <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
-                  {totalAlertsCount === 0
-                    ? "Totul e la zi"
-                    : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
-                </span>
-              </div>
-              <p className="app-alerte-subtitle">
-                Aceleași reguli ca în Brief — deschide dosarul sau marchează rezolvat
-              </p>
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <h2 className="app-alerte-title app-display">
+                Centrul de Alerte
+              </h2>
+              <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
+                {totalAlertsCount === 0
+                  ? "0"
+                  : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
+              </span>
             </div>
           </div>
           <button
@@ -227,13 +222,11 @@ export default function AlerteModal({
                 </span>
                 <div className="min-w-0">
                   <h3 className="app-alerte-section-title">{activeCat.label}</h3>
-                  <p className="app-alerte-section-meta">
-                    {activeCat.hint}
-                    {" · "}
-                    {list.length === 0
-                      ? "nicio alertă"
-                      : `${list.length} ${list.length === 1 ? "dosar" : "dosare"}`}
-                  </p>
+                  {list.length > 0 && (
+                    <p className="app-alerte-section-meta">
+                      {list.length} {list.length === 1 ? "dosar" : "dosare"}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -242,8 +235,7 @@ export default function AlerteModal({
               {list.length === 0 ? (
                 <div className="app-alerte-empty">
                   <CheckCircle2 size={28} className="text-[var(--app-success)]" />
-                  <p>Nicio alertă aici.</p>
-                  <span>Categoriile cu probleme apar în stânga, sub „Necesită atenție”.</span>
+                  <p>Nicio alertă</p>
                 </div>
               ) : (
                 <ul className="app-alerte-rows">
@@ -373,7 +365,6 @@ export default function AlerteModal({
         </div>
 
         <div className="app-alerte-footer">
-          <span>Centru Alerte · aceleași reguli ca Brief</span>
           <button type="button" onClick={onClose} className="app-alerte-btn-close">
             Închide
           </button>

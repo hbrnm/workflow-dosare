@@ -468,13 +468,11 @@
 .app-alerte-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem;
   padding: 0.55rem 1rem;
   border-top: 1px solid var(--app-border, #dad4c6);
   background: var(--app-surface, #fff);
-  font-size: 0.72rem;
-  color: var(--app-muted, #8a8375);
 }
 
 .app-alerte-btn-close {
