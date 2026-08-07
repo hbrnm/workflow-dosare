@@ -7,7 +7,9 @@ export function claimMatchesSearch(claim, query) {
     (claim.client || "").toLowerCase().includes(q) ||
     (claim.numarDosar || "").toLowerCase().includes(q) ||
     (claim.asigurator || "").toLowerCase().includes(q) ||
-    (claim.vin || "").toLowerCase().includes(q)
+    (claim.vin || "").toLowerCase().includes(q) ||
+    (claim.marcaModel || "").toLowerCase().includes(q) ||
+    (claim.telefonClient || "").toLowerCase().includes(q)
   );
 }
 
@@ -20,6 +22,19 @@ export function getSearchHighlightIds(claims, query) {
     if (claimMatchesSearch(c, q)) ids.add(c.id);
   });
   return ids.size ? ids : null;
+}
+
+/** Listă de dosare potrivite (popup căutare globală). */
+export function filterClaimsBySearch(claims, query, { limit = 40 } = {}) {
+  const q = (query || "").trim();
+  if (!q) return [];
+  const out = [];
+  for (const c of claims || []) {
+    if (!claimMatchesSearch(c, q)) continue;
+    out.push(c);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export function isSearchHighlighted(claimId, highlightClaimIds) {
