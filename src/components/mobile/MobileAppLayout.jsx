@@ -41,9 +41,16 @@ export default function MobileAppLayout({
   highlightClaimIds = null,
   onMobileShellLockChange,
   hideBottomChrome = false,
+  mobileTab = null,
+  onMobileTabChange = null,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
-  const [activeTab, setActiveTab] = useState("brief");
+  const [internalTab, setInternalTab] = useState("brief");
+  const activeTab = mobileTab ?? internalTab;
+  const setActiveTab = (id) => {
+    if (onMobileTabChange) onMobileTabChange(id);
+    else setInternalTab(id);
+  };
   const [focusClaimId, setFocusClaimId] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);

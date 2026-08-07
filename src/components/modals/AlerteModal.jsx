@@ -131,7 +131,7 @@ export default function AlerteModal({
   };
 
   const openClaim = (c) => {
-    onClose?.();
+    // Parent closes Alerte + opens dosar (keeps History stack consistent)
     onOpenClaim?.(c);
   };
 
