@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, ChevronRight, User, Car, Phone } from "lucide-react";
 import { filterClaimsBySearch } from "../../utils/searchUtils";
 import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
@@ -6,8 +6,31 @@ import { formatProgramareShort, telLink } from "../../utils/dateUtils";
 import DosarNumber from "./DosarNumber";
 import WhatsAppButton from "./WhatsAppButton";
 
+function readVisualViewport() {
+  if (typeof window === "undefined") {
+    return { top: 0, left: 0, width: 0, height: 0 };
+  }
+  const vv = window.visualViewport;
+  if (!vv) {
+    return {
+      top: 0,
+      left: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
+  }
+  return {
+    top: vv.offsetTop,
+    left: vv.offsetLeft,
+    width: vv.width,
+    height: vv.height,
+  };
+}
+
 /**
  * Popup global de rezultate căutare — apare pe orice view/tab când există query.
+ * Ancorat pe visualViewport ca panelul să rămână în zona vizibilă
+ * (ex. când tastatura mobilă micșorează ecranul).
  */
 export default function SearchResultsOverlay({
   query,
@@ -22,6 +45,7 @@ export default function SearchResultsOverlay({
     [claims, q]
   );
   const panelRef = useRef(null);
+  const [viewport, setViewport] = useState(readVisualViewport);
 
   useEffect(() => {
     if (!q) return undefined;
@@ -35,11 +59,40 @@ export default function SearchResultsOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [q, onClear]);
 
+  useEffect(() => {
+    if (!q) return undefined;
+
+    const sync = () => setViewport(readVisualViewport());
+    sync();
+
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+
+    return () => {
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, [q]);
+
   if (!q) return null;
+
+  const maxPanelHeight = Math.max(220, Math.floor(viewport.height * 0.78));
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-start justify-center pt-[8vh] sm:pt-[10vh] px-3 sm:px-4 bg-black/45 backdrop-blur-[2px]"
+      className="z-[80] flex items-center justify-center px-3 sm:px-4 bg-black/45 backdrop-blur-[2px]"
+      style={{
+        position: "fixed",
+        top: viewport.top,
+        left: viewport.left,
+        width: viewport.width || "100%",
+        height: viewport.height || "100%",
+      }}
       onClick={() => onClear?.()}
       role="presentation"
     >
@@ -49,7 +102,8 @@ export default function SearchResultsOverlay({
         aria-modal="true"
         aria-label="Rezultate căutare"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[78vh] sm:max-h-[72vh] flex flex-col rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        style={{ maxHeight: maxPanelHeight }}
+        className="w-full max-w-lg flex flex-col rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       >
         <div className="flex items-center gap-2 px-3.5 py-3 border-b border-[var(--app-border)] bg-[var(--app-surface-2)] shrink-0">
           <Search size={16} className="text-[var(--app-accent)] shrink-0" />
