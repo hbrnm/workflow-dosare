@@ -8,6 +8,7 @@ import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
 import { refreshStorageUrls } from "../../utils/claimUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
+import PhotoLightbox from "../common/PhotoLightbox";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
 /**
@@ -33,6 +34,7 @@ export default function MobileClaimSheet({
   const [statusOpen, setStatusOpen] = useState(false);
   const [photos, setPhotos] = useState(() => (Array.isArray(claim?.poze) ? claim.poze : []));
   const [docs, setDocs] = useState(() => (Array.isArray(claim?.documente) ? claim.documente : []));
+  const [previewIndex, setPreviewIndex] = useState(null);
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -318,15 +320,14 @@ export default function MobileClaimSheet({
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {photos.slice(0, 12).map((p, idx) => (
-                <a
+                <button
                   key={idx}
-                  href={p.url || p}
-                  target="_blank"
-                  rel="noreferrer"
+                  type="button"
+                  onClick={() => setPreviewIndex(idx)}
                   className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
                 >
                   <img src={p.url || p} alt="" className="w-full h-full object-cover" />
-                </a>
+                </button>
               ))}
             </div>
           )}
@@ -391,6 +392,14 @@ export default function MobileClaimSheet({
           Detalii complete
         </button>
       </div>
+
+      {previewIndex != null && photos.length > 0 && (
+        <PhotoLightbox
+          items={photos}
+          startIndex={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+        />
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { compressImage } from "../../utils/imageUtils";
 import { processDocumentScan } from "../../utils/documentScanner";
 import { categoryLabel, PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import PhotoLightbox from "../common/PhotoLightbox";
 import Pill from "../common/Pill";
 
 async function processScanImage(file) {
@@ -28,7 +29,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [scanSession, setScanSession] = useState(null);
   const [uploadingScan, setUploadingScan] = useState(false);
-  const [previewMedia, setPreviewMedia] = useState(null);
+  const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
 
@@ -383,7 +384,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     const catLabel = categoryLabel(p.categoria);
                     return (
                       <div key={p.id || idx} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                        <button type="button" onClick={() => setPreviewMedia(p.url || p)} className="block w-full h-full">
+                        <button type="button" onClick={() => setPreviewMediaIndex(idx)} className="block w-full h-full">
                           <img src={p.url || p} alt={p.nume || ""} className="w-full h-full object-cover" />
                         </button>
                         {catLabel && (
@@ -505,13 +506,12 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           </div>
         )}
 
-        {previewMedia && (
-          <div className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-xs" onClick={() => setPreviewMedia(null)}>
-            <button onClick={() => setPreviewMedia(null)} className="absolute top-4 right-4 text-white bg-black/60 hover:bg-[#B23A2E] p-2.5 rounded-full transition-colors shadow-lg z-10">
-              <X size={24} />
-            </button>
-            <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
-          </div>
+        {previewMediaIndex != null && poze.length > 0 && (
+          <PhotoLightbox
+            items={poze}
+            startIndex={previewMediaIndex}
+            onClose={() => setPreviewMediaIndex(null)}
+          />
         )}
 
         {showLiveCamera && selected && (

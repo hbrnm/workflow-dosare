@@ -494,6 +494,15 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   width: min(36rem, 42vw);
 }
 
+.photo-lightbox-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.photo-lightbox-scroller::-webkit-scrollbar {
+  display: none;
+}
+
 /* —— Modale mobil (dark shell) —— */
 .m-themed-modal {
   padding: 0 !important;
