@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { fromDb, toDb, toDbPatch } from "../utils/claimUtils";
+import { fromDb, toDb, toDbPatch, writeDosarWithSchemaCompat } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 import { getStatusAlertDays } from "../constants/config";
@@ -58,7 +58,7 @@ export function useClaims(session, showNotice) {
         createdByEmail: isNewClaim ? myEmail : claim.createdByEmail || myEmail,
         updatedByEmail: myEmail,
       });
-      const { error } = await supabase.from("dosare").upsert(payload);
+      const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", payload);
       if (error) {
         showNotice(error.message, "error");
         return { success: false };
@@ -160,10 +160,8 @@ export function useClaims(session, showNotice) {
       scheduleNotices.forEach((msg) => showNotice(msg, "success"));
 
       const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-      const { error } = await supabase
-        .from("dosare")
-        .update(toDbPatch(current, effectivePatch, { updatedByEmail: myEmail }))
-        .eq("id", id);
+      const patchPayload = toDbPatch(current, effectivePatch, { updatedByEmail: myEmail });
+      const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, { id });
       if (error) {
         showNotice(error.message, "error");
         await loadAll();
@@ -227,7 +225,7 @@ export function useClaims(session, showNotice) {
       clearPendingTimer();
       pendingStatusChanges.current.delete(claim.id);
       void (async () => {
-        const { error } = await supabase.from("dosare").upsert(toDb(updated));
+        const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", toDb(updated));
         if (error) {
           showNotice(error.message, "error");
           setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
@@ -240,7 +238,7 @@ export function useClaims(session, showNotice) {
         pendingStatusChanges.current.delete(claim.id);
         setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
         void (async () => {
-          const { error } = await supabase.from("dosare").upsert(toDb(previousClaim));
+          const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", toDb(previousClaim));
           if (error) showNotice(error.message, "error");
           else showNotice(`Status restaurat la „${previousClaim.status}".`, "success");
         })();

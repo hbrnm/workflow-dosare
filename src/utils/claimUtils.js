@@ -300,11 +300,6 @@ export function toDb(c) {
     tip_documente: stripEphemeralMediaUrls(Array.isArray(c.tipDocumente) ? c.tipDocumente : []),
     nr_dosar_asigurator: c.nrDosarAsigurator || "",
     inspector_dauna: c.inspectorDauna || "",
-    tracking_token: c.trackingToken || null,
-    termen_plata: c.termenPlata || null,
-    suma_decont: c.sumaDecont == null || c.sumaDecont === "" ? 0 : Number(c.sumaDecont),
-    devize: stripEphemeralMediaUrls(Array.isArray(c.devize) ? c.devize : []),
-    mesaj_client: c.mesajClient || "",
     status: c.status,
     data_deschiderii: c.dataDeschiderii,
     data_schimbare_status: c.dataSchimbareStatus,
@@ -355,12 +350,53 @@ export function toDb(c) {
     piese_sosite: !!c.pieseSosite,
   };
 
-  // Trimite doar când e setat — compatibil dacă migrarea 22 nu e încă aplicată
+  // Coloane opționale (migrări 22–27) — omit când goale, ca save-ul să meargă
+  // și dacă migrarea nu e încă aplicată pe Supabase.
   if (c.programareStatus === "onorata" || c.programareStatus === "neonorata") {
     row.programare_status = c.programareStatus;
   }
+  if (c.trackingToken) row.tracking_token = c.trackingToken;
+  if (c.termenPlata) row.termen_plata = c.termenPlata;
+  if (c.sumaDecont != null && c.sumaDecont !== "" && Number(c.sumaDecont) !== 0) {
+    row.suma_decont = Number(c.sumaDecont);
+  }
+  const devize = stripEphemeralMediaUrls(Array.isArray(c.devize) ? c.devize : []);
+  if (devize.length) row.devize = devize;
+  if (c.mesajClient && String(c.mesajClient).trim()) {
+    row.mesaj_client = String(c.mesajClient).trim();
+  }
 
   return row;
+}
+
+/** Extrage numele coloanei din eroarea PostgREST „Could not find the 'X' column…”. */
+export function parseMissingColumnError(message) {
+  const m = String(message || "").match(/Could not find the '([^']+)' column/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Upsert / update cu retry: dacă lipsește o coloană din schema DB, o scoate din payload și reîncearcă.
+ * Evită crash-ul pe create când migrările noi (ex. mesaj_client) nu sunt încă pe producție.
+ */
+export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, { id } = {}) {
+  let body = { ...payload };
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const query =
+      mode === "update"
+        ? supabaseClient.from("dosare").update(body).eq("id", id)
+        : supabaseClient.from("dosare").upsert(body);
+    const { error } = await query;
+    if (!error) return { error: null, payload: body };
+    const missing = parseMissingColumnError(error.message);
+    if (!missing || !Object.prototype.hasOwnProperty.call(body, missing)) {
+      return { error, payload: body };
+    }
+    const next = { ...body };
+    delete next[missing];
+    body = next;
+  }
+  return { error: { message: "Schema bazei de date e incompatibilă cu aplicația." }, payload: body };
 }
 
 /** Mapare câmp app → coloană DB pentru patch-uri parțiale. */
