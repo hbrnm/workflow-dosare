@@ -796,13 +796,14 @@ export default function App() {
                   pragRidicare={pragRidicare}
                   pragInactivitate={pragInactivitate}
                   alertBuckets={alertBuckets}
+                  onNotify={showNotice}
                   onSelectStatusFilter={(statusKey) => {
                     setFilterStatus(statusKey);
                     setDosareSubView("list");
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} />
+                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} onNotify={showNotice} />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
@@ -840,6 +841,7 @@ export default function App() {
                 onSetCapacitate={saveCapacitate}
                 onAddInStatus={openNew}
                 initialDate={programatorFocusDate}
+                onNotify={showNotice}
               />
             ) : (
               <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />

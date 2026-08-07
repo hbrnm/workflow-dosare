@@ -119,6 +119,7 @@ export default function Programator({
   onSetCapacitate,
   onAddInStatus,
   initialDate = null,
+  onNotify,
 }) {
   const today = new Date();
   const [activeDateStr, setActiveDateStr] = useState(() => initialDate || todayISO());
@@ -612,6 +613,7 @@ export default function Programator({
                           canEdit={canEditFn}
                           onMarkNeonorata={handleMarkNeonorata}
                           checkMasinaSchimbConflict={checkMasinaSchimbConflict}
+                          onNotify={onNotify}
                         />
                       ))}
                     </div>

@@ -9,8 +9,9 @@ import { isStageOverdue } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 
-function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false }) {
+function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
@@ -37,9 +38,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       >
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <span className="font-mono text-[11.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate">
-              {claim.numarDosar || "(fără nr.)"}
-            </span>
+            <DosarNumber
+              value={claim.numarDosar}
+              onNotify={onNotify}
+              empty="(fără nr.)"
+              className="font-mono text-[11.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
+            />
             <div className="flex items-center gap-1 shrink-0">
               <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
               <AlertBadge days={days} threshold={alertThreshold} />
@@ -138,9 +142,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       <div className="space-y-1.5">
         {/* Header Row: Nr Dosar + Pill + Alert Badge */}
         <div className="flex items-center justify-between gap-1">
-          <span className="font-mono text-[12.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate">
-            {claim.numarDosar || "(fără nr.)"}
-          </span>
+          <DosarNumber
+            value={claim.numarDosar}
+            onNotify={onNotify}
+            empty="(fără nr.)"
+            className="font-mono text-[12.5px] font-bold text-[#23282E] group-hover:text-[#C98A2B] truncate"
+          />
           <div className="flex items-center gap-1 shrink-0">
             <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
             <AlertBadge days={days} threshold={alertThreshold} />
@@ -282,7 +289,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
 
 
-function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact }) {
+function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact, onNotify }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const marcaModel = first.marcaModel || first.client || "";
@@ -347,6 +354,7 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
                 canEdit={canEditFn ? canEditFn(c) : true}
                 pragRidicare={pragRidicare}
                 compact={compact}
+                onNotify={onNotify}
               />
               {c.status === "piese_comandate" && c.dataComandaPiese && (
                 <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
@@ -361,7 +369,7 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
   );
 }
 
-export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare }) {
+export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, onNotify }) {
   const [viewMode, setViewMode] = useState("full");
 
   return (
@@ -461,6 +469,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                             canEdit={canEditFn ? canEditFn(c) : true}
                             pragRidicare={pragRidicare}
                             compact={viewMode === "compact"}
+                            onNotify={onNotify}
                           />
                           {c.status === "piese_comandate" && c.dataComandaPiese && (
                             <div className="text-[10px] text-[#7A5316] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
@@ -482,6 +491,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                         canEditFn={canEditFn}
                         pragRidicare={pragRidicare}
                         compact={viewMode === "compact"}
+                        onNotify={onNotify}
                       />
                     );
                   });

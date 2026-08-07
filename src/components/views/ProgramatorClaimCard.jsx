@@ -4,6 +4,7 @@ import {
   PROGRAMARE_STATUS,
   getProgramareCardClass,
 } from "../../utils/programareStatus";
+import DosarNumber from "../common/DosarNumber";
 
 export default function ProgramatorClaimCard({
   claim,
@@ -13,6 +14,7 @@ export default function ProgramatorClaimCard({
   canEdit,
   onMarkNeonorata,
   checkMasinaSchimbConflict,
+  onNotify,
 }) {
   const conflict = checkMasinaSchimbConflict(
     claims,
@@ -42,12 +44,11 @@ export default function ProgramatorClaimCard({
             {claim.numarInmatriculare || "FĂRĂ NR."}
           </span>
           {claim.numarDosar && (
-            <span
+            <DosarNumber
+              value={claim.numarDosar}
+              onNotify={onNotify}
               className="app-prog-claim-dosar text-[10px] font-mono font-bold px-1.5 py-0.2 rounded shrink-0"
-              title={`Dosar #${claim.numarDosar}`}
-            >
-              #{claim.numarDosar}
-            </span>
+            />
           )}
         </div>
 

@@ -9,6 +9,7 @@ import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
 import { STATUSES } from "../../constants/config";
 import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
@@ -25,6 +26,7 @@ export default function BriefZilnic({
   pragInactivitate = 7,
   alertBuckets = null,
   onSelectStatusFilter,
+  onNotify,
 }) {
   const todayStr = todayISO();
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
@@ -178,9 +180,13 @@ export default function BriefZilnic({
                     <div className="mt-2 space-y-1 text-[11.5px]">
                       <div className="flex items-center justify-between text-[var(--app-muted)] font-medium">
                         <span className="truncate">{c.marcaModel || "Model nespecificat"}</span>
-                        <span className="app-brief-meta-chip font-mono text-[10.5px] px-1.5 py-0.5 rounded">
-                          Nr: {c.numarDosar || "—"}
-                        </span>
+                        <DosarNumber
+                          value={c.numarDosar}
+                          onNotify={onNotify}
+                          prefix=""
+                          className="app-brief-meta-chip font-mono text-[10.5px] px-1.5 py-0.5 rounded hover:text-[var(--app-accent)]"
+                          empty="—"
+                        />
                       </div>
                       <div className="app-brief-reason-box text-[11px] font-bold p-2 rounded-lg leading-tight">
                         {item.reason}
