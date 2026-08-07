@@ -37,12 +37,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
-import {
-  getHistoryState,
-  pushAppState,
-  replaceAppState,
-  backIfOverlay,
-} from "./utils/appHistory";
+import { useMobileBackStack } from "./hooks/useMobileBackStack";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -259,175 +254,125 @@ export default function App() {
     };
   }, []);
 
-  // —— Back gesture / History API: overlays & mobile tabs stay in-app ——
+  // —— Back: exit only on Brief; elsewhere return to previous screen ——
   const isNavigatingHistoryRef = useRef(false);
-  const lastRootBackRef = useRef(0);
 
   const handleSetViewWithHistory = useCallback((newView, pushToHistory = true) => {
     setView(newView);
     if (pushToHistory && !isNavigatingHistoryRef.current) {
-      pushAppState({ view: newView, overlay: null, modalOpen: false }, `#${newView}`);
+      try {
+        window.history.pushState({ view: newView, modalOpen: false }, "", `#${newView}`);
+      } catch {
+        /* ignore */
+      }
     }
   }, [setView]);
 
-  const handleMobileTabChange = useCallback((tab) => {
-    setMobileTab(tab);
-    if (!isNavigatingHistoryRef.current) {
-      pushAppState({ mobileTab: tab, overlay: null }, `#m-${tab}`);
-    }
-  }, []);
+  const {
+    goTab: handleMobileTabChange,
+    requestClose,
+    openClaimFromAlerts,
+    replaceClaimWithField,
+  } = useMobileBackStack({
+    enabled: activeMode === "mobile",
+    setMobileTab,
+    flags: {
+      modalClaim,
+      fieldClaimId,
+      alerteModalTab,
+      setariOpen,
+      quickCreateOpen,
+      quickCaptureOpen,
+    },
+    api: {
+      closeClaim: closeClaimModal,
+      closeField: closeFieldClaim,
+      closeAlerts,
+      closeSettings,
+      closeQuickCreate,
+      closeQuickCapture,
+      openAlerts,
+      openSettings,
+      openField: (id) => setFieldClaimId(id),
+      openClaim: openExisting,
+      openQuickCreate: () => openNew(),
+    },
+  });
 
-  // Seed root + sentinel so the first Back stays in-app
-  useEffect(() => {
-    const state = getHistoryState();
-    if (!state.appShell) {
-      replaceAppState(
-        { mobileTab: "brief", view, overlay: null },
-        window.location.href
-      );
-      pushAppState(
-        { mobileTab: "brief", view, overlay: null },
-        window.location.href
-      );
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const requestCloseAlerts = useCallback(() => requestClose("alerte"), [requestClose]);
+  const requestCloseSettings = useCallback(() => requestClose("setari"), [requestClose]);
+  const requestCloseClaimModal = useCallback(() => requestClose("claim"), [requestClose]);
+  const requestCloseFieldClaim = useCallback(() => requestClose("field"), [requestClose]);
+  const requestCloseQuickCreate = useCallback(() => requestClose("quickCreate"), [requestClose]);
 
+  // Desktop Back (hash views) — keep light support
   useEffect(() => {
+    if (activeMode === "mobile") return undefined;
     const handlePopState = (event) => {
-      if (isNavigatingHistoryRef.current) return;
-
       isNavigatingHistoryRef.current = true;
-      const state = (event.state && typeof event.state === "object") ? event.state : getHistoryState();
-
-      // Close topmost overlay first (innermost → outer)
-      if (modalClaim) {
-        closeClaimModal();
-      } else if (fieldClaimId) {
-        closeFieldClaim();
-      } else if (alerteModalTab) {
-        closeAlerts();
-      } else if (setariOpen) {
-        closeSettings();
-      } else if (quickCreateOpen) {
-        closeQuickCreate();
-      } else if (quickCaptureOpen) {
-        closeQuickCapture();
-      } else if (state?.mobileTab && state.mobileTab !== mobileTab) {
-        setMobileTab(state.mobileTab);
-      } else if (mobileTab !== "brief") {
-        setMobileTab("brief");
-      } else if (state?.view && state.view !== view) {
-        setView(state.view);
-      } else {
-        const hash = window.location.hash.replace("#", "");
-        if (hash && ["brief", "flux", "list", "programator", "dashboard", "rapoarte"].includes(hash)) {
-          setView(hash);
-        } else {
-          // At app root — re-push sentinel; double-back within 2s leaves
-          const now = Date.now();
-          if (now - lastRootBackRef.current > 2000) {
-            lastRootBackRef.current = now;
-            pushAppState({ mobileTab: "brief", overlay: null, view });
-            showNotice("Apasă din nou Back pentru a ieși", "info");
-          }
-        }
-      }
-
+      if (modalClaim) closeClaimModal();
+      else if (setariOpen) closeSettings();
+      else if (alerteModalTab) closeAlerts();
+      else if (quickCreateOpen) closeQuickCreate();
+      else if (quickCaptureOpen) closeQuickCapture();
+      else if (event.state?.view) setView(event.state.view);
       window.setTimeout(() => {
         isNavigatingHistoryRef.current = false;
-      }, 80);
+      }, 50);
     };
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [
+    activeMode,
     modalClaim,
     closeClaimModal,
-    fieldClaimId,
-    closeFieldClaim,
-    alerteModalTab,
-    closeAlerts,
     setariOpen,
     closeSettings,
+    alerteModalTab,
+    closeAlerts,
     quickCreateOpen,
     closeQuickCreate,
     quickCaptureOpen,
     closeQuickCapture,
-    mobileTab,
-    view,
     setView,
-    showNotice,
   ]);
 
-  // Push history when overlays open
   useEffect(() => {
+    if (activeMode === "mobile") return;
     if (modalClaim && !isNavigatingHistoryRef.current) {
-      pushAppState(
-        { overlay: "claim", modalOpen: true, claimId: modalClaim.id, view, mobileTab },
-        `#claim-${modalClaim.id || "nou"}`
-      );
+      try {
+        window.history.pushState(
+          { view, modalOpen: true, claimId: modalClaim.id },
+          "",
+          `#claim-${modalClaim.id || "nou"}`
+        );
+      } catch {
+        /* ignore */
+      }
     }
-  }, [modalClaim, view, mobileTab]);
+  }, [activeMode, modalClaim, view]);
 
   useEffect(() => {
-    if (fieldClaimId && !modalClaim && !isNavigatingHistoryRef.current) {
-      pushAppState(
-        { overlay: "field", fieldSheet: true, claimId: fieldClaimId, view, mobileTab },
-        `#field-${fieldClaimId}`
-      );
-    }
-  }, [fieldClaimId, modalClaim, view, mobileTab]);
-
-  useEffect(() => {
+    if (activeMode === "mobile") return;
     if (alerteModalTab && !isNavigatingHistoryRef.current) {
-      pushAppState(
-        { overlay: "alerte", alerteTab: alerteModalTab, view, mobileTab },
-        `#alerte-${alerteModalTab}`
-      );
+      try {
+        window.history.pushState({ view, overlay: "alerte" }, "", `#alerte-${alerteModalTab}`);
+      } catch {
+        /* ignore */
+      }
     }
-  }, [alerteModalTab, view, mobileTab]);
+  }, [activeMode, alerteModalTab, view]);
 
   useEffect(() => {
+    if (activeMode === "mobile") return;
     if (setariOpen && !isNavigatingHistoryRef.current) {
-      pushAppState({ overlay: "setari", view, mobileTab }, "#setari");
+      try {
+        window.history.pushState({ view, overlay: "setari" }, "", "#setari");
+      } catch {
+        /* ignore */
+      }
     }
-  }, [setariOpen, view, mobileTab]);
-
-  useEffect(() => {
-    if (quickCreateOpen && !isNavigatingHistoryRef.current) {
-      pushAppState({ overlay: "quickCreate", view, mobileTab }, "#dosar-nou");
-    }
-  }, [quickCreateOpen, view, mobileTab]);
-
-  // UI close (X) → close state + history.back() when stack owns the overlay
-  const requestCloseAlerts = useCallback(() => {
-    if (!backIfOverlay("alerte", isNavigatingHistoryRef, closeAlerts)) closeAlerts();
-  }, [closeAlerts]);
-
-  const requestCloseSettings = useCallback(() => {
-    if (!backIfOverlay("setari", isNavigatingHistoryRef, closeSettings)) closeSettings();
-  }, [closeSettings]);
-
-  const requestCloseClaimModal = useCallback(() => {
-    if (!backIfOverlay("claim", isNavigatingHistoryRef, closeClaimModal)) closeClaimModal();
-  }, [closeClaimModal]);
-
-  const requestCloseFieldClaim = useCallback(() => {
-    if (!backIfOverlay("field", isNavigatingHistoryRef, closeFieldClaim)) closeFieldClaim();
-  }, [closeFieldClaim]);
-
-  const requestCloseQuickCreate = useCallback(() => {
-    if (!backIfOverlay("quickCreate", isNavigatingHistoryRef, closeQuickCreate)) closeQuickCreate();
-  }, [closeQuickCreate]);
-
-  /** From Alerte → dosar: clear alerte history entry, then open field sheet */
-  const openClaimFromAlerts = useCallback((claim) => {
-    isNavigatingHistoryRef.current = true;
-    closeAlerts();
-    replaceAppState({ overlay: null, mobileTab, view }, `#m-${mobileTab}`);
-    isNavigatingHistoryRef.current = false;
-    if (claim?.id) setFieldClaimId(claim.id);
-  }, [closeAlerts, mobileTab, view]);
+  }, [activeMode, setariOpen, view]);
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -465,9 +410,10 @@ export default function App() {
       setView("programator");
     }
     if (activeMode === "mobile" && claim?.id) {
-      setFieldClaimId(claim.id);
+      replaceClaimWithField(claim.id);
+    } else {
+      closeClaimModal();
     }
-    closeClaimModal();
     closeQuickCreate();
     return result;
   };
@@ -476,8 +422,8 @@ export default function App() {
     deleteClaim(id, canEdit, {
       onUndoToast: (item) => setUndoToastItem(item),
     });
-    closeClaimModal();
-    if (fieldClaimId === id) closeFieldClaim();
+    requestCloseClaimModal();
+    if (fieldClaimId === id) requestCloseFieldClaim();
   };
 
   const handleMoveToStatus = (claim, newStatusKey) => {
