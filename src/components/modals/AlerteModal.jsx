@@ -115,7 +115,12 @@ export default function AlerteModal({
     if (!onPatchClaim) return;
     const ok = await onPatchClaim(claimId, { alerteAck: true });
     if (onNotify) {
-      onNotify(ok ? "Alerta marcată ca rezolvată." : "Eroare la marcarea alertei.", ok ? "success" : "error");
+      onNotify(
+        ok
+          ? "Alertă ascunsă. Revine automat la următoarea schimbare de status."
+          : "Eroare la marcarea alertei.",
+        ok ? "success" : "error"
+      );
     }
   };
 
@@ -245,6 +250,8 @@ export default function AlerteModal({
                     const st = getStatusDefinition(c.status);
                     const phone = c.telefonClient || "";
                     const showAck = [
+                      "stagnate",
+                      "inactivitate",
                       "accept_plata",
                       "neridicate",
                       "blocate",

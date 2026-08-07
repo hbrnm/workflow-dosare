@@ -59,11 +59,26 @@ export default function MobileBrief({
     e.stopPropagation();
     if (!onPatchClaim) return;
     const ok = await onPatchClaim(claimId, { alerteAck: true });
-    onNotify?.(ok ? "Alerta marcată ca rezolvată." : "Eroare la marcarea alertei.", ok ? "success" : "error");
+    onNotify?.(
+      ok
+        ? "Alertă ascunsă. Revine automat la următoarea schimbare de status."
+        : "Eroare la marcarea alertei.",
+      ok ? "success" : "error"
+    );
   };
 
   const canAck = (type) =>
-    ["blocate", "neridicate", "accept_plata", "masini_schimb", "piese", "livrare_piese"].includes(type);
+    [
+      "blocate",
+      "neridicate",
+      "accept_plata",
+      "masini_schimb",
+      "piese",
+      "livrare_piese",
+      "stagnate",
+      "inactivitate",
+      "restante",
+    ].includes(type);
 
   const go = (tab) => {
     softHaptic(8);

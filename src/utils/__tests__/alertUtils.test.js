@@ -207,5 +207,13 @@ describe('alertUtils', () => {
       (buckets.counts.stagnate || 0) + (buckets.counts.inactivitate || 0)
     );
   });
+
+  it('accept_plata alert uses short Accept plată title', () => {
+    const buckets = buildAlertBuckets([
+      { id: 'a1', status: 'accept_plata', blocat: false },
+    ]);
+    expect(buckets.items[0].title).toBe('Accept plată');
+    expect(buckets.counts.accept_plata).toBe(1);
+  });
 });
 

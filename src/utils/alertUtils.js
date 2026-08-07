@@ -272,8 +272,8 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
       id: `accept_plata-${c.id}`,
       claim: c,
       type: "accept_plata",
-      title: "Accept fără piese comandate",
-      reason: "Accept de plată primit — comanda de piese nu a fost lansată",
+      title: "Accept plată",
+      reason: "În Accept de plată — comanda de piese nu a fost lansată",
       severity: "info",
     });
   });

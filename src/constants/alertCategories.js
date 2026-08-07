@@ -49,7 +49,7 @@ export const ALERT_TYPE_META = {
   },
   accept_plata: {
     key: "accept_plata",
-    label: "Accept fără piese",
+    label: "Accept plată",
     icon: ShoppingCart,
     hex: "#2C4160",
     badgeClass: "bg-[#2C4160] text-white",
@@ -109,7 +109,7 @@ export const ALERT_GROUPS = [
   {
     key: "piese",
     label: "Piese",
-    hint: "Livrare, neprogramate, accept fără comandă",
+    hint: "Livrare, neprogramate, accept plată",
     icon: Boxes,
     hex: "#2C4160",
     types: ["livrare_piese", "piese", "accept_plata"],

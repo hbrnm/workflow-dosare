@@ -43,10 +43,15 @@ const PRE_PROGRAMAT_STATUSES = [
 ];
 
 function applyClaimStatusChange(prev, newStatusKey) {
+  const statusChanged = prev.status !== newStatusKey;
   const updates = {
     status: newStatusKey,
-    dataSchimbareStatus: prev.status !== newStatusKey ? nowISO() : prev.dataSchimbareStatus,
+    dataSchimbareStatus: statusChanged ? nowISO() : prev.dataSchimbareStatus,
   };
+
+  if (statusChanged) {
+    updates.alerteAck = false;
+  }
 
   if (newStatusKey === "programat" && !prev.dataProgramare) {
     updates.dataProgramare = `${todayISO()}T09:00:00`;
@@ -323,21 +328,33 @@ export default function ClaimModal({
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
-  const toggleGata = (checked) => setForm((f) => ({
-    ...f,
-    gataDeRidicare: checked,
-    dataGataRidicare: checked ? nowISO() : null,
-    ridicata: false,
-    dataRidicare: null,
-    status: checked && f.status !== "facturat" ? "gata_de_ridicare" : (!checked && ["gata_de_ridicare", "predat_client"].includes(f.status) ? "in_lucru" : f.status),
-  }));
+  const toggleGata = (checked) => setForm((f) => {
+    const nextStatus = checked && f.status !== "facturat"
+      ? "gata_de_ridicare"
+      : (!checked && ["gata_de_ridicare", "predat_client"].includes(f.status) ? "in_lucru" : f.status);
+    return {
+      ...f,
+      gataDeRidicare: checked,
+      dataGataRidicare: checked ? nowISO() : null,
+      ridicata: false,
+      dataRidicare: null,
+      status: nextStatus,
+      ...(nextStatus !== f.status ? { alerteAck: false } : {}),
+    };
+  });
 
-  const toggleRidicata = (checked) => setForm((f) => ({
-    ...f,
-    ridicata: checked,
-    dataRidicare: checked ? nowISO() : null,
-    status: checked && f.status !== "facturat" ? "predat_client" : (!checked && f.status === "predat_client" ? "gata_de_ridicare" : f.status),
-  }));
+  const toggleRidicata = (checked) => setForm((f) => {
+    const nextStatus = checked && f.status !== "facturat"
+      ? "predat_client"
+      : (!checked && f.status === "predat_client" ? "gata_de_ridicare" : f.status);
+    return {
+      ...f,
+      ridicata: checked,
+      dataRidicare: checked ? nowISO() : null,
+      status: nextStatus,
+      ...(nextStatus !== f.status ? { alerteAck: false } : {}),
+    };
+  });
 
   const handleDuplicate = () => {
     const dup = {
@@ -460,6 +477,7 @@ export default function ClaimModal({
       telefonClient,
       dataUltimeiActualizari: nowISO(),
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
+      ...(statusChanged ? { alerteAck: false } : {}),
     }, { openProgramator: openProgramator || shouldOpenProgramator });
   };
 
