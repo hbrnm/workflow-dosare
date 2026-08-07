@@ -30,9 +30,11 @@ function greetingForNow() {
 
 export default function MobileBrief({
   claims,
+  listClaims = null,
   onOpen,
   onNew,
   onGoTab,
+  onOpenAlerts,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -43,6 +45,8 @@ export default function MobileBrief({
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState("toate"); // toate | lucru | atentie | predare
+
+  const sourceClaims = listClaims || claims;
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -64,6 +68,8 @@ export default function MobileBrief({
       (claims || []).filter((c) => WORKING_STATUSES.has(c.status) && !c.blocat),
     [claims]
   );
+
+  const allClaimsCount = (claims || []).length;
 
   const attentionCount =
     countAlertsForGroup(counts, "blocate") + countAlertsForGroup(counts, "intarzieri");
@@ -95,12 +101,12 @@ export default function MobileBrief({
       };
     }
     return {
-      kind: "alerts",
-      emptyTitle: "Inbox gol",
-      emptyHint: "Nicio alertă activă. Poți fotografia sau deschide un dosar.",
-      rows: items,
+      kind: "claims",
+      emptyTitle: "Niciun dosar",
+      emptyHint: "Creează un dosar nou sau verifică filtrele de căutare.",
+      rows: sourceClaims,
     };
-  }, [focus, workingClaims, items]);
+  }, [focus, workingClaims, items, sourceClaims]);
 
   const featured = alertsList[0] || items[0] || null;
 
@@ -157,7 +163,7 @@ export default function MobileBrief({
     {
       key: "toate",
       label: "Toate",
-      count: totalAlertsCount,
+      count: allClaimsCount,
       Icon: Inbox,
       tone: "steel",
     },
@@ -184,6 +190,11 @@ export default function MobileBrief({
     },
   ];
 
+  const openAlertsCenter = () => {
+    softHaptic(8);
+    onOpenAlerts?.("toate");
+  };
+
   const shortcuts = [
     { id: "capture", label: "Foto & Doc", Icon: Camera, action: () => go("capture") },
     { id: "dosare", label: "Dosare", Icon: FolderOpen, action: () => go("dosare") },
@@ -205,10 +216,11 @@ export default function MobileBrief({
             <AlertTriangle size={14} />
           </span>
           <span className="min-w-0 flex-1 text-left">
-            <span className="m-brief-row-meta">
-              {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
+            <span className="m-brief-row-plate">
+              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
             </span>
-            <span className="m-brief-row-title">{item.title}</span>
+            <span className="m-brief-row-title m-vehicle-model">{item.title}</span>
             <span className="m-brief-row-reason">{item.reason}</span>
             {noteText ? <span className="m-brief-row-note">{noteText}</span> : null}
           </span>
@@ -246,10 +258,11 @@ export default function MobileBrief({
         <Crosshair size={14} />
       </span>
       <span className="min-w-0 flex-1 text-left">
-        <span className="m-brief-row-meta">
-          {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
+        <span className="m-brief-row-plate">
+          <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+          <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
         </span>
-        <span className="m-brief-row-title">{c.marcaModel || "Model neprecizat"}</span>
+        <span className="m-brief-row-title m-vehicle-model">{c.marcaModel || "Model neprecizat"}</span>
         <span className="m-brief-row-reason">
           {getStatusShortLabel(c.status)}
           {c.dataProgramare ? ` · ${String(c.dataProgramare).slice(0, 10)}` : ""}
@@ -266,7 +279,15 @@ export default function MobileBrief({
           <p className="m-brief-kicker">{atelierNume}</p>
           <div className="flex items-end justify-between gap-3">
             <h1 className="m-brief-title">Brief</h1>
-            <span className="m-brief-count">{totalAlertsCount} alerte</span>
+            <button
+              type="button"
+              className="m-brief-count m-press"
+              onClick={openAlertsCenter}
+              aria-label={`${totalAlertsCount} alerte — deschide centrul de alerte`}
+              title="Deschide alertele"
+            >
+              {totalAlertsCount} alerte
+            </button>
           </div>
         </header>
 
@@ -313,7 +334,7 @@ export default function MobileBrief({
         <section className="space-y-2.5 flex-1 min-h-0 flex flex-col">
           <div className="flex items-center justify-between gap-2">
             <h2 className="m-brief-panel-label" style={{ margin: 0 }}>
-              {focus === "lucru" ? "Dosare în lucru" : focus === "atentie" ? "Necesită atenție" : focus === "predare" ? "Predare" : "Inbox alerte"}
+              {focus === "lucru" ? "Dosare în lucru" : focus === "atentie" ? "Necesită atenție" : focus === "predare" ? "Predare" : "Toate dosarele"}
             </h2>
             {onNew ? (
               <button type="button" className="m-brief-ghost-btn" onClick={onNew}>

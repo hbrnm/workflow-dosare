@@ -269,37 +269,41 @@ export default function SetariModal({
     >
       <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
 
-        {/* Header cu ecuson Utilizator */}
-        <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[14px] ${desktopUi ? "app-accent-bg" : "m-modal-header-icon rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] text-white shadow-sm"}`}>
-              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className={`font-semibold text-[15.5px] tracking-wide app-display ${desktopUi ? "text-[var(--app-text)]" : "font-bold text-white"}`}>
-                  Centrul de Administrare &amp; Setări
-                </h2>
-                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? (desktopUi ? "bg-[var(--app-accent)]/15 text-[var(--app-accent)] border border-[var(--app-accent)]/40" : "bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/50") : (desktopUi ? "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]" : "bg-white/10 text-white/80 border border-white/20")}`}>
-                  {isAdmin ? "★ Administrator" : "Operator"}
-                </span>
+      <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
+
+        {/* Header — doar desktop; pe mobil rămâne bara de taburi rotunjită */}
+        {desktopUi ? (
+          <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[14px] app-accent-bg">
+                {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
               </div>
-              <p className={`text-[11px] ${desktopUi ? "text-[var(--app-muted)]" : "text-white/60"}`}>Conectat ca: <span className={`font-semibold ${desktopUi ? "text-[var(--app-text)]" : "text-white"}`}>{userEmail || "Neautentificat"}</span></p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-[15.5px] tracking-wide app-display text-[var(--app-text)]">
+                    Centrul de Administrare &amp; Setări
+                  </h2>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[var(--app-accent)]/15 text-[var(--app-accent)] border border-[var(--app-accent)]/40" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"}`}>
+                    {isAdmin ? "★ Administrator" : "Operator"}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--app-muted)]">Conectat ca: <span className="font-semibold text-[var(--app-text)]">{userEmail || "Neautentificat"}</span></p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]">
+              <X size={20} />
+            </button>
           </div>
-          <button onClick={onClose} className={`p-1.5 rounded-lg ${desktopUi ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]" : "text-white/70 hover:text-white hover:bg-white/10"}`}>
-            <X size={20} />
-          </button>
-        </div>
+        ) : null}
 
         {/* Navigation Tabs */}
-        <div className={`m-settings-tabs flex border-b px-2 pt-2 gap-1 shrink-0 overflow-x-auto scrollbar-thin ${desktopUi ? "border-[var(--app-border)] bg-[var(--app-surface-2)]" : ""}`}>
+        <div className={`m-settings-tabs flex shrink-0 overflow-x-auto scrollbar-thin ${desktopUi ? "border-b border-[var(--app-border)] bg-[var(--app-surface-2)] px-2 pt-2 gap-1" : "m-settings-tabs--pill"}`}>
           {[
-            { id: "general", label: "Parametri Generali", icon: Wrench },
+            { id: "general", label: desktopUi ? "Parametri Generali" : "Parametri", icon: Wrench },
             { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
-            { id: "notificari", label: "Afișare & Alerte", icon: Bell },
-            { id: "profil", label: "Profil Utilizator", icon: User },
-            { id: "diagnoza", label: "Diagnoză & Backup", icon: Database },
+            { id: "notificari", label: desktopUi ? "Afișare & Alerte" : "Afișare", icon: Bell },
+            { id: "profil", label: desktopUi ? "Profil Utilizator" : "Profil", icon: User },
+            { id: "diagnoza", label: desktopUi ? "Diagnoză & Backup" : "Backup", icon: Database },
           ].map(({ id, label, icon: Icon, badge }) => {
             const active = activeTab === id;
             return (
@@ -307,9 +311,9 @@ export default function SetariModal({
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
-                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap shrink-0 ${
-                  active ? "is-active" : ""
-                } ${desktopUi && active ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface)] rounded-t-lg" : ""} ${desktopUi && !active ? "border-transparent text-[var(--app-muted)]" : ""}`}
+                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 ${
+                  desktopUi ? "border-b-2" : "border-0"
+                } ${active ? "is-active" : ""} ${desktopUi && active ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface)] rounded-t-lg" : ""} ${desktopUi && !active ? "border-transparent text-[var(--app-muted)]" : ""}`}
               >
                 <Icon size={15} />
                 <span>{label}</span>
@@ -321,6 +325,16 @@ export default function SetariModal({
               </button>
             );
           })}
+          {!desktopUi ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="m-settings-close ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
+              aria-label="Închide setările"
+            >
+              <X size={18} />
+            </button>
+          ) : null}
         </div>
 
         {/* Content Body */}

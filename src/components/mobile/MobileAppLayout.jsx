@@ -28,6 +28,7 @@ export default function MobileAppLayout({
   onNotify,
   onLogout,
   onOpenSettings,
+  onOpenAlerts,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -210,10 +211,12 @@ export default function MobileAppLayout({
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
-            claims={filteredClaims}
+            claims={claims}
+            listClaims={filteredClaims}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onGoTab={handleTabChange}
+            onOpenAlerts={onOpenAlerts}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}

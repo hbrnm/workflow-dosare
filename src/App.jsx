@@ -438,7 +438,7 @@ export default function App() {
         )}
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
-            claims={claims}
+            claims={userClaims}
             session={session}
             userEmail={myEmail}
             onOpenClaim={openMobileClaim}
@@ -448,6 +448,7 @@ export default function App() {
             onNotify={showNotice}
             onLogout={handleLogout}
             onOpenSettings={openSettings}
+            onOpenAlerts={openAlerts}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
@@ -541,6 +542,22 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
+            />
+          </Suspense>
+        )}
+
+        {alerteModalTab && (
+          <Suspense fallback={null}>
+            <AlerteModal
+              claims={userClaims}
+              alertBuckets={alertBuckets}
+              initialTab={alerteModalTab}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onClose={closeAlerts}
+              onOpenClaim={openMobileClaim}
+              onPatchClaim={handlePatchClaim}
+              onNotify={showNotice}
             />
           </Suspense>
         )}

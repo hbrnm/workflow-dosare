@@ -89,9 +89,11 @@ export default function MobileClaimsList({
             <button
               type="button"
               onClick={onNew}
-              className="m-btn-primary shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-[12px] font-extrabold"
+              className="m-fab-plus m-press"
+              aria-label="Dosar nou"
+              title="Dosar nou"
             >
-              <Plus size={15} /> Dosar
+              <Plus size={18} strokeWidth={2.5} />
             </button>
           </div>
         </div>
@@ -136,9 +138,11 @@ export default function MobileClaimsList({
               <button
                 type="button"
                 onClick={onNew}
-                className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-extrabold"
+                className="m-fab-plus m-press mx-auto"
+                aria-label="Dosar nou"
+                title="Dosar nou"
               >
-                <Plus size={14} /> Dosar Nou
+                <Plus size={18} strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -158,7 +162,7 @@ export default function MobileClaimsList({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-extrabold text-[14px] text-[var(--app-text-strong)] uppercase">
+                      <span className="m-plate">
                         {c.numarInmatriculare || "—"}
                       </span>
                       {c.blocat && <span className="m-ui-chip is-danger">BLOCAT</span>}
@@ -177,8 +181,8 @@ export default function MobileClaimsList({
                     />
                   )}
 
-                  <div className="flex items-center justify-between text-[12px] font-semibold m-muted">
-                    <span className="text-[var(--app-text)]">{c.marcaModel || "—"}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="m-vehicle-model truncate">{c.marcaModel || "—"}</span>
                     <div className="flex items-center gap-2 shrink-0">
                       {c.status === "programat" && c.dataProgramare && (
                         <span className="font-mono text-[11px] font-bold text-[var(--app-text-strong)]">
@@ -189,7 +193,7 @@ export default function MobileClaimsList({
                         value={c.numarDosar}
                         onNotify={onNotify}
                         prefix=""
-                        className="font-mono text-[11px] m-muted hover:text-[var(--app-accent)]"
+                        className="m-dosar-num hover:text-[var(--app-accent)]"
                       />
                     </div>
                   </div>
@@ -250,7 +254,7 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono font-extrabold text-[14px] text-[var(--app-text-strong)] uppercase tracking-wide">
+            <span className="m-plate tracking-wide">
               {plate}
             </span>
             <span className="m-stack-badge text-[10px] font-bold px-2 py-0.5 rounded-full">
@@ -258,7 +262,7 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
             </span>
           </div>
           {!expanded && (
-            <p className="text-[11.5px] text-[var(--app-muted)] mt-1 leading-snug truncate">{subline}</p>
+            <p className="m-vehicle-model mt-1 leading-snug truncate">{subline}</p>
           )}
         </div>
         <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-[var(--app-muted)]">
@@ -286,7 +290,7 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
                       onNotify={onNotify}
                       empty="Fără nr."
                       prefix=""
-                      className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] uppercase truncate hover:text-[var(--app-accent)]"
+                      className="m-dosar-num uppercase truncate hover:text-[var(--app-accent)]"
                     />
                     {c.blocat && (
                       <span className="px-1.5 py-0.5 text-[9px] bg-[var(--app-danger)] text-white font-bold rounded shrink-0">

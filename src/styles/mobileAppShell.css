@@ -1135,3 +1135,108 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   box-shadow: none;
   border-bottom: 1px solid var(--app-border);
 }
+
+/* Shared claim card typography — plate/dosar large, model small */
+.m-plate {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--app-text-strong);
+  line-height: 1.2;
+}
+
+.m-dosar-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--app-text-strong);
+  line-height: 1.2;
+}
+
+.m-vehicle-model {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--app-muted);
+  line-height: 1.3;
+}
+
+.mobile-shell.app-shell .m-brief-row-plate,
+.mobile-shell.app-shell .m-ui-row-plate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.65rem;
+}
+
+.mobile-shell.app-shell .m-brief-row-title.m-vehicle-model {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.mobile-shell.app-shell .m-fab-plus {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 45%, var(--app-border));
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--app-accent) 28%, transparent);
+}
+
+.mobile-shell.app-shell .m-fab-plus:active {
+  transform: scale(0.96);
+}
+
+.mobile-shell.app-shell button.m-brief-count {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.m-themed-modal .m-settings-tabs--pill {
+  margin: 0.75rem 0.75rem 0;
+  padding: 0.35rem;
+  gap: 0.25rem;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-surface-2) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab {
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  color: var(--app-muted);
+  background: transparent;
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab.is-active {
+  color: var(--app-accent-text);
+  background: var(--app-accent);
+  border-color: transparent;
+  border-radius: 999px;
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab-badge {
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab.is-active .m-settings-tab-badge,
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab-badge.is-active {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  color: var(--app-accent-text);
+}
+
+.m-themed-modal .m-settings-close {
+  color: var(--app-muted);
+}
