@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
 import {
   CalendarClock, Clock, Car, User, Phone,
-  Calendar, ChevronRight, Edit3, Save, Wrench, XCircle
+  Calendar, ChevronRight, Edit3, Save, Wrench, XCircle, ChevronDown, ChevronUp
 } from "lucide-react";
 import { telLink, todayISO } from "../../utils/dateUtils";
 import { getStatusDefinition, isProgramatorClaim } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
+import { groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
 
 /**
  * Aceeași sursă de adevăr ca Programatorul desktop:
@@ -43,6 +44,11 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
     }
     return programari;
   }, [programari, filterMode, todayStr]);
+
+  const groupedProgramari = useMemo(
+    () => groupClaimsByPlateAndSchedule(filteredProgramari),
+    [filteredProgramari]
+  );
 
   const handleStartEdit = (claim) => {
     if (canEditFn && !canEditFn(claim)) {
@@ -170,21 +176,80 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
             )}
           </div>
         ) : (
-          filteredProgramari.map((c) => {
-            const isEditing = editingClaimId === c.id;
+          groupedProgramari.map((group) => {
+            const c = group[0];
+            const stacked = group.length > 1;
+            const isEditing = group.some((g) => g.id === editingClaimId);
+            const editingClaim = group.find((g) => g.id === editingClaimId) || c;
             const phone = c.telefonClient || "";
             const statusLabel = getStatusDefinition(c.status).label;
             const canEdit = !canEditFn || canEditFn(c);
-            const showInLucru = canEdit && c.status === "programat";
-            const showClear = canEdit && c.status === "programat";
+            const showInLucru = canEdit && group.some((g) => g.status === "programat");
+            const showClear = canEdit && group.some((g) => g.status === "programat");
 
             return (
+              <MobileProgramareStackCard
+                key={stacked ? `stack-${c.id}` : c.id}
+                group={group}
+                lead={c}
+                stacked={stacked}
+                isEditing={isEditing}
+                editingClaim={editingClaim}
+                phone={phone}
+                statusLabel={statusLabel}
+                canEdit={canEdit}
+                showInLucru={showInLucru}
+                showClear={showClear}
+                editDate={editDate}
+                editTime={editTime}
+                setEditDate={setEditDate}
+                setEditTime={setEditTime}
+                setEditingClaimId={setEditingClaimId}
+                onStartEdit={handleStartEdit}
+                onSaveProgramare={handleSaveProgramare}
+                onMarkInLucru={handleMarkInLucru}
+                onClearProgramare={handleClearProgramare}
+                onOpen={onOpen}
+              />
+            );
+          })
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+function MobileProgramareStackCard({
+  group,
+  lead: c,
+  stacked,
+  isEditing,
+  editingClaim,
+  phone,
+  statusLabel,
+  canEdit,
+  showInLucru,
+  showClear,
+  editDate,
+  editTime,
+  setEditDate,
+  setEditTime,
+  setEditingClaimId,
+  onStartEdit,
+  onSaveProgramare,
+  onMarkInLucru,
+  onClearProgramare,
+  onOpen,
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
               <div
-                key={c.id}
                 className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-2xs space-y-2.5 hover:border-[#C98A2B] transition-all"
               >
                 <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono font-extrabold text-[12px] bg-[#2C4160] text-white px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1">
                       <Clock size={11} />
                       {c.dataProgramare.slice(11, 16) || "08:00"}
@@ -192,6 +257,11 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                     <span className="font-mono font-extrabold text-[13.5px] text-[#23282E] uppercase">
                       {c.numarInmatriculare || "—"}
                     </span>
+                    {stacked && (
+                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#C98A2B] text-white">
+                        ×{group.length}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10.5px] font-mono text-[#8A8375] bg-[#FAF8F5] px-2 py-0.5 rounded border border-[#DAD4C6] font-semibold">
                     {c.dataProgramare.slice(0, 10)}
@@ -204,25 +274,66 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                       <Car size={13} className="text-[#C98A2B] shrink-0" />
                       {c.marcaModel || "Model nespecificat"}
                     </span>
-                    <span className="text-[10px] text-[#8A8375] font-mono">
-                      Nr: {c.numarDosar || "—"}
-                    </span>
+                    {!stacked && (
+                      <span className="text-[10px] text-[#8A8375] font-mono">
+                        Nr: {c.numarDosar || "—"}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-[#8A8375] text-[11px]">
-                    <span className="truncate flex items-center gap-1">
-                      <User size={12} className="shrink-0 text-[#8A8375]" />
-                      {c.client || "Client neintrodus"}
-                    </span>
-                    <span className="shrink-0 text-[10px] font-bold text-[#3B5166] bg-[#EEF1F3] px-1.5 py-0.5 rounded">
-                      {statusLabel}
-                    </span>
-                  </div>
+                  {stacked ? (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded((v) => !v)}
+                      className="w-full flex items-center justify-between gap-2 text-[#8A8375] text-[11px] font-semibold py-0.5"
+                    >
+                      <span className="truncate font-mono">
+                        {group.map((g) => `#${g.numarDosar || "?"}`).join(" · ")}
+                      </span>
+                      <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold">
+                        {expanded ? "Restrânge" : "Extinde"}
+                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </span>
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2 text-[#8A8375] text-[11px]">
+                      <span className="truncate flex items-center gap-1">
+                        <User size={12} className="shrink-0 text-[#8A8375]" />
+                        {c.client || "Client neintrodus"}
+                      </span>
+                      <span className="shrink-0 text-[10px] font-bold text-[#3B5166] bg-[#EEF1F3] px-1.5 py-0.5 rounded">
+                        {statusLabel}
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {stacked && expanded && (
+                  <div className="space-y-1.5 border-t border-[#EFEAE1] pt-2">
+                    {group.map((g) => (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => onOpen(g)}
+                        className="w-full flex items-center justify-between gap-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] px-2.5 py-2 text-left"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[12px] text-[#23282E]">
+                            #{g.numarDosar || "—"}
+                          </div>
+                          <div className="text-[10.5px] text-[#8A8375] truncate">
+                            {g.client || "—"} · {getStatusDefinition(g.status).label}
+                          </div>
+                        </div>
+                        <ChevronRight size={14} className="text-[#8A8375] shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {isEditing ? (
                   <div className="bg-[#FAF8F5] border border-[#C98A2B]/60 p-2.5 rounded-xl space-y-2 animate-in fade-in duration-150">
                     <div className="text-[10.5px] font-bold text-[#7A5316] flex items-center gap-1">
-                      <Edit3 size={12} /> Modifică Data &amp; Ora Programării:
+                      <Edit3 size={12} /> Modifică Data &amp; Ora{stacked ? " (toate dosarele pe mașină)" : ""}:
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <input
@@ -248,7 +359,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleSaveProgramare(c.id)}
+                        onClick={() => onSaveProgramare(editingClaim.id)}
                         className="flex items-center gap-1 px-3 py-1 rounded-lg bg-[#C98A2B] text-white text-[11px] font-extrabold hover:bg-[#B37A22] shadow-xs"
                       >
                         <Save size={12} /> Salvează
@@ -274,7 +385,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                         {canEdit && (
                           <button
                             type="button"
-                            onClick={() => handleStartEdit(c)}
+                            onClick={() => onStartEdit(c)}
                             className="flex items-center gap-1 px-2 py-1 rounded bg-[#FAF8F5] border border-[#DAD4C6] hover:bg-gray-100 text-[#6B6558] text-[10.5px] font-bold transition-colors"
                           >
                             <Edit3 size={11} /> Data
@@ -284,10 +395,10 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
 
                       <button
                         type="button"
-                        onClick={() => onOpen(c)}
+                        onClick={() => (stacked ? setExpanded(true) : onOpen(c))}
                         className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#2C4160] text-white hover:bg-[#1E2D44] text-[11px] font-bold transition-colors shadow-2xs"
                       >
-                        <span>Deschide</span>
+                        <span>{stacked ? "Dosare" : "Deschide"}</span>
                         <ChevronRight size={13} />
                       </button>
                     </div>
@@ -297,7 +408,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                         {showInLucru && (
                           <button
                             type="button"
-                            onClick={() => handleMarkInLucru(c)}
+                            onClick={() => onMarkInLucru(c)}
                             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11px] font-extrabold"
                           >
                             <Wrench size={12} /> În lucru
@@ -306,7 +417,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                         {showClear && (
                           <button
                             type="button"
-                            onClick={() => handleClearProgramare(c)}
+                            onClick={() => onClearProgramare(c)}
                             className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] text-[11px] font-bold"
                           >
                             <XCircle size={12} /> Anulează prog.
@@ -317,11 +428,5 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
                   </div>
                 )}
               </div>
-            );
-          })
-        )}
-      </div>
-
-    </div>
   );
 }

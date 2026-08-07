@@ -7,6 +7,7 @@ import {
 } from "../../utils/dateUtils";
 import { isProgramatorClaim } from "../../constants/config";
 import { getProgramareChipClass } from "../../utils/programareStatus";
+import { groupClaimsByPlate, groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
 import ProgramatorClaimCard from "./ProgramatorClaimCard";
 import ProgramareNeonorataModal from "../modals/ProgramareNeonorataModal";
 
@@ -511,19 +512,24 @@ export default function Programator({
                       </span>
                     )}
                   </div>
-                  {/* Compact chips — mai multe programări pe aceeași zi */}
+                  {/* Compact chips — comasate pe nr. înmatriculare */}
                   <div className="mt-1 flex flex-wrap gap-0.5 content-start min-h-[1.25rem]">
-                    {dayClaims.map((c) => {
-                      const time = c.dataProgramare?.slice(11, 16) || "";
-                      const plate = (c.numarInmatriculare || "—").slice(-7);
+                    {groupClaimsByPlate(dayClaims).map((group) => {
+                      const lead = group[0];
+                      const time = lead.dataProgramare?.slice(11, 16) || "";
+                      const plate = (lead.numarInmatriculare || "—").slice(-7);
+                      const stacked = group.length > 1;
+                      const title = stacked
+                        ? `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"} ×${group.length}: ${group.map((c) => `#${c.numarDosar || "?"}`).join(", ")}`
+                        : `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"}${lead.numarDosar ? ` (#${lead.numarDosar})` : ""} · ${lead.client || ""}`;
                       return (
                         <button
-                          key={c.id}
+                          key={stacked ? `g-${lead.numarInmatriculare}-${lead.id}` : lead.id}
                           type="button"
                           draggable={true}
                           onDragStart={(e) => {
                             e.stopPropagation();
-                            e.dataTransfer.setData("text/plain", c.id);
+                            e.dataTransfer.setData("text/plain", lead.id);
                             e.dataTransfer.effectAllowed = "move";
                           }}
                           onClick={(e) => {
@@ -531,12 +537,12 @@ export default function Programator({
                             setActiveDateStr(cell.iso);
                             setActiveSlotForScheduling(null);
                             setSelectingFromArrived(false);
-                            if (onOpen) onOpen(c);
+                            if (onOpen) onOpen(lead);
                           }}
-                          className={`app-prog-chip max-w-[54px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(c.programareStatus)}`}
-                          title={`${time ? `${time} · ` : ""}${c.numarInmatriculare || "—"}${c.numarDosar ? ` (#${c.numarDosar})` : ""} · ${c.client || ""}`}
+                          className={`app-prog-chip max-w-[62px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)}`}
+                          title={title}
                         >
-                          {plate}
+                          {stacked ? `${plate}×${group.length}` : plate}
                         </button>
                       );
                     })}
@@ -603,10 +609,11 @@ export default function Programator({
 
                   {hasItems ? (
                     <div className="space-y-1">
-                      {items.map((c) => (
+                      {groupClaimsByPlate(items).map((group) => (
                         <ProgramatorClaimCard
-                          key={c.id}
-                          claim={c}
+                          key={group.length > 1 ? `stack-${group[0].id}` : group[0].id}
+                          claim={group[0]}
+                          groupClaims={group.length > 1 ? group : null}
                           claims={claims}
                           onOpen={onOpen}
                           onPatch={onPatch}
