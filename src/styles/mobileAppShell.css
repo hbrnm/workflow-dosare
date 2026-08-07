@@ -301,10 +301,8 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
-  background: color-mix(in srgb, var(--app-surface) 72%, transparent);
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.45),
-    0 1px 0 color-mix(in srgb, #fff 8%, transparent) inset;
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
