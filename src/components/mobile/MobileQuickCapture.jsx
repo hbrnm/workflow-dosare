@@ -452,10 +452,10 @@ export default function MobileQuickCapture({
                   } ${!isSelected && isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="m-ui-chip shrink-0">
-                      Dosar: {c.numarDosar || "Fără nr."}
+                    <span className="m-dosar-num shrink-0">
+                      {c.numarDosar || "Fără nr."}
                     </span>
-                    <span className="m-vehicle-model truncate">
+                    <span className="m-vehicle-model truncate min-w-0">
                       {c.marcaModel || ""}
                     </span>
                   </div>

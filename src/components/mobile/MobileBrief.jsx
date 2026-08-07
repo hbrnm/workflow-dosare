@@ -463,16 +463,16 @@ export default function MobileBrief({
               return (
                 <div key={item.id} className="m-hub-card space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-extrabold text-[14px] uppercase">
+                    <span className="m-plate">
                       {c.numarInmatriculare || "—"}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[55%]" style={{ background: "var(--m-surface-2)", color: "var(--m-muted)" }}>
+                    <span className="m-vehicle-model truncate max-w-[55%]">
                       {item.title}
                     </span>
                   </div>
                   <div className="text-[12px] font-semibold m-muted flex justify-between gap-2">
-                    <span className="truncate">{c.marcaModel || "Model neprecizat"}</span>
-                    <span className="font-mono text-[11px] shrink-0">Dosar: {c.numarDosar || "—"}</span>
+                    <span className="m-vehicle-model truncate">{c.marcaModel || "Model neprecizat"}</span>
+                    <span className="m-dosar-num shrink-0">{c.numarDosar || "—"}</span>
                   </div>
                   <div className="text-[11.5px] font-bold p-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--m-danger) 16%, transparent)", color: "var(--m-danger)" }}>
                     {item.reason}
@@ -561,18 +561,16 @@ export default function MobileBrief({
             return (
               <div key={item.id} className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-sm space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
-                    {c.numarInmatriculare || "—"}
+                  <span className="m-brief-row-plate">
+                    <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+                    <span className="m-dosar-num">{c.numarDosar || "—"}</span>
                   </span>
-                  <span className="text-[10px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded-md text-[#3B5166] truncate max-w-[55%]">
+                  <span className="text-[10px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded-md text-[#3B5166] truncate max-w-[40%]">
                     {item.title}
                   </span>
                 </div>
 
-                <div className="text-[12px] font-semibold text-[#6B6558] flex justify-between gap-2">
-                  <span className="truncate">{c.marcaModel || "Model neprecizat"}</span>
-                  <span className="font-mono text-[11px] shrink-0">Dosar: {c.numarDosar || "—"}</span>
-                </div>
+                <div className="m-vehicle-model truncate">{c.marcaModel || "Model neprecizat"}</div>
 
                 <div className="text-[11.5px] font-bold text-[#B23A2E] bg-red-50/60 border border-red-100 p-2 rounded-xl">
                   {item.reason}

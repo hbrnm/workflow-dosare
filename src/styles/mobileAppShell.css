@@ -1254,30 +1254,31 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border-bottom: 1px solid var(--app-border);
 }
 
-/* Shared claim card typography — plate/dosar large, model small */
+/* Shared claim typography — plate / dosar / model same size as Acces rapid (0.9rem) */
 .m-plate {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.95rem;
-  font-weight: 800;
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--app-text-strong);
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .m-dosar-num {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--app-text-strong);
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .m-vehicle-model {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: var(--app-muted);
-  line-height: 1.3;
+  line-height: 1.25;
+  text-transform: uppercase;
 }
 
 .mobile-shell.app-shell .m-brief-row-plate,
@@ -1285,13 +1286,13 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.45rem 0.65rem;
+  gap: 0.4rem 0.65rem;
 }
 
 .mobile-shell.app-shell .m-brief-row-title.m-vehicle-model {
-  font-size: 0.7rem;
-  font-weight: 600;
-  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 0.15rem;
 }
 
 .mobile-shell.app-shell .m-fab-plus {
