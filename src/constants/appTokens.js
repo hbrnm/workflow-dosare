@@ -62,7 +62,7 @@ export const APP_TOKEN_DEFAULTS = APP_TOKEN_DARK;
 
 export const COLOR_SCHEME_META = {
   light: "#ffffff",
-  dark: "#010409",
+  dark: "#0d1117",
 };
 
 /** @returns {"light"|"dark"} */
