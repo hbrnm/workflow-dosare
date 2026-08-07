@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0.85rem 0.9rem 0.15rem;
+  padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 0.9rem 0.15rem;
 }
 
 .app-alerte-mobile-titlepill {
@@ -616,7 +616,7 @@
   }
 
   .app-alerte-list {
-    padding: 0.45rem 0.75rem 1.35rem;
+    padding: 0.45rem 0.75rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
   }
 
   .app-alerte-rows {

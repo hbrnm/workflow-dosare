@@ -40,6 +40,7 @@ export default function MobileAppLayout({
   setSearch,
   highlightClaimIds = null,
   onMobileShellLockChange,
+  hideBottomChrome = false,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
   const [activeTab, setActiveTab] = useState("brief");
@@ -102,7 +103,12 @@ export default function MobileAppLayout({
   const atelierName = branding?.atelierNume || "Dosare Daună";
 
   return (
-    <div className="mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden">
+    <div
+      className={`mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden ${
+        hideBottomChrome ? "is-chrome-hidden" : ""
+      }`}
+    >
+      {!hideBottomChrome && (
       <div className="m-float-brand-wrap" ref={menuRef}>
         <button
           type="button"
@@ -194,6 +200,7 @@ export default function MobileAppLayout({
           </div>
         ) : null}
       </div>
+      )}
 
       <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
         {activeTab === "capture" ? (
@@ -251,9 +258,11 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
-        <MobileSearchBar value={search} onChange={handleSearchChange} />
-      </div>
+      {!hideBottomChrome && (
+        <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
+          <MobileSearchBar value={search} onChange={handleSearchChange} />
+        </div>
+      )}
     </div>
   );
 }
