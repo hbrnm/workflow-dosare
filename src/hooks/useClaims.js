@@ -1,6 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
-import { fromDb, toDb, toDbPatch, writeDosarWithSchemaCompat } from "../utils/claimUtils";
+import {
+  fromDb,
+  toDb,
+  toDbPatch,
+  writeDosarWithSchemaCompat,
+  hasMediaOps,
+  resolveMediaPatch,
+  stripMediaOps,
+  unionMediaLists,
+} from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
 import { getStatusAlertDays } from "../constants/config";
@@ -13,9 +22,23 @@ export function useClaims(session, showNotice) {
   const [undoItem, setUndoItem] = useState(null);
   const pendingDeletes = useRef(new Map()); // id -> { claim, timer }
   const pendingStatusChanges = useRef(new Map()); // id -> { previousClaim, timer }
+  const claimsRef = useRef([]);
+  const claimWriteQueues = useRef(new Map()); // id -> Promise chain (serialize media writes)
+
+  claimsRef.current = claims;
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
+
+  const enqueueClaimWrite = useCallback((id, task) => {
+    const prev = claimWriteQueues.current.get(id) || Promise.resolve();
+    const run = prev.catch(() => {}).then(task);
+    claimWriteQueues.current.set(
+      id,
+      run.catch(() => {})
+    );
+    return run;
+  }, []);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -51,11 +74,20 @@ export function useClaims(session, showNotice) {
 
   const saveClaim = useCallback(
     async (claim, { openProgramator = false } = {}) => {
-      const isNewClaim = !claims.some((c) => c.id === claim.id);
+      const isNewClaim = !claimsRef.current.some((c) => c.id === claim.id);
+      const live = claimsRef.current.find((c) => c.id === claim.id);
+      // Union media so a full save does not wipe concurrent QuickCapture uploads
+      const claimToSave = live
+        ? {
+            ...claim,
+            poze: unionMediaLists(claim.poze, live.poze),
+            documente: unionMediaLists(claim.documente, live.documente),
+          }
+        : claim;
       const payload = toDb({
-        ...claim,
-        createdBy: isNewClaim ? myId : claim.createdBy || myId,
-        createdByEmail: isNewClaim ? myEmail : claim.createdByEmail || myEmail,
+        ...claimToSave,
+        createdBy: isNewClaim ? myId : claimToSave.createdBy || myId,
+        createdByEmail: isNewClaim ? myEmail : claimToSave.createdByEmail || myEmail,
         updatedByEmail: myEmail,
       });
       const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", payload);
@@ -67,7 +99,7 @@ export function useClaims(session, showNotice) {
       showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.", "success");
       return { success: true, openProgramator };
     },
-    [claims, loadAll, myEmail, myId, showNotice]
+    [loadAll, myEmail, myId, showNotice]
   );
 
   /**
@@ -77,7 +109,7 @@ export function useClaims(session, showNotice) {
    */
   const deleteClaim = useCallback(
     (id, canEditFn, { onUndoToast } = {}) => {
-      const target = claims.find((c) => c.id === id);
+      const target = claimsRef.current.find((c) => c.id === id);
       if (!target) return;
       if (canEditFn && !canEditFn(target)) {
         showNotice("Poți șterge doar dosarele create de tine.", "error");
@@ -140,54 +172,68 @@ export function useClaims(session, showNotice) {
         onUndo: undoDelete,
       });
     },
-    [claims, showNotice]
+    [showNotice]
   );
 
   const patchClaim = useCallback(
     async (id, patch, { canEditFn, skipOwnershipCheck = false } = {}) => {
-      const current = claims.find((c) => c.id === id);
-      if (!current) return false;
-      if (!skipOwnershipCheck && canEditFn && !canEditFn(current)) {
-        showNotice("Poți edita doar dosarele create de tine.", "error");
-        return false;
-      }
-      let effectivePatch = { ...patch };
-      const { patch: schedulePatch, notices: scheduleNotices } = applyScheduleStatusEffects(
-        current,
-        effectivePatch
-      );
-      effectivePatch = schedulePatch;
-      scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+      const run = async () => {
+        const current = claimsRef.current.find((c) => c.id === id);
+        if (!current) return false;
+        if (!skipOwnershipCheck && canEditFn && !canEditFn(current)) {
+          showNotice("Poți edita doar dosarele create de tine.", "error");
+          return false;
+        }
 
-      const nextStatus = effectivePatch.status ?? current.status;
-      if (nextStatus !== current.status) {
-        effectivePatch = {
+        const mediaResolved = resolveMediaPatch(current, patch);
+        let effectivePatch = { ...stripMediaOps(patch), ...mediaResolved };
+
+        const { patch: schedulePatch, notices: scheduleNotices } = applyScheduleStatusEffects(
+          current,
+          effectivePatch
+        );
+        effectivePatch = schedulePatch;
+        scheduleNotices.forEach((msg) => showNotice(msg, "success"));
+
+        const nextStatus = effectivePatch.status ?? current.status;
+        if (nextStatus !== current.status) {
+          effectivePatch = {
+            ...effectivePatch,
+            alerteAck: false,
+            dataSchimbareStatus: effectivePatch.dataSchimbareStatus || nowISO(),
+            termenAlertaZile:
+              effectivePatch.termenAlertaZile ?? getStatusAlertDays(nextStatus),
+          };
+        }
+
+        const updated = {
+          ...current,
           ...effectivePatch,
-          alerteAck: false,
-          dataSchimbareStatus: effectivePatch.dataSchimbareStatus || nowISO(),
-          termenAlertaZile:
-            effectivePatch.termenAlertaZile ?? getStatusAlertDays(nextStatus),
+          dataUltimeiActualizari: nowISO(),
+          updatedByEmail: myEmail,
         };
-      }
+        const patchPayload = toDbPatch(current, effectivePatch, { updatedByEmail: myEmail });
+        const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, { id });
+        if (error) {
+          showNotice(error.message, "error");
+          await loadAll();
+          return false;
+        }
+        setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
+        return true;
+      };
 
-      const updated = { ...current, ...effectivePatch, dataUltimeiActualizari: nowISO(), updatedByEmail: myEmail };
-      const patchPayload = toDbPatch(current, effectivePatch, { updatedByEmail: myEmail });
-      const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, { id });
-      if (error) {
-        showNotice(error.message, "error");
-        await loadAll();
-        return false;
+      if (hasMediaOps(patch)) {
+        return enqueueClaimWrite(id, run);
       }
-      setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      return true;
+      return run();
     },
-    [claims, loadAll, myEmail, showNotice]
+    [enqueueClaimWrite, loadAll, myEmail, showNotice]
   );
 
   /**
    * moveToStatus — schimbă statusul cu undo 5 secunde.
-   * Statusul se schimbă imediat în UI, DB-ul se actualizează după timer.
-   * Dacă user apasă Anulează, statusul anterior este restaurat.
+   * Statusul se schimbă imediat în UI; DB primește doar un patch țintit (fără poze/documente).
    */
   const moveToStatus = useCallback(
     (claim, newStatusKey, canEditFn, { onUndoToast } = {}) => {
@@ -214,17 +260,20 @@ export function useClaims(session, showNotice) {
         ? { dataProgramare: null, pieseSosite: newStatusKey === "piese_comandate" ? !!claim.pieseSosite : false }
         : {};
 
-      const updated = {
-        ...claim,
+      const statusPatch = {
         ...deliveryPatch,
         ...schedulePatch,
         status: newStatusKey,
         termenAlertaZile: getStatusAlertDays(newStatusKey),
         dataSchimbareStatus: changedAt,
+        alerteAck: false,
+      };
+
+      const updated = {
+        ...claim,
+        ...statusPatch,
         dataUltimeiActualizari: changedAt,
         updatedByEmail: myEmail,
-        // „Rezolvat” e snooze până la următoarea mutare de status
-        alerteAck: false,
       };
 
       // Apply immediately to UI
@@ -238,7 +287,10 @@ export function useClaims(session, showNotice) {
       clearPendingTimer();
       pendingStatusChanges.current.delete(claim.id);
       void (async () => {
-        const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", toDb(updated));
+        const patchPayload = toDbPatch(claim, statusPatch, { updatedByEmail: myEmail });
+        const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, {
+          id: claim.id,
+        });
         if (error) {
           showNotice(error.message, "error");
           setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
@@ -251,7 +303,22 @@ export function useClaims(session, showNotice) {
         pendingStatusChanges.current.delete(claim.id);
         setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
         void (async () => {
-          const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", toDb(previousClaim));
+          const undoPatch = {
+            status: previousClaim.status,
+            termenAlertaZile: previousClaim.termenAlertaZile,
+            dataSchimbareStatus: previousClaim.dataSchimbareStatus,
+            alerteAck: previousClaim.alerteAck,
+            gataDeRidicare: previousClaim.gataDeRidicare,
+            dataGataRidicare: previousClaim.dataGataRidicare,
+            ridicata: previousClaim.ridicata,
+            dataRidicare: previousClaim.dataRidicare,
+            dataProgramare: previousClaim.dataProgramare,
+            pieseSosite: previousClaim.pieseSosite,
+          };
+          const patchPayload = toDbPatch(updated, undoPatch, { updatedByEmail: myEmail });
+          const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, {
+            id: claim.id,
+          });
           if (error) showNotice(error.message, "error");
           else showNotice(`Status restaurat la „${previousClaim.status}".`, "success");
         })();

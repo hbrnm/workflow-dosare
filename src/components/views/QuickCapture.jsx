@@ -112,11 +112,11 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           const withCat = typeof uploaded === "object" ? { ...uploaded, categoria } : { url: uploaded, categoria };
           currentPoze = [withCat, ...currentPoze];
           setPoze(currentPoze);
-          onPatch(selected.id, { poze: currentPoze });
+          onPatch(selected.id, { appendPoze: [withCat] });
         } else {
           currentDocs = [uploaded, ...currentDocs];
           setDocumente(currentDocs);
-          onPatch(selected.id, { documente: currentDocs });
+          onPatch(selected.id, { appendDocumente: [uploaded] });
         }
       } catch (err) {
         onNotify(`Eroare la „${item.name}": ${err.message || err}`, "error");
@@ -178,20 +178,24 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         const uploaded = await uploadStorageItem(supabase, "documente-dosare", selected.id, pdfFile, "documente");
         currentDocs = [uploaded, ...currentDocs];
         setDocumente(currentDocs);
-        onPatch(selected.id, { documente: currentDocs });
+        onPatch(selected.id, { appendDocumente: [uploaded] });
       }
 
       if (scanSession.saveAsPhotos) {
         const baseName = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        const uploadedPhotos = [];
         for (let i = 0; i < scanSession.pages.length; i++) {
           const res = await fetch(scanSession.pages[i]);
           const blob = await res.blob();
           const photoFile = new File([blob], `${baseName}_pagina_${i + 1}.jpg`, { type: "image/jpeg" });
           const uploaded = await uploadStorageItem(supabase, "poze-dosare", selected.id, photoFile, "poze");
+          uploadedPhotos.push(uploaded);
           currentPoze = [uploaded, ...currentPoze];
         }
         setPoze(currentPoze);
-        onPatch(selected.id, { poze: currentPoze });
+        if (uploadedPhotos.length) {
+          onPatch(selected.id, { appendPoze: uploadedPhotos });
+        }
       }
 
       onNotify("Document scanat și atașat cu succes!", "success");
@@ -209,7 +213,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     }
     const next = poze.filter((_, i) => i !== idx);
     setPoze(next);
-    onPatch(selected.id, { poze: next });
+    onPatch(selected.id, { removePoze: [poza] });
   };
 
   const removeDoc = async (doc, idx) => {
@@ -218,7 +222,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     }
     const next = documente.filter((_, i) => i !== idx);
     setDocumente(next);
-    onPatch(selected.id, { documente: next });
+    onPatch(selected.id, { removeDocumente: [doc] });
   };
 
   const openLiveCamera = (cat) => {
