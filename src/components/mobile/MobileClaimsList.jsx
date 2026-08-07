@@ -212,6 +212,7 @@ export default function MobileClaimsList({
                 key={group[0].id}
                 group={group}
                 onOpen={onOpen}
+                onNotify={onNotify}
                 canEditFn={canEditFn}
                 onTogglePieseSosite={handleTogglePieseSosite}
                 onScheduleFromPiese={handleScheduleFromPiese}
@@ -225,7 +226,7 @@ export default function MobileClaimsList({
   );
 }
 
-function MobileStackedGroupCard({ group, onOpen, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
+function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
   const plate = first.numarInmatriculare || "—";
