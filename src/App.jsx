@@ -36,7 +36,7 @@ import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
-import { isCompactMobileViewport } from "./utils/viewport";
+import { isCompactMobileViewport, syncAppViewportCssVars } from "./utils/viewport";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -71,6 +71,22 @@ export default function App() {
     const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    syncAppViewportCssVars();
+    const sync = () => syncAppViewportCssVars();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
   }, []);
 
   const activeMode =

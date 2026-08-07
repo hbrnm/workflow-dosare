@@ -96,15 +96,17 @@
 
 /* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 4.35rem;
-  min-height: 100%;
-  min-height: 100dvh;
+  --mobile-bottom-chrome: 4.1rem;
+  height: var(--app-vvh, 100dvh);
+  min-height: var(--app-vvh, 100dvh);
   min-height: -webkit-fill-available;
   background: var(--app-bg);
+  /* Extra paint beyond the shell box on iOS letterbox gaps */
+  box-shadow: 0 70vh 0 70vh var(--app-bg), 0 -40vh 0 40vh var(--app-bg);
 }
 
 .mobile-shell.app-shell .mobile-main {
-  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) + 0.35rem);
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
@@ -279,23 +281,12 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
 }
 
 .mobile-shell.app-shell .mobile-bottom-chrome--float {
-  background: transparent;
+  /* Transparent — page/list remains visible through the bottom zone */
+  background: transparent !important;
   border: none;
   box-shadow: none;
-  /* Coborâm search-ul: doar safe-area (fără offset mare care lăsa bandă neagră) */
-  padding: 0 0.85rem max(0.2rem, env(safe-area-inset-bottom, 0px));
-  pointer-events: none;
-}
-
-/* Umple zona home-indicator cu fundalul app — nu negru PWA #000 */
-.mobile-shell.app-shell .mobile-bottom-chrome--float::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: max(0.2rem, env(safe-area-inset-bottom, 0px));
-  background: var(--app-bg);
+  /* Sit low: tiny gap only (home indicator handled lightly) */
+  padding: 0 0.75rem max(0.12rem, calc(env(safe-area-inset-bottom, 0px) * 0.25));
   pointer-events: none;
 }
 
