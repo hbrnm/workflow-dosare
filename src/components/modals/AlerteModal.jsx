@@ -103,6 +103,11 @@ export default function AlerteModal({
     return { withAlerts, empty };
   }, [buckets.counts]);
 
+  const mobileCats = useMemo(() => {
+    // Pe mobil: prioritate la cele cu alerte; goalele rămân la final, mai discrete
+    return [...categoriesOrdered.withAlerts, ...categoriesOrdered.empty];
+  }, [categoriesOrdered]);
+
   const activeCat = getAlertGroup(activeTab) || ALERT_GROUPS[1];
   const ActiveIcon = activeCat.icon;
   const list = useMemo(
@@ -130,7 +135,7 @@ export default function AlerteModal({
     onOpenClaim?.(c);
   };
 
-  const renderCategoryButton = (cat, { compact = false } = {}) => {
+  const renderSidebarCat = (cat) => {
     const active = activeTab === cat.key;
     const Icon = cat.icon;
     const empty = cat.count === 0;
@@ -144,15 +149,37 @@ export default function AlerteModal({
         title={cat.label}
       >
         <span className="app-alerte-cat-icon" style={{ color: active ? "#fff" : cat.hex }}>
-          <Icon size={compact ? 14 : 16} strokeWidth={2.25} />
+          <Icon size={16} strokeWidth={2.25} />
         </span>
         <span className="app-alerte-cat-text">
           <span className="app-alerte-cat-label">{cat.label}</span>
-          {!compact && empty && (
-            <span className="app-alerte-cat-hint">0</span>
-          )}
+          {empty && <span className="app-alerte-cat-hint">0</span>}
         </span>
         <span className={`app-alerte-cat-count ${cat.count > 0 ? "has-items" : ""}`}>
+          {cat.count}
+        </span>
+      </button>
+    );
+  };
+
+  const renderPillCat = (cat) => {
+    const active = activeTab === cat.key;
+    const Icon = cat.icon;
+    const empty = cat.count === 0;
+    return (
+      <button
+        key={cat.key}
+        type="button"
+        onClick={() => setActiveTab(cat.key)}
+        className={`m-settings-tab app-alerte-pill-tab flex items-center gap-1.5 shrink-0 border-0 ${
+          active ? "is-active" : ""
+        } ${empty ? "is-empty" : ""}`}
+        style={active ? { "--alerte-cat-accent": cat.hex } : undefined}
+        title={cat.label}
+      >
+        <Icon size={14} strokeWidth={2.25} style={{ color: active ? "inherit" : cat.hex }} />
+        <span>{cat.label}</span>
+        <span className={`m-settings-tab-badge app-alerte-pill-badge ${active ? "is-active" : ""} ${cat.count > 0 ? "has-items" : ""}`}>
           {cat.count}
         </span>
       </button>
@@ -170,15 +197,41 @@ export default function AlerteModal({
           "app-alerte-panel w-full max-w-5xl flex flex-col h-full sm:h-auto max-h-[100dvh] sm:max-h-[92vh] overflow-hidden"
         )}
       >
-        <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-center justify-between gap-3 px-4 py-3")}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="app-alerte-header-icon shrink-0">
-              <Bell size={18} />
+        {/* Desktop: classic header bar */}
+        {desktopUi ? (
+          <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-center justify-between gap-3 px-4 py-3")}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="app-alerte-header-icon shrink-0">
+                <Bell size={18} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <h2 className="app-alerte-title app-display">
+                  Centrul de Alerte
+                </h2>
+                <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
+                  {totalAlertsCount === 0
+                    ? "0"
+                    : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-              <h2 className="app-alerte-title app-display">
-                Centrul de Alerte
-              </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="app-alerte-close shrink-0"
+              aria-label="Închide"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        ) : (
+          /* Mobile: floating title chip — no full-bleed header slab */
+          <div className="app-alerte-mobile-chrome">
+            <div className="app-alerte-mobile-titlepill">
+              <span className="app-alerte-mobile-bell" aria-hidden>
+                <Bell size={15} />
+              </span>
+              <h2 className="app-alerte-mobile-heading">Alerte</h2>
               <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
                 {totalAlertsCount === 0
                   ? "0"
@@ -186,21 +239,19 @@ export default function AlerteModal({
               </span>
             </div>
           </div>
+        )}
+
+        {/* Mobile: category pills in the shared settings pill track + close */}
+        <div className="m-settings-tabs m-settings-tabs--pill app-alerte-pill-track flex shrink-0 overflow-x-auto scrollbar-thin sm:hidden">
+          {mobileCats.map((cat) => renderPillCat(cat))}
           <button
             type="button"
             onClick={onClose}
-            className="app-alerte-close shrink-0"
+            className="m-settings-close ml-auto shrink-0"
             aria-label="Închide"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
-        </div>
-
-        {/* Mobile: horizontal category scroller with full labels */}
-        <div className="app-alerte-cats-mobile sm:hidden">
-          {[...categoriesOrdered.withAlerts, ...categoriesOrdered.empty].map((cat) =>
-            renderCategoryButton(cat, { compact: true })
-          )}
         </div>
 
         <div className="app-alerte-body flex flex-1 min-h-0">
@@ -209,13 +260,13 @@ export default function AlerteModal({
             {categoriesOrdered.withAlerts.length > 0 && (
               <div className="app-alerte-sidebar-group">
                 <p className="app-alerte-sidebar-heading">Necesită atenție</p>
-                {categoriesOrdered.withAlerts.map((cat) => renderCategoryButton(cat))}
+                {categoriesOrdered.withAlerts.map((cat) => renderSidebarCat(cat))}
               </div>
             )}
             {categoriesOrdered.empty.length > 0 && (
               <div className="app-alerte-sidebar-group">
                 <p className="app-alerte-sidebar-heading">Fără alerte</p>
-                {categoriesOrdered.empty.map((cat) => renderCategoryButton(cat))}
+                {categoriesOrdered.empty.map((cat) => renderSidebarCat(cat))}
               </div>
             )}
           </aside>
@@ -377,11 +428,13 @@ export default function AlerteModal({
           </section>
         </div>
 
-        <div className="app-alerte-footer hidden sm:flex">
-          <button type="button" onClick={onClose} className="app-alerte-btn-close">
-            Închide
-          </button>
-        </div>
+        {desktopUi ? (
+          <div className="app-alerte-footer">
+            <button type="button" onClick={onClose} className="app-alerte-btn-close">
+              Închide
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

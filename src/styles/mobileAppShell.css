@@ -1377,6 +1377,23 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-accent-text);
 }
 
+.m-settings-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--app-muted);
+}
+
+.m-settings-close:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-muted);
+}
+
 .m-themed-modal .m-settings-close {
   color: var(--app-muted);
 }
