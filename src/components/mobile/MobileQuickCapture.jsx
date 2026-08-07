@@ -28,6 +28,7 @@ export default function MobileQuickCapture({
   focusClaimId = null,
   onFocusClaimConsumed,
   highlightClaimIds = null,
+  onMobileShellLockChange,
 }) {
   const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
@@ -55,6 +56,23 @@ export default function MobileQuickCapture({
   useEffect(() => {
     if (selectedClaimId) saveLastCaptureClaimId(selectedClaimId);
   }, [selectedClaimId]);
+
+  // Prevent App from switching to desktop shell on landscape rotate while capture UI is open.
+  useEffect(() => {
+    const locked =
+      showLiveCamera ||
+      showLiveScanner ||
+      Boolean(activeScanCrop) ||
+      Boolean(previewMedia);
+    onMobileShellLockChange?.(locked);
+    return () => onMobileShellLockChange?.(false);
+  }, [
+    showLiveCamera,
+    showLiveScanner,
+    activeScanCrop,
+    previewMedia,
+    onMobileShellLockChange,
+  ]);
 
   // Drop stale last-claim if it no longer exists / isn't editable
   useEffect(() => {
@@ -366,20 +384,19 @@ export default function MobileQuickCapture({
   return (
     <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       
-      {/* 1. SELECTARE & CĂUTARE DOSAR */}
+      {/* 1. SELECTARE DOSAR */}
       <div className="m-ui-panel m-ui-panel-pad space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <div>
-            <p className="m-ui-kicker">Captură</p>
-            <h2 className="m-ui-title" style={{ fontSize: "1.25rem" }}>Dosar pentru foto</h2>
-          </div>
+          <h2 className="m-ui-title" style={{ fontSize: "1.25rem" }}>Dosar pentru foto</h2>
           {onNew && (
             <button
               type="button"
               onClick={() => { softHaptic(8); onNew(); }}
-              className="m-btn-primary m-press flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11.5px] font-extrabold"
+              className="m-fab-plus m-press"
+              aria-label="Dosar nou"
+              title="Dosar nou"
             >
-              <Plus size={14} /> Dosar
+              <Plus size={18} strokeWidth={2.5} />
             </button>
           )}
         </div>
@@ -413,9 +430,11 @@ export default function MobileQuickCapture({
                 <button
                   type="button"
                   onClick={() => { softHaptic(8); onNew(); }}
-                  className="m-btn-primary m-press inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-extrabold"
+                  className="m-fab-plus m-press mx-auto"
+                  aria-label="Dosar nou"
+                  title="Dosar nou"
                 >
-                  <Plus size={14} /> Creează dosar nou
+                  <Plus size={18} strokeWidth={2.5} />
                 </button>
               )}
             </div>
@@ -435,13 +454,13 @@ export default function MobileQuickCapture({
                     <span className="m-ui-chip shrink-0">
                       Dosar: {c.numarDosar || "Fără nr."}
                     </span>
-                    <span className="text-[11px] font-semibold truncate m-muted">
+                    <span className="m-vehicle-model truncate">
                       {c.marcaModel || ""}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                    <span className="font-mono font-extrabold text-[12.5px] uppercase text-[var(--app-text-strong)]">
+                    <span className="m-plate">
                       {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
                     {isSelected && <CheckCircle2 size={16} className="text-[var(--app-accent)]" />}
@@ -454,11 +473,6 @@ export default function MobileQuickCapture({
       </div>
 
       {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
-      {!selectedClaim && (
-        <div className="m-ui-hint">
-          Selectează un dosar de mai sus ca să fotografiezi.
-        </div>
-      )}
       <div className={`m-ui-panel m-ui-panel-pad space-y-3 transition-opacity ${selectedClaim ? "" : "opacity-60 pointer-events-none"}`}>
         
         {uploading && (
@@ -566,8 +580,8 @@ export default function MobileQuickCapture({
 
           {/* GALERIE THUMBNAILS POZE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5">
-            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📸 Fotografii Daună / Vehicul ({displayPoze.length})
+            <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
+              Fotografii ({displayPoze.length})
             </span>
             {displayPoze.length === 0 ? (
               <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
@@ -615,8 +629,8 @@ export default function MobileQuickCapture({
 
           {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
-            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📄 Documente Acte ({displayDocs.length})
+            <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
+              Documente ({displayDocs.length})
             </span>
             {displayDocs.length === 0 ? (
               <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">

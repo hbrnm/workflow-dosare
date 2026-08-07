@@ -36,6 +36,7 @@ import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
+import { isCompactMobileViewport } from "./utils/viewport";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -54,13 +55,9 @@ export default function App() {
   const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
   const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
 
-  const [isMobileScreen, setIsMobileScreen] = useState(() => {
-    try {
-      return window.innerWidth < 768;
-    } catch (err) {
-      return false;
-    }
-  });
+  const [isMobileScreen, setIsMobileScreen] = useState(() => isCompactMobileViewport());
+  /** Keep mobile shell mounted while camera/scanner is open across orientation changes. */
+  const [lockMobileShell, setLockMobileShell] = useState(false);
 
   const [displayMode, setDisplayMode] = useState(() => {
     try {
@@ -71,12 +68,13 @@ export default function App() {
   });
 
   useEffect(() => {
-    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const activeMode = displayMode || (isMobileScreen ? "mobile" : "desktop");
+  const activeMode =
+    displayMode || (isMobileScreen || lockMobileShell ? "mobile" : "desktop");
 
   const toggleDisplayMode = (mode) => {
     setDisplayMode(mode);
@@ -440,7 +438,7 @@ export default function App() {
         )}
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
-            claims={claims}
+            claims={userClaims}
             session={session}
             userEmail={myEmail}
             onOpenClaim={openMobileClaim}
@@ -450,6 +448,7 @@ export default function App() {
             onNotify={showNotice}
             onLogout={handleLogout}
             onOpenSettings={openSettings}
+            onOpenAlerts={openAlerts}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
@@ -460,6 +459,7 @@ export default function App() {
             search={search}
             setSearch={setSearch}
             highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={setLockMobileShell}
           />
         </Suspense>
 
@@ -542,6 +542,22 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
+            />
+          </Suspense>
+        )}
+
+        {alerteModalTab && (
+          <Suspense fallback={null}>
+            <AlerteModal
+              claims={userClaims}
+              alertBuckets={alertBuckets}
+              initialTab={alerteModalTab}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onClose={closeAlerts}
+              onOpenClaim={openMobileClaim}
+              onPatchClaim={handlePatchClaim}
+              onNotify={showNotice}
             />
           </Suspense>
         )}

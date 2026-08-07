@@ -104,14 +104,10 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
   return (
     <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       <header className="m-ui-hero">
-        <p className="m-ui-kicker">Agenda atelier</p>
         <div className="flex items-end justify-between gap-3">
           <h1 className="m-ui-title" style={{ fontSize: "1.55rem" }}>Programări</h1>
           <span className="m-ui-count">{filteredProgramari.length}</span>
         </div>
-        <p className="text-[11.5px] m-muted mt-1.5 font-semibold">
-          Programare → status automat. Reprogramarea nu coboară un dosar deja în lucru.
-        </p>
       </header>
 
       <div className="m-brief-tiles" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: "0.45rem" }}>
@@ -236,7 +232,7 @@ function MobileProgramareStackCard({
                       <Clock size={11} />
                       {c.dataProgramare.slice(11, 16) || "08:00"}
                     </span>
-                    <span className="font-mono font-extrabold text-[13.5px] uppercase text-[var(--app-text-strong)]">
+                    <span className="m-plate">
                       {c.numarInmatriculare || "—"}
                     </span>
                     {stacked && (
@@ -250,13 +246,13 @@ function MobileProgramareStackCard({
 
                 <div className="space-y-1 text-[11.5px]">
                   <div className="flex items-center justify-between m-muted font-semibold">
-                    <span className="truncate flex items-center gap-1 text-[var(--app-text)]">
+                    <span className="truncate flex items-center gap-1 m-vehicle-model">
                       <Car size={13} className="text-[var(--app-accent)] shrink-0" />
                       {c.marcaModel || "Model nespecificat"}
                     </span>
                     {!stacked && (
-                      <span className="text-[10px] m-muted font-mono">
-                        Nr: {c.numarDosar || "—"}
+                      <span className="m-dosar-num">
+                        {c.numarDosar || "—"}
                       </span>
                     )}
                   </div>

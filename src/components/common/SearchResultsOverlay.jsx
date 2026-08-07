@@ -155,7 +155,7 @@ export default function SearchResultsOverlay({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono font-extrabold text-[14px] text-[var(--app-text-strong)] uppercase truncate">
+                      <span className="m-plate truncate">
                         {c.numarInmatriculare || "—"}
                       </span>
                       {c.blocat && (
@@ -172,8 +172,8 @@ export default function SearchResultsOverlay({
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2 text-[12px] font-semibold text-[var(--app-muted)]">
-                    <span className="truncate flex items-center gap-1.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate flex items-center gap-1.5 min-w-0 m-vehicle-model">
                       <Car size={12} className="shrink-0 text-[var(--app-accent)]" />
                       <span className="truncate">{c.marcaModel || "—"}</span>
                     </span>
@@ -188,7 +188,7 @@ export default function SearchResultsOverlay({
                         onNotify={onNotify}
                         prefix="#"
                         empty="Fără nr."
-                        className="font-mono text-[11px] font-bold text-[var(--app-muted)] hover:text-[var(--app-accent)]"
+                        className="m-dosar-num hover:text-[var(--app-accent)]"
                       />
                     </div>
                   </div>
