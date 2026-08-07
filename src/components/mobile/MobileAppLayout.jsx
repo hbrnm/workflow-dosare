@@ -38,6 +38,7 @@ export default function MobileAppLayout({
   search = "",
   setSearch,
   highlightClaimIds = null,
+  onMobileShellLockChange,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
   const [activeTab, setActiveTab] = useState("brief");
@@ -205,6 +206,7 @@ export default function MobileAppLayout({
             focusClaimId={focusClaimId}
             onFocusClaimConsumed={() => setFocusClaimId(null)}
             highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={onMobileShellLockChange}
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
