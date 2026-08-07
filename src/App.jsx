@@ -37,6 +37,12 @@ import { useSettings } from "./hooks/useSettings";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
+import {
+  getHistoryState,
+  pushAppState,
+  replaceAppState,
+  backIfOverlay,
+} from "./utils/appHistory";
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -214,6 +220,7 @@ export default function App() {
   // Mobile field sheet (thin claim view) — full ClaimModal only via "Detalii complete"
   const [fieldClaimId, setFieldClaimId] = useState(null);
   const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+  const [mobileTab, setMobileTab] = useState("brief");
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -252,64 +259,175 @@ export default function App() {
     };
   }, []);
 
-  // Suport navigare buton Back din browser (History API)
+  // —— Back gesture / History API: overlays & mobile tabs stay in-app ——
   const isNavigatingHistoryRef = useRef(false);
+  const lastRootBackRef = useRef(0);
 
   const handleSetViewWithHistory = useCallback((newView, pushToHistory = true) => {
     setView(newView);
     if (pushToHistory && !isNavigatingHistoryRef.current) {
-      window.history.pushState({ view: newView, modalOpen: false }, "", `#${newView}`);
+      pushAppState({ view: newView, overlay: null, modalOpen: false }, `#${newView}`);
     }
   }, [setView]);
 
+  const handleMobileTabChange = useCallback((tab) => {
+    setMobileTab(tab);
+    if (!isNavigatingHistoryRef.current) {
+      pushAppState({ mobileTab: tab, overlay: null }, `#m-${tab}`);
+    }
+  }, []);
+
+  // Seed root + sentinel so the first Back stays in-app
+  useEffect(() => {
+    const state = getHistoryState();
+    if (!state.appShell) {
+      replaceAppState(
+        { mobileTab: "brief", view, overlay: null },
+        window.location.href
+      );
+      pushAppState(
+        { mobileTab: "brief", view, overlay: null },
+        window.location.href
+      );
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     const handlePopState = (event) => {
+      if (isNavigatingHistoryRef.current) return;
+
       isNavigatingHistoryRef.current = true;
+      const state = (event.state && typeof event.state === "object") ? event.state : getHistoryState();
+
+      // Close topmost overlay first (innermost → outer)
       if (modalClaim) {
         closeClaimModal();
       } else if (fieldClaimId) {
         closeFieldClaim();
+      } else if (alerteModalTab) {
+        closeAlerts();
       } else if (setariOpen) {
         closeSettings();
+      } else if (quickCreateOpen) {
+        closeQuickCreate();
       } else if (quickCaptureOpen) {
         closeQuickCapture();
-      } else if (event.state && event.state.view) {
-        setView(event.state.view);
+      } else if (state?.mobileTab && state.mobileTab !== mobileTab) {
+        setMobileTab(state.mobileTab);
+      } else if (mobileTab !== "brief") {
+        setMobileTab("brief");
+      } else if (state?.view && state.view !== view) {
+        setView(state.view);
       } else {
         const hash = window.location.hash.replace("#", "");
         if (hash && ["brief", "flux", "list", "programator", "dashboard", "rapoarte"].includes(hash)) {
           setView(hash);
+        } else {
+          // At app root — re-push sentinel; double-back within 2s leaves
+          const now = Date.now();
+          if (now - lastRootBackRef.current > 2000) {
+            lastRootBackRef.current = now;
+            pushAppState({ mobileTab: "brief", overlay: null, view });
+            showNotice("Apasă din nou Back pentru a ieși", "info");
+          }
         }
       }
-      setTimeout(() => {
+
+      window.setTimeout(() => {
         isNavigatingHistoryRef.current = false;
-      }, 50);
+      }, 80);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [modalClaim, closeClaimModal, fieldClaimId, closeFieldClaim, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
+  }, [
+    modalClaim,
+    closeClaimModal,
+    fieldClaimId,
+    closeFieldClaim,
+    alerteModalTab,
+    closeAlerts,
+    setariOpen,
+    closeSettings,
+    quickCreateOpen,
+    closeQuickCreate,
+    quickCaptureOpen,
+    closeQuickCapture,
+    mobileTab,
+    view,
+    setView,
+    showNotice,
+  ]);
 
-  // Deschidere modal / field sheet — stare în istoric pentru Back
+  // Push history when overlays open
   useEffect(() => {
     if (modalClaim && !isNavigatingHistoryRef.current) {
-      window.history.pushState(
-        { view, modalOpen: true, claimId: modalClaim.id },
-        "",
+      pushAppState(
+        { overlay: "claim", modalOpen: true, claimId: modalClaim.id, view, mobileTab },
         `#claim-${modalClaim.id || "nou"}`
       );
     }
-  }, [modalClaim, view]);
+  }, [modalClaim, view, mobileTab]);
 
   useEffect(() => {
     if (fieldClaimId && !modalClaim && !isNavigatingHistoryRef.current) {
-      window.history.pushState(
-        { view, fieldSheet: true, claimId: fieldClaimId },
-        "",
+      pushAppState(
+        { overlay: "field", fieldSheet: true, claimId: fieldClaimId, view, mobileTab },
         `#field-${fieldClaimId}`
       );
     }
-  }, [fieldClaimId, modalClaim, view]);
+  }, [fieldClaimId, modalClaim, view, mobileTab]);
+
+  useEffect(() => {
+    if (alerteModalTab && !isNavigatingHistoryRef.current) {
+      pushAppState(
+        { overlay: "alerte", alerteTab: alerteModalTab, view, mobileTab },
+        `#alerte-${alerteModalTab}`
+      );
+    }
+  }, [alerteModalTab, view, mobileTab]);
+
+  useEffect(() => {
+    if (setariOpen && !isNavigatingHistoryRef.current) {
+      pushAppState({ overlay: "setari", view, mobileTab }, "#setari");
+    }
+  }, [setariOpen, view, mobileTab]);
+
+  useEffect(() => {
+    if (quickCreateOpen && !isNavigatingHistoryRef.current) {
+      pushAppState({ overlay: "quickCreate", view, mobileTab }, "#dosar-nou");
+    }
+  }, [quickCreateOpen, view, mobileTab]);
+
+  // UI close (X) → close state + history.back() when stack owns the overlay
+  const requestCloseAlerts = useCallback(() => {
+    if (!backIfOverlay("alerte", isNavigatingHistoryRef, closeAlerts)) closeAlerts();
+  }, [closeAlerts]);
+
+  const requestCloseSettings = useCallback(() => {
+    if (!backIfOverlay("setari", isNavigatingHistoryRef, closeSettings)) closeSettings();
+  }, [closeSettings]);
+
+  const requestCloseClaimModal = useCallback(() => {
+    if (!backIfOverlay("claim", isNavigatingHistoryRef, closeClaimModal)) closeClaimModal();
+  }, [closeClaimModal]);
+
+  const requestCloseFieldClaim = useCallback(() => {
+    if (!backIfOverlay("field", isNavigatingHistoryRef, closeFieldClaim)) closeFieldClaim();
+  }, [closeFieldClaim]);
+
+  const requestCloseQuickCreate = useCallback(() => {
+    if (!backIfOverlay("quickCreate", isNavigatingHistoryRef, closeQuickCreate)) closeQuickCreate();
+  }, [closeQuickCreate]);
+
+  /** From Alerte → dosar: clear alerte history entry, then open field sheet */
+  const openClaimFromAlerts = useCallback((claim) => {
+    isNavigatingHistoryRef.current = true;
+    closeAlerts();
+    replaceAppState({ overlay: null, mobileTab, view }, `#m-${mobileTab}`);
+    isNavigatingHistoryRef.current = false;
+    if (claim?.id) setFieldClaimId(claim.id);
+  }, [closeAlerts, mobileTab, view]);
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -463,6 +581,8 @@ export default function App() {
             hideBottomChrome={Boolean(
               alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen
             )}
+            mobileTab={mobileTab}
+            onMobileTabChange={handleMobileTabChange}
           />
         </Suspense>
 
@@ -470,7 +590,7 @@ export default function App() {
           <Suspense fallback={null}>
             <MobileClaimSheet
               claim={fieldClaim}
-              onClose={closeFieldClaim}
+              onClose={requestCloseFieldClaim}
               onOpenFull={(c) => {
                 // Full editor on top of sheet; closing modal returns to sheet
                 openExisting(c);
@@ -481,7 +601,7 @@ export default function App() {
               onNotify={showNotice}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
-                closeFieldClaim();
+                requestCloseFieldClaim();
               }}
             />
           </Suspense>
@@ -495,7 +615,7 @@ export default function App() {
               onSave={handleSave}
               onPatch={handlePatchClaim}
               onDelete={handleDelete}
-              onClose={closeClaimModal}
+              onClose={requestCloseClaimModal}
               onNotify={showNotice}
               onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openMobileClaim(c), 150); }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
@@ -511,7 +631,7 @@ export default function App() {
           <Suspense fallback={null}>
             <QuickCreateClaimModal
               isOpen={quickCreateOpen}
-              onClose={closeQuickCreate}
+              onClose={requestCloseQuickCreate}
               onSave={handleSave}
             />
           </Suspense>
@@ -534,7 +654,7 @@ export default function App() {
               branding={branding}
               onSaveBranding={saveBranding}
               onUploadBrandingLogo={uploadBrandingLogo}
-              onClose={closeSettings}
+              onClose={requestCloseSettings}
               onNotify={showNotice}
               userEmail={myEmail}
               onSignOut={handleLogout}
@@ -556,8 +676,8 @@ export default function App() {
               initialTab={alerteModalTab}
               pragRidicare={pragRidicare}
               pragInactivitate={pragInactivitate}
-              onClose={closeAlerts}
-              onOpenClaim={openMobileClaim}
+              onClose={requestCloseAlerts}
+              onOpenClaim={openClaimFromAlerts}
               onPatchClaim={handlePatchClaim}
               onNotify={showNotice}
             />
@@ -1028,10 +1148,10 @@ export default function App() {
       {/* --- MODALS & OVERLAYS --- */}
       <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
         {modalClaim && (
-          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={closeClaimModal}>
+          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={requestCloseClaimModal}>
             <ClaimModal
               claim={activeModalClaim}
-              onClose={closeClaimModal}
+              onClose={requestCloseClaimModal}
               onSave={handleSave}
               onPatch={handlePatchClaim}
               onDelete={handleDelete}
@@ -1052,7 +1172,7 @@ export default function App() {
             initialTab={alerteModalTab}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
-            onClose={closeAlerts}
+            onClose={requestCloseAlerts}
             onOpenClaim={handleOpenClaim}
             onPatchClaim={handlePatchClaim}
             onNotify={showNotice}
@@ -1076,7 +1196,7 @@ export default function App() {
             branding={branding}
             onSaveBranding={saveBranding}
             onUploadBrandingLogo={uploadBrandingLogo}
-            onClose={closeSettings}
+            onClose={requestCloseSettings}
             onNotify={showNotice}
             userEmail={myEmail}
             onSignOut={handleLogout}
@@ -1093,7 +1213,7 @@ export default function App() {
         {quickCreateOpen && (
           <QuickCreateClaimModal
             isOpen={quickCreateOpen}
-            onClose={closeQuickCreate}
+            onClose={requestCloseQuickCreate}
             onSave={handleSave}
             desktopUi
           />
