@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
-import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "../../utils/alertUtils";
+import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline, getDaysInStage } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
@@ -29,7 +29,7 @@ const STAGE_SORT_KEY = "deschidere";
 // ---------------------------------------------------------------------------
 export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify, hideStatusSelect = false, isSearchHighlight = false }) {
   const statusDef = getStatusDefinition(claim.status);
-  const days = daysBetween(claim.dataSchimbareStatus);
+  const days = getDaysInStage(claim);
   const overdue = isStageOverdue(claim);
   const alertThreshold = getClaimAlertDays(claim);
   const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
@@ -175,7 +175,7 @@ function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimIds
 }
 
 function getClaimAgingMeta(claim) {
-  const days = daysBetween(claim.dataSchimbareStatus);
+  const days = getDaysInStage(claim);
   const overdue = isStageOverdue(claim);
   let agingClass = "app-flux-aging";
   if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";

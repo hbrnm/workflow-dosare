@@ -10,10 +10,16 @@ import {
   buildAlertBuckets,
   filterAlertItems,
   normalizeAlertTab,
+  getDaysInStage,
 } from '../alertUtils';
 
 function isoDaysAgo(days) {
   const d = new Date(Date.now() - days * 86400000);
+  return d.toISOString();
+}
+
+function isoDaysFromNow(days) {
+  const d = new Date(Date.now() + days * 86400000);
   return d.toISOString();
 }
 
@@ -43,6 +49,34 @@ describe('alertUtils', () => {
       dataSchimbareStatus: isoDaysAgo(4),
       termenAlertaZile: 1,
     })).toBe(false);
+  });
+
+  it('programat with future appointment is not overdue even if status is old', () => {
+    const claim = {
+      status: 'programat',
+      dataSchimbareStatus: isoDaysAgo(20),
+      dataProgramare: isoDaysFromNow(15),
+    };
+    expect(isStageOverdue(claim)).toBe(false);
+    expect(getDaysInStage(claim)).toBe(0);
+  });
+
+  it('programat alerts from appointment date, not status change', () => {
+    expect(isStageOverdue({
+      status: 'programat',
+      dataSchimbareStatus: isoDaysAgo(20),
+      dataProgramare: isoDaysAgo(4),
+    })).toBe(true);
+    expect(isStageOverdue({
+      status: 'programat',
+      dataSchimbareStatus: isoDaysAgo(20),
+      dataProgramare: isoDaysAgo(1),
+    })).toBe(false);
+    expect(getDaysInStage({
+      status: 'programat',
+      dataSchimbareStatus: isoDaysAgo(20),
+      dataProgramare: isoDaysAgo(4),
+    })).toBe(4);
   });
 
   it('isStageOverdue respects Setări overrides from localStorage', () => {

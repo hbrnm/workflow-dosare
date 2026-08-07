@@ -1,9 +1,14 @@
 import { STATUSES } from "../constants/config";
-import { daysBetween } from "./dateUtils";
-import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline } from "./alertUtils";
+import {
+  isStageOverdue,
+  isDeliveryDeadlineOverdue,
+  isPartsOrderOverdue,
+  getDaysPastDeliveryDeadline,
+  getDaysInStage,
+} from "./alertUtils";
 
 export function getClaimStageDays(claim) {
-  return claim?.dataSchimbareStatus ? daysBetween(claim.dataSchimbareStatus) : 0;
+  return getDaysInStage(claim);
 }
 
 /** Timestamp deschidere — pentru sortare (fără dată = 0, rămâne la final la desc). */

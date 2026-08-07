@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, telLink } from "../../utils/dateUtils";
-import { isStageOverdue } from "../../utils/alertUtils";
+import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -16,7 +16,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
   const statusDef = getStatusDefinition(claim.status);
-  const days = daysBetween(claim.dataSchimbareStatus);
+  const days = getDaysInStage(claim);
   const alertThreshold = getClaimAlertDays(claim);
   const overdue = isStageOverdue(claim);
   const zileNeridicata = claim.gataDeRidicare && !claim.ridicata ? daysBetween(claim.dataGataRidicare) : 0;
