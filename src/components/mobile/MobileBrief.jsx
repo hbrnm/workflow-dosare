@@ -7,30 +7,14 @@ import { telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
+import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 
 const FILTER_CHIPS = [
-  { key: "toate", label: "Toate", active: "bg-[#2C4160] text-white border-[#2C4160]", idle: "bg-white text-[#6B6558] border-[#DAD4C6]" },
-  { key: "blocate", label: "🛑 Blocate", active: "bg-[#B23A2E] text-white border-[#B23A2E]", idle: "bg-red-50 text-[#B23A2E] border-red-200" },
-  { key: "masini_schimb", label: "🚗 Auto Schimb", active: "bg-[#C98A2B] text-white border-[#C98A2B]", idle: "bg-amber-50 text-[#7A5316] border-amber-200" },
-  { key: "stagnate", label: "⏳ Stagnate", active: "bg-[#3B5166] text-white border-[#3B5166]", idle: "bg-blue-50 text-[#3B5166] border-blue-200" },
-  { key: "livrare_piese", label: "🚚 Livrare", active: "bg-[#D6473F] text-white border-[#D6473F]", idle: "bg-red-50 text-[#D6473F] border-red-200" },
-  { key: "piese", label: "📦 Piese", active: "bg-[#7A5316] text-white border-[#7A5316]", idle: "bg-orange-50 text-[#7A5316] border-orange-200" },
-  { key: "neridicate", label: "📞 Neridicate", active: "bg-[#3E6B45] text-white border-[#3E6B45]", idle: "bg-emerald-50 text-[#3E6B45] border-emerald-200" },
-  { key: "accept_plata", label: "🛒 Accept", active: "bg-[#2C4160] text-white border-[#2C4160]", idle: "bg-slate-50 text-[#2C4160] border-slate-200" },
-  { key: "inactivitate", label: "⏱️ Inactive", active: "bg-[#7A5316] text-white border-[#7A5316]", idle: "bg-yellow-50 text-[#7A5316] border-yellow-200" },
+  { key: "toate", label: "Toate" },
+  ...ALERT_GROUPS.map((g) => ({ key: g.key, label: g.label })),
 ];
 
-const HUB_PILLS = [
-  { key: "toate", label: "Toate" },
-  { key: "blocate", label: "Blocate" },
-  { key: "piese", label: "Piese" },
-  { key: "livrare_piese", label: "Livrare" },
-  { key: "neridicate", label: "Neridicate" },
-  { key: "stagnate", label: "Stagnate" },
-  { key: "accept_plata", label: "Accept" },
-  { key: "masini_schimb", label: "Auto schimb" },
-  { key: "inactivitate", label: "Inactive" },
-];
+const HUB_PILLS = FILTER_CHIPS;
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -66,7 +50,8 @@ export default function MobileBrief({
     [items, activeAlertTab]
   );
 
-  const chipCount = (key) => (key === "toate" ? totalAlertsCount : counts[key] || 0);
+  const chipCount = (key) =>
+    key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
 
   const featured = alertsList[0] || items[0] || null;
 
@@ -382,19 +367,26 @@ export default function MobileBrief({
   return (
     <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-bold">
-        {FILTER_CHIPS.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            onClick={() => setActiveAlertTab(chip.key)}
-            className={`w-full py-2 px-2 rounded-xl border text-center transition-all ${
-              activeAlertTab === chip.key ? `${chip.active} shadow-xs` : chip.idle
-            }`}
-          >
-            {chip.label} ({chipCount(chip.key)})
-          </button>
-        ))}
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-none text-[11px] font-bold pb-0.5">
+        {FILTER_CHIPS.map((chip) => {
+          const n = chipCount(chip.key);
+          const active = activeAlertTab === chip.key;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => setActiveAlertTab(chip.key)}
+              className={`shrink-0 py-2 px-3 rounded-xl border text-center transition-all whitespace-nowrap ${
+                active
+                  ? "bg-[#2C4160] text-white border-[#2C4160] shadow-xs"
+                  : "bg-white text-[#6B6558] border-[#DAD4C6]"
+              }`}
+            >
+              {chip.label}
+              {n > 0 ? ` (${n})` : ""}
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-2.5 flex-1 overflow-y-auto pr-0.5">

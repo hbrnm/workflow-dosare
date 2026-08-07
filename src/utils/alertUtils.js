@@ -1,6 +1,7 @@
 import { daysBetween, todayISO } from "./dateUtils";
 import { getStatusDefinition, getClaimAlertDays, isPieseComandateStatus } from "../constants/config";
 import { isPaymentOverdue, getDaysPaymentOverdue, getSettlementAmount, getEffectivePaymentDue } from "./settlementUtils";
+import { resolveAlertGroupKey, getAlertTypesForTab } from "../constants/alertCategories";
 
 /** Canonical alert type keys used by Brief, MobileBrief, and AlerteModal. */
 export const ALERT_TYPES = [
@@ -15,14 +16,15 @@ export const ALERT_TYPES = [
   "restante",
 ];
 
-/** Legacy modal tab key → canonical type */
+/** Legacy modal tab key → canonical type / group */
 export const ALERT_TAB_ALIASES = {
-  depasite: "stagnate",
+  depasite: "intarzieri",
 };
 
 export function normalizeAlertTab(tab) {
   if (!tab || tab === "toate") return tab || "toate";
-  return ALERT_TAB_ALIASES[tab] || tab;
+  const aliased = ALERT_TAB_ALIASES[tab] || tab;
+  return resolveAlertGroupKey(aliased);
 }
 
 // După ce un dosar este gata de ridicare, el este urmărit separat de alertele
@@ -187,6 +189,9 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
 
   // Legacy aliases used by badges / openAlerts("depasite")
   counts.depasite = counts.stagnate;
+  counts.intarzieri = (counts.stagnate || 0) + (counts.inactivitate || 0);
+  counts.predare = (counts.neridicate || 0) + (counts.masini_schimb || 0);
+  counts.plati = counts.restante || 0;
 
   const items = [];
 
@@ -324,5 +329,8 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
 export function filterAlertItems(items, tab) {
   const normalized = normalizeAlertTab(tab);
   if (!normalized || normalized === "toate") return items;
-  return items.filter((item) => item.type === normalized);
+  const types = getAlertTypesForTab(normalized);
+  if (!types || types.length === 0) return items;
+  const set = new Set(types);
+  return items.filter((item) => set.has(item.type));
 }

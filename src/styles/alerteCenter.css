@@ -499,7 +499,6 @@
   .app-alerte-actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
-    padding-top: 0.15rem;
     border-top: 1px dashed var(--app-border-soft, #eeeae3);
     margin-top: 0.15rem;
     padding-top: 0.45rem;

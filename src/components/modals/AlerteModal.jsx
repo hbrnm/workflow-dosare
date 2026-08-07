@@ -13,7 +13,7 @@ import {
 } from "../../utils/alertUtils";
 import { daysBetween, telLink } from "../../utils/dateUtils";
 import { getDaysPaymentOverdue } from "../../utils/settlementUtils";
-import { ALERT_CATEGORIES, getAlertCategory } from "../../constants/alertCategories";
+import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup, getAlertCategory } from "../../constants/alertCategories";
 import Pill from "../common/Pill";
 import WhatsAppButton from "../common/WhatsAppButton";
 import {
@@ -25,14 +25,14 @@ import {
 
 function pickInitialTab(initialTab, counts) {
   const n = normalizeAlertTab(initialTab);
-  if (n && n !== "toate" && (counts[n] || 0) > 0) return n;
+  if (n && n !== "toate" && countAlertsForGroup(counts, n) > 0) return n;
   if (n && n !== "toate") {
-    const firstWithAlerts = ALERT_CATEGORIES.find((c) => (counts[c.key] || 0) > 0);
+    const firstWithAlerts = ALERT_GROUPS.find((c) => countAlertsForGroup(counts, c) > 0);
     if (firstWithAlerts) return firstWithAlerts.key;
     return n;
   }
-  const firstWithAlerts = ALERT_CATEGORIES.find((c) => (counts[c.key] || 0) > 0);
-  return firstWithAlerts?.key || "stagnate";
+  const firstWithAlerts = ALERT_GROUPS.find((c) => countAlertsForGroup(counts, c) > 0);
+  return firstWithAlerts?.key || "intarzieri";
 }
 
 function getAlertMetric(item) {
@@ -95,14 +95,14 @@ export default function AlerteModal({
   const categoriesOrdered = useMemo(() => {
     const withAlerts = [];
     const empty = [];
-    ALERT_CATEGORIES.forEach((cat) => {
-      const count = buckets.counts[cat.key] || 0;
+    ALERT_GROUPS.forEach((cat) => {
+      const count = countAlertsForGroup(buckets.counts, cat);
       (count > 0 ? withAlerts : empty).push({ ...cat, count });
     });
     return { withAlerts, empty };
   }, [buckets.counts]);
 
-  const activeCat = getAlertCategory(activeTab);
+  const activeCat = getAlertGroup(activeTab) || ALERT_GROUPS[1];
   const ActiveIcon = activeCat.icon;
   const list = useMemo(
     () => filterAlertItems(buckets.items, activeTab),
@@ -228,9 +228,11 @@ export default function AlerteModal({
                 <div className="min-w-0">
                   <h3 className="app-alerte-section-title">{activeCat.label}</h3>
                   <p className="app-alerte-section-meta">
+                    {activeCat.hint}
+                    {" · "}
                     {list.length === 0
-                      ? "Nicio alertă în această categorie"
-                      : `${list.length} ${list.length === 1 ? "dosar" : "dosare"} · apasă pe rând pentru detalii`}
+                      ? "nicio alertă"
+                      : `${list.length} ${list.length === 1 ? "dosar" : "dosare"}`}
                   </p>
                 </div>
               </div>

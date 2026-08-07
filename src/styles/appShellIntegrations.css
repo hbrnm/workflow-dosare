@@ -637,6 +637,19 @@
 .app-shell .app-brief-tab--blocate.is-active { background: var(--app-danger); border-color: var(--app-danger); color: #fff; }
 .app-shell .app-brief-tab--blocate:not(.is-active) { color: var(--app-danger); }
 
+.app-shell .app-brief-tab--intarzieri.is-active { background: var(--app-danger); border-color: var(--app-danger); color: #fff; }
+.app-shell .app-brief-tab--intarzieri:not(.is-active) { color: var(--app-danger); }
+
+.app-shell .app-brief-tab--piese.is-active { background: #2c4160; border-color: #2c4160; color: #fff; }
+.app-shell .app-brief-tab--piese:not(.is-active) { color: #2c4160; }
+
+.app-shell .app-brief-tab--predare.is-active { background: color-mix(in srgb, var(--app-success) 70%, #000); border-color: var(--app-success); color: #fff; }
+.app-shell .app-brief-tab--predare:not(.is-active) { color: var(--app-success); }
+
+.app-shell .app-brief-tab--plati.is-active { background: var(--app-danger); border-color: var(--app-danger); color: #fff; }
+.app-shell .app-brief-tab--plati:not(.is-active) { color: var(--app-danger); }
+
+/* Legacy type keys (dacă apar încă în UI) */
 .app-shell .app-brief-tab--masini_schimb.is-active { background: var(--app-accent); border-color: var(--app-accent); color: var(--app-accent-text); }
 .app-shell .app-brief-tab--masini_schimb:not(.is-active) { color: var(--app-accent); }
 
@@ -645,9 +658,6 @@
 
 .app-shell .app-brief-tab--livrare_piese.is-active { background: var(--app-danger); border-color: var(--app-danger); color: #fff; }
 .app-shell .app-brief-tab--livrare_piese:not(.is-active) { color: var(--app-danger); }
-
-.app-shell .app-brief-tab--piese.is-active { background: color-mix(in srgb, var(--app-accent) 80%, #000); border-color: var(--app-accent); color: #fff; }
-.app-shell .app-brief-tab--piese:not(.is-active) { color: var(--app-accent); }
 
 .app-shell .app-brief-tab--neridicate.is-active { background: color-mix(in srgb, var(--app-success) 70%, #000); border-color: var(--app-success); color: #fff; }
 .app-shell .app-brief-tab--neridicate:not(.is-active) { color: var(--app-success); }
