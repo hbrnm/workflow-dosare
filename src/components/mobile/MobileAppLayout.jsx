@@ -156,7 +156,7 @@ export default function MobileAppLayout({
             alertBuckets={alertBuckets}
             onPatchClaim={onPatchClaim}
             onNotify={onNotify}
-            homeStyle="list"
+            homeStyle="inbox"
             atelierNume={branding?.atelierNume}
             searchActive={Boolean(search.trim())}
           />

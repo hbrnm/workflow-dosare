@@ -520,3 +520,263 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-text-strong);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
 }
+
+/* ── Brief inbox (Cursor-inspired, atelier-mapped) ── */
+
+.mobile-shell.app-shell .m-brief-hero {
+  padding-top: 0.15rem;
+}
+
+.mobile-shell.app-shell .m-brief-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-brief-title {
+  margin: 0;
+  font-family: var(--app-font-display);
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-brief-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-height: 5.1rem;
+  padding: 0.75rem 0.8rem 0.7rem;
+  border-radius: 1rem;
+  border: 1px solid var(--app-border);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--app-surface) 88%, var(--app-bg)), var(--app-surface));
+  text-align: left;
+  color: var(--app-text);
+  transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+.mobile-shell.app-shell .m-brief-tile:active {
+  transform: scale(0.98);
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-active {
+  border-color: color-mix(in srgb, var(--app-text-strong) 45%, var(--app-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 12%, transparent);
+  background: var(--app-bg);
+}
+
+.mobile-shell.app-shell .m-brief-tile-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-steel .m-brief-tile-icon {
+  background: #2C4160;
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-accent .m-brief-tile-icon {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-danger .m-brief-tile-icon {
+  background: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-ok .m-brief-tile-icon {
+  background: #3E6B45;
+}
+
+.mobile-shell.app-shell .m-brief-tile-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-active .m-brief-tile-label {
+  color: var(--app-text);
+}
+
+.mobile-shell.app-shell .m-brief-tile-count {
+  margin-top: auto;
+  font-family: var(--app-font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--app-text-strong);
+  line-height: 1;
+}
+
+.mobile-shell.app-shell .m-brief-panel {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.mobile-shell.app-shell .m-brief-panel-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  padding: 0.65rem 0.85rem 0.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut,
+.mobile-shell.app-shell .m-brief-row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.72rem 0.85rem;
+  background: transparent;
+  border: none;
+  color: var(--app-text);
+  text-align: left;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut.has-divider,
+.mobile-shell.app-shell .m-brief-row.has-divider,
+.mobile-shell.app-shell .m-brief-claim-row.has-divider {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-icon,
+.mobile-shell.app-shell .m-brief-row-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #2C4160;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-icon {
+  background: color-mix(in srgb, var(--app-accent) 85%, #2C4160);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-row-icon.is-work {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-label {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-brief-chevron {
+  color: var(--app-muted);
+  opacity: 0.7;
+}
+
+.mobile-shell.app-shell .m-brief-list {
+  overflow-y: auto;
+  max-height: min(52vh, 28rem);
+}
+
+.mobile-shell.app-shell .m-brief-row-meta {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  letter-spacing: 0.01em;
+}
+
+.mobile-shell.app-shell .m-brief-row-title {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--app-text-strong);
+  margin-top: 0.1rem;
+  line-height: 1.25;
+}
+
+.mobile-shell.app-shell .m-brief-row-reason,
+.mobile-shell.app-shell .m-brief-row-note {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--app-muted);
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.mobile-shell.app-shell .m-brief-row-note {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.mobile-shell.app-shell .m-brief-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.85rem 0.7rem 3.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-ghost-btn {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.5rem;
+}
+
+.mobile-shell.app-shell .m-brief-empty {
+  text-align: center;
+  padding: 2rem 1.1rem;
+  space-y: 0.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-empty > * + * {
+  margin-top: 0.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-empty-icon {
+  color: #3E6B45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-brief-tile {
+    transition: none;
+  }
+}

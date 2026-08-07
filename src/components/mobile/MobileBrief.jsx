@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
-  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays
+  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
+  Inbox, Crosshair, PackageCheck, Ban,
 } from "lucide-react";
 import { telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
+import { getStatusShortLabel } from "../../constants/config";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -15,6 +17,9 @@ const FILTER_CHIPS = [
 ];
 
 const HUB_PILLS = FILTER_CHIPS;
+
+const WORKING_STATUSES = new Set(["programat", "in_lucru"]);
+const ATTENTION_TYPES = new Set(["blocate", "stagnate", "inactivitate"]);
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -33,10 +38,11 @@ export default function MobileBrief({
   alertBuckets = null,
   onPatchClaim,
   onNotify,
-  homeStyle = "list",
+  homeStyle = "inbox",
   atelierNume = "Dosare Daună",
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
+  const [focus, setFocus] = useState("toate"); // toate | lucru | atentie | predare
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -52,6 +58,49 @@ export default function MobileBrief({
 
   const chipCount = (key) =>
     key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
+
+  const workingClaims = useMemo(
+    () =>
+      (claims || []).filter((c) => WORKING_STATUSES.has(c.status) && !c.blocat),
+    [claims]
+  );
+
+  const attentionCount =
+    countAlertsForGroup(counts, "blocate") + countAlertsForGroup(counts, "intarzieri");
+  const predareCount = countAlertsForGroup(counts, "predare");
+
+  const focusBoard = useMemo(() => {
+    if (focus === "lucru") {
+      return {
+        kind: "claims",
+        emptyTitle: "Niciun dosar în lucru",
+        emptyHint: "Mașinile programate sau în reparație apar aici.",
+        rows: workingClaims,
+      };
+    }
+    if (focus === "atentie") {
+      return {
+        kind: "alerts",
+        emptyTitle: "Nimic care necesită atenție",
+        emptyHint: "Blocate și întârzieri apar aici.",
+        rows: items.filter((i) => ATTENTION_TYPES.has(i.type)),
+      };
+    }
+    if (focus === "predare") {
+      return {
+        kind: "alerts",
+        emptyTitle: "Nicio predare în așteptare",
+        emptyHint: "Mașini neridicate și auto la schimb apar aici.",
+        rows: filterAlertItems(items, "predare"),
+      };
+    }
+    return {
+      kind: "alerts",
+      emptyTitle: "Inbox gol",
+      emptyHint: "Nicio alertă activă. Poți fotografia sau deschide un dosar.",
+      rows: items,
+    };
+  }, [focus, workingClaims, items]);
 
   const featured = alertsList[0] || items[0] || null;
 
@@ -85,135 +134,205 @@ export default function MobileBrief({
     onGoTab?.(tab);
   };
 
+  const setBoardFocus = (next) => {
+    softHaptic(8);
+    setFocus(next);
+  };
+
   const alertIconColor = (type) => {
     switch (type) {
-      case "blocate": return "#F85149";
-      case "piese": return "#F0883E";
+      case "blocate": return "#B23A2E";
+      case "piese": return "#3E6B45";
       case "livrare_piese": return "#D6473F";
-      case "neridicate": return "#3FB950";
-      case "stagnate": return "#58A6FF";
-      case "accept_plata": return "#A371F7";
-      case "masini_schimb": return "#D29922";
-      case "inactivitate": return "#8B949E";
-      default: return "#58A6FF";
+      case "neridicate": return "#3E6B45";
+      case "stagnate": return "#2C4160";
+      case "accept_plata": return "#2C4160";
+      case "masini_schimb": return "#C98A2B";
+      case "inactivitate": return "#6B6558";
+      default: return "#2C4160";
     }
   };
 
-  if (homeStyle === "inbox") {
-    const shortcuts = [
-      { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-a)", action: () => go("capture") },
-      { id: "dosare", label: "Dosare", Icon: FolderOpen, color: "var(--m-hub-b)", action: () => go("dosare") },
-      { id: "programari", label: "Programări", Icon: CalendarDays, color: "var(--m-hub-c)", action: () => go("programari") },
-      { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-hub-d)", action: () => (onNew ? onNew() : go("dosare")) },
-    ];
+  const statusTiles = [
+    {
+      key: "toate",
+      label: "Toate",
+      count: totalAlertsCount,
+      Icon: Inbox,
+      tone: "steel",
+    },
+    {
+      key: "lucru",
+      label: "În lucru",
+      count: workingClaims.length,
+      Icon: Crosshair,
+      tone: "accent",
+    },
+    {
+      key: "atentie",
+      label: "Atenție",
+      count: attentionCount,
+      Icon: Ban,
+      tone: "danger",
+    },
+    {
+      key: "predare",
+      label: "Predare",
+      count: predareCount,
+      Icon: PackageCheck,
+      tone: "ok",
+    },
+  ];
 
+  const shortcuts = [
+    { id: "capture", label: "Foto & Doc", Icon: Camera, action: () => go("capture") },
+    { id: "dosare", label: "Dosare", Icon: FolderOpen, action: () => go("dosare") },
+    { id: "programari", label: "Programări", Icon: CalendarDays, action: () => go("programari") },
+    { id: "new", label: "Dosar nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
+  ];
+
+  const renderAlertRow = (item, idx, total) => {
+    const c = item.claim;
+    const phone = c.telefonClient || "";
+    const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
     return (
-      <div className="m-inbox space-y-4 flex flex-col flex-1 min-h-0 pb-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold m-muted">{atelierNume}</p>
-            <h1 className="m-inbox-title mt-0.5">Brief</h1>
+      <div
+        key={item.id}
+        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""}`}
+      >
+        <button type="button" className="m-brief-row-main m-press" onClick={() => onOpen(c)}>
+          <span className="m-brief-row-icon" style={{ background: alertIconColor(item.type) }}>
+            <AlertTriangle size={14} />
+          </span>
+          <span className="min-w-0 flex-1 text-left">
+            <span className="m-brief-row-meta">
+              {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
+            </span>
+            <span className="m-brief-row-title">{item.title}</span>
+            <span className="m-brief-row-reason">{item.reason}</span>
+            {noteText ? <span className="m-brief-row-note">{noteText}</span> : null}
+          </span>
+          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
+        </button>
+        {(phone || (onPatchClaim && canAck(item.type))) && (
+          <div className="m-brief-row-actions">
+            {phone ? (
+              <>
+                <WhatsAppButton phone={phone} claim={c} size={12} />
+                <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
+                  <Phone size={11} /> Apel
+                </a>
+              </>
+            ) : null}
+            {onPatchClaim && canAck(item.type) ? (
+              <button type="button" onClick={(e) => ackAlert(e, c.id)} className="m-brief-ghost-btn">
+                Rezolvat
+              </button>
+            ) : null}
           </div>
-          <span className="m-inbox-count">{totalAlertsCount} alerte</span>
-        </div>
+        )}
+      </div>
+    );
+  };
 
-        <section className="m-inbox-card">
-          <div className="m-inbox-section-label">Favorites</div>
-          <div className="m-inbox-favs">
+  const renderClaimRow = (c, idx, total) => (
+    <button
+      key={c.id}
+      type="button"
+      className={`m-brief-row-main m-press m-brief-claim-row ${idx < total - 1 ? "has-divider" : ""}`}
+      onClick={() => onOpen(c)}
+    >
+      <span className="m-brief-row-icon is-work">
+        <Crosshair size={14} />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="m-brief-row-meta">
+          {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
+        </span>
+        <span className="m-brief-row-title">{c.marcaModel || "Model neprecizat"}</span>
+        <span className="m-brief-row-reason">
+          {getStatusShortLabel(c.status)}
+          {c.dataProgramare ? ` · ${String(c.dataProgramare).slice(0, 10)}` : ""}
+        </span>
+      </span>
+      <ChevronRight size={16} className="m-brief-chevron shrink-0" />
+    </button>
+  );
+
+  if (homeStyle === "inbox") {
+    return (
+      <div className="m-brief space-y-4 flex flex-col flex-1 min-h-0 pb-2">
+        <header className="m-brief-hero">
+          <p className="m-brief-kicker">{atelierNume}</p>
+          <div className="flex items-end justify-between gap-3">
+            <h1 className="m-brief-title">Brief</h1>
+            <span className="m-brief-count">{totalAlertsCount} alerte</span>
+          </div>
+        </header>
+
+        <section className="m-brief-tiles" aria-label="Stări operaționale">
+          {statusTiles.map((tile) => {
+            const active = focus === tile.key;
+            return (
+              <button
+                key={tile.key}
+                type="button"
+                className={`m-brief-tile tone-${tile.tone} ${active ? "is-active" : ""}`}
+                onClick={() => setBoardFocus(tile.key)}
+              >
+                <span className="m-brief-tile-icon">
+                  <tile.Icon size={16} strokeWidth={2.25} />
+                </span>
+                <span className="m-brief-tile-label">{tile.label}</span>
+                <span className="m-brief-tile-count">{tile.count}</span>
+              </button>
+            );
+          })}
+        </section>
+
+        <section className="m-brief-panel">
+          <div className="m-brief-panel-label">Acces rapid</div>
+          <div className="m-brief-shortcuts">
             {shortcuts.map((item, idx) => (
               <button
                 key={item.id}
                 type="button"
-                className={`m-inbox-row m-press ${idx < shortcuts.length - 1 ? "has-divider" : ""}`}
+                className={`m-brief-shortcut m-press ${idx < shortcuts.length - 1 ? "has-divider" : ""}`}
                 onClick={item.action}
               >
-                <span className="m-inbox-icon" style={{ background: item.color }}>
-                  <item.Icon size={16} />
+                <span className="m-brief-shortcut-icon">
+                  <item.Icon size={15} />
                 </span>
-                <span className="m-inbox-row-label">{item.label}</span>
-                <ChevronRight size={16} className="m-inbox-chevron" />
+                <span className="m-brief-shortcut-label">{item.label}</span>
+                <ChevronRight size={15} className="m-brief-chevron" />
               </button>
             ))}
           </div>
         </section>
 
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h2 className="m-inbox-section-label" style={{ margin: 0 }}>Inbox alerte</h2>
-            {onNew && (
-              <button type="button" className="m-inbox-ghost-btn" onClick={onNew}>
+        <section className="space-y-2.5 flex-1 min-h-0 flex flex-col">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="m-brief-panel-label" style={{ margin: 0 }}>
+              {focus === "lucru" ? "Dosare în lucru" : focus === "atentie" ? "Necesită atenție" : focus === "predare" ? "Predare" : "Inbox alerte"}
+            </h2>
+            {onNew ? (
+              <button type="button" className="m-brief-ghost-btn" onClick={onNew}>
                 + Dosar
               </button>
-            )}
+            ) : null}
           </div>
 
-          <div className="m-hub-pills">
-            {HUB_PILLS.map((pill) => (
-              <button
-                key={pill.key}
-                type="button"
-                className={`m-hub-pill ${activeAlertTab === pill.key ? "is-active" : ""}`}
-                onClick={() => { softHaptic(8); setActiveAlertTab(pill.key); }}
-              >
-                {pill.label}
-                {chipCount(pill.key) > 0 ? ` · ${chipCount(pill.key)}` : ""}
-              </button>
-            ))}
-          </div>
-
-          <div className="m-inbox-card overflow-hidden">
-            {alertsList.length === 0 ? (
-              <div className="text-center py-8 px-4 space-y-2">
-                <CheckCircle2 size={26} className="mx-auto" style={{ color: "var(--m-hub-a)" }} />
-                <div className="font-bold text-[13px]">Inbox gol pe filtrul ăsta</div>
-                <p className="text-[11.5px] m-muted">Schimbă filtrul sau treci la Foto.</p>
+          <div className="m-brief-panel m-brief-list flex-1 overflow-hidden">
+            {focusBoard.rows.length === 0 ? (
+              <div className="m-brief-empty">
+                <CheckCircle2 size={26} className="mx-auto m-brief-empty-icon" />
+                <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
+                <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
               </div>
+            ) : focusBoard.kind === "claims" ? (
+              focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
             ) : (
-              alertsList.map((item, idx) => {
-                const c = item.claim;
-                const phone = c.telefonClient || "";
-                const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
-                return (
-                  <div
-                    key={item.id}
-                    className={`m-inbox-alert ${idx < alertsList.length - 1 ? "has-divider" : ""}`}
-                  >
-                    <button type="button" className="m-inbox-alert-main m-press" onClick={() => onOpen(c)}>
-                      <span className="m-inbox-icon" style={{ background: alertIconColor(item.type) }}>
-                        <AlertTriangle size={14} />
-                      </span>
-                      <span className="min-w-0 flex-1 text-left">
-                        <span className="m-inbox-meta">
-                          {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
-                        </span>
-                        <span className="m-inbox-alert-title">{item.title}</span>
-                        <span className="m-inbox-alert-reason">{item.reason}</span>
-                        {noteText ? (
-                          <span className="m-inbox-alert-note">{noteText}</span>
-                        ) : null}
-                      </span>
-                      <ChevronRight size={16} className="m-inbox-chevron shrink-0" />
-                    </button>
-                    {phone && (
-                      <div className="m-inbox-alert-actions">
-                        <WhatsAppButton phone={phone} claim={c} size={12} />
-                        <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
-                          <Phone size={11} /> Apel
-                        </a>
-                        {onPatchClaim && canAck(item.type) && (
-                          <button
-                            type="button"
-                            onClick={(e) => ackAlert(e, c.id)}
-                            className="m-inbox-ghost-btn"
-                          >
-                            Rezolvat
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              focusBoard.rows.map((item, idx) => renderAlertRow(item, idx, focusBoard.rows.length))
             )}
           </div>
         </section>
@@ -383,9 +502,9 @@ export default function MobileBrief({
     );
   }
 
+  // Legacy list — keep for fallback
   return (
     <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
-
       <div className="flex gap-1.5 overflow-x-auto scrollbar-none text-[11px] font-bold pb-0.5">
         {FILTER_CHIPS.map((chip) => {
           const n = chipCount(chip.key);
@@ -444,12 +563,12 @@ export default function MobileBrief({
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={12} />
-                          <a
-                            href={telLink(phone)}
-                            className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
-                          >
-                            <Phone size={12} /> Apel
-                          </a>
+                        <a
+                          href={telLink(phone)}
+                          className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
+                        >
+                          <Phone size={12} /> Apel
+                        </a>
                       </>
                     )}
                   </div>
