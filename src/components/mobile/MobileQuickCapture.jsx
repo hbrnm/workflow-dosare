@@ -14,6 +14,7 @@ import { categoryLabel } from "../../utils/scanUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import PhotoLightbox from "../common/PhotoLightbox";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
 import { isSearchHighlighted } from "../../utils/searchUtils";
 
@@ -33,7 +34,7 @@ export default function MobileQuickCapture({
   const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
-  const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
+  const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
   const [showLiveScanner, setShowLiveScanner] = useState(false);
@@ -63,14 +64,14 @@ export default function MobileQuickCapture({
       showLiveCamera ||
       showLiveScanner ||
       Boolean(activeScanCrop) ||
-      Boolean(previewMedia);
+      previewMediaIndex != null;
     onMobileShellLockChange?.(locked);
     return () => onMobileShellLockChange?.(false);
   }, [
     showLiveCamera,
     showLiveScanner,
     activeScanCrop,
-    previewMedia,
+    previewMediaIndex,
     onMobileShellLockChange,
   ]);
 
@@ -594,7 +595,7 @@ export default function MobileQuickCapture({
                   return (
                     <div
                       key={p.path || p.id || idx}
-                      onClick={() => setPreviewMedia(p.url || p)}
+                      onClick={() => setPreviewMediaIndex(idx)}
                       className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
                     >
                       <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
@@ -792,21 +793,13 @@ export default function MobileQuickCapture({
         </div>
       )}
 
-      {/* OVERLAY PREVIZUALIZARE MĂRITĂ IMAGINE (Punctul 12 - Buton X vizibil) */}
-      {previewMedia && (
-        <div
-          className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-xs"
-          onClick={() => setPreviewMedia(null)}
-        >
-          <button
-            onClick={() => setPreviewMedia(null)}
-            className="absolute top-4 right-4 text-white bg-black/60 hover:bg-[#B23A2E] p-2.5 rounded-full transition-colors shadow-lg z-10"
-            title="Închide previzualizarea"
-          >
-            <X size={24} />
-          </button>
-          <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
-        </div>
+      {/* Galerie fullscreen — swipe între poze */}
+      {previewMediaIndex != null && displayPoze.length > 0 && (
+        <PhotoLightbox
+          items={displayPoze}
+          startIndex={previewMediaIndex}
+          onClose={() => setPreviewMediaIndex(null)}
+        />
       )}
 
       {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}

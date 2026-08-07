@@ -32,6 +32,7 @@ import {
 import ClaimTimeline from "../common/ClaimTimeline";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
+import PhotoLightbox from "../common/PhotoLightbox";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 
 function applyClaimStatusChange(prev, newStatusKey) {
@@ -190,7 +191,7 @@ export default function ClaimModal({
   const [loadingIstoric, setLoadingIstoric] = useState(false);
   const [uploadingPoze, setUploadingPoze] = useState(false);
   const [uploadingDocumente, setUploadingDocumente] = useState(false);
-  const [previewPoza, setPreviewPoza] = useState(null);
+  const [previewPozaIndex, setPreviewPozaIndex] = useState(null);
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [cropQueue, setCropQueue] = useState([]);
   const [cropMode, setCropMode] = useState("document"); // "document" | "scan"
@@ -1440,9 +1441,9 @@ export default function ClaimModal({
 
                     {form.poze.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 pt-1">
-                        {form.poze.map((p) => (
-                          <div key={p.id} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                            <button type="button" onClick={() => setPreviewPoza(p)} className="w-full h-full block text-left">
+                        {form.poze.map((p, idx) => (
+                          <div key={p.id || idx} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
+                            <button type="button" onClick={() => setPreviewPozaIndex(idx)} className="w-full h-full block text-left">
                               <img src={p.url} alt={p.nume} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                             </button>
                             {p.categoria && p.categoria !== "generale" && (
@@ -1809,31 +1810,14 @@ export default function ClaimModal({
                 </div>
               )}
 
-              {/* MODAL PREVIZUALIZARE POZĂ CU BUTON DE ÎNCHIDERE X (Punctul 12) */}
-              {previewPoza && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-xs">
-                  <div className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center justify-center bg-slate-900 rounded-xl overflow-hidden shadow-2xl p-2">
-                    <button
-                      onClick={() => setPreviewPoza(null)}
-                      className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/60 hover:bg-[#B23A2E] text-white transition-colors"
-                      title="Închide previzualizarea"
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
-
-                    <img
-                      src={previewPoza.url || previewPoza.dataUrl}
-                      alt={previewPoza.nume}
-                      className="max-h-[80vh] max-w-full object-contain rounded"
-                    />
-
-                    <div className="w-full text-center text-xs text-slate-300 pt-2 font-medium flex items-center justify-between px-4">
-                      <span>{previewPoza.nume || "Fotografie"}</span>
-                      {previewPoza.categoria && <span className="uppercase font-bold text-amber-400">Categorie: {previewPoza.categoria}</span>}
-                      <a href={previewPoza.url} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline">Deschide original</a>
-                    </div>
-                  </div>
-                </div>
+              {/* Galerie fullscreen — swipe între poze */}
+              {previewPozaIndex != null && form.poze?.length > 0 && (
+                <PhotoLightbox
+                  items={form.poze}
+                  startIndex={previewPozaIndex}
+                  onClose={() => setPreviewPozaIndex(null)}
+                  zIndexClass="z-[10050]"
+                />
               )}
 
               {/* CROP MODAL DOCUMENT (Punctul 1) */}
