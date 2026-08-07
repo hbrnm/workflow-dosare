@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays
 } from "lucide-react";
 import { telLink } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
+import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
@@ -172,6 +172,7 @@ export default function MobileBrief({
               alertsList.map((item, idx) => {
                 const c = item.claim;
                 const phone = c.telefonClient || "";
+                const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
                 return (
                   <div
                     key={item.id}
@@ -187,6 +188,9 @@ export default function MobileBrief({
                         </span>
                         <span className="m-inbox-alert-title">{item.title}</span>
                         <span className="m-inbox-alert-reason">{item.reason}</span>
+                        {noteText ? (
+                          <span className="m-inbox-alert-note">{noteText}</span>
+                        ) : null}
                       </span>
                       <ChevronRight size={16} className="m-inbox-chevron shrink-0" />
                     </button>

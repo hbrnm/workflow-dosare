@@ -11,6 +11,7 @@ import {
   filterAlertItems,
   normalizeAlertTab,
   getDaysInStage,
+  getLatestClaimNoteText,
 } from '../alertUtils';
 
 function isoDaysAgo(days) {
@@ -170,7 +171,13 @@ describe('alertUtils', () => {
 
   it('buildAlertBuckets returns unified counts and items', () => {
     const claims = [
-      { id: '1', blocat: true, motivBlocare: 'Litigiu', status: 'in_lucru' },
+      {
+        id: '1',
+        blocat: true,
+        motivBlocare: 'Litigiu',
+        status: 'in_lucru',
+        note: [{ id: 'n1', text: 'Așteptăm răspuns de la asigurător' }],
+      },
       {
         id: '2',
         status: 'programat',
@@ -233,6 +240,8 @@ describe('alertUtils', () => {
     const onlyBlocked = filterAlertItems(buckets.items, 'blocate');
     expect(onlyBlocked).toHaveLength(1);
     expect(onlyBlocked[0].type).toBe('blocate');
+    expect(onlyBlocked[0].reason).toBe('Litigiu');
+    expect(onlyBlocked[0].noteSnippet).toBe('Așteptăm răspuns de la asigurător');
 
     const viaAlias = filterAlertItems(buckets.items, 'depasite');
     expect(viaAlias.length).toBeGreaterThanOrEqual(1);
@@ -256,6 +265,23 @@ describe('alertUtils', () => {
     ]);
     expect(buckets.counts.accept_plata).toBe(0);
     expect(buckets.items.some((i) => i.type === 'accept_plata')).toBe(false);
+  });
+
+  it('getLatestClaimNoteText returns newest non-empty note, truncated', () => {
+    expect(getLatestClaimNoteText(null)).toBe('');
+    expect(getLatestClaimNoteText({ note: [] })).toBe('');
+    expect(
+      getLatestClaimNoteText({
+        note: [
+          { id: '1', text: '   ' },
+          { id: '2', text: 'Notă utilă' },
+        ],
+      }),
+    ).toBe('Notă utilă');
+    const long = 'x'.repeat(160);
+    expect(getLatestClaimNoteText({ note: [{ text: long }] }, { maxLen: 40 })).toBe(
+      `${'x'.repeat(39)}…`,
+    );
   });
 });
 

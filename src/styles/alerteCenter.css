@@ -351,11 +351,52 @@
 
 .app-alerte-row-body {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.12rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-alerte-row-main {
+  display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.4rem;
   min-width: 0;
   overflow: hidden;
+}
+
+.app-alerte-reason,
+.app-alerte-note {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.app-alerte-reason {
+  font-weight: 600;
+  color: var(--app-danger, #b23a2e);
+}
+
+.app-alerte-note {
+  font-weight: 500;
+  color: var(--app-text-muted, #6b7280);
+}
+
+.app-alerte-meta-label {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-right: 0.35rem;
+  opacity: 0.85;
+}
+
+.app-alerte-meta-label::after {
+  content: ":";
 }
 
 .app-alerte-dosar {
@@ -510,8 +551,16 @@
     align-items: start;
   }
 
-  .app-alerte-row-body {
+  .app-alerte-row-main {
     flex-wrap: wrap;
+  }
+
+  .app-alerte-reason,
+  .app-alerte-note {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   .app-alerte-actions {

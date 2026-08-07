@@ -604,6 +604,14 @@ html[data-mtheme="pulse"] .wa-popover-muted:hover {
   margin-top: 0.2rem;
   line-height: 1.35;
 }
+.mobile-shell[data-mtheme="forge"] .m-inbox-alert-note {
+  display: block;
+  font-size: 11px;
+  color: #6e7681;
+  margin-top: 0.15rem;
+  line-height: 1.35;
+  font-style: italic;
+}
 .mobile-shell[data-mtheme="forge"] .m-inbox-alert-actions {
   display: flex;
   align-items: center;
