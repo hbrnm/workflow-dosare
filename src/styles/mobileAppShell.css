@@ -2011,6 +2011,123 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   padding: 0.15rem 0.15rem 0.05rem 0.35rem;
 }
 
+/* Inline piese meta inside Toate dosarele cards */
+.mobile-shell.app-shell .m-flow-card.has-piese-meta {
+  align-items: flex-start;
+}
+
+.mobile-shell.app-shell .m-flow-card.has-piese-meta .app-alerte-actions {
+  padding-top: 0.1rem;
+}
+
+.mobile-shell.app-shell .m-piese-sosite-inline {
+  margin-top: 0.2rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem 0.4rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip,
+.mobile-shell.app-shell .m-piese-inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--flow-accent, #4a6fa5) 10%, var(--app-surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--flow-accent, #4a6fa5) 18%, transparent);
+  color: var(--app-ink, #1a2330);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip.is-overdue,
+.mobile-shell.app-shell .m-piese-inline-field.is-overdue {
+  color: var(--app-danger, #b42318);
+  border-color: color-mix(in srgb, var(--app-danger, #b42318) 35%, transparent);
+  background: color-mix(in srgb, var(--app-danger, #b42318) 8%, var(--app-surface, #fff));
+}
+
+.mobile-shell.app-shell .m-piese-inline-k {
+  color: var(--app-muted, #6b7280);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-size: 8.5px;
+}
+
+.mobile-shell.app-shell .m-piese-inline-v {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mobile-shell.app-shell .m-piese-inline-input {
+  width: 6.6rem;
+  max-width: 38vw;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-piese-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 0.4rem;
+  border: 1px solid color-mix(in srgb, #2f8f5b 28%, transparent);
+  background: color-mix(in srgb, #2f8f5b 8%, var(--app-surface, #fff));
+  color: #1f7a45;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mobile-shell.app-shell .m-piese-inline-check.is-checked {
+  background: color-mix(in srgb, #2f8f5b 18%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, #2f8f5b 45%, transparent);
+}
+
+.mobile-shell.app-shell .m-piese-inline-check.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mobile-shell.app-shell .m-piese-inline-checkbox {
+  width: 0.85rem;
+  height: 0.85rem;
+  margin: 0;
+  accent-color: #2f8f5b;
+  cursor: inherit;
+  flex-shrink: 0;
+}
+
 .mobile-shell.app-shell .m-stack-group.m-flow-card {
   display: flex;
   flex-direction: column;

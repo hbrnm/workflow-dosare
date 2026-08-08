@@ -37,8 +37,8 @@ function CompactClaimCard({
   canEditFn,
   onTogglePieseSosite,
   onScheduleFromPiese,
+  onPatchPieseDates,
   highlightClaimIds = null,
-  compactPiese = false,
 }) {
   const sDef = getStatusDefinition(c.status);
   const phone = c.telefonClient || "";
@@ -56,87 +56,85 @@ function CompactClaimCard({
     .filter(Boolean)
     .join(" · ");
   const showPieseRow = isPieseComandateStatus(c.status);
+  const canEdit = !canEditFn || canEditFn(c);
 
   return (
-    <div className="m-flow-card-wrap">
-      <article
-        id={`mobile-claim-${c.id}`}
-        className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
-        onClick={() => onOpen(c)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onOpen(c);
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <div className="app-alerte-metric is-icon" title={sDef.label}>
-          <Icon size={14} />
-        </div>
-        <div className="app-alerte-row-body min-w-0">
-          <div className="app-alerte-row-main">
-            <DosarNumber
-              value={c.numarDosar}
-              onNotify={onNotify}
-              empty="fără nr."
-              className="app-alerte-dosar"
-            />
-            <span className="app-alerte-plate font-mono font-bold">
-              {c.numarInmatriculare || "—"}
+    <article
+      id={`mobile-claim-${c.id}`}
+      className={`app-alerte-row m-flow-card is-compact ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+      onClick={() => onOpen(c)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(c);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="app-alerte-metric is-icon" title={sDef.label}>
+        <Icon size={14} />
+      </div>
+      <div className="app-alerte-row-body min-w-0">
+        <div className="app-alerte-row-main">
+          <DosarNumber
+            value={c.numarDosar}
+            onNotify={onNotify}
+            empty="fără nr."
+            className="app-alerte-dosar"
+          />
+          <span className="app-alerte-plate font-mono font-bold">
+            {c.numarInmatriculare || "—"}
+          </span>
+          <span className="app-alerte-status-chip" title={sDef.label}>
+            {stShort}
+          </span>
+          {c.blocat ? (
+            <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+              B
             </span>
-            <span className="app-alerte-status-chip" title={sDef.label}>
-              {stShort}
+          ) : null}
+          {sinceBits.length ? (
+            <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+              {sinceBits.join(" · ")}
             </span>
-            {c.blocat ? (
-              <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
-                B
-              </span>
-            ) : null}
-            {sinceBits.length ? (
-              <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
-                {sinceBits.join(" · ")}
-              </span>
-            ) : null}
-          </div>
-          {subline ? (
-            <p className="m-brief-alerte-why is-muted" title={subline}>
-              {subline}
-            </p>
           ) : null}
         </div>
-        <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
-          {phone ? (
-            <>
-              <WhatsAppButton phone={phone} claim={c} size={11} />
-              <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
-                <Phone size={13} />
-              </a>
-            </>
-          ) : null}
-          <button
-            type="button"
-            className="app-alerte-btn-open"
-            onClick={() => onOpen(c)}
-            aria-label="Deschide dosarul"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </article>
-      {showPieseRow ? (
-        <div className="m-flow-card-extra" onClick={(e) => e.stopPropagation()}>
+        {showPieseRow ? (
           <MobilePieseSositeRow
             claim={c}
-            canEdit={!canEditFn || canEditFn(c)}
+            canEdit={canEdit}
+            layout="inline"
             onToggle={onTogglePieseSosite}
             onSchedule={onScheduleFromPiese}
-            compact={compactPiese}
+            onPatchDates={onPatchPieseDates}
           />
-        </div>
-      ) : null}
-    </div>
+        ) : null}
+        {subline ? (
+          <p className="m-brief-alerte-why is-muted" title={subline}>
+            {subline}
+          </p>
+        ) : null}
+      </div>
+      <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
+        {phone ? (
+          <>
+            <WhatsAppButton phone={phone} claim={c} size={11} />
+            <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+              <Phone size={13} />
+            </a>
+          </>
+        ) : null}
+        <button
+          type="button"
+          className="app-alerte-btn-open"
+          onClick={() => onOpen(c)}
+          aria-label="Deschide dosarul"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -199,6 +197,17 @@ export default function MobileClaimsList({
       `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
       "success"
     );
+    return true;
+  };
+
+  const handlePatchPieseDates = async (claim, patch) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return false;
+    }
+    const ok = await onPatch?.(claim.id, patch);
+    if (ok === false) return false;
+    onNotify?.("Date piese actualizate.", "success");
     return true;
   };
 
@@ -290,6 +299,7 @@ export default function MobileClaimsList({
                       canEditFn={canEditFn}
                       onTogglePieseSosite={handleTogglePieseSosite}
                       onScheduleFromPiese={handleScheduleFromPiese}
+                      onPatchPieseDates={handlePatchPieseDates}
                       highlightClaimIds={highlightClaimIds}
                     />
                   </li>
@@ -304,6 +314,7 @@ export default function MobileClaimsList({
                     canEditFn={canEditFn}
                     onTogglePieseSosite={handleTogglePieseSosite}
                     onScheduleFromPiese={handleScheduleFromPiese}
+                    onPatchPieseDates={handlePatchPieseDates}
                     highlightClaimIds={highlightClaimIds}
                   />
                 </li>
@@ -323,6 +334,7 @@ function MobileStackedGroupCard({
   canEditFn,
   onTogglePieseSosite,
   onScheduleFromPiese,
+  onPatchPieseDates,
   highlightClaimIds,
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -368,8 +380,8 @@ function MobileStackedGroupCard({
                 canEditFn={canEditFn}
                 onTogglePieseSosite={onTogglePieseSosite}
                 onScheduleFromPiese={onScheduleFromPiese}
+                onPatchPieseDates={onPatchPieseDates}
                 highlightClaimIds={highlightClaimIds}
-                compactPiese
               />
             </li>
           ))}
