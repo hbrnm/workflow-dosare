@@ -15,7 +15,11 @@ import {
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
-import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
+import {
+  ALERT_GROUPS,
+  ALERT_TYPE_META,
+  countAlertsForGroup,
+} from "../../constants/alertCategories";
 import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 
 const FILTER_CHIPS = [
@@ -35,6 +39,18 @@ const FOCUS_KEYS = new Set([
   "facturat",
   "atentie",
 ]);
+
+/** Filtre Atenție: stadii unde există alerte active (+ Blocate). */
+const ATTENTION_STAGE_FILTERS = [
+  { key: "toate", label: "Toate", statusKey: null },
+  { key: "air", label: "AIR", statusKey: "deschidere" },
+  { key: "piese", label: "Piese", statusKey: "piese_comandate" },
+  { key: "programat", label: "Prog.", statusKey: "programat" },
+  { key: "lucru", label: "Repar.", statusKey: "in_lucru" },
+  { key: "accept", label: "AP", statusKey: "accept_plata" },
+  { key: "facturat", label: "Fact.", statusKey: "facturat" },
+  { key: "blocate", label: "Blocate", statusKey: null, blockedOnly: true },
+];
 
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
@@ -109,6 +125,31 @@ function claimStatusKey(claim) {
   return getStatusDefinition(claim?.status).key;
 }
 
+function filterAlertsByStage(items, filterKey) {
+  const list = items || [];
+  if (!filterKey || filterKey === "toate") return list;
+  const def = ATTENTION_STAGE_FILTERS.find((f) => f.key === filterKey);
+  if (!def) return list;
+  if (def.blockedOnly) {
+    return list.filter((item) => item?.type === "blocate" || item?.claim?.blocat);
+  }
+  if (def.statusKey) {
+    return list.filter((item) => claimStatusKey(item?.claim) === def.statusKey);
+  }
+  return list;
+}
+
+function buildAttentionStageChips(items) {
+  const list = items || [];
+  const chips = [{ key: "toate", label: "Toate", count: list.length }];
+  ATTENTION_STAGE_FILTERS.forEach((f) => {
+    if (f.key === "toate") return;
+    const count = filterAlertsByStage(list, f.key).length;
+    if (count > 0) chips.push({ key: f.key, label: f.label, count });
+  });
+  return chips;
+}
+
 function claimsForStatus(claims, statusKey) {
   return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
 }
@@ -158,14 +199,12 @@ export default function MobileBrief({
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState(readStoredFocus);
   const [attentionFilter, setAttentionFilter] = useState("toate");
-  const [alertMenuOpen, setAlertMenuOpen] = useState(false);
   const [schedulingId, setSchedulingId] = useState(null);
   const [editDate, setEditDate] = useState(todayISO);
   const [editTime, setEditTime] = useState("09:00");
   const [exitingIds, setExitingIds] = useState(() => new Set());
   const [flashIds, setFlashIds] = useState(() => new Set());
   const boardRef = useRef(null);
-  const alertMenuRef = useRef(null);
   const EXIT_MS = 220;
   const FLASH_MS = 480;
 
@@ -176,24 +215,6 @@ export default function MobileBrief({
       /* ignore */
     }
   }, [focus]);
-
-  useEffect(() => {
-    if (!alertMenuOpen) return undefined;
-    const onPointerDown = (e) => {
-      if (alertMenuRef.current && !alertMenuRef.current.contains(e.target)) {
-        setAlertMenuOpen(false);
-      }
-    };
-    const onKey = (e) => {
-      if (e.key === "Escape") setAlertMenuOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [alertMenuOpen]);
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -207,26 +228,20 @@ export default function MobileBrief({
     [items, activeAlertTab]
   );
 
+  const attentionStageChips = useMemo(() => buildAttentionStageChips(items), [items]);
+
+  useEffect(() => {
+    if (attentionFilter === "toate") return;
+    const stillValid = attentionStageChips.some((c) => c.key === attentionFilter);
+    if (!stillValid) setAttentionFilter("toate");
+  }, [attentionFilter, attentionStageChips]);
+
   const attentionRows = useMemo(
-    () => filterAlertItems(items, attentionFilter),
+    () => filterAlertsByStage(items, attentionFilter),
     [items, attentionFilter]
   );
-  const attentionFilterOptions = useMemo(() => {
-    const withAlerts = [];
-    const empty = [];
-    ALERT_GROUPS.forEach((g) => {
-      const n = countAlertsForGroup(counts, g);
-      const row = { key: g.key, label: g.label, count: n, Icon: g.icon, hex: g.hex };
-      (n > 0 ? withAlerts : empty).push(row);
-    });
-    return [
-      { key: "toate", label: "Toate", count: totalAlertsCount, Icon: Ban, hex: null },
-      ...withAlerts,
-      ...empty,
-    ];
-  }, [counts, totalAlertsCount]);
   const attentionFilterMeta =
-    attentionFilterOptions.find((f) => f.key === attentionFilter) || attentionFilterOptions[0];
+    ATTENTION_STAGE_FILTERS.find((f) => f.key === attentionFilter) || ATTENTION_STAGE_FILTERS[0];
 
   const chipCount = (key) =>
     key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
@@ -255,7 +270,7 @@ export default function MobileBrief({
           : meta.hint,
         emptyTitle: filtered ? `Nimic pe ${attentionFilterMeta.label}` : meta.emptyTitle,
         emptyHint: filtered
-          ? "Schimbă filtrul din bulina N sau alege Toate."
+          ? "Alege alt stadiu din filtre sau Toate."
           : meta.emptyHint,
         rows: attentionRows,
       };
@@ -339,7 +354,6 @@ export default function MobileBrief({
   const setBoardFocus = (next) => {
     softHaptic(8);
     setFocus(next);
-    setAlertMenuOpen(false);
     setSchedulingId(null);
     setExitingIds(new Set());
     requestAnimationFrame(() => {
@@ -352,21 +366,9 @@ export default function MobileBrief({
     setBoardFocus("atentie");
   };
 
-  const openAlertFilterMenu = () => {
-    softHaptic(8);
-    setFocus("atentie");
-    setSchedulingId(null);
-    setExitingIds(new Set());
-    setAlertMenuOpen((v) => !v);
-    requestAnimationFrame(() => {
-      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  };
-
   const applyAttentionFilter = (filterKey) => {
     softHaptic(8);
     setAttentionFilter(filterKey);
-    setAlertMenuOpen(false);
     setFocus("atentie");
     setSchedulingId(null);
     setExitingIds(new Set());
@@ -380,6 +382,8 @@ export default function MobileBrief({
     const phone = c.telefonClient || "";
     const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
     const reasonText = String(item.reason || "").trim();
+    const typeMeta = ALERT_TYPE_META[item.type];
+    const whyTitle = item.title || typeMeta?.label || "Alertă";
     const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
     const stageSince = getStageSinceMeta(c);
     const metric = getAlertMetric(item);
@@ -412,8 +416,8 @@ export default function MobileBrief({
           ) : (
             <div
               className="app-alerte-metric is-icon"
-              style={{ color: alertIconColor(item.type) }}
-              title={item.title || "Alertă"}
+              style={{ color: typeMeta?.hex || alertIconColor(item.type) }}
+              title={whyTitle}
             >
               <AlertTriangle size={18} />
             </div>
@@ -434,17 +438,10 @@ export default function MobileBrief({
                 {stShort}
               </span>
             </div>
-            {item.title ? (
-              <p className="m-brief-alerte-title" title={item.title}>
-                {item.title}
-              </p>
-            ) : null}
-            {reasonText ? (
-              <p className="app-alerte-reason" title={reasonText}>
-                <span className="app-alerte-meta-label">Motiv</span>
-                {reasonText}
-              </p>
-            ) : null}
+            <p className="m-brief-alerte-why" title={[whyTitle, reasonText].filter(Boolean).join(" — ")}>
+              <span className="m-brief-alerte-why-type">{whyTitle}</span>
+              {reasonText ? <span className="m-brief-alerte-why-reason">{reasonText}</span> : null}
+            </p>
             {noteText ? (
               <p className="app-alerte-note" title={noteText}>
                 <span className="app-alerte-meta-label">Notă</span>
@@ -795,53 +792,22 @@ export default function MobileBrief({
   if (homeStyle === "inbox") {
     return (
       <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
-        <header className="m-brief-hero">
-          <div className="flex items-end justify-between gap-3">
-            <h1 className="m-brief-title">Brief</h1>
-            <div className="m-brief-alert-menu-wrap" ref={alertMenuRef}>
-              <button
-                type="button"
-                className={`m-brief-count m-brief-count--badge m-press ${totalAlertsCount > 0 ? "has-items" : ""} ${attentionFilter !== "toate" ? "is-filtered" : ""} ${alertMenuOpen ? "is-open" : ""}`}
-                onClick={openAlertFilterMenu}
-                aria-label={`${totalAlertsCount} alerte active — deschide și filtrează`}
-                aria-expanded={alertMenuOpen}
-                aria-haspopup="menu"
-                title="Alerte active"
-              >
-                {totalAlertsCount}
-              </button>
-              {alertMenuOpen ? (
-                <div className="m-brief-alert-menu" role="menu">
-                  <div className="m-brief-alert-menu-label">Alerte active</div>
-                  {attentionFilterOptions.map((f) => {
-                    const active = attentionFilter === f.key;
-                    const Icon = f.Icon;
-                    return (
-                      <button
-                        key={f.key}
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={active}
-                        className={`m-brief-alert-menu-item ${active ? "is-active" : ""} ${f.count === 0 && f.key !== "toate" ? "is-empty" : ""}`}
-                        onClick={() => applyAttentionFilter(f.key)}
-                      >
-                        {Icon ? (
-                          <span
-                            className="m-brief-alert-menu-item-icon"
-                            style={f.hex ? { color: f.hex } : undefined}
-                          >
-                            <Icon size={14} strokeWidth={2.3} />
-                          </span>
-                        ) : null}
-                        <span className="m-brief-alert-menu-item-label">{f.label}</span>
-                        <span className="m-brief-alert-menu-item-count">{f.count}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
+        {totalAlertsCount > 0 ? (
+          <div className="m-float-alerts-wrap">
+            <button
+              type="button"
+              className={`m-float-alerts m-press ${focus === "atentie" ? "is-open" : ""} ${attentionFilter !== "toate" ? "is-filtered" : ""}`}
+              onClick={openAttentionAll}
+              aria-label={`${totalAlertsCount} alerte active — deschide Atenție`}
+              title="Alerte active"
+            >
+              {totalAlertsCount}
+            </button>
           </div>
+        ) : null}
+
+        <header className="m-brief-hero">
+          <h1 className="m-brief-title">Brief</h1>
         </header>
 
         <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
@@ -922,6 +888,26 @@ export default function MobileBrief({
               </button>
             ) : null}
           </div>
+
+          {focus === "atentie" && attentionStageChips.length > 1 ? (
+            <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtrează alertele pe stadiu">
+              {attentionStageChips.map((chip) => {
+                const active = attentionFilter === chip.key;
+                return (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className={`m-brief-alert-stage-chip m-press ${active ? "is-active" : ""}`}
+                    onClick={() => applyAttentionFilter(chip.key)}
+                    aria-pressed={active}
+                  >
+                    <span>{chip.label}</span>
+                    <span className="m-brief-alert-stage-chip-count">{chip.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
           <div key={focus} className="m-brief-panel m-brief-list m-brief-list-swap flex-1 overflow-hidden">
             {focusBoard.rows.length === 0 ? (

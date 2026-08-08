@@ -289,12 +289,13 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   stagnate.forEach((c) => {
     const zile = getDaysInStage(c);
     const sDef = getStatusDefinition(c.status);
+    const stageLabel = sDef.short || sDef.label;
     items.push({
       id: `stagnate-${c.id}`,
       claim: c,
       type: "stagnate",
-      title: `Întârziere în Etapă (${zile} zile)`,
-      reason: `Status curent: ${sDef.label} (depășit pragul recomandat)`,
+      title: `Întârziere în ${stageLabel}`,
+      reason: `În ${stageLabel} de ${zile} ${zile === 1 ? "zi" : "zile"} — depășit pragul recomandat`,
       severity: "info",
     });
   });
@@ -302,12 +303,13 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   livrarePiese.forEach((c) => {
     const zile = getDaysPastDeliveryDeadline(c);
     const termen = deliveryDateOnly(c);
+    const stageLabel = getStatusDefinition(c.status).short || "Piese";
     items.push({
       id: `livrare_piese-${c.id}`,
       claim: c,
       type: "livrare_piese",
-      title: `Termen livrare depășit (+${zile}z)`,
-      reason: `Verifică fizic stocul — termen livrare era ${termen}`,
+      title: `Livrare piese depășită (+${zile}z)`,
+      reason: `Stadiu ${stageLabel} · termen livrare era ${termen} — verifică stocul`,
       severity: "warning",
     });
   });
@@ -317,8 +319,8 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
       id: `piese-${c.id}`,
       claim: c,
       type: "piese",
-      title: "Piese Sosite - Fără Programare",
-      reason: "Piesele au fost recepționate dar nu a fost stabilită o dată de intrare în service",
+      title: "Piese sosite — fără programare",
+      reason: "Piesele sunt recepționate, dar lipsește data de intrare în service",
       severity: "warning",
     });
   });
@@ -349,12 +351,13 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   inactivitate.forEach((c) => {
     const zile = getDaysSinceLastActivity(c);
     const sDef = getStatusDefinition(c.status);
+    const stageLabel = sDef.short || sDef.label;
     items.push({
       id: `inactivitate-${c.id}`,
       claim: c,
       type: "inactivitate",
-      title: `Fără activitate (${zile} zile)`,
-      reason: `${sDef.label} · nicio modificare de ${zile} zile`,
+      title: `Fără activitate în ${stageLabel}`,
+      reason: `Nicio modificare de ${zile} ${zile === 1 ? "zi" : "zile"} în stadiul ${stageLabel}`,
       severity: "info",
     });
   });
