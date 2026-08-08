@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Inbox, Crosshair, PackageCheck, Ban,
 } from "lucide-react";
-import { telLink } from "../../utils/dateUtils";
+import { telLink, fmtDate } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
@@ -247,27 +247,34 @@ export default function MobileBrief({
     );
   };
 
-  const renderClaimRow = (c, idx, total) => (
-    <button
-      key={c.id}
-      type="button"
-      className={`m-brief-row-main m-press m-brief-claim-row ${idx < total - 1 ? "has-divider" : ""}`}
-      onClick={() => onOpen(c)}
-    >
-      <span className="m-brief-row-icon is-work">
-        <Crosshair size={14} />
-      </span>
-      <span className="m-brief-claim-identity">
-        <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-        <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-      </span>
-      <span className="m-brief-claim-status">
-        {getStatusShortLabel(c.status)}
-        {c.dataProgramare ? ` · ${String(c.dataProgramare).slice(0, 10)}` : ""}
-      </span>
-      <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-    </button>
-  );
+  const renderClaimRow = (c, idx, total) => {
+    const programareLabel = c.dataProgramare
+      ? fmtDate(String(c.dataProgramare).slice(0, 10))
+      : "";
+    return (
+      <button
+        key={c.id}
+        type="button"
+        className={`m-brief-row-main m-press m-brief-claim-row ${idx < total - 1 ? "has-divider" : ""}`}
+        onClick={() => onOpen(c)}
+      >
+        <span className="m-brief-row-icon is-work">
+          <Crosshair size={14} />
+        </span>
+        <span className="m-brief-claim-identity">
+          <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+          <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+        </span>
+        <span className="m-brief-claim-status" title={programareLabel || undefined}>
+          <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
+          {programareLabel ? (
+            <span className="m-brief-claim-date">{programareLabel}</span>
+          ) : null}
+        </span>
+        <ChevronRight size={16} className="m-brief-chevron shrink-0" />
+      </button>
+    );
+  };
 
   if (homeStyle === "inbox") {
     return (
