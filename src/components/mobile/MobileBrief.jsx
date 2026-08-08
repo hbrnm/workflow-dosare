@@ -10,7 +10,6 @@ import {
   filterAlertItems,
   getLatestClaimNoteText,
   getAlertMetric,
-  alertSeverityClass,
 } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
@@ -20,7 +19,7 @@ import {
   ALERT_TYPE_META,
   countAlertsForGroup,
 } from "../../constants/alertCategories";
-import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
+import { getStatusDefinition, getStatusShortLabel, getStageAccent } from "../../constants/config";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -321,20 +320,6 @@ export default function MobileBrief({
     onGoTab?.(tab);
   };
 
-  const alertIconColor = (type) => {
-    switch (type) {
-      case "blocate": return "#B23A2E";
-      case "piese": return "#3E6B45";
-      case "livrare_piese": return "#D6473F";
-      case "neridicate": return "#3E6B45";
-      case "stagnate": return "#2C4160";
-      case "accept_plata": return "#2C4160";
-      case "masini_schimb": return "#C98A2B";
-      case "inactivitate": return "#6B6558";
-      default: return "#2C4160";
-    }
-  };
-
   const pipelineTiles = [
     { key: "air", label: "AIR", count: stageLists.air.length, tone: "steel" },
     { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
@@ -395,10 +380,12 @@ export default function MobileBrief({
     const showFactureaza = item.type === "accept_plata";
     const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
 
+    const stageAccent = getStageAccent(c.status);
+
     return (
       <li key={item.id}>
         <article
-          className={`app-alerte-row m-brief-alerte-card is-compact ${alertSeverityClass(item.severity)} ${isExiting ? "is-exiting" : ""}`}
+          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""}`}
           onClick={() => onOpen(c)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -417,7 +404,6 @@ export default function MobileBrief({
           ) : (
             <div
               className="app-alerte-metric is-icon"
-              style={{ color: typeMeta?.hex || alertIconColor(item.type) }}
               title={whyTitle}
             >
               <AlertTriangle size={14} />
@@ -604,20 +590,24 @@ export default function MobileBrief({
     );
   };
 
-  const renderClaimRow = (c, idx, total) => {
+  const renderClaimRow = (c) => {
     const phone = c.telefonClient || "";
-    const noteText = getLatestClaimNoteText(c, { maxLen: 90 });
+    const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
     const programareLabel = c.dataProgramare
       ? (focus === "programat"
         ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
         : fmtDate(String(c.dataProgramare).slice(0, 10)))
       : "";
     const stageSince = getStageSinceMeta(c);
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
     const statusTitle = [
       stageSince.title,
       focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
     ].filter(Boolean).join(" · ");
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
+    const stageAccent = getStageAccent(c.status);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
     const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
     const showPartsArrived =
       focus === "piese" && onPatchClaim && !c.blocat && !c.pieseSosite;
@@ -625,29 +615,44 @@ export default function MobileBrief({
       focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
     const isScheduling = schedulingId === c.id;
     const showFoto = Boolean(onGoCapture || onGoTab);
-    const showActions = Boolean(
-      phone || showStartRepair || showPartsArrived || showSchedule || showFoto || isScheduling
-    );
     const isExiting = exitingIds.has(c.id);
     const isFlash = flashIds.has(c.id);
+    const subline = [
+      focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
+      noteText,
+    ].filter(Boolean).join(" · ");
 
     return (
-      <div
-        key={c.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
-      >
-        <button
-          type="button"
-          className="m-brief-row-main m-press m-brief-claim-row"
+      <li key={c.id}>
+        <article
+          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
           onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
-          <span className="m-brief-row-icon is-work">
+          <div className="app-alerte-metric is-icon" title={stFull}>
             <RowIcon size={14} />
-          </span>
-          <span className="m-brief-claim-body min-w-0 flex-1 text-left">
-            <span className="m-brief-claim-identity">
-              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+          </div>
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main" title={statusTitle || undefined}>
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
               {c.blocat ? (
                 <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
                   B
@@ -658,83 +663,77 @@ export default function MobileBrief({
                   Sosite
                 </span>
               ) : null}
-              {focus === "accept" ? (
-                <span className="m-brief-claim-chip is-ap" title="Stadiul Accept plată">
-                  AP
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
                 </span>
               ) : null}
-            </span>
-            {noteText ? (
-              <span className="m-brief-row-note">{noteText}</span>
+            </div>
+            {subline ? (
+              <p className="m-brief-alerte-why is-muted" title={subline}>
+                {subline}
+              </p>
             ) : null}
-          </span>
-          <span className="m-brief-claim-status" title={statusTitle || undefined}>
-            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {stageSince.dateTimeShort ? (
-              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
-            ) : null}
-            {stageSince.daysLabel ? (
-              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
-            ) : null}
-            {focus === "programat" && programareLabel ? (
-              <span className="m-brief-claim-appt">{programareLabel}</span>
-            ) : null}
-          </span>
-          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-        </button>
-        {showActions ? (
-          <div className="m-brief-row-actions">
+          </div>
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
             {phone ? (
               <>
-                <WhatsAppButton phone={phone} claim={c} size={12} />
-                <a
-                  href={telLink(phone)}
-                  className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold"
-                  onClick={() => softHaptic(6)}
-                >
-                  <Phone size={11} /> Apel
+                <WhatsAppButton phone={phone} claim={c} size={11} />
+                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+                  <Phone size={13} />
                 </a>
               </>
             ) : null}
             {showFoto ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-icon"
+                className="app-alerte-btn-secondary"
                 onClick={(e) => openCapture(e, c.id)}
                 title="Foto & Doc"
               >
-                <Camera size={12} /> Foto
+                Foto
               </button>
             ) : null}
             {showPartsArrived ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn"
+                className="app-alerte-btn-secondary"
                 onClick={(e) => markPartsArrived(e, c)}
               >
-                <Package size={11} /> Sosite
+                Sosite
               </button>
             ) : null}
             {showSchedule && !isScheduling ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-primary"
+                className="app-alerte-btn-primary"
                 onClick={(e) => openScheduler(e, c)}
               >
-                <CalendarDays size={11} /> Programare
+                Prog.
               </button>
             ) : null}
             {showStartRepair ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-primary"
+                className="app-alerte-btn-primary"
                 onClick={(e) => startRepair(e, c)}
               >
-                <Wrench size={11} /> Reparație
+                Repar.
               </button>
             ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
-        ) : null}
+        </article>
         {isScheduling ? (
           <div
             className="m-brief-schedule"
@@ -771,7 +770,7 @@ export default function MobileBrief({
             </button>
           </div>
         ) : null}
-      </div>
+      </li>
     );
   };
 
@@ -888,11 +887,11 @@ export default function MobileBrief({
                 <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
                 <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
               </div>
-            ) : focusBoard.kind === "claims" ? (
-              focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
             ) : (
-              <ul className="app-alerte-rows m-brief-alerte-rows">
-                {focusBoard.rows.map((item) => renderAlertRow(item))}
+              <ul className="app-alerte-rows m-brief-alerte-rows m-flow-list">
+                {focusBoard.kind === "claims"
+                  ? focusBoard.rows.map((c) => renderClaimRow(c))
+                  : focusBoard.rows.map((item) => renderAlertRow(item))}
               </ul>
             )}
           </div>

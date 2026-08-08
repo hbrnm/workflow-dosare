@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Plus, ChevronRight, User, Phone, ChevronDown, ChevronUp } from "lucide-react";
-import { getStatusDefinition, isPieseComandateStatus, getStatusShortLabel } from "../../constants/config";
+import {
+  getStatusDefinition,
+  isPieseComandateStatus,
+  getStatusShortLabel,
+  getStageAccent,
+} from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import { telLink, formatProgramareShort } from "../../utils/dateUtils";
@@ -168,13 +173,14 @@ export default function MobileClaimsList({
               const c = group[0];
               const sDef = getStatusDefinition(c.status);
               const phone = c.telefonClient || "";
+              const stageAccent = getStageAccent(c.status);
 
               return (
                 <div
                   key={c.id}
                   id={`mobile-claim-${c.id}`}
                   onClick={() => onOpen(c)}
-                  className={`m-claim-card p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+                  className={`m-claim-card m-flow-card ${stageAccent.className} p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -293,12 +299,13 @@ function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePi
           {group.map((c) => {
             const sDef = getStatusDefinition(c.status);
             const phone = c.telefonClient || "";
+            const stageAccent = getStageAccent(c.status);
 
             return (
               <div
                 key={c.id}
                 onClick={() => onOpen(c)}
-                className="m-stack-item rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 cursor-pointer space-y-2 active:scale-[0.99] transition-transform"
+                className={`m-stack-item m-flow-card ${stageAccent.className} rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 cursor-pointer space-y-2 active:scale-[0.99] transition-transform`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
