@@ -792,20 +792,6 @@ export default function MobileBrief({
   if (homeStyle === "inbox") {
     return (
       <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
-        {totalAlertsCount > 0 ? (
-          <div className="m-float-alerts-wrap">
-            <button
-              type="button"
-              className={`m-float-alerts m-press ${focus === "atentie" ? "is-open" : ""} ${attentionFilter !== "toate" ? "is-filtered" : ""}`}
-              onClick={openAttentionAll}
-              aria-label={`${totalAlertsCount} alerte active — deschide Atenție`}
-              title="Alerte active"
-            >
-              {totalAlertsCount}
-            </button>
-          </div>
-        ) : null}
-
         <header className="m-brief-hero">
           <h1 className="m-brief-title">Brief</h1>
         </header>
