@@ -1906,6 +1906,10 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   min-width: 0;
 }
 
+.mobile-shell.app-shell .m-flow-card.is-attention .m-brief-alerte-why {
+  color: var(--app-danger, #b23a2e);
+}
+
 .mobile-shell.app-shell .m-brief-alerte-why.is-muted {
   color: var(--app-muted);
   font-weight: 600;
