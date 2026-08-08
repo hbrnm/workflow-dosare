@@ -858,17 +858,6 @@ export default function MobileBrief({
               </div>
               <p className="m-brief-board-hint">{focusBoard.hint}</p>
             </div>
-            {onNew ? (
-              <button
-                type="button"
-                className="m-fab-plus m-press shrink-0 self-start"
-                onClick={onNew}
-                aria-label="Dosar nou"
-                title="Dosar nou"
-              >
-                <Plus size={18} strokeWidth={2.5} />
-              </button>
-            ) : null}
           </div>
 
           {focus === "atentie" && attentionStageChips.length > 1 ? (

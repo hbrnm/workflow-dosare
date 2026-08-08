@@ -2001,6 +2001,44 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
     inset 3px 0 0 var(--flow-accent);
 }
 
+.mobile-shell.app-shell .m-flow-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.mobile-shell.app-shell .m-flow-card-extra {
+  padding: 0.15rem 0.15rem 0.05rem 0.35rem;
+}
+
+.mobile-shell.app-shell .m-stack-group.m-flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0.45rem;
+}
+
+.mobile-shell.app-shell .m-flow-stack-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.15rem 0.1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mobile-shell.app-shell .m-stack-flow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .mobile-shell.app-shell .m-claim-card.m-flow-card.stage-air,
 .mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-air { --flow-accent: #3b5166; }
 .mobile-shell.app-shell .m-claim-card.m-flow-card.stage-piese,
