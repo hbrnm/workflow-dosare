@@ -813,6 +813,11 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   gap: 0.55rem;
 }
 
+.mobile-shell.app-shell .m-brief-tiles--stages {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
 .mobile-shell.app-shell .m-brief-tile,
 .mobile-shell.app-shell .m-ui-tile {
   display: flex;
@@ -828,6 +833,39 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   text-align: left;
   color: var(--app-text);
   transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact {
+  min-height: 0;
+  gap: 0.28rem;
+  padding: 0.5rem 0.55rem 0.48rem;
+  border-radius: 0.95rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.is-compact .m-ui-tile-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-label {
+  font-size: var(--m-type-micro, 0.72rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-count {
+  margin-top: 0;
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 .mobile-shell.app-shell .m-brief-tile:active,

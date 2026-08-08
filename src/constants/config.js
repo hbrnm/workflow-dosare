@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 export const STATUSES = [
-  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", short: "Acord",     phase: "start", alertDays: 3 },
+  { key: "deschidere",       num: 1, label: "Acord intrare în reparație", short: "AIR",       phase: "start", alertDays: 3 },
   { key: "reconstatare",     num: 2, label: "Reconstatare",              short: "Reconst.",  phase: "eval",  alertDays: 5 },
   { key: "accept_plata",     num: 3, label: "Accept de plată",           short: "Accept",    phase: "eval",  alertDays: 5 },
   { key: "piese_comandate",  num: 4, label: "Piese comandate",           short: "Piese",     phase: "lucru", alertDays: 4 },

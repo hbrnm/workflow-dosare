@@ -4,7 +4,7 @@ import { copyClaimNumber } from "../../utils/copyClaimNumber";
 
 describe("getStatusShortLabel", () => {
   it("returns short stage abbreviations", () => {
-    expect(getStatusShortLabel("deschidere")).toBe("Acord");
+    expect(getStatusShortLabel("deschidere")).toBe("AIR");
     expect(getStatusShortLabel("accept_plata")).toBe("Accept");
     expect(getStatusShortLabel("gata_de_ridicare")).toBe("Gata");
     expect(getStatusShortLabel("piese_sosite")).toBe("Piese"); // migrated

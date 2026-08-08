@@ -2,14 +2,14 @@ import React, { useState, useMemo, useRef } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
-  Inbox, Crosshair, PackageCheck, Ban,
+  Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
 import { telLink, fmtDate } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
-import { getStatusShortLabel } from "../../constants/config";
+import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -18,27 +18,59 @@ const FILTER_CHIPS = [
 
 const HUB_PILLS = FILTER_CHIPS;
 
-const WORKING_STATUSES = new Set(["programat", "in_lucru"]);
-const ATTENTION_TYPES = new Set(["blocate", "stagnate", "inactivitate"]);
-
-const FOCUS_META = {
-  toate: {
-    title: "Toate dosarele",
-    hint: "Lista completă din atelier.",
+/** Brief stage tiles — pipeline + Atenție (probleme). */
+const STAGE_FOCUS = {
+  air: {
+    title: "AIR",
+    hint: "Acord intrare în reparație (deschidere dosar).",
+    emptyTitle: "Niciun dosar AIR",
+    emptyHint: "Dosarele în acord de intrare apar aici.",
+    statusKey: "deschidere",
+  },
+  piese: {
+    title: "Piese",
+    hint: "Piese comandate — așteaptă livrare / programare.",
+    emptyTitle: "Niciun dosar pe piese",
+    emptyHint: "Dosarele cu piese comandate apar aici.",
+    statusKey: "piese_comandate",
+  },
+  programat: {
+    title: "Programat",
+    hint: "Mașini programate în atelier (încă neintrate în lucru).",
+    emptyTitle: "Nicio programare",
+    emptyHint: "Dosarele cu status Programat apar aici.",
+    statusKey: "programat",
   },
   lucru: {
-    title: "Dosare în lucru",
-    hint: "Status Programat sau În lucru · fără dosare blocate.",
+    title: "În lucru",
+    hint: "Mașini aflate acum în reparație.",
+    emptyTitle: "Niciun dosar în lucru",
+    emptyHint: "Dosarele cu status În lucru apar aici.",
+    statusKey: "in_lucru",
+  },
+  reparat: {
+    title: "Reparat",
+    hint: "Reparate, gata de ridicare.",
+    emptyTitle: "Niciun dosar reparat",
+    emptyHint: "Mașinile gata de ridicare apar aici.",
+    statusKey: "gata_de_ridicare",
   },
   atentie: {
-    title: "Necesită atenție",
-    hint: "Blocate + întârzieri (etapă depășită sau fără activitate).",
-  },
-  predare: {
-    title: "Predare",
-    hint: "Neridicate și auto la schimb depășit.",
+    title: "Atenție",
+    hint: "Probleme, blocaje, întârzieri și alte alerte.",
+    emptyTitle: "Nimic care necesită atenție",
+    emptyHint: "Blocate, întârzieri și alte alerte apar aici.",
+    statusKey: null,
   },
 };
+
+function claimStatusKey(claim) {
+  return getStatusDefinition(claim?.status).key;
+}
+
+function claimsForStatus(claims, statusKey) {
+  return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
+}
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -63,10 +95,8 @@ export default function MobileBrief({
   atelierNume = "Dosare Daună",
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
-  const [focus, setFocus] = useState("toate"); // toate | lucru | atentie | predare
+  const [focus, setFocus] = useState("atentie"); // air | piese | programat | lucru | reparat | atentie
   const boardRef = useRef(null);
-
-  const sourceClaims = listClaims || claims;
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -83,59 +113,39 @@ export default function MobileBrief({
   const chipCount = (key) =>
     key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
 
-  const workingClaims = useMemo(
-    () =>
-      (claims || []).filter((c) => WORKING_STATUSES.has(c.status) && !c.blocat),
-    [claims]
-  );
-
-  const allClaimsCount = (claims || []).length;
-
-  const attentionCount =
-    countAlertsForGroup(counts, "blocate") + countAlertsForGroup(counts, "intarzieri");
-  const predareCount = countAlertsForGroup(counts, "predare");
+  const stageLists = useMemo(() => {
+    const list = claims || [];
+    return {
+      air: claimsForStatus(list, "deschidere"),
+      piese: claimsForStatus(list, "piese_comandate"),
+      programat: claimsForStatus(list, "programat"),
+      lucru: claimsForStatus(list, "in_lucru"),
+      reparat: claimsForStatus(list, "gata_de_ridicare"),
+    };
+  }, [claims]);
 
   const focusBoard = useMemo(() => {
-    const meta = FOCUS_META[focus] || FOCUS_META.toate;
-    if (focus === "lucru") {
-      return {
-        kind: "claims",
-        title: meta.title,
-        hint: meta.hint,
-        emptyTitle: "Niciun dosar în lucru",
-        emptyHint: "Mașinile programate sau în reparație apar aici.",
-        rows: workingClaims,
-      };
-    }
+    const meta = STAGE_FOCUS[focus] || STAGE_FOCUS.atentie;
     if (focus === "atentie") {
       return {
         kind: "alerts",
         title: meta.title,
         hint: meta.hint,
-        emptyTitle: "Nimic care necesită atenție",
-        emptyHint: "Blocate și întârzieri apar aici.",
-        rows: items.filter((i) => ATTENTION_TYPES.has(i.type)),
+        emptyTitle: meta.emptyTitle,
+        emptyHint: meta.emptyHint,
+        rows: items,
       };
     }
-    if (focus === "predare") {
-      return {
-        kind: "alerts",
-        title: meta.title,
-        hint: meta.hint,
-        emptyTitle: "Nicio predare în așteptare",
-        emptyHint: "Mașini neridicate și auto la schimb apar aici.",
-        rows: filterAlertItems(items, "predare"),
-      };
-    }
+    const rows = stageLists[focus] || [];
     return {
       kind: "claims",
       title: meta.title,
       hint: meta.hint,
-      emptyTitle: "Niciun dosar",
-      emptyHint: "Creează un dosar nou sau verifică filtrele de căutare.",
-      rows: sourceClaims,
+      emptyTitle: meta.emptyTitle,
+      emptyHint: meta.emptyHint,
+      rows,
     };
-  }, [focus, workingClaims, items, sourceClaims]);
+  }, [focus, stageLists, items]);
 
   const featured = alertsList[0] || items[0] || null;
 
@@ -172,7 +182,6 @@ export default function MobileBrief({
   const setBoardFocus = (next) => {
     softHaptic(8);
     setFocus(next);
-    // Bring the filtered board into view — tiles sit above the fold, list used to be below Acces rapid.
     requestAnimationFrame(() => {
       boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
@@ -194,32 +203,46 @@ export default function MobileBrief({
 
   const statusTiles = [
     {
-      key: "toate",
-      label: "Toate",
-      count: allClaimsCount,
-      Icon: Inbox,
+      key: "air",
+      label: "AIR",
+      count: stageLists.air.length,
+      Icon: ClipboardCheck,
       tone: "steel",
     },
     {
-      key: "lucru",
-      label: "În lucru",
-      count: workingClaims.length,
-      Icon: Crosshair,
+      key: "piese",
+      label: "Piese",
+      count: stageLists.piese.length,
+      Icon: Package,
+      tone: "steel",
+    },
+    {
+      key: "programat",
+      label: "Prog.",
+      count: stageLists.programat.length,
+      Icon: CalendarDays,
       tone: "accent",
+    },
+    {
+      key: "lucru",
+      label: "Lucru",
+      count: stageLists.lucru.length,
+      Icon: Wrench,
+      tone: "accent",
+    },
+    {
+      key: "reparat",
+      label: "Reparat",
+      count: stageLists.reparat.length,
+      Icon: BadgeCheck,
+      tone: "ok",
     },
     {
       key: "atentie",
       label: "Atenție",
-      count: attentionCount,
+      count: totalAlertsCount,
       Icon: Ban,
       tone: "danger",
-    },
-    {
-      key: "predare",
-      label: "Predare",
-      count: predareCount,
-      Icon: PackageCheck,
-      tone: "ok",
     },
   ];
 
@@ -292,7 +315,7 @@ export default function MobileBrief({
         onClick={() => onOpen(c)}
       >
         <span className="m-brief-row-icon is-work">
-          <Crosshair size={14} />
+          <Wrench size={14} />
         </span>
         <span className="m-brief-claim-identity">
           <span className="m-plate">{c.numarInmatriculare || "—"}</span>
@@ -327,23 +350,25 @@ export default function MobileBrief({
           </div>
         </header>
 
-        <section className="m-brief-tiles" aria-label="Stări operaționale">
+        <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
           {statusTiles.map((tile) => {
             const active = focus === tile.key;
             return (
               <button
                 key={tile.key}
                 type="button"
-                className={`m-brief-tile tone-${tile.tone} ${active ? "is-active" : ""}`}
+                className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""}`}
                 onClick={() => setBoardFocus(tile.key)}
                 aria-pressed={active}
-                title={FOCUS_META[tile.key]?.hint}
+                title={STAGE_FOCUS[tile.key]?.hint}
               >
-                <span className="m-brief-tile-icon">
-                  <tile.Icon size={16} strokeWidth={2.25} />
+                <span className="m-brief-tile-top">
+                  <span className="m-brief-tile-icon">
+                    <tile.Icon size={13} strokeWidth={2.4} />
+                  </span>
+                  <span className="m-brief-tile-count">{tile.count}</span>
                 </span>
                 <span className="m-brief-tile-label">{tile.label}</span>
-                <span className="m-brief-tile-count">{tile.count}</span>
               </button>
             );
           })}
