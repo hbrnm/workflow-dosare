@@ -199,48 +199,42 @@ export default function MobilePieseSositeRow({
       <div className="m-piese-sosite m-piese-sosite-inline" onClick={(e) => e.stopPropagation()}>
         <div className="m-piese-inline-row">
           <div className="m-piese-inline-dates" title="Data comandă / termen livrare">
-            {canEditDates ? (
-              <>
-                <label className="m-piese-inline-field">
-                  <span>Cmd</span>
-                  <input
-                    type="date"
-                    className="m-piese-inline-input"
-                    defaultValue={toInputDate(claim.dataComandaPiese)}
-                    disabled={savingDates}
-                    onBlur={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Data comandă piese"
-                  />
-                </label>
-                <label className={`m-piese-inline-field ${livrareOverdue ? "is-overdue" : ""}`}>
-                  <span>Rec</span>
-                  <input
-                    type="date"
-                    className="m-piese-inline-input"
-                    defaultValue={toInputDate(claim.termenLivrarePiese)}
-                    disabled={savingDates}
-                    onBlur={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Data recepție / livrare piese"
-                  />
-                </label>
-              </>
-            ) : (
-              <>
-                <span className="m-piese-inline-chip" title={toInputDate(claim.dataComandaPiese) || "Fără dată comandă"}>
-                  <span className="m-piese-inline-k">Cmd</span>
-                  <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
-                </span>
-                <span
-                  className={`m-piese-inline-chip ${livrareOverdue ? "is-overdue" : ""}`}
-                  title={toInputDate(claim.termenLivrarePiese) || "Fără dată recepție"}
-                >
-                  <span className="m-piese-inline-k">Rec</span>
-                  <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
-                </span>
-              </>
-            )}
+            <label
+              className={`m-piese-inline-chip ${canEditDates ? "is-editable" : ""}`}
+              title={toInputDate(claim.dataComandaPiese) || "Fără dată comandă"}
+            >
+              <span className="m-piese-inline-k">Cmd</span>
+              <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
+              {canEditDates ? (
+                <input
+                  type="date"
+                  className="m-piese-inline-input-overlay"
+                  value={toInputDate(claim.dataComandaPiese)}
+                  disabled={savingDates}
+                  onChange={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Data comandă piese"
+                />
+              ) : null}
+            </label>
+            <label
+              className={`m-piese-inline-chip ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
+              title={toInputDate(claim.termenLivrarePiese) || "Fără dată recepție"}
+            >
+              <span className="m-piese-inline-k">Rec</span>
+              <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
+              {canEditDates ? (
+                <input
+                  type="date"
+                  className="m-piese-inline-input-overlay"
+                  value={toInputDate(claim.termenLivrarePiese)}
+                  disabled={savingDates}
+                  onChange={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Data recepție / livrare piese"
+                />
+              ) : null}
+            </label>
           </div>
 
           <label
