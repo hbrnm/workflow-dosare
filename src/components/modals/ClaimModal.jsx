@@ -36,9 +36,10 @@ import PhotoLightbox from "../common/PhotoLightbox";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 
 function applyClaimStatusChange(prev, newStatusKey) {
-  const statusChanged = prev.status !== newStatusKey;
+  const mappedKey = getStatusDefinition(newStatusKey).key;
+  const statusChanged = getStatusDefinition(prev.status).key !== mappedKey;
   const updates = {
-    status: newStatusKey,
+    status: mappedKey,
     dataSchimbareStatus: statusChanged ? nowISO() : prev.dataSchimbareStatus,
   };
 
@@ -46,11 +47,11 @@ function applyClaimStatusChange(prev, newStatusKey) {
     updates.alerteAck = false;
   }
 
-  if (newStatusKey === "programat" && !prev.dataProgramare) {
+  if (mappedKey === "programat" && !prev.dataProgramare) {
     updates.dataProgramare = `${todayISO()}T09:00:00`;
   }
 
-  if (PRE_PROGRAMAT_STATUSES.includes(newStatusKey)) {
+  if (PRE_PROGRAMAT_STATUSES.includes(mappedKey) || PRE_PROGRAMAT_STATUSES.includes(newStatusKey)) {
     updates.dataProgramare = null;
   }
 
@@ -321,33 +322,23 @@ export default function ClaimModal({
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
-  const toggleGata = (checked) => setForm((f) => {
-    const nextStatus = checked && f.status !== "facturat"
-      ? "gata_de_ridicare"
-      : (!checked && ["gata_de_ridicare", "predat_client"].includes(f.status) ? "in_lucru" : f.status);
-    return {
-      ...f,
-      gataDeRidicare: checked,
-      dataGataRidicare: checked ? nowISO() : null,
-      ridicata: false,
-      dataRidicare: null,
-      status: nextStatus,
-      ...(nextStatus !== f.status ? { alerteAck: false } : {}),
-    };
-  });
+  const toggleGata = (checked) => setForm((f) => ({
+    ...f,
+    gataDeRidicare: checked,
+    dataGataRidicare: checked ? nowISO() : null,
+    ridicata: checked ? f.ridicata : false,
+    dataRidicare: checked ? f.dataRidicare : null,
+  }));
 
-  const toggleRidicata = (checked) => setForm((f) => {
-    const nextStatus = checked && f.status !== "facturat"
-      ? "predat_client"
-      : (!checked && f.status === "predat_client" ? "gata_de_ridicare" : f.status);
-    return {
-      ...f,
-      ridicata: checked,
-      dataRidicare: checked ? nowISO() : null,
-      status: nextStatus,
-      ...(nextStatus !== f.status ? { alerteAck: false } : {}),
-    };
-  });
+  const toggleRidicata = (checked) => setForm((f) => ({
+    ...f,
+    ridicata: checked,
+    dataRidicare: checked ? nowISO() : null,
+    gataDeRidicare: checked ? true : f.gataDeRidicare,
+    dataGataRidicare: checked
+      ? (f.dataGataRidicare || nowISO())
+      : f.dataGataRidicare,
+  }));
 
   const handleDuplicate = () => {
     const dup = {
@@ -418,36 +409,25 @@ export default function ClaimModal({
       Boolean(form.dataProgramare) &&
       (scheduleChanged || statusToProgramat);
 
-    let effectiveStatus = form.status;
-    if (form.ridicata && form.status !== "facturat") {
-      effectiveStatus = "predat_client";
-    } else if (form.gataDeRidicare && form.status !== "facturat" && form.status !== "predat_client") {
-      effectiveStatus = "gata_de_ridicare";
-    } else if (form.adusaFizic && form.status === "programat") {
+    let effectiveStatus = getStatusDefinition(form.status).key;
+    if (form.adusaFizic && effectiveStatus === "programat") {
       effectiveStatus = "in_lucru";
     } else if (
       form.dataProgramare &&
-      form.status !== "programat" &&
-      shouldPromoteToProgramatOnSchedule(form)
+      effectiveStatus !== "programat" &&
+      shouldPromoteToProgramatOnSchedule({ ...form, status: effectiveStatus })
     ) {
       effectiveStatus = "programat";
     }
 
-    const deliveryState = effectiveStatus === "predat_client"
-      ? {
-          gataDeRidicare: true,
-          dataGataRidicare: form.dataGataRidicare || nowISO(),
-          ridicata: true,
-          dataRidicare: form.dataRidicare || nowISO(),
-        }
-      : effectiveStatus === "gata_de_ridicare"
-      ? {
-          gataDeRidicare: true,
-          dataGataRidicare: form.dataGataRidicare || nowISO(),
-          ridicata: false,
-          dataRidicare: null,
-        }
-      : {};
+    const deliveryState = {
+      gataDeRidicare: !!form.gataDeRidicare || !!form.ridicata,
+      dataGataRidicare: form.gataDeRidicare || form.ridicata
+        ? (form.dataGataRidicare || nowISO())
+        : null,
+      ridicata: !!form.ridicata,
+      dataRidicare: form.ridicata ? (form.dataRidicare || nowISO()) : null,
+    };
 
     const statusChanged = effectiveStatus !== claim.status;
     if (statusChanged && effectiveStatus === "facturat") {
@@ -1230,7 +1210,7 @@ export default function ClaimModal({
                       {/* Status Label — simplificat, fără text redundant */}
                       <div className="flex items-center justify-between text-[11.5px] pt-0.5">
                         <span className="text-[10px] text-[#8A8375] font-medium">
-                          Etapa {STATUSES.findIndex((s) => s.key === form.status) + 1} din 9 — click pe segment pentru a schimba
+                          Etapa {Math.max(1, STATUSES.findIndex((s) => s.key === getStatusDefinition(form.status).key) + 1)} din {STATUSES.length} — click pe segment pentru a schimba
                         </span>
 
                         <select

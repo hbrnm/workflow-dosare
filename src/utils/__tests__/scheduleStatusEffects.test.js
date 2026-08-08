@@ -32,17 +32,17 @@ describe("scheduleStatusEffects", () => {
     );
     expect(patch.status).toBe("programat");
     expect(patch.dataProgramare).toBe("2026-08-10T09:00:00");
-    expect(notices[0]).toMatch(/Programat/);
+    expect(notices[0]).toMatch(/Programări/);
   });
 
-  it("promotes accept_plata to programat when scheduled (clears accept alert)", () => {
+  it("does not promote accept_plata to programat (accept is post-repair)", () => {
     const { patch, notices } = applyScheduleStatusEffects(
       { id: "1", status: "accept_plata" },
       { dataProgramare: "2026-08-20T09:00:00" }
     );
-    expect(patch.status).toBe("programat");
+    expect(patch.status).toBeUndefined();
     expect(patch.dataProgramare).toBe("2026-08-20T09:00:00");
-    expect(notices[0]).toMatch(/Programat/);
+    expect(notices).toEqual([]);
   });
 
   it("does not demote in_lucru when reschedule sends status programat", () => {
@@ -54,7 +54,7 @@ describe("scheduleStatusEffects", () => {
     expect(patch.status).toBeUndefined();
   });
 
-  it("does not demote gata_de_ridicare on reschedule", () => {
+  it("does not demote legacy gata_de_ridicare on reschedule", () => {
     const { patch } = applyScheduleStatusEffects(
       { id: "1", status: "gata_de_ridicare", dataProgramare: "2026-08-01T09:00:00" },
       { dataProgramare: "2026-08-02T09:00:00", status: "programat" }
@@ -87,7 +87,7 @@ describe("scheduleStatusEffects", () => {
       { adusaFizic: true }
     );
     expect(patch.status).toBe("in_lucru");
-    expect(notices[0]).toMatch(/În lucru/);
+    expect(notices[0]).toMatch(/Reparație/);
   });
 
   it("sets adusaFizic when moving explicitly to in_lucru from programat", () => {

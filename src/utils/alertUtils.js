@@ -73,18 +73,20 @@ export function getDaysInStage(claim) {
   return anchor ? daysBetween(anchor) : 0;
 }
 
-// Dosare cu accept de plată dar pentru care nu au fost comandate încă piesele
+// Dosare pe Accept plată (după reparație) — așteaptă decontare / facturare
 export function isAcceptPlataWithoutParts(claim) {
   if (claim?.alerteAck) return false;
   return Boolean(
     !claim.blocat &&
-    claim.status === "accept_plata"
+    getStatusDefinition(claim.status).key === "accept_plata"
   );
 }
 
 // Detectează dosarele care nu au avut nicio modificare/activitate de mai mult de X zile
 export function isInactiveClaim(claim, inactivityThresholdDays = 7) {
-  if (["predat_client", "facturat"].includes(claim.status)) return false;
+  const key = getStatusDefinition(claim?.status).key;
+  if (key === "facturat" || claim?.status === "predat_client") return false;
+  if (claim?.ridicata && key === "accept_plata") return false;
   if (claim?.alerteAck) return false;
   const lastUpdate = claim.dataUltimeiActualizari || claim.dataSchimbareStatus || claim.dataDeschiderii;
   return daysBetween(lastUpdate) >= inactivityThresholdDays;
@@ -307,7 +309,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
       claim: c,
       type: "accept_plata",
       title: "Accept plată",
-      reason: "În Accept de plată — comanda de piese nu a fost lansată",
+      reason: "Reparație finalizată — așteaptă acceptul de plată / decontarea",
       severity: "info",
     });
   });

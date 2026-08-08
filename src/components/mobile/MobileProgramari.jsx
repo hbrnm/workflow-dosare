@@ -88,7 +88,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
       return;
     }
     const ok = await onPatch(claim.id, { status: "in_lucru", adusaFizic: true });
-    if (ok !== false) onNotify?.('Dosar mutat în „În lucru".', "success");
+    if (ok !== false) onNotify?.('Dosar mutat în „Reparație".', "success");
   };
 
   const handleClearProgramare = async (claim) => {
@@ -385,7 +385,7 @@ function MobileProgramareStackCard({
                             onClick={() => onMarkInLucru(c)}
                             className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[11px] font-extrabold"
                           >
-                            <Wrench size={12} /> În lucru
+                            <Wrench size={12} /> Reparație
                           </button>
                         )}
                         {showClear && (

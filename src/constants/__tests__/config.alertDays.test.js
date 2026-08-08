@@ -27,7 +27,8 @@ describe('status alert thresholds', () => {
   it('getStatusAlertDays falls back to STATUSES.alertDays', () => {
     expect(getStatusAlertDays('deschidere')).toBe(3);
     expect(getStatusAlertDays('in_lucru')).toBe(7);
-    expect(getStatusAlertDays('predat_client')).toBe(14);
+    // predat_client migrates → accept_plata (alertDays 5)
+    expect(getStatusAlertDays('predat_client')).toBe(5);
   });
 
   it('getStatusAlertDays uses Setări overrides map', () => {
@@ -38,18 +39,15 @@ describe('status alert thresholds', () => {
   it('cacheStatusAlertOverrides persists and is read by getClaimAlertDays', () => {
     cacheStatusAlertOverrides({
       deschidere: 2,
-      reconstatare: 3,
       accept_plata: 3,
       piese_comandate: 4,
       programat: 3,
       in_lucru: 7,
-      gata_de_ridicare: 1,
-      predat_client: 10,
       facturat: 30,
     });
     expect(getStatusAlertOverrides().deschidere).toBe(2);
     expect(getClaimAlertDays({ status: 'deschidere', termenAlertaZile: 99 })).toBe(2);
-    expect(getClaimAlertDays({ status: 'predat_client', termenAlertaZile: 3 })).toBe(10);
+    expect(getClaimAlertDays({ status: 'accept_plata', termenAlertaZile: 3 })).toBe(3);
     expect(getClaimAlertDays({ status: 'in_lucru' })).toBe(7);
   });
 

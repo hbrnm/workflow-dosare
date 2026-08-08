@@ -20,12 +20,15 @@ describe('alert groups', () => {
 
   it('maps fine types into groups', () => {
     expect(resolveAlertGroupKey('stagnate')).toBe('intarzieri');
-    expect(resolveAlertGroupKey('accept_plata')).toBe('piese');
+    expect(resolveAlertGroupKey('accept_plata')).toBe('plati');
     expect(resolveAlertGroupKey('masini_schimb')).toBe('predare');
     expect(getAlertTypesForTab('piese')).toEqual([
       'livrare_piese',
       'piese',
+    ]);
+    expect(getAlertTypesForTab('plati')).toEqual([
       'accept_plata',
+      'restante',
     ]);
   });
 
@@ -35,9 +38,11 @@ describe('alert groups', () => {
       inactivitate: 1,
       piese: 1,
       livrare_piese: 3,
-      accept_plata: 0,
+      accept_plata: 2,
+      restante: 1,
     };
     expect(countAlertsForGroup(counts, 'intarzieri')).toBe(3);
     expect(countAlertsForGroup(counts, 'piese')).toBe(4);
+    expect(countAlertsForGroup(counts, 'plati')).toBe(3);
   });
 });

@@ -26,6 +26,102 @@ export function daysBetween(iso) {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
 }
 
+/** Zi calendaristică locală YYYY-MM-DD — fără deplasări pe timezone. */
+export function toLocalDateKey(iso) {
+  if (!iso) return "";
+  const raw = String(iso);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // Naive datetime (fără Z/offset): folosim ziua din string, nu UTC.
+  if (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw) &&
+    !/(Z|[+-]\d{2}:?\d{2})$/i.test(raw)
+  ) {
+    return raw.slice(0, 10);
+  }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Oră locală HH:mm din ISO (gol dacă e doar dată). */
+export function toLocalTimeHHMM(iso) {
+  if (!iso) return "";
+  const raw = String(iso);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  if (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw) &&
+    !/(Z|[+-]\d{2}:?\d{2})$/i.test(raw)
+  ) {
+    const t = raw.slice(11, 16);
+    return /^\d{2}:\d{2}$/.test(t) ? t : "";
+  }
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Diferență în zile calendaristice locale între două YYYY-MM-DD. */
+export function calendarDaysBetween(fromDay, toDay = todayISO()) {
+  if (
+    !fromDay ||
+    !toDay ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(fromDay) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(toDay)
+  ) {
+    return 0;
+  }
+  const [y1, m1, d1] = fromDay.split("-").map(Number);
+  const [y2, m2, d2] = toDay.split("-").map(Number);
+  const a = Date.UTC(y1, m1 - 1, d1);
+  const b = Date.UTC(y2, m2 - 1, d2);
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+export function formatDaysLabel(days) {
+  if (!Number.isFinite(days) || days < 0) return "—";
+  if (days === 0) return "azi";
+  if (days === 1) return "1 zi";
+  return `${days} zile`;
+}
+
+/**
+ * Meta sincronizată: dată (+ oră) și zile calendaristice din același moment.
+ * Folosit pe carduri Brief (stadii + Atenție).
+ */
+export function getSinceMeta(iso) {
+  const dayKey = toLocalDateKey(iso);
+  if (!dayKey) {
+    return {
+      dateLabel: "",
+      timeLabel: "",
+      dateTimeLabel: "",
+      dateTimeShort: "",
+      days: null,
+      daysLabel: "",
+      title: "",
+    };
+  }
+  const dateLabel = fmtDate(dayKey);
+  const timeLabel = toLocalTimeHHMM(iso);
+  const days = calendarDaysBetween(dayKey);
+  const daysLabel = formatDaysLabel(days);
+  const shortDate = dateLabel.length >= 5 ? dateLabel.slice(0, 5) : dateLabel; // DD/MM
+  const dateTimeShort = timeLabel ? `${shortDate} ${timeLabel}` : shortDate;
+  const dateTimeLabel = timeLabel ? `${dateLabel}, ${timeLabel}` : dateLabel;
+  return {
+    dateLabel,
+    timeLabel,
+    dateTimeLabel,
+    dateTimeShort,
+    days,
+    daysLabel,
+    title: `Din ${dateTimeLabel} · ${daysLabel}`,
+  };
+}
+
 export function getMondayOfISOWeek(d = new Date()) {
   const date = new Date(d);
   const day = date.getDay();

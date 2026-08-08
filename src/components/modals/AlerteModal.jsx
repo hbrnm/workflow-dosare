@@ -313,7 +313,7 @@ export default function AlerteModal({
                       "piese",
                       "restante",
                     ].includes(item.type);
-                    const showOrderParts = item.type === "accept_plata";
+                    const showFactureaza = item.type === "accept_plata";
                     const blockReason =
                       item.type === "blocate"
                         ? String(item.reason || c.motivBlocare || "").trim()
@@ -391,13 +391,13 @@ export default function AlerteModal({
                                 </a>
                               </>
                             )}
-                            {showOrderParts && (
+                            {showFactureaza && (
                               <button
                                 type="button"
                                 className="app-alerte-btn-primary"
                                 onClick={() => openClaim(c)}
                               >
-                                Comandă piese
+                                Deschide AP
                               </button>
                             )}
                             {showAck && (

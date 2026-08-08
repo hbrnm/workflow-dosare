@@ -16,7 +16,10 @@ import {
 export default function KpiDashboard({ claims, onOpen }) {
   const stats = useMemo(() => {
     const list = claims || [];
-    const active = list.filter((c) => c.status !== "facturat" && c.status !== "predat_client");
+    const active = list.filter((c) => {
+      const key = c.status;
+      return key !== "facturat" && key !== "predat_client";
+    });
     const facturate = list.filter((c) => c.status === "facturat");
     const avgDays =
       facturate.length === 0
