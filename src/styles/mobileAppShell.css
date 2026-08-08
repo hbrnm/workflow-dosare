@@ -1840,6 +1840,11 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-flow-card.stage-accept { --flow-accent: #2f6b4e; }
 .mobile-shell.app-shell .m-flow-card.stage-facturat { --flow-accent: #3e6b45; }
 
+/* Atenție — accent roșu pe alertă, independent de stadiu */
+.mobile-shell.app-shell .m-flow-card.is-attention {
+  --flow-accent: var(--app-danger, #b23a2e);
+}
+
 .mobile-shell.app-shell .m-flow-card .app-alerte-metric,
 .mobile-shell.app-shell .m-brief-alerte-card .app-alerte-metric {
   grid-row: 1 / span 2;
