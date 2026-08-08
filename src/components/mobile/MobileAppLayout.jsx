@@ -10,11 +10,15 @@ import MobileSearchBar from "./MobileSearchBar";
 import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
 
-const NAV_ITEMS = [
+/** Navigare principală mobil — Brief e hub-ul; Dosare e inventar secundar. */
+const PRIMARY_NAV_ITEMS = [
   { id: "brief", label: "Brief", Icon: BarChart3 },
   { id: "capture", label: "Foto & Doc", Icon: Camera },
-  { id: "dosare", label: "Dosare", Icon: List },
   { id: "programari", label: "Programări", Icon: CalendarClock },
+];
+
+const SECONDARY_NAV_ITEMS = [
+  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
 ];
 
 export default function MobileAppLayout({
@@ -152,7 +156,7 @@ export default function MobileAppLayout({
         {menuOpen ? (
           <div className="m-float-menu" role="menu">
             <div className="m-float-menu-label">Navigare</div>
-            {NAV_ITEMS.map(({ id, label, Icon }) => {
+            {PRIMARY_NAV_ITEMS.map(({ id, label, Icon }) => {
               const active = activeTab === id;
               const badge = id === "brief" ? totalAlertsCount : 0;
               return (
@@ -170,6 +174,27 @@ export default function MobileAppLayout({
                   {badge > 0 ? (
                     <span className="m-float-menu-badge">{badge > 99 ? "99+" : badge}</span>
                   ) : null}
+                </button>
+              );
+            })}
+
+            <div className="m-float-menu-divider" />
+            <div className="m-float-menu-label">Inventar</div>
+            {SECONDARY_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  className={`m-float-menu-item is-secondary ${active ? "is-active" : ""}`}
+                  onClick={() => handleTabChange(id)}
+                  title={hint}
+                >
+                  <span className="m-float-menu-icon">
+                    <Icon size={15} />
+                  </span>
+                  <span className="m-float-menu-item-label">{label}</span>
                 </button>
               );
             })}
@@ -260,6 +285,7 @@ export default function MobileAppLayout({
             canEditFn={canEditFn}
             onNotify={onNotify}
             highlightClaimIds={highlightClaimIds}
+            onBackToBrief={() => handleTabChange("brief")}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari
