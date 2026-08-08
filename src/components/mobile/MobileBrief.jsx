@@ -694,15 +694,20 @@ export default function MobileBrief({
             {showFoto ? (
               <button
                 type="button"
-                className="app-alerte-btn-secondary"
+                className="app-alerte-btn-ghost"
                 onClick={(e) => openCapture(e, c.id)}
+                aria-label={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
                 title={
                   focus === "lucru"
                     ? "Fotografiază în folderul Predare"
                     : "Fotografiază în folderul Recepție"
                 }
               >
-                {fotoLabel}
+                <Camera size={13} />
               </button>
             ) : null}
             {showPartsArrived ? (
