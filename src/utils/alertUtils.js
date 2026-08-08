@@ -170,6 +170,38 @@ function sortByDaysDesc(claims, dateField) {
   );
 }
 
+/** Metrică afișată pe cardul de alertă (zile / unitate). */
+export function getAlertMetric(item) {
+  const c = item?.claim;
+  if (!c) return null;
+  switch (item.type) {
+    case "stagnate":
+      return { value: getDaysInStage(c), unit: "zile", hint: "în etapă" };
+    case "inactivitate":
+      return { value: getDaysSinceLastActivity(c), unit: "zile", hint: "fără activitate" };
+    case "livrare_piese":
+      return { value: getDaysPastDeliveryDeadline(c), unit: "zile", hint: "peste termen" };
+    case "neridicate":
+      return {
+        value: c.dataGataRidicare ? daysBetween(c.dataGataRidicare) : 0,
+        unit: "zile",
+        hint: "gata de ridicare",
+      };
+    case "masini_schimb":
+      return { value: c.zile || 0, unit: "zile", hint: "la schimb" };
+    case "restante":
+      return { value: getDaysPaymentOverdue(c), unit: "zile", hint: "scadență" };
+    default:
+      return null;
+  }
+}
+
+export function alertSeverityClass(severity) {
+  if (severity === "critical") return "is-critical";
+  if (severity === "warning") return "is-warning";
+  return "is-info";
+}
+
 /**
  * Single source of truth for operational alerts.
  * Returns claim lists per type, display items, and counts.

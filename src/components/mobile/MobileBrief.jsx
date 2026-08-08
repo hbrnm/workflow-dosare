@@ -5,8 +5,15 @@ import {
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
 import { telLink, fmtDate, formatProgramareShort, todayISO, getSinceMeta } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
+import {
+  buildAlertBuckets,
+  filterAlertItems,
+  getLatestClaimNoteText,
+  getAlertMetric,
+  alertSeverityClass,
+} from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
@@ -275,73 +282,12 @@ export default function MobileBrief({
     { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
 
-  const openAlertsCenter = () => {
-    softHaptic(8);
-    onOpenAlerts?.("toate");
-  };
-
   const shortcuts = [
     { id: "capture", label: "Foto", Icon: Camera, action: () => go("capture") },
     { id: "programari", label: "Prog.", Icon: CalendarDays, action: () => go("programari") },
     { id: "dosare", label: "Toate", Icon: FolderOpen, action: () => go("dosare"), title: "Toate dosarele" },
     { id: "new", label: "Nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
   ];
-
-  const renderAlertRow = (item, idx, total) => {
-    const c = item.claim;
-    const phone = c.telefonClient || "";
-    const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
-    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
-    const stageSince = getStageSinceMeta(c);
-    return (
-      <div
-        key={item.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""}`}
-      >
-        <button type="button" className="m-brief-row-main m-press" onClick={() => onOpen(c)}>
-          <span className="m-brief-row-icon" style={{ background: alertIconColor(item.type) }}>
-            <AlertTriangle size={14} />
-          </span>
-          <span className="min-w-0 flex-1 text-left">
-            <span className="m-brief-row-plate">
-              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-            </span>
-            <span className="m-brief-row-title m-vehicle-model">{item.title}</span>
-            <span className="m-brief-row-reason">{item.reason}</span>
-            {noteText ? <span className="m-brief-row-note">{noteText}</span> : null}
-          </span>
-          <span className="m-brief-claim-status" title={stageSince.title || undefined}>
-            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {stageSince.dateTimeShort ? (
-              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
-            ) : null}
-            {stageSince.daysLabel ? (
-              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
-            ) : null}
-          </span>
-          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-        </button>
-        {(phone || (onPatchClaim && canAck(item.type))) && (
-          <div className="m-brief-row-actions">
-            {phone ? (
-              <>
-                <WhatsAppButton phone={phone} claim={c} size={12} />
-                <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
-                  <Phone size={11} /> Apel
-                </a>
-              </>
-            ) : null}
-            {onPatchClaim && canAck(item.type) ? (
-              <button type="button" onClick={(e) => ackAlert(e, c.id)} className="m-brief-ghost-btn">
-                Rezolvat
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const setBoardFocus = (next) => {
     softHaptic(8);
@@ -351,6 +297,147 @@ export default function MobileBrief({
     requestAnimationFrame(() => {
       boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  };
+
+  const renderAlertRow = (item) => {
+    const c = item.claim;
+    const phone = c.telefonClient || "";
+    const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
+    const reasonText = String(item.reason || "").trim();
+    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
+    const stageSince = getStageSinceMeta(c);
+    const metric = getAlertMetric(item);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
+    const showFactureaza = item.type === "accept_plata";
+    const showActions = Boolean(
+      phone || showFactureaza || (onPatchClaim && canAck(item.type))
+    );
+
+    return (
+      <li key={item.id}>
+        <article
+          className={`app-alerte-row m-brief-alerte-card ${alertSeverityClass(item.severity)} ${isExiting ? "is-exiting" : ""}`}
+          onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {metric ? (
+            <div className="app-alerte-metric" title={metric.hint}>
+              <span className="app-alerte-metric-value">{metric.value}</span>
+              <span className="app-alerte-metric-unit">{metric.unit}</span>
+            </div>
+          ) : (
+            <div
+              className="app-alerte-metric is-icon"
+              style={{ color: alertIconColor(item.type) }}
+              title={item.title || "Alertă"}
+            >
+              <AlertTriangle size={18} />
+            </div>
+          )}
+
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main">
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
+            </div>
+            {item.title ? (
+              <p className="m-brief-alerte-title" title={item.title}>
+                {item.title}
+              </p>
+            ) : null}
+            {reasonText ? (
+              <p className="app-alerte-reason" title={reasonText}>
+                <span className="app-alerte-meta-label">Motiv</span>
+                {reasonText}
+              </p>
+            ) : null}
+            {noteText ? (
+              <p className="app-alerte-note" title={noteText}>
+                <span className="app-alerte-meta-label">Notă</span>
+                {noteText}
+              </p>
+            ) : null}
+            {stageSince.dateTimeShort || stageSince.daysLabel ? (
+              <p className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                <span className="app-alerte-meta-label">În stadiu</span>
+                {[stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
+          </div>
+
+          {showActions ? (
+            <div
+              className="app-alerte-actions"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {phone ? (
+                <>
+                  <WhatsAppButton phone={phone} claim={c} size={12} />
+                  <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+                    <Phone size={14} />
+                  </a>
+                </>
+              ) : null}
+              {showFactureaza ? (
+                <button
+                  type="button"
+                  className="app-alerte-btn-primary"
+                  onClick={() => onOpen(c)}
+                >
+                  Deschide AP
+                </button>
+              ) : null}
+              {onPatchClaim && canAck(item.type) ? (
+                <button
+                  type="button"
+                  className="app-alerte-btn-secondary"
+                  onClick={(e) => ackAlert(e, c.id)}
+                >
+                  Rezolvat
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="app-alerte-btn-open"
+                onClick={() => onOpen(c)}
+                aria-label="Deschide dosarul"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          ) : (
+            <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="app-alerte-btn-open"
+                onClick={() => onOpen(c)}
+                aria-label="Deschide dosarul"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+        </article>
+      </li>
+    );
   };
 
   const markExiting = (claimId) => {
@@ -637,12 +724,12 @@ export default function MobileBrief({
             <h1 className="m-brief-title">Brief</h1>
             <button
               type="button"
-              className="m-brief-count m-press"
-              onClick={openAlertsCenter}
-              aria-label={`${totalAlertsCount} alerte — deschide centrul de alerte`}
-              title="Deschide alertele"
+              className={`m-brief-count m-brief-count--badge m-press ${totalAlertsCount > 0 ? "has-items" : ""}`}
+              onClick={() => setBoardFocus("atentie")}
+              aria-label={`${totalAlertsCount} alerte — deschide Atenție`}
+              title="Atenție"
             >
-              {totalAlertsCount} alerte
+              {totalAlertsCount}
             </button>
           </div>
         </header>
@@ -734,7 +821,9 @@ export default function MobileBrief({
             ) : focusBoard.kind === "claims" ? (
               focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
             ) : (
-              focusBoard.rows.map((item, idx) => renderAlertRow(item, idx, focusBoard.rows.length))
+              <ul className="app-alerte-rows m-brief-alerte-rows">
+                {focusBoard.rows.map((item) => renderAlertRow(item))}
+              </ul>
             )}
           </div>
         </section>

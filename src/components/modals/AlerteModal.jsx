@@ -7,13 +7,11 @@ import {
   buildAlertBuckets,
   normalizeAlertTab,
   filterAlertItems,
-  getDaysInStage,
-  getDaysSinceLastActivity,
-  getDaysPastDeliveryDeadline,
   getLatestClaimNoteText,
+  getAlertMetric,
+  alertSeverityClass,
 } from "../../utils/alertUtils";
-import { daysBetween, telLink } from "../../utils/dateUtils";
-import { getDaysPaymentOverdue } from "../../utils/settlementUtils";
+import { telLink } from "../../utils/dateUtils";
 import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup } from "../../constants/alertCategories";
 import DosarNumber from "../common/DosarNumber";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -34,37 +32,6 @@ function pickInitialTab(initialTab, counts) {
   }
   const firstWithAlerts = ALERT_GROUPS.find((c) => countAlertsForGroup(counts, c) > 0);
   return firstWithAlerts?.key || "intarzieri";
-}
-
-function getAlertMetric(item) {
-  const c = item?.claim;
-  if (!c) return null;
-  switch (item.type) {
-    case "stagnate":
-      return { value: getDaysInStage(c), unit: "zile", hint: "în etapă" };
-    case "inactivitate":
-      return { value: getDaysSinceLastActivity(c), unit: "zile", hint: "fără activitate" };
-    case "livrare_piese":
-      return { value: getDaysPastDeliveryDeadline(c), unit: "zile", hint: "peste termen" };
-    case "neridicate":
-      return {
-        value: c.dataGataRidicare ? daysBetween(c.dataGataRidicare) : 0,
-        unit: "zile",
-        hint: "gata de ridicare",
-      };
-    case "masini_schimb":
-      return { value: c.zile || 0, unit: "zile", hint: "la schimb" };
-    case "restante":
-      return { value: getDaysPaymentOverdue(c), unit: "zile", hint: "scadență" };
-    default:
-      return null;
-  }
-}
-
-function severityClass(severity) {
-  if (severity === "critical") return "is-critical";
-  if (severity === "warning") return "is-warning";
-  return "is-info";
 }
 
 export default function AlerteModal({
@@ -324,7 +291,7 @@ export default function AlerteModal({
                     return (
                       <li key={item.id}>
                         <article
-                          className={`app-alerte-row ${severityClass(item.severity)}`}
+                          className={`app-alerte-row ${alertSeverityClass(item.severity)}`}
                           onClick={() => openClaim(c)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
