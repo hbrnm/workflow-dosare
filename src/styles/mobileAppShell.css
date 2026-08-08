@@ -1648,16 +1648,16 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
-  gap: 0.05rem;
+  justify-content: flex-start;
+  gap: 0.08rem;
   flex: 0 0 auto;
-  max-width: 42%;
+  max-width: 38%;
   text-align: right;
   font-size: var(--m-type-body);
   font-weight: 700;
   color: var(--app-muted);
-  line-height: 1.2;
-  padding-top: 0.1rem;
+  line-height: 1.15;
+  padding-top: 0.05rem;
 }
 
 .mobile-shell.app-shell .m-brief-schedule {
@@ -1699,6 +1699,23 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-text-strong);
   letter-spacing: 0.01em;
   white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-claim-days {
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 700;
+  color: var(--app-muted);
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.mobile-shell.app-shell .m-brief-claim-appt {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--app-accent);
+  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .mobile-shell.app-shell .m-fab-plus {

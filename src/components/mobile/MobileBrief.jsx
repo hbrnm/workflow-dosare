@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink, fmtDate, formatProgramareShort, todayISO } from "../../utils/dateUtils";
+import { telLink, fmtDate, formatProgramareShort, todayISO, daysBetween } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
@@ -118,6 +118,20 @@ function sortClaimsForFocus(rows, focusKey) {
       String(a.dataSchimbareStatus || a.dataUltimeiActualizari || "")
     )
   );
+}
+
+/** Dată + zile de când dosarul e în stadiul curent (dataSchimbareStatus). */
+function getStageSinceMeta(claim) {
+  const iso = claim?.dataSchimbareStatus || claim?.dataDeschiderii || null;
+  if (!iso) return { dateLabel: "", daysLabel: "", title: "" };
+  const dateLabel = fmtDate(String(iso).slice(0, 10));
+  const days = daysBetween(iso);
+  const daysLabel = days === 0 ? "azi" : days === 1 ? "1 zi" : `${days} zile`;
+  return {
+    dateLabel,
+    daysLabel,
+    title: `În stadiu din ${dateLabel} · ${daysLabel}`,
+  };
 }
 
 function greetingForNow() {
@@ -451,6 +465,11 @@ export default function MobileBrief({
         ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
         : fmtDate(String(c.dataProgramare).slice(0, 10)))
       : "";
+    const stageSince = getStageSinceMeta(c);
+    const statusTitle = [
+      stageSince.title,
+      focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
+    ].filter(Boolean).join(" · ");
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
     const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
     const showPartsArrived =
@@ -502,10 +521,16 @@ export default function MobileBrief({
               <span className="m-brief-row-note">{noteText}</span>
             ) : null}
           </span>
-          <span className="m-brief-claim-status" title={programareLabel || undefined}>
+          <span className="m-brief-claim-status" title={statusTitle || undefined}>
             <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {programareLabel ? (
-              <span className="m-brief-claim-date">{programareLabel}</span>
+            {stageSince.dateLabel ? (
+              <span className="m-brief-claim-date">{stageSince.dateLabel}</span>
+            ) : null}
+            {stageSince.daysLabel ? (
+              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
+            ) : null}
+            {focus === "programat" && programareLabel ? (
+              <span className="m-brief-claim-appt">{programareLabel}</span>
             ) : null}
           </span>
           <ChevronRight size={16} className="m-brief-chevron shrink-0" />
@@ -686,8 +711,14 @@ export default function MobileBrief({
               <p className="m-brief-board-hint">{focusBoard.hint}</p>
             </div>
             {onNew ? (
-              <button type="button" className="m-brief-ghost-btn shrink-0 self-start" onClick={onNew}>
-                + Dosar
+              <button
+                type="button"
+                className="m-fab-plus m-press shrink-0 self-start"
+                onClick={onNew}
+                aria-label="Dosar nou"
+                title="Dosar nou"
+              >
+                <Plus size={18} strokeWidth={2.5} />
               </button>
             ) : null}
           </div>
