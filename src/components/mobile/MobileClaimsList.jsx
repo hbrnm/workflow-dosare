@@ -17,6 +17,7 @@ export default function MobileClaimsList({
   canEditFn,
   onNotify,
   highlightClaimIds = null,
+  onBackToBrief = null,
 }) {
   const [statusFilter, setStatusFilter] = useState("toate");
 
@@ -84,7 +85,18 @@ export default function MobileClaimsList({
     <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
       <header className="m-ui-hero">
         <div className="flex items-end justify-between gap-3">
-          <h1 className="m-ui-title">Dosare</h1>
+          <div className="min-w-0">
+            {onBackToBrief ? (
+              <button
+                type="button"
+                className="m-ui-back m-press"
+                onClick={onBackToBrief}
+              >
+                ← Brief
+              </button>
+            ) : null}
+            <h1 className="m-ui-title">Toate dosarele</h1>
+          </div>
           <div className="flex items-center gap-2">
             <span className="m-ui-count">{filtered.length}</span>
             <button

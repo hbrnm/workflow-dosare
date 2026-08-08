@@ -282,8 +282,8 @@ export default function MobileBrief({
 
   const shortcuts = [
     { id: "capture", label: "Foto", Icon: Camera, action: () => go("capture") },
-    { id: "dosare", label: "Dosare", Icon: FolderOpen, action: () => go("dosare") },
     { id: "programari", label: "Prog.", Icon: CalendarDays, action: () => go("programari") },
+    { id: "dosare", label: "Toate", Icon: FolderOpen, action: () => go("dosare"), title: "Toate dosarele" },
     { id: "new", label: "Nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
   ];
 
@@ -744,8 +744,9 @@ export default function MobileBrief({
             <button
               key={item.id}
               type="button"
-              className="m-brief-quick-btn m-press"
+              className={`m-brief-quick-btn m-press ${item.id === "dosare" ? "is-secondary" : ""}`}
               onClick={item.action}
+              title={item.title || item.label}
             >
               <item.Icon size={14} strokeWidth={2.3} />
               <span>{item.label}</span>
@@ -811,7 +812,7 @@ export default function MobileBrief({
           {[
             { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
             { id: "alerte", label: `Alerte (${totalAlertsCount})`, Icon: AlertTriangle, color: "var(--m-hub-b)", action: () => setActiveAlertTab("toate") },
-            { id: "dosare", label: "Dosare", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
+            { id: "dosare", label: "Toate dosarele", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
             { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-accent)", action: () => (onNew ? onNew() : go("dosare")), iconColor: "#000" },
           ].map((tile) => (
             <button key={tile.id} type="button" className="m-hub-tile" onClick={tile.action}>

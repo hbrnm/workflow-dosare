@@ -228,6 +228,15 @@
   color: var(--app-danger);
 }
 
+.mobile-shell.app-shell .m-float-menu-item.is-secondary {
+  color: var(--app-muted);
+  font-weight: 650;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-secondary .m-float-menu-icon {
+  opacity: 0.85;
+}
+
 .mobile-shell.app-shell .m-float-menu-icon {
   width: 1.65rem;
   height: 1.65rem;
@@ -794,6 +803,19 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   color: var(--app-text-strong);
 }
 
+.mobile-shell.app-shell .m-ui-back {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--m-type-micro);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+}
+
 .mobile-shell.app-shell .m-brief-count,
 .mobile-shell.app-shell .m-ui-count {
   font-size: var(--m-type-meta);
@@ -951,6 +973,12 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-quick-btn.is-secondary {
+  color: var(--app-muted);
+  border-style: dashed;
+  opacity: 0.92;
 }
 
 .mobile-shell.app-shell .m-brief-quick-btn {
