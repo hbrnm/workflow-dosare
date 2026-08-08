@@ -984,7 +984,39 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-brief-list,
 .mobile-shell.app-shell .m-ui-list {
   overflow-y: auto;
-  max-height: min(52vh, 28rem);
+  max-height: min(58vh, 32rem);
+}
+
+.mobile-shell.app-shell .m-brief-board-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.mobile-shell.app-shell .m-brief-board-title {
+  margin: 0;
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-board-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  color: var(--app-text-strong);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-board-hint {
+  margin: 0.28rem 0 0;
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 600;
+  color: var(--app-muted);
+  line-height: 1.35;
 }
 
 .mobile-shell.app-shell .m-brief-row-meta,

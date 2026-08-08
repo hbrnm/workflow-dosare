@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
@@ -20,6 +20,25 @@ const HUB_PILLS = FILTER_CHIPS;
 
 const WORKING_STATUSES = new Set(["programat", "in_lucru"]);
 const ATTENTION_TYPES = new Set(["blocate", "stagnate", "inactivitate"]);
+
+const FOCUS_META = {
+  toate: {
+    title: "Toate dosarele",
+    hint: "Lista completă din atelier.",
+  },
+  lucru: {
+    title: "Dosare în lucru",
+    hint: "Status Programat sau În lucru · fără dosare blocate.",
+  },
+  atentie: {
+    title: "Necesită atenție",
+    hint: "Blocate + întârzieri (etapă depășită sau fără activitate).",
+  },
+  predare: {
+    title: "Predare",
+    hint: "Neridicate și auto la schimb depășit.",
+  },
+};
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -45,6 +64,7 @@ export default function MobileBrief({
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState("toate"); // toate | lucru | atentie | predare
+  const boardRef = useRef(null);
 
   const sourceClaims = listClaims || claims;
 
@@ -76,9 +96,12 @@ export default function MobileBrief({
   const predareCount = countAlertsForGroup(counts, "predare");
 
   const focusBoard = useMemo(() => {
+    const meta = FOCUS_META[focus] || FOCUS_META.toate;
     if (focus === "lucru") {
       return {
         kind: "claims",
+        title: meta.title,
+        hint: meta.hint,
         emptyTitle: "Niciun dosar în lucru",
         emptyHint: "Mașinile programate sau în reparație apar aici.",
         rows: workingClaims,
@@ -87,6 +110,8 @@ export default function MobileBrief({
     if (focus === "atentie") {
       return {
         kind: "alerts",
+        title: meta.title,
+        hint: meta.hint,
         emptyTitle: "Nimic care necesită atenție",
         emptyHint: "Blocate și întârzieri apar aici.",
         rows: items.filter((i) => ATTENTION_TYPES.has(i.type)),
@@ -95,6 +120,8 @@ export default function MobileBrief({
     if (focus === "predare") {
       return {
         kind: "alerts",
+        title: meta.title,
+        hint: meta.hint,
         emptyTitle: "Nicio predare în așteptare",
         emptyHint: "Mașini neridicate și auto la schimb apar aici.",
         rows: filterAlertItems(items, "predare"),
@@ -102,6 +129,8 @@ export default function MobileBrief({
     }
     return {
       kind: "claims",
+      title: meta.title,
+      hint: meta.hint,
       emptyTitle: "Niciun dosar",
       emptyHint: "Creează un dosar nou sau verifică filtrele de căutare.",
       rows: sourceClaims,
@@ -143,6 +172,10 @@ export default function MobileBrief({
   const setBoardFocus = (next) => {
     softHaptic(8);
     setFocus(next);
+    // Bring the filtered board into view — tiles sit above the fold, list used to be below Acces rapid.
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   };
 
   const alertIconColor = (type) => {
@@ -303,6 +336,8 @@ export default function MobileBrief({
                 type="button"
                 className={`m-brief-tile tone-${tile.tone} ${active ? "is-active" : ""}`}
                 onClick={() => setBoardFocus(tile.key)}
+                aria-pressed={active}
+                title={FOCUS_META[tile.key]?.hint}
               >
                 <span className="m-brief-tile-icon">
                   <tile.Icon size={16} strokeWidth={2.25} />
@@ -312,6 +347,43 @@ export default function MobileBrief({
               </button>
             );
           })}
+        </section>
+
+        <section
+          ref={boardRef}
+          className="m-brief-board space-y-2 flex-1 min-h-0 flex flex-col"
+          aria-live="polite"
+        >
+          <div className="m-brief-board-head">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="m-brief-board-title">{focusBoard.title}</h2>
+                <span className="m-brief-board-count shrink-0">
+                  {focusBoard.rows.length}
+                </span>
+              </div>
+              <p className="m-brief-board-hint">{focusBoard.hint}</p>
+            </div>
+            {onNew ? (
+              <button type="button" className="m-brief-ghost-btn shrink-0 self-start" onClick={onNew}>
+                + Dosar
+              </button>
+            ) : null}
+          </div>
+
+          <div className="m-brief-panel m-brief-list flex-1 overflow-hidden">
+            {focusBoard.rows.length === 0 ? (
+              <div className="m-brief-empty">
+                <CheckCircle2 size={26} className="mx-auto m-brief-empty-icon" />
+                <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
+                <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
+              </div>
+            ) : focusBoard.kind === "claims" ? (
+              focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
+            ) : (
+              focusBoard.rows.map((item, idx) => renderAlertRow(item, idx, focusBoard.rows.length))
+            )}
+          </div>
         </section>
 
         <section className="m-brief-panel">
@@ -331,33 +403,6 @@ export default function MobileBrief({
                 <ChevronRight size={15} className="m-brief-chevron" />
               </button>
             ))}
-          </div>
-        </section>
-
-        <section className="space-y-2.5 flex-1 min-h-0 flex flex-col">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="m-brief-panel-label" style={{ margin: 0 }}>
-              {focus === "lucru" ? "Dosare în lucru" : focus === "atentie" ? "Necesită atenție" : focus === "predare" ? "Predare" : "Toate dosarele"}
-            </h2>
-            {onNew ? (
-              <button type="button" className="m-brief-ghost-btn" onClick={onNew}>
-                + Dosar
-              </button>
-            ) : null}
-          </div>
-
-          <div className="m-brief-panel m-brief-list flex-1 overflow-hidden">
-            {focusBoard.rows.length === 0 ? (
-              <div className="m-brief-empty">
-                <CheckCircle2 size={26} className="mx-auto m-brief-empty-icon" />
-                <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
-                <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
-              </div>
-            ) : focusBoard.kind === "claims" ? (
-              focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
-            ) : (
-              focusBoard.rows.map((item, idx) => renderAlertRow(item, idx, focusBoard.rows.length))
-            )}
           </div>
         </section>
       </div>
