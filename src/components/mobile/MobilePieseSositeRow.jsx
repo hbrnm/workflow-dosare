@@ -201,9 +201,13 @@ export default function MobilePieseSositeRow({
           <div className="m-piese-inline-dates" title="Data comandă / termen livrare">
             <label
               className={`m-piese-inline-chip ${canEditDates ? "is-editable" : ""}`}
-              title={toInputDate(claim.dataComandaPiese) || "Fără dată comandă"}
+              title={
+                claim.dataComandaPiese
+                  ? `Comandă: ${toInputDate(claim.dataComandaPiese)}`
+                  : "Data comandă piese"
+              }
             >
-              <span className="m-piese-inline-k">Cmd</span>
+              <span className="m-piese-inline-k">C</span>
               <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
               {canEditDates ? (
                 <input
@@ -219,9 +223,13 @@ export default function MobilePieseSositeRow({
             </label>
             <label
               className={`m-piese-inline-chip ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
-              title={toInputDate(claim.termenLivrarePiese) || "Fără dată recepție"}
+              title={
+                claim.termenLivrarePiese
+                  ? `Termen livrare: ${toInputDate(claim.termenLivrarePiese)}`
+                  : "Termen livrare piese"
+              }
             >
-              <span className="m-piese-inline-k">Rec</span>
+              <span className="m-piese-inline-k">T</span>
               <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
               {canEditDates ? (
                 <input
@@ -231,7 +239,7 @@ export default function MobilePieseSositeRow({
                   disabled={savingDates}
                   onChange={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
                   onClick={(e) => e.stopPropagation()}
-                  aria-label="Data recepție / livrare piese"
+                  aria-label="Termen livrare piese"
                 />
               ) : null}
             </label>
