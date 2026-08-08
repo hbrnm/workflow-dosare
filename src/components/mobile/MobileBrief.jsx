@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
@@ -18,6 +18,17 @@ const FILTER_CHIPS = [
 
 const HUB_PILLS = FILTER_CHIPS;
 
+const BRIEF_FOCUS_KEY = "workflow_brief_focus";
+const FOCUS_KEYS = new Set([
+  "air",
+  "piese",
+  "programat",
+  "lucru",
+  "accept",
+  "facturat",
+  "atentie",
+]);
+
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
   air: {
@@ -26,6 +37,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Niciun dosar AIR",
     emptyHint: "Dosarele în acord de intrare apar aici.",
     statusKey: "deschidere",
+    Icon: ClipboardCheck,
   },
   piese: {
     title: "Piese",
@@ -33,6 +45,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Niciun dosar pe piese",
     emptyHint: "Dosarele cu piese comandate apar aici.",
     statusKey: "piese_comandate",
+    Icon: Package,
   },
   programat: {
     title: "Programări",
@@ -40,6 +53,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Nicio programare",
     emptyHint: "Dosarele cu status Programări apar aici.",
     statusKey: "programat",
+    Icon: CalendarDays,
   },
   lucru: {
     title: "Reparație",
@@ -47,6 +61,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Niciun dosar în reparație",
     emptyHint: "Dosarele în reparație apar aici.",
     statusKey: "in_lucru",
+    Icon: Wrench,
   },
   accept: {
     title: "Accept plată",
@@ -54,6 +69,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Niciun dosar pe Accept plată",
     emptyHint: "Dosarele pe Accept plată (AP) apar aici.",
     statusKey: "accept_plata",
+    Icon: BadgeCheck,
   },
   facturat: {
     title: "Facturat",
@@ -61,6 +77,7 @@ const STAGE_FOCUS = {
     emptyTitle: "Niciun dosar facturat",
     emptyHint: "Dosarele facturate apar aici.",
     statusKey: "facturat",
+    Icon: CheckCircle2,
   },
   atentie: {
     title: "Atenție",
@@ -68,8 +85,18 @@ const STAGE_FOCUS = {
     emptyTitle: "Nimic care necesită atenție",
     emptyHint: "Blocate, întârzieri și alte alerte apar aici.",
     statusKey: null,
+    Icon: Ban,
   },
 };
+
+function readStoredFocus() {
+  try {
+    const v = sessionStorage.getItem(BRIEF_FOCUS_KEY);
+    return FOCUS_KEYS.has(v) ? v : "atentie";
+  } catch {
+    return "atentie";
+  }
+}
 
 function claimStatusKey(claim) {
   return getStatusDefinition(claim?.status).key;
@@ -77,6 +104,20 @@ function claimStatusKey(claim) {
 
 function claimsForStatus(claims, statusKey) {
   return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
+}
+
+function sortClaimsForFocus(rows, focusKey) {
+  const list = [...(rows || [])];
+  if (focusKey === "programat") {
+    return list.sort((a, b) =>
+      String(a.dataProgramare || "").localeCompare(String(b.dataProgramare || ""))
+    );
+  }
+  return list.sort((a, b) =>
+    String(b.dataSchimbareStatus || b.dataUltimeiActualizari || "").localeCompare(
+      String(a.dataSchimbareStatus || a.dataUltimeiActualizari || "")
+    )
+  );
 }
 
 function greetingForNow() {
@@ -102,8 +143,16 @@ export default function MobileBrief({
   atelierNume = "Dosare Daună",
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
-  const [focus, setFocus] = useState("atentie"); // air | piese | programat | lucru | accept | facturat | atentie
+  const [focus, setFocus] = useState(readStoredFocus);
   const boardRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BRIEF_FOCUS_KEY, focus);
+    } catch {
+      /* ignore */
+    }
+  }, [focus]);
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -123,12 +172,12 @@ export default function MobileBrief({
   const stageLists = useMemo(() => {
     const list = claims || [];
     return {
-      air: claimsForStatus(list, "deschidere"),
-      piese: claimsForStatus(list, "piese_comandate"),
-      programat: claimsForStatus(list, "programat"),
-      lucru: claimsForStatus(list, "in_lucru"),
-      accept: claimsForStatus(list, "accept_plata"),
-      facturat: claimsForStatus(list, "facturat"),
+      air: sortClaimsForFocus(claimsForStatus(list, "deschidere"), "air"),
+      piese: sortClaimsForFocus(claimsForStatus(list, "piese_comandate"), "piese"),
+      programat: sortClaimsForFocus(claimsForStatus(list, "programat"), "programat"),
+      lucru: sortClaimsForFocus(claimsForStatus(list, "in_lucru"), "lucru"),
+      accept: sortClaimsForFocus(claimsForStatus(list, "accept_plata"), "accept"),
+      facturat: sortClaimsForFocus(claimsForStatus(list, "facturat"), "facturat"),
     };
   }, [claims]);
 
@@ -209,56 +258,13 @@ export default function MobileBrief({
     }
   };
 
-  const statusTiles = [
-    {
-      key: "air",
-      label: "AIR",
-      count: stageLists.air.length,
-      Icon: ClipboardCheck,
-      tone: "steel",
-    },
-    {
-      key: "piese",
-      label: "Piese",
-      count: stageLists.piese.length,
-      Icon: Package,
-      tone: "steel",
-    },
-    {
-      key: "programat",
-      label: "Prog.",
-      count: stageLists.programat.length,
-      Icon: CalendarDays,
-      tone: "accent",
-    },
-    {
-      key: "lucru",
-      label: "Repar.",
-      count: stageLists.lucru.length,
-      Icon: Wrench,
-      tone: "accent",
-    },
-    {
-      key: "accept",
-      label: "AP",
-      count: stageLists.accept.length,
-      Icon: BadgeCheck,
-      tone: "ok",
-    },
-    {
-      key: "facturat",
-      label: "Fact.",
-      count: stageLists.facturat.length,
-      Icon: CheckCircle2,
-      tone: "ok",
-    },
-    {
-      key: "atentie",
-      label: "Atenție",
-      count: totalAlertsCount,
-      Icon: Ban,
-      tone: "danger",
-    },
+  const pipelineTiles = [
+    { key: "air", label: "AIR", count: stageLists.air.length, tone: "steel" },
+    { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
+    { key: "programat", label: "Prog.", count: stageLists.programat.length, tone: "accent" },
+    { key: "lucru", label: "Repar.", count: stageLists.lucru.length, tone: "accent" },
+    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok" },
+    { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
 
   const openAlertsCenter = () => {
@@ -267,10 +273,10 @@ export default function MobileBrief({
   };
 
   const shortcuts = [
-    { id: "capture", label: "Foto & Doc", Icon: Camera, action: () => go("capture") },
+    { id: "capture", label: "Foto", Icon: Camera, action: () => go("capture") },
     { id: "dosare", label: "Dosare", Icon: FolderOpen, action: () => go("dosare") },
-    { id: "programari", label: "Programări", Icon: CalendarDays, action: () => go("programari") },
-    { id: "new", label: "Dosar nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
+    { id: "programari", label: "Prog.", Icon: CalendarDays, action: () => go("programari") },
+    { id: "new", label: "Nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
   ];
 
   const renderAlertRow = (item, idx, total) => {
@@ -322,6 +328,7 @@ export default function MobileBrief({
     const programareLabel = c.dataProgramare
       ? fmtDate(String(c.dataProgramare).slice(0, 10))
       : "";
+    const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
     return (
       <button
         key={c.id}
@@ -330,11 +337,16 @@ export default function MobileBrief({
         onClick={() => onOpen(c)}
       >
         <span className="m-brief-row-icon is-work">
-          <Wrench size={14} />
+          <RowIcon size={14} />
         </span>
         <span className="m-brief-claim-identity">
           <span className="m-plate">{c.numarInmatriculare || "—"}</span>
           <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+          {c.blocat ? (
+            <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+              B
+            </span>
+          ) : null}
         </span>
         <span className="m-brief-claim-status" title={programareLabel || undefined}>
           <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
@@ -349,7 +361,7 @@ export default function MobileBrief({
 
   if (homeStyle === "inbox") {
     return (
-      <div className="m-brief space-y-4 flex flex-col flex-1 min-h-0 pb-2">
+      <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
         <header className="m-brief-hero">
           <div className="flex items-end justify-between gap-3">
             <h1 className="m-brief-title">Brief</h1>
@@ -366,20 +378,22 @@ export default function MobileBrief({
         </header>
 
         <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
-          {statusTiles.map((tile) => {
+          {pipelineTiles.map((tile) => {
             const active = focus === tile.key;
+            const Icon = STAGE_FOCUS[tile.key].Icon;
+            const empty = tile.count === 0;
             return (
               <button
                 key={tile.key}
                 type="button"
-                className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""}`}
+                className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""} ${empty ? "is-empty" : ""}`}
                 onClick={() => setBoardFocus(tile.key)}
                 aria-pressed={active}
                 title={STAGE_FOCUS[tile.key]?.hint}
               >
                 <span className="m-brief-tile-top">
                   <span className="m-brief-tile-icon">
-                    <tile.Icon size={13} strokeWidth={2.4} />
+                    <Icon size={13} strokeWidth={2.4} />
                   </span>
                   <span className="m-brief-tile-count">{tile.count}</span>
                 </span>
@@ -388,6 +402,27 @@ export default function MobileBrief({
             );
           })}
         </section>
+
+        <button
+          type="button"
+          className={`m-brief-attention m-press ${focus === "atentie" ? "is-active" : ""} ${totalAlertsCount > 0 ? "has-items" : ""}`}
+          onClick={() => setBoardFocus("atentie")}
+          aria-pressed={focus === "atentie"}
+          title={STAGE_FOCUS.atentie.hint}
+        >
+          <span className="m-brief-attention-icon">
+            <Ban size={14} strokeWidth={2.4} />
+          </span>
+          <span className="m-brief-attention-copy">
+            <span className="m-brief-attention-title">Atenție</span>
+            <span className="m-brief-attention-hint">
+              {totalAlertsCount > 0
+                ? "Probleme, blocaje și întârzieri"
+                : "Nicio alertă activă"}
+            </span>
+          </span>
+          <span className="m-brief-attention-count">{totalAlertsCount}</span>
+        </button>
 
         <section
           ref={boardRef}
@@ -411,7 +446,7 @@ export default function MobileBrief({
             ) : null}
           </div>
 
-          <div className="m-brief-panel m-brief-list flex-1 overflow-hidden">
+          <div key={focus} className="m-brief-panel m-brief-list m-brief-list-swap flex-1 overflow-hidden">
             {focusBoard.rows.length === 0 ? (
               <div className="m-brief-empty">
                 <CheckCircle2 size={26} className="mx-auto m-brief-empty-icon" />
@@ -426,25 +461,19 @@ export default function MobileBrief({
           </div>
         </section>
 
-        <section className="m-brief-panel">
-          <div className="m-brief-panel-label">Acces rapid</div>
-          <div className="m-brief-shortcuts">
-            {shortcuts.map((item, idx) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`m-brief-shortcut m-press ${idx < shortcuts.length - 1 ? "has-divider" : ""}`}
-                onClick={item.action}
-              >
-                <span className="m-brief-shortcut-icon">
-                  <item.Icon size={15} />
-                </span>
-                <span className="m-brief-shortcut-label">{item.label}</span>
-                <ChevronRight size={15} className="m-brief-chevron" />
-              </button>
-            ))}
-          </div>
-        </section>
+        <nav className="m-brief-quick" aria-label="Acces rapid">
+          {shortcuts.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="m-brief-quick-btn m-press"
+              onClick={item.action}
+            >
+              <item.Icon size={14} strokeWidth={2.3} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
   }
