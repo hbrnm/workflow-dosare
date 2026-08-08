@@ -12,7 +12,7 @@ import {
 } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
-import { getStatusAlertDays } from "../constants/config";
+import { getStatusAlertDays, getStatusDefinition } from "../constants/config";
 import {
   findCoScheduleSiblings,
   normalizePlate,
@@ -323,25 +323,19 @@ export function useClaims(session, showNotice) {
       const previousClaim = { ...claim };
       const changedAt = nowISO();
 
-      const deliveryPatch =
-        newStatusKey === "gata_de_ridicare"
-          ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: false, dataRidicare: null }
-          : newStatusKey === "predat_client"
-          ? { gataDeRidicare: true, dataGataRidicare: claim.dataGataRidicare || changedAt, ridicata: true, dataRidicare: claim.dataRidicare || changedAt }
-          : ["gata_de_ridicare", "predat_client"].includes(claim.status) && newStatusKey !== "facturat"
-          ? { gataDeRidicare: false, dataGataRidicare: null, ridicata: false, dataRidicare: null }
-          : {};
+      const deliveryPatch = {};
 
-      const isPreProgramat = ["deschidere", "reconstatare", "accept_plata", "piese_comandate", "primit", "cerere_reparatie"].includes(newStatusKey);
+      const mappedKey = getStatusDefinition(newStatusKey).key;
+      const isPreProgramat = ["deschidere", "piese_comandate"].includes(mappedKey);
       const schedulePatch = isPreProgramat
-        ? { dataProgramare: null, pieseSosite: newStatusKey === "piese_comandate" ? !!claim.pieseSosite : false }
+        ? { dataProgramare: null, pieseSosite: mappedKey === "piese_comandate" ? !!claim.pieseSosite : false }
         : {};
 
       const statusPatch = {
         ...deliveryPatch,
         ...schedulePatch,
-        status: newStatusKey,
-        termenAlertaZile: getStatusAlertDays(newStatusKey),
+        status: mappedKey,
+        termenAlertaZile: getStatusAlertDays(mappedKey),
         dataSchimbareStatus: changedAt,
         alerteAck: false,
       };
@@ -405,21 +399,18 @@ export function useClaims(session, showNotice) {
 
       // Notify parent for undo toast
       const STATUSES_LABELS = {
-        deschidere: "Acord intrare",
-        reconstatare: "Reconstatare",
-        accept_plata: "Accept de plată",
-        piese_comandate: "Piese comandate",
-        programat: "Programat",
-        in_lucru: "În lucru",
-        gata_de_ridicare: "Gata de ridicare",
-        predat_client: "Predat client",
+        deschidere: "AIR",
+        piese_comandate: "Piese",
+        programat: "Programări",
+        in_lucru: "Reparație",
+        accept_plata: "Accept plată",
         facturat: "Facturat",
       };
 
       onUndoToast?.({
         id: `status_${claim.id}`,
         icon: "status",
-        message: `„${claim.numarDosar || claim.numarInmatriculare}" → ${STATUSES_LABELS[newStatusKey] || newStatusKey}`,
+        message: `„${claim.numarDosar || claim.numarInmatriculare}" → ${STATUSES_LABELS[mappedKey] || mappedKey}`,
         timeoutMs: 5000,
         onCommit: () => {},
         onUndo: undoStatus,

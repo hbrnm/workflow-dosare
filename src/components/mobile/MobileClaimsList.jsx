@@ -22,11 +22,14 @@ export default function MobileClaimsList({
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {
-      if (statusFilter === "in_lucru" && c.status !== "in_lucru") return false;
+      const key = getStatusDefinition(c.status).key;
+      if (statusFilter === "deschidere" && key !== "deschidere") return false;
+      if (statusFilter === "in_lucru" && key !== "in_lucru") return false;
+      if (statusFilter === "programat" && key !== "programat") return false;
+      if (statusFilter === "accept_plata" && key !== "accept_plata") return false;
       if (statusFilter === "piese_comandate" && !isPieseComandateStatus(c.status)) return false;
       if (statusFilter === "piese_sosite" && !(c.pieseSosite && !c.dataProgramare)) return false;
-      if (statusFilter === "gata_de_ridicare" && c.status !== "gata_de_ridicare") return false;
-      if (statusFilter === "facturat" && c.status !== "facturat") return false;
+      if (statusFilter === "facturat" && key !== "facturat") return false;
       if (statusFilter === "blocate" && !c.blocat) return false;
       return true;
     });
@@ -100,10 +103,13 @@ export default function MobileClaimsList({
       <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           {[
             { id: "toate", label: `Toate (${allClaimsCount ?? claims.length})` },
-            { id: "in_lucru", label: "În lucru" },
-            { id: "piese_comandate", label: "Piese Comandate" },
+            { id: "deschidere", label: "AIR" },
+            { id: "piese_comandate", label: "Piese" },
             { id: "piese_sosite", label: `Piese sosite (${pieseSositeCount})` },
-            { id: "gata_de_ridicare", label: "Gata Ridicare" },
+            { id: "programat", label: "Programări" },
+            { id: "in_lucru", label: "Reparație" },
+            { id: "accept_plata", label: "AP" },
+            { id: "facturat", label: "Facturat" },
             { id: "blocate", label: "Blocate" },
           ].map(({ id, label }) => (
             <button

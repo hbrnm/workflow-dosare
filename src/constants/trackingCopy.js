@@ -4,19 +4,15 @@ import { PIPELINE_PHASES, getStatusDefinition } from "../constants/config";
 export const CLIENT_STATUS_COPY = {
   deschidere: {
     title: "Dosar deschis",
-    body: "Am înregistrat mașina. Urmează evaluarea daunelor.",
+    body: "Am înregistrat mașina. Urmează pregătirea pieselor și programarea în atelier.",
   },
   reconstatare: {
-    title: "Reconstatare",
-    body: "Se verifică și se documentează avariile împreună cu asigurătorul.",
-  },
-  accept_plata: {
-    title: "Accept de plată",
-    body: "Așteptăm confirmarea de plată de la asigurător ca să putem continua.",
+    title: "Dosar deschis",
+    body: "Am înregistrat mașina. Urmează pregătirea pieselor și programarea în atelier.",
   },
   piese_comandate: {
-    title: "Piese comandate",
-    body: "Am lansat comanda de piese. Te anunțăm când intră mașina în lucru.",
+    title: "Piese în pregătire",
+    body: "Am lansat comanda de piese. Te anunțăm când programăm reparația.",
   },
   programat: {
     title: "Programat în service",
@@ -27,12 +23,16 @@ export const CLIENT_STATUS_COPY = {
     body: "Echipa lucrează acum la vehiculul tău.",
   },
   gata_de_ridicare: {
-    title: "Gata de ridicare",
-    body: "Reparația este finalizată. Poți veni să ridici mașina.",
+    title: "În reparație",
+    body: "Reparația este aproape finalizată. Te anunțăm pentru ridicare.",
+  },
+  accept_plata: {
+    title: "Accept de plată",
+    body: "Reparația s-a încheiat. Lucrăm la acceptul de plată și decontare.",
   },
   predat_client: {
-    title: "Predat",
-    body: "Vehiculul a fost predat. Îți mulțumim pentru încredere!",
+    title: "Accept de plată",
+    body: "Vehiculul a fost predat. Finalizăm decontarea pe dosar.",
   },
   facturat: {
     title: "Dosar finalizat",
@@ -43,7 +43,8 @@ export const CLIENT_STATUS_COPY = {
 export function getClientStatusCopy(statusKey) {
   const key = getStatusDefinition(statusKey).key;
   return (
-    CLIENT_STATUS_COPY[key] || {
+    CLIENT_STATUS_COPY[key] ||
+    CLIENT_STATUS_COPY[statusKey] || {
       title: getStatusDefinition(statusKey).label,
       body: "Statusul reparației a fost actualizat.",
     }
@@ -59,16 +60,18 @@ export function getClientPhaseIndex(statusKey) {
 /** Progres 0–100 pe baza fazei + flaguri ridicare. */
 export function getClientProgressPercent(data) {
   if (!data) return 0;
-  if (data.ridicata || data.status === "predat_client" || data.status === "facturat") return 100;
-  if (data.gata_de_ridicare || data.status === "gata_de_ridicare") return 90;
+  const key = getStatusDefinition(data.status).key;
+  if (data.ridicata || key === "facturat") return 100;
+  if (key === "accept_plata") return 92;
+  if (data.gata_de_ridicare || data.gataDeRidicare) return 88;
   const idx = getClientPhaseIndex(data.status);
   const steps = PIPELINE_PHASES.length;
-  return Math.min(85, Math.round(((idx + 0.5) / steps) * 100));
+  return Math.min(80, Math.round(((idx + 0.5) / steps) * 100));
 }
 
 export const CLIENT_PHASE_HINTS = {
-  start: "Preluare și deschidere dosar",
-  eval: "Evaluare și aprobare asigurător",
-  lucru: "Piese și reparație în atelier",
-  final: "Finalizare și predare",
+  start: "Acord intrare în reparație",
+  lucru: "Piese, programări și reparație",
+  final: "Accept plată și facturare",
+  eval: "Evaluare",
 };

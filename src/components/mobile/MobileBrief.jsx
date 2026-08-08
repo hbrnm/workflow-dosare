@@ -22,7 +22,7 @@ const HUB_PILLS = FILTER_CHIPS;
 const STAGE_FOCUS = {
   air: {
     title: "AIR",
-    hint: "Acord intrare în reparație (deschidere dosar).",
+    hint: "Acord intrare în reparație.",
     emptyTitle: "Niciun dosar AIR",
     emptyHint: "Dosarele în acord de intrare apar aici.",
     statusKey: "deschidere",
@@ -35,25 +35,32 @@ const STAGE_FOCUS = {
     statusKey: "piese_comandate",
   },
   programat: {
-    title: "Programat",
-    hint: "Mașini programate în atelier (încă neintrate în lucru).",
+    title: "Programări",
+    hint: "Mașini programate în atelier.",
     emptyTitle: "Nicio programare",
-    emptyHint: "Dosarele cu status Programat apar aici.",
+    emptyHint: "Dosarele cu status Programări apar aici.",
     statusKey: "programat",
   },
   lucru: {
-    title: "În lucru",
+    title: "Reparație",
     hint: "Mașini aflate acum în reparație.",
-    emptyTitle: "Niciun dosar în lucru",
-    emptyHint: "Dosarele cu status În lucru apar aici.",
+    emptyTitle: "Niciun dosar în reparație",
+    emptyHint: "Dosarele în reparație apar aici.",
     statusKey: "in_lucru",
   },
-  reparat: {
-    title: "Reparat",
-    hint: "Reparate, gata de ridicare.",
-    emptyTitle: "Niciun dosar reparat",
-    emptyHint: "Mașinile gata de ridicare apar aici.",
-    statusKey: "gata_de_ridicare",
+  accept: {
+    title: "Accept plată",
+    hint: "După reparație — așteaptă acceptul de plată / decontarea.",
+    emptyTitle: "Niciun dosar pe Accept plată",
+    emptyHint: "Dosarele pe Accept plată (AP) apar aici.",
+    statusKey: "accept_plata",
+  },
+  facturat: {
+    title: "Facturat",
+    hint: "Dosare facturate / închise operațional.",
+    emptyTitle: "Niciun dosar facturat",
+    emptyHint: "Dosarele facturate apar aici.",
+    statusKey: "facturat",
   },
   atentie: {
     title: "Atenție",
@@ -95,7 +102,7 @@ export default function MobileBrief({
   atelierNume = "Dosare Daună",
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
-  const [focus, setFocus] = useState("atentie"); // air | piese | programat | lucru | reparat | atentie
+  const [focus, setFocus] = useState("atentie"); // air | piese | programat | lucru | accept | facturat | atentie
   const boardRef = useRef(null);
 
   const buckets = useMemo(
@@ -120,7 +127,8 @@ export default function MobileBrief({
       piese: claimsForStatus(list, "piese_comandate"),
       programat: claimsForStatus(list, "programat"),
       lucru: claimsForStatus(list, "in_lucru"),
-      reparat: claimsForStatus(list, "gata_de_ridicare"),
+      accept: claimsForStatus(list, "accept_plata"),
+      facturat: claimsForStatus(list, "facturat"),
     };
   }, [claims]);
 
@@ -225,16 +233,23 @@ export default function MobileBrief({
     },
     {
       key: "lucru",
-      label: "Lucru",
+      label: "Repar.",
       count: stageLists.lucru.length,
       Icon: Wrench,
       tone: "accent",
     },
     {
-      key: "reparat",
-      label: "Reparat",
-      count: stageLists.reparat.length,
+      key: "accept",
+      label: "AP",
+      count: stageLists.accept.length,
       Icon: BadgeCheck,
+      tone: "ok",
+    },
+    {
+      key: "facturat",
+      label: "Fact.",
+      count: stageLists.facturat.length,
+      Icon: CheckCircle2,
       tone: "ok",
     },
     {

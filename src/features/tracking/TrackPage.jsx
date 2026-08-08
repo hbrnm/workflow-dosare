@@ -66,8 +66,8 @@ export default function TrackPage({ token }) {
   const atelier = data.atelier?.nume || "Service auto";
   const phaseIdx = getClientPhaseIndex(data.status);
   const progress = getClientProgressPercent(data);
-  const ready = !!(data.gata_de_ridicare || st.key === "gata_de_ridicare") && !data.ridicata;
-  const delivered = !!(data.ridicata || st.key === "predat_client" || st.key === "facturat");
+  const ready = !!(data.gata_de_ridicare || data.gataDeRidicare) && !data.ridicata && st.key === "in_lucru";
+  const delivered = !!(data.ridicata || st.key === "accept_plata" || st.key === "facturat");
   const customMsg = String(data.mesaj_client || "").trim();
   const vehicle = [data.marca, data.model].filter(Boolean).join(" ") || "Vehiculul tău";
 

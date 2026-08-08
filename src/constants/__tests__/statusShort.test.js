@@ -5,9 +5,11 @@ import { copyClaimNumber } from "../../utils/copyClaimNumber";
 describe("getStatusShortLabel", () => {
   it("returns short stage abbreviations", () => {
     expect(getStatusShortLabel("deschidere")).toBe("AIR");
-    expect(getStatusShortLabel("accept_plata")).toBe("Accept");
-    expect(getStatusShortLabel("gata_de_ridicare")).toBe("Gata");
+    expect(getStatusShortLabel("accept_plata")).toBe("AP");
+    expect(getStatusShortLabel("gata_de_ridicare")).toBe("Repar."); // migrated → in_lucru
     expect(getStatusShortLabel("piese_sosite")).toBe("Piese"); // migrated
+    expect(getStatusShortLabel("in_lucru")).toBe("Repar.");
+    expect(getStatusShortLabel("predat_client")).toBe("AP"); // migrated → accept_plata
   });
 });
 

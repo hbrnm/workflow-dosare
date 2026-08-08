@@ -155,7 +155,7 @@ describe('alertUtils', () => {
     expect(normalizeAlertTab('neridicate')).toBe('predare');
   });
 
-  it('filterAlertItems groups multiple types under Întârzieri / Piese', () => {
+  it('filterAlertItems groups multiple types under Întârzieri / Piese / Plăți', () => {
     const items = [
       { id: 'a', type: 'stagnate', claim: { id: '1' } },
       { id: 'b', type: 'inactivitate', claim: { id: '2' } },
@@ -164,7 +164,8 @@ describe('alertUtils', () => {
       { id: 'e', type: 'blocate', claim: { id: '5' } },
     ];
     expect(filterAlertItems(items, 'intarzieri').map((i) => i.id)).toEqual(['a', 'b']);
-    expect(filterAlertItems(items, 'piese').map((i) => i.id)).toEqual(['c', 'd']);
+    expect(filterAlertItems(items, 'piese').map((i) => i.id)).toEqual(['c']);
+    expect(filterAlertItems(items, 'plati').map((i) => i.id)).toEqual(['d']);
     expect(filterAlertItems(items, 'depasite').map((i) => i.id)).toEqual(['a', 'b']);
     expect(filterAlertItems(items, 'blocate')).toHaveLength(1);
   });
@@ -259,9 +260,9 @@ describe('alertUtils', () => {
     expect(buckets.counts.accept_plata).toBe(1);
   });
 
-  it('accept_plata alert clears when claim moves to programat', () => {
+  it('accept_plata alert clears when claim moves to facturat', () => {
     const buckets = buildAlertBuckets([
-      { id: 'a1', status: 'programat', dataProgramare: '2026-08-20T09:00:00', blocat: false },
+      { id: 'a1', status: 'facturat', blocat: false },
     ]);
     expect(buckets.counts.accept_plata).toBe(0);
     expect(buckets.items.some((i) => i.type === 'accept_plata')).toBe(false);

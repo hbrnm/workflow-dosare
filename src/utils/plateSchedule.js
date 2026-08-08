@@ -16,22 +16,25 @@ export function plateGroupKey(claim) {
 /** Sibling eligible to receive the same appointment when one dosar is scheduled. */
 export function isCoScheduleEligible(sibling) {
   if (!sibling || sibling.status === "facturat") return false;
+  const key = sibling.status;
 
-  // Delivery / closed-ish: only keep aligned if already scheduled
+  // Post-repair / closed-ish: only keep aligned if already scheduled
   if (
-    (sibling.status === "gata_de_ridicare" || sibling.status === "predat_client") &&
+    (key === "accept_plata" ||
+      key === "gata_de_ridicare" ||
+      key === "predat_client") &&
     !sibling.dataProgramare
   ) {
     return false;
   }
 
-  if (POST_PROGRAMAT_STATUSES.includes(sibling.status)) {
-    return sibling.status === "in_lucru" || Boolean(sibling.dataProgramare);
+  if (POST_PROGRAMAT_STATUSES.includes(key)) {
+    return key === "in_lucru" || Boolean(sibling.dataProgramare);
   }
 
   return (
     isAwaitingSchedule(sibling) ||
-    sibling.status === "programat" ||
+    key === "programat" ||
     Boolean(sibling.dataProgramare)
   );
 }
