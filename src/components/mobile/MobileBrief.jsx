@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink, fmtDate, formatProgramareShort, todayISO, daysBetween } from "../../utils/dateUtils";
+import { telLink, fmtDate, formatProgramareShort, todayISO, getSinceMeta } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
@@ -120,18 +120,9 @@ function sortClaimsForFocus(rows, focusKey) {
   );
 }
 
-/** Dată + zile de când dosarul e în stadiul curent (dataSchimbareStatus). */
+/** Dată/oră + zile calendaristice de când dosarul e în stadiul curent. */
 function getStageSinceMeta(claim) {
-  const iso = claim?.dataSchimbareStatus || claim?.dataDeschiderii || null;
-  if (!iso) return { dateLabel: "", daysLabel: "", title: "" };
-  const dateLabel = fmtDate(String(iso).slice(0, 10));
-  const days = daysBetween(iso);
-  const daysLabel = days === 0 ? "azi" : days === 1 ? "1 zi" : `${days} zile`;
-  return {
-    dateLabel,
-    daysLabel,
-    title: `În stadiu din ${dateLabel} · ${daysLabel}`,
-  };
+  return getSinceMeta(claim?.dataSchimbareStatus || claim?.dataDeschiderii || null);
 }
 
 function greetingForNow() {
@@ -301,6 +292,7 @@ export default function MobileBrief({
     const phone = c.telefonClient || "";
     const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
     const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
+    const stageSince = getStageSinceMeta(c);
     return (
       <div
         key={item.id}
@@ -318,6 +310,15 @@ export default function MobileBrief({
             <span className="m-brief-row-title m-vehicle-model">{item.title}</span>
             <span className="m-brief-row-reason">{item.reason}</span>
             {noteText ? <span className="m-brief-row-note">{noteText}</span> : null}
+          </span>
+          <span className="m-brief-claim-status" title={stageSince.title || undefined}>
+            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
+            {stageSince.dateTimeShort ? (
+              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
+            ) : null}
+            {stageSince.daysLabel ? (
+              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
+            ) : null}
           </span>
           <ChevronRight size={16} className="m-brief-chevron shrink-0" />
         </button>
@@ -523,8 +524,8 @@ export default function MobileBrief({
           </span>
           <span className="m-brief-claim-status" title={statusTitle || undefined}>
             <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {stageSince.dateLabel ? (
-              <span className="m-brief-claim-date">{stageSince.dateLabel}</span>
+            {stageSince.dateTimeShort ? (
+              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
             ) : null}
             {stageSince.daysLabel ? (
               <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
