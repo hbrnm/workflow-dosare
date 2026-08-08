@@ -92,6 +92,21 @@ export function getPhaseColors(statusKey) {
   return PHASE_COLORS[getStatusDefinition(statusKey).phase] || PHASE_COLORS.start;
 }
 
+/** Accent pe stadiu — carduri mobile (Brief / Dosare / Programări). */
+export const STAGE_ACCENT = {
+  deschidere: { className: "stage-air", color: "#3B5166" },
+  piese_comandate: { className: "stage-piese", color: "#4A6FA5" },
+  programat: { className: "stage-programat", color: "#C98A2B" },
+  in_lucru: { className: "stage-lucru", color: "#B8791E" },
+  accept_plata: { className: "stage-accept", color: "#2F6B4E" },
+  facturat: { className: "stage-facturat", color: "#3E6B45" },
+};
+
+export function getStageAccent(statusKey) {
+  const key = getStatusDefinition(statusKey).key;
+  return STAGE_ACCENT[key] || STAGE_ACCENT.deschidere;
+}
+
 /** Culori coloană kanban (bg header + fundal soft). */
 export function getPhaseColumnColors(phaseKey) {
   const p = PHASE_COLORS[phaseKey] || PHASE_COLORS.start;

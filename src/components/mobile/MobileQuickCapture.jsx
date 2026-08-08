@@ -27,6 +27,7 @@ export default function MobileQuickCapture({
   canEditFn,
   onNotify,
   focusClaimId = null,
+  focusCaptureCategory = null,
   onFocusClaimConsumed,
   highlightClaimIds = null,
   onMobileShellLockChange,
@@ -50,9 +51,12 @@ export default function MobileQuickCapture({
     if (!focusClaimId) return;
     setSelectedClaimId(focusClaimId);
     saveLastCaptureClaimId(focusClaimId);
+    if (focusCaptureCategory === "receptie" || focusCaptureCategory === "predare" || focusCaptureCategory === "reconstatare") {
+      setCameraCategory(focusCaptureCategory);
+    }
     setShowLiveCamera(true);
     onFocusClaimConsumed?.();
-  }, [focusClaimId, onFocusClaimConsumed]);
+  }, [focusClaimId, focusCaptureCategory, onFocusClaimConsumed]);
 
   useEffect(() => {
     if (selectedClaimId) saveLastCaptureClaimId(selectedClaimId);

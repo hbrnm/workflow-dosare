@@ -5,11 +5,21 @@ import {
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
 import { telLink, fmtDate, formatProgramareShort, todayISO, getSinceMeta } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
+import {
+  buildAlertBuckets,
+  filterAlertItems,
+  getLatestClaimNoteText,
+  getAlertMetric,
+} from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
-import { ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
-import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
+import {
+  ALERT_GROUPS,
+  ALERT_TYPE_META,
+  countAlertsForGroup,
+} from "../../constants/alertCategories";
+import { getStatusDefinition, getStatusShortLabel, getStageAccent } from "../../constants/config";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -28,6 +38,18 @@ const FOCUS_KEYS = new Set([
   "facturat",
   "atentie",
 ]);
+
+/** Filtre Atenție: stadii unde există alerte active (+ Blocate). */
+const ATTENTION_STAGE_FILTERS = [
+  { key: "toate", label: "Toate", statusKey: null },
+  { key: "air", label: "AIR", statusKey: "deschidere" },
+  { key: "piese", label: "Piese", statusKey: "piese_comandate" },
+  { key: "programat", label: "Prog.", statusKey: "programat" },
+  { key: "lucru", label: "Repar.", statusKey: "in_lucru" },
+  { key: "accept", label: "AP", statusKey: "accept_plata" },
+  { key: "facturat", label: "Fact.", statusKey: "facturat" },
+  { key: "blocate", label: "Blocate", statusKey: null, blockedOnly: true },
+];
 
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
@@ -102,6 +124,31 @@ function claimStatusKey(claim) {
   return getStatusDefinition(claim?.status).key;
 }
 
+function filterAlertsByStage(items, filterKey) {
+  const list = items || [];
+  if (!filterKey || filterKey === "toate") return list;
+  const def = ATTENTION_STAGE_FILTERS.find((f) => f.key === filterKey);
+  if (!def) return list;
+  if (def.blockedOnly) {
+    return list.filter((item) => item?.type === "blocate" || item?.claim?.blocat);
+  }
+  if (def.statusKey) {
+    return list.filter((item) => claimStatusKey(item?.claim) === def.statusKey);
+  }
+  return list;
+}
+
+function buildAttentionStageChips(items) {
+  const list = items || [];
+  const chips = [{ key: "toate", label: "Toate", count: list.length }];
+  ATTENTION_STAGE_FILTERS.forEach((f) => {
+    if (f.key === "toate") return;
+    const count = filterAlertsByStage(list, f.key).length;
+    if (count > 0) chips.push({ key: f.key, label: f.label, count });
+  });
+  return chips;
+}
+
 function claimsForStatus(claims, statusKey) {
   return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
 }
@@ -150,6 +197,7 @@ export default function MobileBrief({
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState(readStoredFocus);
+  const [attentionFilter, setAttentionFilter] = useState("toate");
   const [schedulingId, setSchedulingId] = useState(null);
   const [editDate, setEditDate] = useState(todayISO);
   const [editTime, setEditTime] = useState("09:00");
@@ -179,6 +227,21 @@ export default function MobileBrief({
     [items, activeAlertTab]
   );
 
+  const attentionStageChips = useMemo(() => buildAttentionStageChips(items), [items]);
+
+  useEffect(() => {
+    if (attentionFilter === "toate") return;
+    const stillValid = attentionStageChips.some((c) => c.key === attentionFilter);
+    if (!stillValid) setAttentionFilter("toate");
+  }, [attentionFilter, attentionStageChips]);
+
+  const attentionRows = useMemo(
+    () => filterAlertsByStage(items, attentionFilter),
+    [items, attentionFilter]
+  );
+  const attentionFilterMeta =
+    ATTENTION_STAGE_FILTERS.find((f) => f.key === attentionFilter) || ATTENTION_STAGE_FILTERS[0];
+
   const chipCount = (key) =>
     key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
 
@@ -197,13 +260,18 @@ export default function MobileBrief({
   const focusBoard = useMemo(() => {
     const meta = STAGE_FOCUS[focus] || STAGE_FOCUS.atentie;
     if (focus === "atentie") {
+      const filtered = attentionFilter !== "toate";
       return {
         kind: "alerts",
-        title: meta.title,
-        hint: meta.hint,
-        emptyTitle: meta.emptyTitle,
-        emptyHint: meta.emptyHint,
-        rows: items,
+        title: filtered ? `Atenție · ${attentionFilterMeta.label}` : meta.title,
+        hint: filtered
+          ? `Filtru: ${attentionFilterMeta.label} (${attentionRows.length})`
+          : meta.hint,
+        emptyTitle: filtered ? `Nimic pe ${attentionFilterMeta.label}` : meta.emptyTitle,
+        emptyHint: filtered
+          ? "Alege alt stadiu din filtre sau Toate."
+          : meta.emptyHint,
+        rows: attentionRows,
       };
     }
     const rows = stageLists[focus] || [];
@@ -215,7 +283,7 @@ export default function MobileBrief({
       emptyHint: meta.emptyHint,
       rows,
     };
-  }, [focus, stageLists, items]);
+  }, [focus, stageLists, attentionRows, attentionFilter, attentionFilterMeta]);
 
   const featured = alertsList[0] || items[0] || null;
 
@@ -252,20 +320,6 @@ export default function MobileBrief({
     onGoTab?.(tab);
   };
 
-  const alertIconColor = (type) => {
-    switch (type) {
-      case "blocate": return "#B23A2E";
-      case "piese": return "#3E6B45";
-      case "livrare_piese": return "#D6473F";
-      case "neridicate": return "#3E6B45";
-      case "stagnate": return "#2C4160";
-      case "accept_plata": return "#2C4160";
-      case "masini_schimb": return "#C98A2B";
-      case "inactivitate": return "#6B6558";
-      default: return "#2C4160";
-    }
-  };
-
   const pipelineTiles = [
     { key: "air", label: "AIR", count: stageLists.air.length, tone: "steel" },
     { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
@@ -275,73 +329,12 @@ export default function MobileBrief({
     { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
 
-  const openAlertsCenter = () => {
-    softHaptic(8);
-    onOpenAlerts?.("toate");
-  };
-
   const shortcuts = [
     { id: "capture", label: "Foto", Icon: Camera, action: () => go("capture") },
-    { id: "dosare", label: "Dosare", Icon: FolderOpen, action: () => go("dosare") },
     { id: "programari", label: "Prog.", Icon: CalendarDays, action: () => go("programari") },
+    { id: "dosare", label: "Toate", Icon: FolderOpen, action: () => go("dosare"), title: "Toate dosarele" },
     { id: "new", label: "Nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
   ];
-
-  const renderAlertRow = (item, idx, total) => {
-    const c = item.claim;
-    const phone = c.telefonClient || "";
-    const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
-    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
-    const stageSince = getStageSinceMeta(c);
-    return (
-      <div
-        key={item.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""}`}
-      >
-        <button type="button" className="m-brief-row-main m-press" onClick={() => onOpen(c)}>
-          <span className="m-brief-row-icon" style={{ background: alertIconColor(item.type) }}>
-            <AlertTriangle size={14} />
-          </span>
-          <span className="min-w-0 flex-1 text-left">
-            <span className="m-brief-row-plate">
-              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-            </span>
-            <span className="m-brief-row-title m-vehicle-model">{item.title}</span>
-            <span className="m-brief-row-reason">{item.reason}</span>
-            {noteText ? <span className="m-brief-row-note">{noteText}</span> : null}
-          </span>
-          <span className="m-brief-claim-status" title={stageSince.title || undefined}>
-            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {stageSince.dateTimeShort ? (
-              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
-            ) : null}
-            {stageSince.daysLabel ? (
-              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
-            ) : null}
-          </span>
-          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-        </button>
-        {(phone || (onPatchClaim && canAck(item.type))) && (
-          <div className="m-brief-row-actions">
-            {phone ? (
-              <>
-                <WhatsAppButton phone={phone} claim={c} size={12} />
-                <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
-                  <Phone size={11} /> Apel
-                </a>
-              </>
-            ) : null}
-            {onPatchClaim && canAck(item.type) ? (
-              <button type="button" onClick={(e) => ackAlert(e, c.id)} className="m-brief-ghost-btn">
-                Rezolvat
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const setBoardFocus = (next) => {
     softHaptic(8);
@@ -351,6 +344,145 @@ export default function MobileBrief({
     requestAnimationFrame(() => {
       boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  };
+
+  const openAttentionAll = () => {
+    setAttentionFilter("toate");
+    setBoardFocus("atentie");
+  };
+
+  const applyAttentionFilter = (filterKey) => {
+    softHaptic(8);
+    setAttentionFilter(filterKey);
+    setFocus("atentie");
+    setSchedulingId(null);
+    setExitingIds(new Set());
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const renderAlertRow = (item) => {
+    const c = item.claim;
+    const phone = c.telefonClient || "";
+    const noteText = (item.noteSnippet || getLatestClaimNoteText(c, { maxLen: 72 }) || "").trim();
+    const reasonText = String(item.reason || "").trim();
+    const typeMeta = ALERT_TYPE_META[item.type];
+    const whyTitle = item.title || typeMeta?.label || "Alertă";
+    const whyLine = reasonText && reasonText.toLowerCase() !== whyTitle.toLowerCase()
+      ? `${whyTitle} · ${reasonText}`
+      : whyTitle;
+    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
+    const stageSince = getStageSinceMeta(c);
+    const metric = getAlertMetric(item);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
+    const showFactureaza = item.type === "accept_plata";
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
+
+    const stageAccent = getStageAccent(c.status);
+
+    return (
+      <li key={item.id}>
+        <article
+          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""}`}
+          onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {metric ? (
+            <div className="app-alerte-metric" title={metric.hint}>
+              <span className="app-alerte-metric-value">{metric.value}</span>
+              <span className="app-alerte-metric-unit">{metric.unit}</span>
+            </div>
+          ) : (
+            <div
+              className="app-alerte-metric is-icon"
+              title={whyTitle}
+            >
+              <AlertTriangle size={14} />
+            </div>
+          )}
+
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main">
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
+                </span>
+              ) : null}
+            </div>
+            <p className="m-brief-alerte-why" title={whyLine}>
+              {whyLine}
+            </p>
+            {noteText ? (
+              <p className="app-alerte-note" title={noteText}>
+                <span className="app-alerte-meta-label">Notă</span>
+                {noteText}
+              </p>
+            ) : null}
+          </div>
+
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {phone ? (
+              <>
+                <WhatsAppButton phone={phone} claim={c} size={11} />
+                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+                  <Phone size={13} />
+                </a>
+              </>
+            ) : null}
+            {showFactureaza ? (
+              <button
+                type="button"
+                className="app-alerte-btn-primary"
+                onClick={() => onOpen(c)}
+              >
+                AP
+              </button>
+            ) : null}
+            {onPatchClaim && canAck(item.type) ? (
+              <button
+                type="button"
+                className="app-alerte-btn-secondary"
+                onClick={(e) => ackAlert(e, c.id)}
+              >
+                Rezolvat
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </article>
+      </li>
+    );
   };
 
   const markExiting = (claimId) => {
@@ -396,7 +528,10 @@ export default function MobileBrief({
   const openCapture = (e, claimId) => {
     e.stopPropagation();
     softHaptic(8);
-    if (onGoCapture) onGoCapture(claimId);
+    // Programări → folder recepție; Reparație → folder predare
+    const category =
+      focus === "programat" ? "receptie" : focus === "lucru" ? "predare" : null;
+    if (onGoCapture) onGoCapture(claimId, category);
     else onGoTab?.("capture");
   };
 
@@ -458,50 +593,70 @@ export default function MobileBrief({
     );
   };
 
-  const renderClaimRow = (c, idx, total) => {
+  const renderClaimRow = (c) => {
     const phone = c.telefonClient || "";
-    const noteText = getLatestClaimNoteText(c, { maxLen: 90 });
+    const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
     const programareLabel = c.dataProgramare
       ? (focus === "programat"
         ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
         : fmtDate(String(c.dataProgramare).slice(0, 10)))
       : "";
     const stageSince = getStageSinceMeta(c);
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
     const statusTitle = [
       stageSince.title,
       focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
     ].filter(Boolean).join(" · ");
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
+    const stageAccent = getStageAccent(c.status);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
     const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
     const showPartsArrived =
       focus === "piese" && onPatchClaim && !c.blocat && !c.pieseSosite;
     const showSchedule =
       focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
     const isScheduling = schedulingId === c.id;
-    const showFoto = Boolean(onGoCapture || onGoTab);
-    const showActions = Boolean(
-      phone || showStartRepair || showPartsArrived || showSchedule || showFoto || isScheduling
-    );
+    const showFoto =
+      Boolean(onGoCapture || onGoTab) && (focus === "programat" || focus === "lucru");
     const isExiting = exitingIds.has(c.id);
     const isFlash = flashIds.has(c.id);
+    const subline = [
+      focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
+      noteText,
+    ].filter(Boolean).join(" · ");
 
     return (
-      <div
-        key={c.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
-      >
-        <button
-          type="button"
-          className="m-brief-row-main m-press m-brief-claim-row"
+      <li key={c.id}>
+        <article
+          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
           onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
-          <span className="m-brief-row-icon is-work">
+          <div className="app-alerte-metric is-icon" title={stFull}>
             <RowIcon size={14} />
-          </span>
-          <span className="m-brief-claim-body min-w-0 flex-1 text-left">
-            <span className="m-brief-claim-identity">
-              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+          </div>
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main" title={statusTitle || undefined}>
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
               {c.blocat ? (
                 <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
                   B
@@ -512,83 +667,86 @@ export default function MobileBrief({
                   Sosite
                 </span>
               ) : null}
-              {focus === "accept" ? (
-                <span className="m-brief-claim-chip is-ap" title="Stadiul Accept plată">
-                  AP
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
                 </span>
               ) : null}
-            </span>
-            {noteText ? (
-              <span className="m-brief-row-note">{noteText}</span>
+            </div>
+            {subline ? (
+              <p className="m-brief-alerte-why is-muted" title={subline}>
+                {subline}
+              </p>
             ) : null}
-          </span>
-          <span className="m-brief-claim-status" title={statusTitle || undefined}>
-            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-            {stageSince.dateTimeShort ? (
-              <span className="m-brief-claim-date">{stageSince.dateTimeShort}</span>
-            ) : null}
-            {stageSince.daysLabel ? (
-              <span className="m-brief-claim-days">{stageSince.daysLabel}</span>
-            ) : null}
-            {focus === "programat" && programareLabel ? (
-              <span className="m-brief-claim-appt">{programareLabel}</span>
-            ) : null}
-          </span>
-          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-        </button>
-        {showActions ? (
-          <div className="m-brief-row-actions">
+          </div>
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
             {phone ? (
               <>
-                <WhatsAppButton phone={phone} claim={c} size={12} />
-                <a
-                  href={telLink(phone)}
-                  className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold"
-                  onClick={() => softHaptic(6)}
-                >
-                  <Phone size={11} /> Apel
+                <WhatsAppButton phone={phone} claim={c} size={11} />
+                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+                  <Phone size={13} />
                 </a>
               </>
             ) : null}
             {showFoto ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-icon"
+                className="app-alerte-btn-ghost"
                 onClick={(e) => openCapture(e, c.id)}
-                title="Foto & Doc"
+                aria-label={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
+                title={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
               >
-                <Camera size={12} /> Foto
+                <Camera size={13} />
               </button>
             ) : null}
             {showPartsArrived ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn"
+                className="app-alerte-btn-secondary"
                 onClick={(e) => markPartsArrived(e, c)}
               >
-                <Package size={11} /> Sosite
+                Sosite
               </button>
             ) : null}
             {showSchedule && !isScheduling ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-primary"
+                className="app-alerte-btn-primary"
                 onClick={(e) => openScheduler(e, c)}
               >
-                <CalendarDays size={11} /> Programare
+                Prog.
               </button>
             ) : null}
             {showStartRepair ? (
               <button
                 type="button"
-                className="m-brief-ghost-btn m-brief-action-primary"
+                className="app-alerte-btn-primary"
                 onClick={(e) => startRepair(e, c)}
               >
-                <Wrench size={11} /> Reparație
+                Repar.
               </button>
             ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
           </div>
-        ) : null}
+        </article>
         {isScheduling ? (
           <div
             className="m-brief-schedule"
@@ -625,7 +783,7 @@ export default function MobileBrief({
             </button>
           </div>
         ) : null}
-      </div>
+      </li>
     );
   };
 
@@ -633,18 +791,7 @@ export default function MobileBrief({
     return (
       <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
         <header className="m-brief-hero">
-          <div className="flex items-end justify-between gap-3">
-            <h1 className="m-brief-title">Brief</h1>
-            <button
-              type="button"
-              className="m-brief-count m-press"
-              onClick={openAlertsCenter}
-              aria-label={`${totalAlertsCount} alerte — deschide centrul de alerte`}
-              title="Deschide alertele"
-            >
-              {totalAlertsCount} alerte
-            </button>
-          </div>
+          <h1 className="m-brief-title">Brief</h1>
         </header>
 
         <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
@@ -676,8 +823,8 @@ export default function MobileBrief({
         <button
           type="button"
           className={`m-brief-attention m-press ${focus === "atentie" ? "is-active" : ""} ${totalAlertsCount > 0 ? "has-items" : ""}`}
-          onClick={() => setBoardFocus("atentie")}
-          aria-pressed={focus === "atentie"}
+          onClick={openAttentionAll}
+          aria-pressed={focus === "atentie" && attentionFilter === "toate"}
           title={STAGE_FOCUS.atentie.hint}
         >
           <span className="m-brief-attention-icon">
@@ -687,7 +834,9 @@ export default function MobileBrief({
             <span className="m-brief-attention-title">Atenție</span>
             <span className="m-brief-attention-hint">
               {totalAlertsCount > 0
-                ? "Probleme, blocaje și întârzieri"
+                ? attentionFilter !== "toate" && focus === "atentie"
+                  ? `Filtru activ: ${attentionFilterMeta.label}`
+                  : "Probleme, blocaje și întârzieri"
                 : "Nicio alertă activă"}
             </span>
           </span>
@@ -724,6 +873,26 @@ export default function MobileBrief({
             ) : null}
           </div>
 
+          {focus === "atentie" && attentionStageChips.length > 1 ? (
+            <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtrează alertele pe stadiu">
+              {attentionStageChips.map((chip) => {
+                const active = attentionFilter === chip.key;
+                return (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className={`m-brief-alert-stage-chip m-press ${active ? "is-active" : ""}`}
+                    onClick={() => applyAttentionFilter(chip.key)}
+                    aria-pressed={active}
+                  >
+                    <span>{chip.label}</span>
+                    <span className="m-brief-alert-stage-chip-count">{chip.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
           <div key={focus} className="m-brief-panel m-brief-list m-brief-list-swap flex-1 overflow-hidden">
             {focusBoard.rows.length === 0 ? (
               <div className="m-brief-empty">
@@ -731,10 +900,12 @@ export default function MobileBrief({
                 <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
                 <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
               </div>
-            ) : focusBoard.kind === "claims" ? (
-              focusBoard.rows.map((c, idx) => renderClaimRow(c, idx, focusBoard.rows.length))
             ) : (
-              focusBoard.rows.map((item, idx) => renderAlertRow(item, idx, focusBoard.rows.length))
+              <ul className="app-alerte-rows m-brief-alerte-rows m-flow-list">
+                {focusBoard.kind === "claims"
+                  ? focusBoard.rows.map((c) => renderClaimRow(c))
+                  : focusBoard.rows.map((item) => renderAlertRow(item))}
+              </ul>
             )}
           </div>
         </section>
@@ -744,8 +915,9 @@ export default function MobileBrief({
             <button
               key={item.id}
               type="button"
-              className="m-brief-quick-btn m-press"
+              className={`m-brief-quick-btn m-press ${item.id === "dosare" ? "is-secondary" : ""}`}
               onClick={item.action}
+              title={item.title || item.label}
             >
               <item.Icon size={14} strokeWidth={2.3} />
               <span>{item.label}</span>
@@ -811,7 +983,7 @@ export default function MobileBrief({
           {[
             { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
             { id: "alerte", label: `Alerte (${totalAlertsCount})`, Icon: AlertTriangle, color: "var(--m-hub-b)", action: () => setActiveAlertTab("toate") },
-            { id: "dosare", label: "Dosare", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
+            { id: "dosare", label: "Toate dosarele", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
             { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-accent)", action: () => (onNew ? onNew() : go("dosare")), iconColor: "#000" },
           ].map((tile) => (
             <button key={tile.id} type="button" className="m-hub-tile" onClick={tile.action}>

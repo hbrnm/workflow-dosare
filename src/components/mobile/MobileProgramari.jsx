@@ -4,7 +4,7 @@ import {
   Calendar, ChevronRight, Edit3, Save, Wrench, XCircle, ChevronDown, ChevronUp
 } from "lucide-react";
 import { telLink, todayISO } from "../../utils/dateUtils";
-import { getStatusDefinition, isProgramatorClaim } from "../../constants/config";
+import { getStatusDefinition, isProgramatorClaim, getStageAccent } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
 
@@ -224,8 +224,10 @@ function MobileProgramareStackCard({
 }) {
   const [expanded, setExpanded] = useState(false);
 
+  const stageAccent = getStageAccent(c.status);
+
   return (
-              <div className="m-ui-panel m-ui-panel-pad space-y-2.5">
+              <div className={`m-ui-panel m-ui-panel-pad m-flow-card ${stageAccent.className} space-y-2.5`}>
                 <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="m-ui-chip is-time">
