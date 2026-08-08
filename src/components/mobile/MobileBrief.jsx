@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink, fmtDate } from "../../utils/dateUtils";
+import { telLink, fmtDate, formatProgramareShort } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
@@ -324,38 +324,84 @@ export default function MobileBrief({
     );
   };
 
+  const startRepair = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim) return;
+    softHaptic(8);
+    const ok = await onPatchClaim(claim.id, { status: "in_lucru", adusaFizic: true });
+    onNotify?.(
+      ok ? 'Dosar mutat în „Reparație".' : "Eroare la actualizare.",
+      ok ? "success" : "error"
+    );
+  };
+
   const renderClaimRow = (c, idx, total) => {
+    const phone = c.telefonClient || "";
     const programareLabel = c.dataProgramare
-      ? fmtDate(String(c.dataProgramare).slice(0, 10))
+      ? (focus === "programat"
+        ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
+        : fmtDate(String(c.dataProgramare).slice(0, 10)))
       : "";
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
+    const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
+    const showActions = Boolean(phone || showStartRepair);
+
     return (
-      <button
+      <div
         key={c.id}
-        type="button"
-        className={`m-brief-row-main m-press m-brief-claim-row ${idx < total - 1 ? "has-divider" : ""}`}
-        onClick={() => onOpen(c)}
+        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""}`}
       >
-        <span className="m-brief-row-icon is-work">
-          <RowIcon size={14} />
-        </span>
-        <span className="m-brief-claim-identity">
-          <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-          <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-          {c.blocat ? (
-            <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
-              B
-            </span>
-          ) : null}
-        </span>
-        <span className="m-brief-claim-status" title={programareLabel || undefined}>
-          <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
-          {programareLabel ? (
-            <span className="m-brief-claim-date">{programareLabel}</span>
-          ) : null}
-        </span>
-        <ChevronRight size={16} className="m-brief-chevron shrink-0" />
-      </button>
+        <button
+          type="button"
+          className="m-brief-row-main m-press m-brief-claim-row"
+          onClick={() => onOpen(c)}
+        >
+          <span className="m-brief-row-icon is-work">
+            <RowIcon size={14} />
+          </span>
+          <span className="m-brief-claim-identity">
+            <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+            <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+            {c.blocat ? (
+              <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+                B
+              </span>
+            ) : null}
+          </span>
+          <span className="m-brief-claim-status" title={programareLabel || undefined}>
+            <span className="m-brief-claim-status-label">{getStatusShortLabel(c.status)}</span>
+            {programareLabel ? (
+              <span className="m-brief-claim-date">{programareLabel}</span>
+            ) : null}
+          </span>
+          <ChevronRight size={16} className="m-brief-chevron shrink-0" />
+        </button>
+        {showActions ? (
+          <div className="m-brief-row-actions">
+            {phone ? (
+              <>
+                <WhatsAppButton phone={phone} claim={c} size={12} />
+                <a
+                  href={telLink(phone)}
+                  className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold"
+                  onClick={() => softHaptic(6)}
+                >
+                  <Phone size={11} /> Apel
+                </a>
+              </>
+            ) : null}
+            {showStartRepair ? (
+              <button
+                type="button"
+                className="m-brief-ghost-btn m-brief-action-primary"
+                onClick={(e) => startRepair(e, c)}
+              >
+                <Wrench size={11} /> Reparație
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     );
   };
 

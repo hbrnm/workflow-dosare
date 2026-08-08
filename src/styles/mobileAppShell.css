@@ -1256,6 +1256,15 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   border-radius: 0.5rem;
 }
 
+.mobile-shell.app-shell .m-brief-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border-color: color-mix(in srgb, var(--app-accent) 40%, var(--app-border));
+  background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface));
+  color: var(--app-text-strong);
+}
+
 .mobile-shell.app-shell .m-brief-empty,
 .mobile-shell.app-shell .m-ui-empty {
   text-align: center;
