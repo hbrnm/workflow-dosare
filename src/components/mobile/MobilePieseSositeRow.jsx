@@ -3,9 +3,24 @@ import { PackageCheck, CalendarClock, Save } from "lucide-react";
 import { isPieseComandateStatus } from "../../constants/config";
 import { todayISO } from "../../utils/dateUtils";
 
+function toInputDate(val) {
+  return val ? String(val).slice(0, 10) : "";
+}
+
+function formatShortDate(val) {
+  const iso = toInputDate(val);
+  if (!iso || iso.length < 10) return "";
+  const [, m, d] = iso.split("-");
+  return `${d}.${m}`;
+}
+
 /**
  * Toggle "Piese sosite" — visible only for status piese_comandate.
  * When checked and unscheduled, shows interactive „Programare” → date/time picker.
+ *
+ * layout:
+ * - "stack" (default): dates above toggle (modal / sheet)
+ * - "inline": one dense row for list cards (Toate dosarele)
  */
 export default function MobilePieseSositeRow({
   claim,
@@ -15,6 +30,7 @@ export default function MobilePieseSositeRow({
   onPatchDates,
   compact = false,
   hideDatesUntilHover = false,
+  layout = "stack",
 }) {
   const [scheduling, setScheduling] = useState(false);
   const [editDate, setEditDate] = useState(todayISO());
@@ -29,8 +45,7 @@ export default function MobilePieseSositeRow({
   const toggleDisabled = !canEdit || typeof onToggle !== "function";
   const canSchedule = canEdit && typeof onSchedule === "function";
   const canEditDates = canEdit && typeof onPatchDates === "function";
-
-  const toInputDate = (val) => (val ? String(val).slice(0, 10) : "");
+  const inline = layout === "inline";
 
   const openScheduler = (e) => {
     e.preventDefault();
@@ -79,7 +94,7 @@ export default function MobilePieseSositeRow({
     ? (() => {
         const d = String(claim.dataProgramare).slice(0, 10);
         const t = String(claim.dataProgramare).slice(11, 16) || "";
-        return t ? `${d} ${t}` : d;
+        return t ? `${formatShortDate(d) || d} ${t}` : formatShortDate(d) || d;
       })()
     : null;
 
@@ -88,7 +103,7 @@ export default function MobilePieseSositeRow({
     !claim.pieseSosite &&
     toInputDate(claim.termenLivrarePiese) < todayISO();
 
-  const showDatesBlock = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates || compact;
+  const showDatesBlock = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates || compact || inline;
   const showDateFields = claim.dataComandaPiese || claim.termenLivrarePiese || canEditDates;
 
   const metaBoxClass = compact
@@ -104,6 +119,152 @@ export default function MobilePieseSositeRow({
     : `app-piese-toggle m-piese-sosite-toggle flex items-center justify-between gap-2 font-bold select-none py-2 px-2.5 rounded-lg transition-all ${
         toggleDisabled ? "opacity-60" : ""
       }`;
+
+  const scheduleControl = checked ? (
+    hasSchedule ? (
+      <span
+        className={`font-bold bg-[#2C4160] text-white rounded shrink-0 inline-flex items-center gap-0.5 ${
+          inline ? "text-[9px] px-1 py-0.5" : compact ? "text-[9.5px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5 rounded-md"
+        }`}
+        title={String(claim.dataProgramare)}
+      >
+        <CalendarClock size={inline ? 9 : 10} aria-hidden />
+        {scheduleLabel}
+      </span>
+    ) : canSchedule ? (
+      <button
+        type="button"
+        onClick={openScheduler}
+        className={`m-piese-programare-btn font-bold bg-[#C98A2B] hover:bg-[#B37A22] text-white rounded shrink-0 inline-flex items-center gap-0.5 transition-colors ${
+          inline ? "text-[9px] px-1 py-0.5" : compact ? "text-[9.5px] px-1.5 py-0.5" : "text-[10px] px-2 py-0.5 rounded-md"
+        }`}
+      >
+        <CalendarClock size={inline ? 9 : 10} aria-hidden />
+        {inline ? "Prog." : compact ? "Progr." : "Programare"}
+      </button>
+    ) : (
+      <span className={`font-bold text-[#1F7A45] shrink-0 ${inline ? "text-[9px]" : "text-[9.5px]"}`}>✓</span>
+    )
+  ) : null;
+
+  const schedulePanel = checked && scheduling && canSchedule ? (
+    <div
+      className={`app-piese-schedule-panel m-piese-schedule-panel rounded-lg space-y-1.5 ${
+        compact || inline ? "p-1.5 mt-1" : "p-2.5 rounded-xl space-y-2"
+      }`}
+    >
+      <div
+        className={`font-bold text-[var(--app-muted)] flex items-center gap-1 ${
+          compact || inline ? "text-[9.5px]" : "text-[10.5px]"
+        }`}
+      >
+        <CalendarClock size={compact || inline ? 10 : 12} /> Alege data &amp; ora
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          type="date"
+          value={editDate}
+          onChange={(e) => setEditDate(e.target.value)}
+          className="rounded-lg p-1.5 text-[12px] font-bold"
+        />
+        <input
+          type="time"
+          value={editTime}
+          onChange={(e) => setEditTime(e.target.value)}
+          className="rounded-lg p-1.5 text-[12px] font-bold"
+        />
+      </div>
+      <div className="flex justify-end gap-1.5 pt-0.5">
+        <button type="button" onClick={cancelScheduler} className="app-piese-btn-cancel px-2.5 py-1 rounded-lg text-[11px] font-bold">
+          Anulează
+        </button>
+        <button
+          type="button"
+          disabled={saving || !editDate}
+          onClick={saveSchedule}
+          className="app-piese-btn-save flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-extrabold shadow-xs disabled:opacity-50"
+        >
+          <Save size={12} />
+          {saving ? "…" : "Salvează"}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  if (inline) {
+    const cmdShort = formatShortDate(claim.dataComandaPiese);
+    const livShort = formatShortDate(claim.termenLivrarePiese);
+
+    return (
+      <div className="m-piese-sosite m-piese-sosite-inline" onClick={(e) => e.stopPropagation()}>
+        <div className="m-piese-inline-row">
+          <div className="m-piese-inline-dates" title="Data comandă / termen livrare">
+            <label
+              className={`m-piese-inline-chip ${canEditDates ? "is-editable" : ""}`}
+              title={
+                claim.dataComandaPiese
+                  ? `Comandă: ${toInputDate(claim.dataComandaPiese)}`
+                  : "Data comandă piese"
+              }
+            >
+              <span className="m-piese-inline-k">C</span>
+              <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
+              {canEditDates ? (
+                <input
+                  type="date"
+                  className="m-piese-inline-input-overlay"
+                  value={toInputDate(claim.dataComandaPiese)}
+                  disabled={savingDates}
+                  onChange={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Data comandă piese"
+                />
+              ) : null}
+            </label>
+            <label
+              className={`m-piese-inline-chip ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
+              title={
+                claim.termenLivrarePiese
+                  ? `Termen livrare: ${toInputDate(claim.termenLivrarePiese)}`
+                  : "Termen livrare piese"
+              }
+            >
+              <span className="m-piese-inline-k">T</span>
+              <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
+              {canEditDates ? (
+                <input
+                  type="date"
+                  className="m-piese-inline-input-overlay"
+                  value={toInputDate(claim.termenLivrarePiese)}
+                  disabled={savingDates}
+                  onChange={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="Termen livrare piese"
+                />
+              ) : null}
+            </label>
+          </div>
+
+          <label
+            className={`m-piese-inline-check ${checked ? "is-checked" : ""} ${toggleDisabled ? "is-disabled" : ""}`}
+            title="Au sosit piesele?"
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={toggleDisabled}
+              onChange={(e) => onToggle?.(claim, e.target.checked)}
+              className="m-piese-inline-checkbox"
+            />
+            <span>Sosite</span>
+          </label>
+
+          {scheduleControl}
+        </div>
+        {schedulePanel}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -172,68 +333,11 @@ export default function MobilePieseSositeRow({
                   <span className="leading-none">Au sosit piesele?</span>
                 </span>
               </label>
-
-              {checked ? (
-                hasSchedule ? (
-                  <span className="text-[9.5px] font-bold bg-[#2C4160] text-white px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-0.5">
-                    <CalendarClock size={10} aria-hidden />
-                    {scheduleLabel}
-                  </span>
-                ) : canSchedule ? (
-                  <button
-                    type="button"
-                    onClick={openScheduler}
-                    className="m-piese-programare-btn text-[9.5px] font-bold bg-[#C98A2B] hover:bg-[#B37A22] text-white px-1.5 py-0.5 rounded shrink-0 inline-flex items-center gap-0.5 transition-colors"
-                  >
-                    <CalendarClock size={10} aria-hidden />
-                    Progr.
-                  </button>
-                ) : (
-                  <span className="text-[9.5px] font-bold text-[#1F7A45] shrink-0">✓</span>
-                )
-              ) : null}
+              {scheduleControl}
             </div>
           </div>
 
-          {checked && scheduling && canSchedule && (
-            <div className={`app-piese-schedule-panel m-piese-schedule-panel rounded-lg space-y-1.5 ${compact ? "p-1.5 mt-1" : "p-2.5 rounded-xl space-y-2"}`}>
-              <div className={`font-bold text-[var(--app-muted)] flex items-center gap-1 ${compact ? "text-[9.5px]" : "text-[10.5px]"}`}>
-                <CalendarClock size={compact ? 10 : 12} /> Alege data &amp; ora
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
-                  className="rounded-lg p-1.5 text-[12px] font-bold"
-                />
-                <input
-                  type="time"
-                  value={editTime}
-                  onChange={(e) => setEditTime(e.target.value)}
-                  className="rounded-lg p-1.5 text-[12px] font-bold"
-                />
-              </div>
-              <div className="flex justify-end gap-1.5 pt-0.5">
-                <button
-                  type="button"
-                  onClick={cancelScheduler}
-                  className="app-piese-btn-cancel px-2.5 py-1 rounded-lg text-[11px] font-bold"
-                >
-                  Anulează
-                </button>
-                <button
-                  type="button"
-                  disabled={saving || !editDate}
-                  onClick={saveSchedule}
-                  className="app-piese-btn-save flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-extrabold shadow-xs disabled:opacity-50"
-                >
-                  <Save size={12} />
-                  {saving ? "…" : "Salvează"}
-                </button>
-              </div>
-            </div>
-          )}
+          {schedulePanel}
         </div>
       )}
 

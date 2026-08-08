@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Plus, ChevronRight, User, Phone, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  ChevronRight, Phone, ChevronDown, ChevronUp,
+  ClipboardCheck, Package, CalendarDays, Wrench, BadgeCheck, CheckCircle2,
+} from "lucide-react";
 import {
   getStatusDefinition,
   isPieseComandateStatus,
@@ -8,16 +11,138 @@ import {
 } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
-import { telLink, formatProgramareShort } from "../../utils/dateUtils";
+import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
+import { getLatestClaimNoteText } from "../../utils/alertUtils";
+
+const STAGE_ICONS = {
+  deschidere: ClipboardCheck,
+  piese_comandate: Package,
+  programat: CalendarDays,
+  in_lucru: Wrench,
+  accept_plata: BadgeCheck,
+  facturat: CheckCircle2,
+};
+
+function stageIconFor(status) {
+  const key = getStatusDefinition(status).key;
+  return STAGE_ICONS[key] || ClipboardCheck;
+}
+
+function CompactClaimCard({
+  claim: c,
+  onOpen,
+  onNotify,
+  canEditFn,
+  onTogglePieseSosite,
+  onScheduleFromPiese,
+  onPatchPieseDates,
+  highlightClaimIds = null,
+}) {
+  const sDef = getStatusDefinition(c.status);
+  const phone = c.telefonClient || "";
+  const stageAccent = getStageAccent(c.status);
+  const stShort = getStatusShortLabel(c.status);
+  const Icon = stageIconFor(c.status);
+  const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
+  const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
+  const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
+  const programareLabel =
+    c.status === "programat" && c.dataProgramare
+      ? formatProgramareShort(c.dataProgramare)
+      : "";
+  const subline = [programareLabel ? `Programare ${programareLabel}` : "", noteText || c.client || ""]
+    .filter(Boolean)
+    .join(" · ");
+  const showPieseRow = isPieseComandateStatus(c.status);
+  const canEdit = !canEditFn || canEditFn(c);
+
+  return (
+    <article
+      id={`mobile-claim-${c.id}`}
+      className={`app-alerte-row m-flow-card is-compact ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+      onClick={() => onOpen(c)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(c);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
+      <div className="app-alerte-metric is-icon" title={sDef.label}>
+        <Icon size={14} />
+      </div>
+      <div className="app-alerte-row-body min-w-0">
+        <div className="app-alerte-row-main">
+          <DosarNumber
+            value={c.numarDosar}
+            onNotify={onNotify}
+            empty="fără nr."
+            className="app-alerte-dosar"
+          />
+          <span className="app-alerte-plate font-mono font-bold">
+            {c.numarInmatriculare || "—"}
+          </span>
+          <span className="app-alerte-status-chip" title={sDef.label}>
+            {stShort}
+          </span>
+          {c.blocat ? (
+            <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+              B
+            </span>
+          ) : null}
+          {sinceBits.length ? (
+            <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+              {sinceBits.join(" · ")}
+            </span>
+          ) : null}
+        </div>
+        {showPieseRow ? (
+          <MobilePieseSositeRow
+            claim={c}
+            canEdit={canEdit}
+            layout="inline"
+            onToggle={onTogglePieseSosite}
+            onSchedule={onScheduleFromPiese}
+            onPatchDates={onPatchPieseDates}
+          />
+        ) : null}
+        {subline ? (
+          <p className="m-brief-alerte-why is-muted" title={subline}>
+            {subline}
+          </p>
+        ) : null}
+      </div>
+      <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
+        {phone ? (
+          <>
+            <WhatsAppButton phone={phone} claim={c} size={11} />
+            <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+              <Phone size={13} />
+            </a>
+          </>
+        ) : null}
+        <button
+          type="button"
+          className="app-alerte-btn-open"
+          onClick={() => onOpen(c)}
+          aria-label="Deschide dosarul"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export default function MobileClaimsList({
   claims,
   allClaimsCount,
   searchQuery = "",
   onOpen,
-  onNew,
   onPatch,
   canEditFn,
   onNotify,
@@ -74,7 +199,18 @@ export default function MobileClaimsList({
     );
     return true;
   };
-  // Group claims by vehicle registration if multiple exist in the same status (Point 15)
+
+  const handlePatchPieseDates = async (claim, patch) => {
+    if (canEditFn && !canEditFn(claim)) {
+      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      return false;
+    }
+    const ok = await onPatch?.(claim.id, patch);
+    if (ok === false) return false;
+    onNotify?.("Date piese actualizate.", "success");
+    return true;
+  };
+
   const groupedClaims = useMemo(() => {
     const map = new Map();
     filtered.forEach((c) => {
@@ -102,275 +238,155 @@ export default function MobileClaimsList({
             ) : null}
             <h1 className="m-ui-title">Toate dosarele</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="m-ui-count">{filtered.length}</span>
-            <button
-              type="button"
-              onClick={onNew}
-              className="m-fab-plus m-press"
-              aria-label="Dosar nou"
-              title="Dosar nou"
-            >
-              <Plus size={18} strokeWidth={2.5} />
-            </button>
-          </div>
+          <span className="m-ui-count">{filtered.length}</span>
         </div>
       </header>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-          {[
-            { id: "toate", label: `Toate (${allClaimsCount ?? claims.length})` },
-            { id: "deschidere", label: "AIR" },
-            { id: "piese_comandate", label: "Piese" },
-            { id: "piese_sosite", label: `Piese sosite (${pieseSositeCount})` },
-            { id: "programat", label: "Programări" },
-            { id: "in_lucru", label: "Reparație" },
-            { id: "accept_plata", label: "AP" },
-            { id: "facturat", label: "Facturat" },
-            { id: "blocate", label: "Blocate" },
-          ].map(({ id, label }) => (
+      <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtre dosare">
+        {[
+          { id: "toate", label: "Toate", count: allClaimsCount ?? claims.length },
+          { id: "deschidere", label: "AIR" },
+          { id: "piese_comandate", label: "Piese" },
+          { id: "piese_sosite", label: "Sosite", count: pieseSositeCount },
+          { id: "programat", label: "Prog." },
+          { id: "in_lucru", label: "Repar." },
+          { id: "accept_plata", label: "AP" },
+          { id: "facturat", label: "Fact." },
+          { id: "blocate", label: "Blocate" },
+        ].map(({ id, label, count }) => {
+          const active = statusFilter === id;
+          return (
             <button
               key={id}
               type="button"
               onClick={() => setStatusFilter(id)}
-              className={`m-filter-pill px-2.5 py-1 rounded-full border whitespace-nowrap shrink-0 ${
-                statusFilter === id ? "is-active" : ""
-              }`}
+              className={`m-brief-alert-stage-chip m-press ${active ? "is-active" : ""}`}
+              aria-pressed={active}
             >
-              {label}
+              <span>{label}</span>
+              {count != null ? (
+                <span className="m-brief-alert-stage-chip-count">{count}</span>
+              ) : null}
             </button>
-          ))}
+          );
+        })}
       </div>
 
-      <div className="space-y-2 flex-1 overflow-y-auto pr-0.5 scrollbar-thin">
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         {groupedClaims.length === 0 ? (
-          <div className="p-6 text-center rounded-xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface)] space-y-3">
-            <p className="m-type-body text-[var(--app-text-strong)]">
+          <div className="m-brief-empty">
+            <p className="font-bold text-[13px]">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Niciun dosar pentru filtrele alese"
                 : "Niciun dosar încă"}
             </p>
-            <p className="m-type-body m-muted">
+            <p className="text-[11.5px] m-muted">
               {searchQuery.trim() || statusFilter !== "toate"
-                ? "Șterge căutarea (bară jos) sau schimbă filtrul de status."
-                : "Creează un dosar nou ca să poți fotografia pe teren."}
+                ? "Schimbă filtrul sau șterge căutarea."
+                : "Adaugă un dosar din Acces rapid → Nou (în Brief)."}
             </p>
-            {onNew && (!searchQuery.trim() && statusFilter === "toate") && (
-              <button
-                type="button"
-                onClick={onNew}
-                className="m-fab-plus m-press mx-auto"
-                aria-label="Dosar nou"
-                title="Dosar nou"
-              >
-                <Plus size={18} strokeWidth={2.5} />
-              </button>
-            )}
           </div>
         ) : (
-          groupedClaims.map((group) => {
-            if (group.length === 1) {
-              const c = group[0];
-              const sDef = getStatusDefinition(c.status);
-              const phone = c.telefonClient || "";
-              const stageAccent = getStageAccent(c.status);
-
-              return (
-                <div
-                  key={c.id}
-                  id={`mobile-claim-${c.id}`}
-                  onClick={() => onOpen(c)}
-                  className={`m-claim-card m-flow-card ${stageAccent.className} p-3.5 cursor-pointer transition-all space-y-2 active:scale-[0.99] ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="m-plate">
-                        {c.numarInmatriculare || "—"}
-                      </span>
-                      {c.blocat && <span className="m-ui-chip is-danger">BLOCAT</span>}
-                    </div>
-                    <span className="m-ui-chip">
-                      {sDef.num}. {getStatusShortLabel(c.status) || sDef.label}
-                    </span>
-                  </div>
-
-                  {isPieseComandateStatus(c.status) && (
-                    <MobilePieseSositeRow
-                      claim={c}
-                      canEdit={!canEditFn || canEditFn(c)}
-                      onToggle={handleTogglePieseSosite}
-                      onSchedule={handleScheduleFromPiese}
+          <ul className="app-alerte-rows m-brief-alerte-rows m-flow-list">
+            {groupedClaims.map((group) => {
+              if (group.length === 1) {
+                return (
+                  <li key={group[0].id}>
+                    <CompactClaimCard
+                      claim={group[0]}
+                      onOpen={onOpen}
+                      onNotify={onNotify}
+                      canEditFn={canEditFn}
+                      onTogglePieseSosite={handleTogglePieseSosite}
+                      onScheduleFromPiese={handleScheduleFromPiese}
+                      onPatchPieseDates={handlePatchPieseDates}
+                      highlightClaimIds={highlightClaimIds}
                     />
-                  )}
-
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="m-vehicle-model truncate">{c.marcaModel || "—"}</span>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {c.status === "programat" && c.dataProgramare && (
-                        <span className="m-type-body font-mono text-[var(--app-text-strong)]">
-                          {formatProgramareShort(c.dataProgramare)}
-                        </span>
-                      )}
-                      <DosarNumber
-                        value={c.numarDosar}
-                        onNotify={onNotify}
-                        prefix=""
-                        className="m-dosar-num hover:text-[var(--app-accent)]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[var(--app-border)]">
-                    <div className="flex items-center gap-1.5 m-muted min-w-0">
-                      <User size={14} className="shrink-0" />
-                      <span className="m-type-body text-[var(--app-text)] truncate max-w-[140px]">{c.client || "Client neprecizat"}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {phone && (
-                        <>
-                          <WhatsAppButton phone={phone} claim={c} size={11} />
-                          <a href={telLink(phone)} className="m-call-btn p-1.5">
-                            <Phone size={12} />
-                          </a>
-                        </>
-                      )}
-                      <ChevronRight size={16} className="m-brief-chevron" />
-                    </div>
-                  </div>
-                </div>
+                  </li>
+                );
+              }
+              return (
+                <li key={group[0].id}>
+                  <MobileStackedGroupCard
+                    group={group}
+                    onOpen={onOpen}
+                    onNotify={onNotify}
+                    canEditFn={canEditFn}
+                    onTogglePieseSosite={handleTogglePieseSosite}
+                    onScheduleFromPiese={handleScheduleFromPiese}
+                    onPatchPieseDates={handlePatchPieseDates}
+                    highlightClaimIds={highlightClaimIds}
+                  />
+                </li>
               );
-            }
-            // Stacked interactive accordion group on Mobile
-            return (
-              <MobileStackedGroupCard
-                key={group[0].id}
-                group={group}
-                onOpen={onOpen}
-                onNotify={onNotify}
-                canEditFn={canEditFn}
-                onTogglePieseSosite={handleTogglePieseSosite}
-                onScheduleFromPiese={handleScheduleFromPiese}
-              />
-            );
-          })
+            })}
+          </ul>
         )}
       </div>
-
     </div>
   );
 }
 
-function MobileStackedGroupCard({ group, onOpen, onNotify, canEditFn, onTogglePieseSosite, onScheduleFromPiese }) {
+function MobileStackedGroupCard({
+  group,
+  onOpen,
+  onNotify,
+  canEditFn,
+  onTogglePieseSosite,
+  onScheduleFromPiese,
+  onPatchPieseDates,
+  highlightClaimIds,
+}) {
   const [expanded, setExpanded] = useState(false);
   const first = group[0];
   const plate = first.numarInmatriculare || "—";
-  const subline = [first.client, first.marcaModel].filter(Boolean).join(" · ") || `${group.length} dosare pe același vehicul`;
+  const stageAccent = getStageAccent(first.status);
+  const stShort = getStatusShortLabel(first.status);
 
   return (
-    <div className="m-stack-group rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] overflow-hidden shadow-sm">
+    <div className={`m-stack-group m-flow-card ${stageAccent.className}`}>
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="m-stack-head w-full flex items-center gap-3 p-3.5 text-left cursor-pointer select-none active:bg-[var(--app-surface-2)] transition-colors"
+        className="m-stack-head m-flow-stack-head"
         aria-expanded={expanded}
       >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="m-plate tracking-wide">
-              {plate}
-            </span>
-            <span className="m-stack-badge m-type-body px-2 py-0.5 rounded-full">
-              ×{group.length}
-            </span>
+        <div className="min-w-0 flex-1 text-left">
+          <div className="app-alerte-row-main" style={{ display: "flex" }}>
+            <span className="app-alerte-plate font-mono font-bold">{plate}</span>
+            <span className="app-alerte-status-chip">{stShort}</span>
+            <span className="m-brief-claim-chip">×{group.length}</span>
           </div>
-          {!expanded && (
-            <p className="m-vehicle-model mt-1 leading-snug truncate">{subline}</p>
-          )}
+          {!expanded ? (
+            <p className="m-brief-alerte-why is-muted">
+              {group.map((g) => `#${g.numarDosar || "?"}`).join(" · ")}
+            </p>
+          ) : null}
         </div>
-        <div className="shrink-0 flex items-center gap-1 m-type-body text-[var(--app-muted)]">
-          <span>{expanded ? "Restrânge" : "Extinde"}</span>
-          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </div>
+        <span className="m-brief-alerte-since shrink-0 flex items-center gap-0.5">
+          {expanded ? "Restrânge" : "Extinde"}
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </span>
       </button>
 
-      {expanded && (
-        <div className="m-stack-items border-t border-[var(--app-border)] p-2 space-y-2 bg-[var(--app-surface-2)]/40">
-          {group.map((c) => {
-            const sDef = getStatusDefinition(c.status);
-            const phone = c.telefonClient || "";
-            const stageAccent = getStageAccent(c.status);
-
-            return (
-              <div
-                key={c.id}
-                onClick={() => onOpen(c)}
-                className={`m-stack-item m-flow-card ${stageAccent.className} rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3 cursor-pointer space-y-2 active:scale-[0.99] transition-transform`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <DosarNumber
-                      value={c.numarDosar}
-                      onNotify={onNotify}
-                      empty="Fără nr."
-                      prefix=""
-                      className="m-dosar-num uppercase truncate hover:text-[var(--app-accent)]"
-                    />
-                    {c.blocat && (
-                      <span className="m-ui-chip is-danger shrink-0">
-                        BLOCAT
-                      </span>
-                    )}
-                  </div>
-                  <span className="m-ui-chip shrink-0" title={sDef.label}>
-                    {sDef.num}. {getStatusShortLabel(c.status)}
-                  </span>
-                </div>
-
-                {isPieseComandateStatus(c.status) && (
-                  <MobilePieseSositeRow
-                    claim={c}
-                    canEdit={!canEditFn || canEditFn(c)}
-                    onToggle={onTogglePieseSosite}
-                    onSchedule={onScheduleFromPiese}
-                    compact
-                  />
-                )}
-
-                <div className="flex items-center justify-between m-type-body text-[var(--app-muted)]">
-                  <span className="m-vehicle-model truncate">{c.marcaModel || c.client || "—"}</span>
-                  {c.status === "programat" && c.dataProgramare && (
-                    <span className="m-type-body font-mono text-[var(--app-text-strong)] shrink-0">
-                      {formatProgramareShort(c.dataProgramare)}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between pt-1.5 border-t border-[var(--app-border)]">
-                  <div className="flex items-center gap-1.5 text-[var(--app-muted)] min-w-0">
-                    <User size={14} className="shrink-0" />
-                    <span className="m-type-body text-[var(--app-text)] truncate max-w-[140px]">
-                      {c.client || "Client neprecizat"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    {phone && (
-                      <>
-                        <WhatsAppButton phone={phone} claim={c} size={11} />
-                        <a href={telLink(phone)} className="m-call-btn p-1.5 rounded-lg">
-                          <Phone size={12} />
-                        </a>
-                      </>
-                    )}
-                    <ChevronRight size={16} className="text-[var(--app-muted)]" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {expanded ? (
+        <ul className="m-stack-flow-list">
+          {group.map((c) => (
+            <li key={c.id}>
+              <CompactClaimCard
+                claim={c}
+                onOpen={onOpen}
+                onNotify={onNotify}
+                canEditFn={canEditFn}
+                onTogglePieseSosite={onTogglePieseSosite}
+                onScheduleFromPiese={onScheduleFromPiese}
+                onPatchPieseDates={onPatchPieseDates}
+                highlightClaimIds={highlightClaimIds}
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

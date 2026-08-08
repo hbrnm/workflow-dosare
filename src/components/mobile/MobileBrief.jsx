@@ -537,13 +537,16 @@ export default function MobileBrief({
     e.stopPropagation();
     if (!onPatchClaim) return;
     softHaptic(8);
-    const ok = await onPatchClaim(claim.id, { pieseSosite: true });
+    const next = !claim.pieseSosite;
+    const ok = await onPatchClaim(claim.id, { pieseSosite: next });
     if (ok !== false) flashRow(claim.id);
     onNotify?.(
-      ok
-        ? "Piese marcate ca sosite — poți seta programarea."
-        : "Eroare la actualizare.",
-      ok ? "success" : "error"
+      ok === false
+        ? "Eroare la actualizare."
+        : next
+          ? "Piese marcate ca sosite — poți seta programarea."
+          : "Bifa „Piese sosite” a fost ștearsă.",
+      ok === false ? "error" : next ? "success" : "info"
     );
   };
 
@@ -610,8 +613,7 @@ export default function MobileBrief({
     const stShort = getStatusShortLabel(c.status);
     const stFull = getStatusDefinition(c.status).label;
     const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
-    const showPartsArrived =
-      focus === "piese" && onPatchClaim && !c.blocat && !c.pieseSosite;
+    const showPartsArrived = focus === "piese" && onPatchClaim && !c.blocat;
     const showSchedule =
       focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
     const isScheduling = schedulingId === c.id;
@@ -660,11 +662,6 @@ export default function MobileBrief({
                   B
                 </span>
               ) : null}
-              {c.pieseSosite && focus === "piese" ? (
-                <span className="m-brief-claim-chip" title="Piese sosite">
-                  Sosite
-                </span>
-              ) : null}
               {sinceBits.length ? (
                 <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
                   {sinceBits.join(" · ")}
@@ -711,8 +708,10 @@ export default function MobileBrief({
             {showPartsArrived ? (
               <button
                 type="button"
-                className="app-alerte-btn-secondary"
+                className={`app-alerte-btn-sosite ${c.pieseSosite ? "is-on" : "is-off"}`}
                 onClick={(e) => markPartsArrived(e, c)}
+                aria-pressed={!!c.pieseSosite}
+                title={c.pieseSosite ? "Piese sosite — apasă ca să anulezi" : "Marchează piesele ca sosite"}
               >
                 Sosite
               </button>
@@ -858,17 +857,6 @@ export default function MobileBrief({
               </div>
               <p className="m-brief-board-hint">{focusBoard.hint}</p>
             </div>
-            {onNew ? (
-              <button
-                type="button"
-                className="m-fab-plus m-press shrink-0 self-start"
-                onClick={onNew}
-                aria-label="Dosar nou"
-                title="Dosar nou"
-              >
-                <Plus size={18} strokeWidth={2.5} />
-              </button>
-            ) : null}
           </div>
 
           {focus === "atentie" && attentionStageChips.length > 1 ? (
