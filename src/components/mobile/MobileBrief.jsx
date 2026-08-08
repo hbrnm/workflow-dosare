@@ -528,7 +528,10 @@ export default function MobileBrief({
   const openCapture = (e, claimId) => {
     e.stopPropagation();
     softHaptic(8);
-    if (onGoCapture) onGoCapture(claimId);
+    // Programări → folder recepție; Reparație → folder predare
+    const category =
+      focus === "programat" ? "receptie" : focus === "lucru" ? "predare" : null;
+    if (onGoCapture) onGoCapture(claimId, category);
     else onGoTab?.("capture");
   };
 
@@ -614,7 +617,9 @@ export default function MobileBrief({
     const showSchedule =
       focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
     const isScheduling = schedulingId === c.id;
-    const showFoto = Boolean(onGoCapture || onGoTab);
+    const showFoto =
+      Boolean(onGoCapture || onGoTab) && (focus === "programat" || focus === "lucru");
+    const fotoLabel = focus === "lucru" ? "Predare" : "Recepție";
     const isExiting = exitingIds.has(c.id);
     const isFlash = flashIds.has(c.id);
     const subline = [
@@ -692,9 +697,13 @@ export default function MobileBrief({
                 type="button"
                 className="app-alerte-btn-secondary"
                 onClick={(e) => openCapture(e, c.id)}
-                title="Foto & Doc"
+                title={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
               >
-                Foto
+                {fotoLabel}
               </button>
             ) : null}
             {showPartsArrived ? (

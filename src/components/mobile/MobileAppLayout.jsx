@@ -56,6 +56,7 @@ export default function MobileAppLayout({
     else setInternalTab(id);
   };
   const [focusClaimId, setFocusClaimId] = useState(null);
+  const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -66,6 +67,7 @@ export default function MobileAppLayout({
   useEffect(() => {
     if (!captureFocusClaimId) return;
     setFocusClaimId(captureFocusClaimId);
+    setFocusCaptureCategory(null);
     setActiveTab("capture");
     setMenuOpen(false);
     onCaptureFocusConsumed?.();
@@ -111,11 +113,17 @@ export default function MobileAppLayout({
     setMenuOpen(false);
   };
 
-  const openCaptureForClaim = (claimId) => {
+  const openCaptureForClaim = (claimId, category = null) => {
     softHaptic(8);
     if (claimId) setFocusClaimId(claimId);
+    setFocusCaptureCategory(category || null);
     setActiveTab("capture");
     setMenuOpen(false);
+  };
+
+  const consumeCaptureFocus = () => {
+    setFocusClaimId(null);
+    setFocusCaptureCategory(null);
   };
 
   const atelierName = branding?.atelierNume || "Dosare Daună";
@@ -252,7 +260,8 @@ export default function MobileAppLayout({
             canEditFn={canEditFn}
             onNotify={onNotify}
             focusClaimId={focusClaimId}
-            onFocusClaimConsumed={() => setFocusClaimId(null)}
+            focusCaptureCategory={focusCaptureCategory}
+            onFocusClaimConsumed={consumeCaptureFocus}
             highlightClaimIds={highlightClaimIds}
             onMobileShellLockChange={onMobileShellLockChange}
           />
