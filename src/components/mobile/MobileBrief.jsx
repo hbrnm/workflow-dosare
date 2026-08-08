@@ -619,7 +619,6 @@ export default function MobileBrief({
     const isScheduling = schedulingId === c.id;
     const showFoto =
       Boolean(onGoCapture || onGoTab) && (focus === "programat" || focus === "lucru");
-    const fotoLabel = focus === "lucru" ? "Predare" : "Recepție";
     const isExiting = exitingIds.has(c.id);
     const isFlash = flashIds.has(c.id);
     const subline = [
