@@ -380,12 +380,10 @@ export default function MobileBrief({
     const showFactureaza = item.type === "accept_plata";
     const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
 
-    const stageAccent = getStageAccent(c.status);
-
     return (
       <li key={item.id}>
         <article
-          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""}`}
+          className={`app-alerte-row m-flow-card is-compact is-attention ${isExiting ? "is-exiting" : ""}`}
           onClick={() => onOpen(c)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
