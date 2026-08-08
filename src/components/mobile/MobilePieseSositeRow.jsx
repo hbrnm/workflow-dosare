@@ -214,7 +214,7 @@ export default function MobilePieseSositeRow({
                   />
                 </label>
                 <label className={`m-piese-inline-field ${livrareOverdue ? "is-overdue" : ""}`}>
-                  <span>Liv</span>
+                  <span>Rec</span>
                   <input
                     type="date"
                     className="m-piese-inline-input"
@@ -234,9 +234,9 @@ export default function MobilePieseSositeRow({
                 </span>
                 <span
                   className={`m-piese-inline-chip ${livrareOverdue ? "is-overdue" : ""}`}
-                  title={toInputDate(claim.termenLivrarePiese) || "Fără termen livrare"}
+                  title={toInputDate(claim.termenLivrarePiese) || "Fără dată recepție"}
                 >
-                  <span className="m-piese-inline-k">Liv</span>
+                  <span className="m-piese-inline-k">Rec</span>
                   <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
                 </span>
               </>
