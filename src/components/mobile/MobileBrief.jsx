@@ -380,24 +380,25 @@ export default function MobileBrief({
   const renderAlertRow = (item) => {
     const c = item.claim;
     const phone = c.telefonClient || "";
-    const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
+    const noteText = (item.noteSnippet || getLatestClaimNoteText(c, { maxLen: 72 }) || "").trim();
     const reasonText = String(item.reason || "").trim();
     const typeMeta = ALERT_TYPE_META[item.type];
     const whyTitle = item.title || typeMeta?.label || "Alertă";
+    const whyLine = reasonText && reasonText.toLowerCase() !== whyTitle.toLowerCase()
+      ? `${whyTitle} · ${reasonText}`
+      : whyTitle;
     const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
     const stageSince = getStageSinceMeta(c);
     const metric = getAlertMetric(item);
     const stShort = getStatusShortLabel(c.status);
     const stFull = getStatusDefinition(c.status).label;
     const showFactureaza = item.type === "accept_plata";
-    const showActions = Boolean(
-      phone || showFactureaza || (onPatchClaim && canAck(item.type))
-    );
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
 
     return (
       <li key={item.id}>
         <article
-          className={`app-alerte-row m-brief-alerte-card ${alertSeverityClass(item.severity)} ${isExiting ? "is-exiting" : ""}`}
+          className={`app-alerte-row m-brief-alerte-card is-compact ${alertSeverityClass(item.severity)} ${isExiting ? "is-exiting" : ""}`}
           onClick={() => onOpen(c)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -419,7 +420,7 @@ export default function MobileBrief({
               style={{ color: typeMeta?.hex || alertIconColor(item.type) }}
               title={whyTitle}
             >
-              <AlertTriangle size={18} />
+              <AlertTriangle size={14} />
             </div>
           )}
 
@@ -437,10 +438,14 @@ export default function MobileBrief({
               <span className="app-alerte-status-chip" title={stFull}>
                 {stShort}
               </span>
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
+                </span>
+              ) : null}
             </div>
-            <p className="m-brief-alerte-why" title={[whyTitle, reasonText].filter(Boolean).join(" — ")}>
-              <span className="m-brief-alerte-why-type">{whyTitle}</span>
-              {reasonText ? <span className="m-brief-alerte-why-reason">{reasonText}</span> : null}
+            <p className="m-brief-alerte-why" title={whyLine}>
+              {whyLine}
             </p>
             {noteText ? (
               <p className="app-alerte-note" title={noteText}>
@@ -448,66 +453,47 @@ export default function MobileBrief({
                 {noteText}
               </p>
             ) : null}
-            {stageSince.dateTimeShort || stageSince.daysLabel ? (
-              <p className="m-brief-alerte-since" title={stageSince.title || undefined}>
-                <span className="app-alerte-meta-label">În stadiu</span>
-                {[stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean).join(" · ")}
-              </p>
-            ) : null}
           </div>
 
-          {showActions ? (
-            <div
-              className="app-alerte-actions"
-              onClick={(e) => e.stopPropagation()}
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {phone ? (
+              <>
+                <WhatsAppButton phone={phone} claim={c} size={11} />
+                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+                  <Phone size={13} />
+                </a>
+              </>
+            ) : null}
+            {showFactureaza ? (
+              <button
+                type="button"
+                className="app-alerte-btn-primary"
+                onClick={() => onOpen(c)}
+              >
+                AP
+              </button>
+            ) : null}
+            {onPatchClaim && canAck(item.type) ? (
+              <button
+                type="button"
+                className="app-alerte-btn-secondary"
+                onClick={(e) => ackAlert(e, c.id)}
+              >
+                Rezolvat
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
             >
-              {phone ? (
-                <>
-                  <WhatsAppButton phone={phone} claim={c} size={12} />
-                  <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
-                    <Phone size={14} />
-                  </a>
-                </>
-              ) : null}
-              {showFactureaza ? (
-                <button
-                  type="button"
-                  className="app-alerte-btn-primary"
-                  onClick={() => onOpen(c)}
-                >
-                  Deschide AP
-                </button>
-              ) : null}
-              {onPatchClaim && canAck(item.type) ? (
-                <button
-                  type="button"
-                  className="app-alerte-btn-secondary"
-                  onClick={(e) => ackAlert(e, c.id)}
-                >
-                  Rezolvat
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="app-alerte-btn-open"
-                onClick={() => onOpen(c)}
-                aria-label="Deschide dosarul"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          ) : (
-            <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                className="app-alerte-btn-open"
-                onClick={() => onOpen(c)}
-                aria-label="Deschide dosarul"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          )}
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </article>
       </li>
     );
