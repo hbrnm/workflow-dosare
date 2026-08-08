@@ -455,9 +455,6 @@ export default function MobileQuickCapture({
                     <span className="m-dosar-num shrink-0">
                       {c.numarDosar || "Fără nr."}
                     </span>
-                    <span className="m-vehicle-model truncate min-w-0">
-                      {c.marcaModel || ""}
-                    </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">

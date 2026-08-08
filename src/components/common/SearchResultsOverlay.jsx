@@ -3,6 +3,7 @@ import { Search, X, ChevronRight, User, Car, Phone } from "lucide-react";
 import { filterClaimsBySearch } from "../../utils/searchUtils";
 import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 import { formatProgramareShort, telLink } from "../../utils/dateUtils";
+import { getLatestClaimNoteText } from "../../utils/alertUtils";
 import DosarNumber from "./DosarNumber";
 import WhatsAppButton from "./WhatsAppButton";
 
@@ -139,6 +140,10 @@ export default function SearchResultsOverlay({
             matches.map((c) => {
               const sDef = getStatusDefinition(c.status);
               const phone = c.telefonClient || "";
+              const blockReason = c.blocat
+                ? String(c.motivBlocare || "").trim()
+                : "";
+              const noteText = getLatestClaimNoteText(c);
               return (
                 <div
                   key={c.id}
@@ -192,6 +197,33 @@ export default function SearchResultsOverlay({
                       />
                     </div>
                   </div>
+
+                  {(blockReason || noteText) && (
+                    <div className="space-y-1 pt-0.5">
+                      {blockReason ? (
+                        <p
+                          className="text-[11px] font-bold text-[var(--app-danger)] leading-snug line-clamp-2"
+                          title={blockReason}
+                        >
+                          <span className="uppercase tracking-wide text-[9px] opacity-80 mr-1">
+                            Motiv
+                          </span>
+                          {blockReason}
+                        </p>
+                      ) : null}
+                      {noteText ? (
+                        <p
+                          className="text-[11px] font-semibold text-[var(--app-muted)] leading-snug line-clamp-2"
+                          title={noteText}
+                        >
+                          <span className="uppercase tracking-wide text-[9px] opacity-80 mr-1">
+                            Notă
+                          </span>
+                          {noteText}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--app-border)] text-[11px]">
                     <span className="truncate flex items-center gap-1.5 text-[var(--app-muted)] min-w-0">
