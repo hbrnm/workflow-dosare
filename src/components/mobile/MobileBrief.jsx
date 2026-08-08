@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink, fmtDate, formatProgramareShort } from "../../utils/dateUtils";
+import { telLink, fmtDate, formatProgramareShort, todayISO } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { softHaptic } from "../../utils/mobilePrefs";
@@ -133,6 +133,7 @@ export default function MobileBrief({
   onOpen,
   onNew,
   onGoTab,
+  onGoCapture,
   onOpenAlerts,
   pragRidicare,
   pragInactivitate = 7,
@@ -144,6 +145,9 @@ export default function MobileBrief({
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState(readStoredFocus);
+  const [schedulingId, setSchedulingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayISO);
+  const [editTime, setEditTime] = useState("09:00");
   const boardRef = useRef(null);
 
   useEffect(() => {
@@ -236,14 +240,6 @@ export default function MobileBrief({
     onGoTab?.(tab);
   };
 
-  const setBoardFocus = (next) => {
-    softHaptic(8);
-    setFocus(next);
-    requestAnimationFrame(() => {
-      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  };
-
   const alertIconColor = (type) => {
     switch (type) {
       case "blocate": return "#B23A2E";
@@ -324,6 +320,58 @@ export default function MobileBrief({
     );
   };
 
+  const setBoardFocus = (next) => {
+    softHaptic(8);
+    setFocus(next);
+    setSchedulingId(null);
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const openCapture = (e, claimId) => {
+    e.stopPropagation();
+    softHaptic(8);
+    if (onGoCapture) onGoCapture(claimId);
+    else onGoTab?.("capture");
+  };
+
+  const markPartsArrived = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim) return;
+    softHaptic(8);
+    const ok = await onPatchClaim(claim.id, { pieseSosite: true });
+    onNotify?.(
+      ok
+        ? "Piese marcate ca sosite — poți seta programarea."
+        : "Eroare la actualizare.",
+      ok ? "success" : "error"
+    );
+  };
+
+  const openScheduler = (e, claim) => {
+    e.stopPropagation();
+    softHaptic(6);
+    setEditDate(todayISO());
+    setEditTime("09:00");
+    setSchedulingId(claim.id);
+  };
+
+  const saveSchedule = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim || !editDate) return;
+    softHaptic(8);
+    const iso = `${editDate}T${editTime || "09:00"}:00`;
+    const ok = await onPatchClaim(claim.id, { dataProgramare: iso });
+    if (ok !== false) {
+      setSchedulingId(null);
+      onNotify?.('Dosar programat — mutat în „Programări".', "success");
+      setFocus("programat");
+    } else {
+      onNotify?.("Eroare la programare.", "error");
+    }
+  };
+
   const startRepair = async (e, claim) => {
     e.stopPropagation();
     if (!onPatchClaim) return;
@@ -333,10 +381,12 @@ export default function MobileBrief({
       ok ? 'Dosar mutat în „Reparație".' : "Eroare la actualizare.",
       ok ? "success" : "error"
     );
+    if (ok !== false) setFocus("lucru");
   };
 
   const renderClaimRow = (c, idx, total) => {
     const phone = c.telefonClient || "";
+    const noteText = getLatestClaimNoteText(c, { maxLen: 90 });
     const programareLabel = c.dataProgramare
       ? (focus === "programat"
         ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
@@ -344,7 +394,15 @@ export default function MobileBrief({
       : "";
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
     const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
-    const showActions = Boolean(phone || showStartRepair);
+    const showPartsArrived =
+      focus === "piese" && onPatchClaim && !c.blocat && !c.pieseSosite;
+    const showSchedule =
+      focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
+    const isScheduling = schedulingId === c.id;
+    const showFoto = Boolean(onGoCapture || onGoTab);
+    const showActions = Boolean(
+      phone || showStartRepair || showPartsArrived || showSchedule || showFoto || isScheduling
+    );
 
     return (
       <div
@@ -359,13 +417,23 @@ export default function MobileBrief({
           <span className="m-brief-row-icon is-work">
             <RowIcon size={14} />
           </span>
-          <span className="m-brief-claim-identity">
-            <span className="m-plate">{c.numarInmatriculare || "—"}</span>
-            <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
-            {c.blocat ? (
-              <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
-                B
-              </span>
+          <span className="m-brief-claim-body min-w-0 flex-1 text-left">
+            <span className="m-brief-claim-identity">
+              <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+              <span className="m-dosar-num">{c.numarDosar || "fără nr."}</span>
+              {c.blocat ? (
+                <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+                  B
+                </span>
+              ) : null}
+              {c.pieseSosite && focus === "piese" ? (
+                <span className="m-brief-claim-chip" title="Piese sosite">
+                  Sosite
+                </span>
+              ) : null}
+            </span>
+            {noteText ? (
+              <span className="m-brief-row-note">{noteText}</span>
             ) : null}
           </span>
           <span className="m-brief-claim-status" title={programareLabel || undefined}>
@@ -390,6 +458,34 @@ export default function MobileBrief({
                 </a>
               </>
             ) : null}
+            {showFoto ? (
+              <button
+                type="button"
+                className="m-brief-ghost-btn m-brief-action-icon"
+                onClick={(e) => openCapture(e, c.id)}
+                title="Foto & Doc"
+              >
+                <Camera size={12} /> Foto
+              </button>
+            ) : null}
+            {showPartsArrived ? (
+              <button
+                type="button"
+                className="m-brief-ghost-btn"
+                onClick={(e) => markPartsArrived(e, c)}
+              >
+                <Package size={11} /> Sosite
+              </button>
+            ) : null}
+            {showSchedule && !isScheduling ? (
+              <button
+                type="button"
+                className="m-brief-ghost-btn m-brief-action-primary"
+                onClick={(e) => openScheduler(e, c)}
+              >
+                <CalendarDays size={11} /> Programare
+              </button>
+            ) : null}
             {showStartRepair ? (
               <button
                 type="button"
@@ -399,6 +495,42 @@ export default function MobileBrief({
                 <Wrench size={11} /> Reparație
               </button>
             ) : null}
+          </div>
+        ) : null}
+        {isScheduling ? (
+          <div
+            className="m-brief-schedule"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="m-brief-schedule-input"
+            />
+            <input
+              type="time"
+              value={editTime}
+              onChange={(e) => setEditTime(e.target.value)}
+              className="m-brief-schedule-input"
+            />
+            <button
+              type="button"
+              className="m-brief-ghost-btn m-brief-action-primary"
+              onClick={(e) => saveSchedule(e, c)}
+            >
+              Salvează
+            </button>
+            <button
+              type="button"
+              className="m-brief-ghost-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSchedulingId(null);
+              }}
+            >
+              Anulează
+            </button>
           </div>
         ) : null}
       </div>

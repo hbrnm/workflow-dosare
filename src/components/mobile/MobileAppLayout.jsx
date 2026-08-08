@@ -107,6 +107,13 @@ export default function MobileAppLayout({
     setMenuOpen(false);
   };
 
+  const openCaptureForClaim = (claimId) => {
+    softHaptic(8);
+    if (claimId) setFocusClaimId(claimId);
+    setActiveTab("capture");
+    setMenuOpen(false);
+  };
+
   const atelierName = branding?.atelierNume || "Dosare Daună";
 
   return (
@@ -231,6 +238,7 @@ export default function MobileAppLayout({
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onGoTab={handleTabChange}
+            onGoCapture={openCaptureForClaim}
             onOpenAlerts={onOpenAlerts}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}

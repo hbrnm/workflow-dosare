@@ -7,7 +7,7 @@ import {
 import { todayISO, telLink } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
 import { isPendingArrivalToday } from "../../utils/scheduleStatusEffects";
-import { STATUSES } from "../../constants/config";
+import { STATUSES, getStatusDefinition } from "../../constants/config";
 import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
@@ -44,13 +44,13 @@ export default function BriefZilnic({
 
   const { counts, totalAlertsCount: totalActiuniUrgente } = buckets;
 
-  // 1. Programări intrări astăzi — dispar după bifă „În lucru”
+  // 1. Programări intrări astăzi — dispar după mutare în Reparație
   const programariAzi = useMemo(() =>
     claims.filter((c) => isPendingArrivalToday(c, todayStr))
       .sort((a, b) => a.dataProgramare.localeCompare(b.dataProgramare)),
     [claims, todayStr]);
 
-  // 2. Finalizate astăzi (gata de predat)
+  // 2. Finalizate astăzi (gata de predat — flag, independent de stadiu)
   const gataAzi = useMemo(() =>
     claims.filter((c) => c.gataDeRidicare && !c.ridicata && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
     [claims, todayStr]);
@@ -65,19 +65,18 @@ export default function BriefZilnic({
 
   // Număr total dosare active
   const activeClaimsCount = useMemo(() =>
-    claims.filter((c) => c.status !== "facturat").length,
+    claims.filter((c) => getStatusDefinition(c.status).key !== "facturat").length,
     [claims]);
 
-  // Număr dosare înregistrate pe fiecare etapă din workflow
+  // Număr dosare înregistrate pe fiecare etapă din workflow (6 stadii)
   const statusStats = useMemo(() => {
-    const counts = {};
-    STATUSES.forEach((s) => (counts[s.key] = 0));
+    const map = {};
+    STATUSES.forEach((s) => (map[s.key] = 0));
     claims.forEach((c) => {
-      if (counts[c.status] !== undefined) {
-        counts[c.status]++;
-      }
+      const key = getStatusDefinition(c.status).key;
+      if (map[key] !== undefined) map[key] += 1;
     });
-    return counts;
+    return map;
   }, [claims]);
 
   return (
@@ -341,7 +340,7 @@ export default function BriefZilnic({
 
           <div className="flex-1 min-h-0 flex flex-col justify-between">
             <h4 className="text-[10px] font-extrabold text-[var(--app-muted)] uppercase tracking-wider mb-1.5 shrink-0">
-              Dosare Înregistrate pe Etape de Lucru
+              AIR · Piese · Programări · Reparație · AP · Facturat
             </h4>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
               {STATUSES.map((s) => {
@@ -351,7 +350,7 @@ export default function BriefZilnic({
                     key={s.key}
                     as="button"
                     num={s.num}
-                    label={s.label}
+                    label={s.short || s.label}
                     count={count}
                     onClick={() => onSelectStatusFilter?.(s.key)}
                   />
