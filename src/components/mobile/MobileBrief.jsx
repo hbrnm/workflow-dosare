@@ -36,18 +36,6 @@ const FOCUS_KEYS = new Set([
   "atentie",
 ]);
 
-/** Filtre pe stadiu pentru lista Atenție (meniul din badge-ul N). */
-const ATTENTION_FILTERS = [
-  { key: "toate", label: "Toate", statusKey: null },
-  { key: "air", label: "AIR", statusKey: "deschidere" },
-  { key: "piese", label: "Piese", statusKey: "piese_comandate" },
-  { key: "programat", label: "Programări", statusKey: "programat" },
-  { key: "lucru", label: "Reparație", statusKey: "in_lucru" },
-  { key: "accept", label: "AP", statusKey: "accept_plata" },
-  { key: "facturat", label: "Facturat", statusKey: "facturat" },
-  { key: "blocate", label: "Blocate", statusKey: null, blockedOnly: true },
-];
-
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
   air: {
@@ -139,28 +127,6 @@ function sortClaimsForFocus(rows, focusKey) {
   );
 }
 
-function filterAttentionItems(items, filterKey) {
-  const list = items || [];
-  if (!filterKey || filterKey === "toate") return list;
-  const def = ATTENTION_FILTERS.find((f) => f.key === filterKey);
-  if (!def) return list;
-  if (def.blockedOnly) return list.filter((item) => item?.claim?.blocat);
-  if (def.statusKey) {
-    return list.filter((item) => claimStatusKey(item?.claim) === def.statusKey);
-  }
-  return list;
-}
-
-function countAttentionByFilter(items) {
-  const list = items || [];
-  const out = { toate: list.length };
-  ATTENTION_FILTERS.forEach((f) => {
-    if (f.key === "toate") return;
-    out[f.key] = filterAttentionItems(list, f.key).length;
-  });
-  return out;
-}
-
 /** Dată/oră + zile calendaristice de când dosarul e în stadiul curent. */
 function getStageSinceMeta(claim) {
   return getSinceMeta(claim?.dataSchimbareStatus || claim?.dataDeschiderii || null);
@@ -241,13 +207,26 @@ export default function MobileBrief({
     [items, activeAlertTab]
   );
 
-  const attentionFilterCounts = useMemo(() => countAttentionByFilter(items), [items]);
   const attentionRows = useMemo(
-    () => filterAttentionItems(items, attentionFilter),
+    () => filterAlertItems(items, attentionFilter),
     [items, attentionFilter]
   );
+  const attentionFilterOptions = useMemo(() => {
+    const withAlerts = [];
+    const empty = [];
+    ALERT_GROUPS.forEach((g) => {
+      const n = countAlertsForGroup(counts, g);
+      const row = { key: g.key, label: g.label, count: n, Icon: g.icon, hex: g.hex };
+      (n > 0 ? withAlerts : empty).push(row);
+    });
+    return [
+      { key: "toate", label: "Toate", count: totalAlertsCount, Icon: Ban, hex: null },
+      ...withAlerts,
+      ...empty,
+    ];
+  }, [counts, totalAlertsCount]);
   const attentionFilterMeta =
-    ATTENTION_FILTERS.find((f) => f.key === attentionFilter) || ATTENTION_FILTERS[0];
+    attentionFilterOptions.find((f) => f.key === attentionFilter) || attentionFilterOptions[0];
 
   const chipCount = (key) =>
     key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
@@ -371,6 +350,17 @@ export default function MobileBrief({
   const openAttentionAll = () => {
     setAttentionFilter("toate");
     setBoardFocus("atentie");
+  };
+
+  const openAlertFilterMenu = () => {
+    softHaptic(8);
+    setFocus("atentie");
+    setSchedulingId(null);
+    setExitingIds(new Set());
+    setAlertMenuOpen((v) => !v);
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   };
 
   const applyAttentionFilter = (filterKey) => {
@@ -812,34 +802,39 @@ export default function MobileBrief({
               <button
                 type="button"
                 className={`m-brief-count m-brief-count--badge m-press ${totalAlertsCount > 0 ? "has-items" : ""} ${attentionFilter !== "toate" ? "is-filtered" : ""} ${alertMenuOpen ? "is-open" : ""}`}
-                onClick={() => {
-                  softHaptic(8);
-                  setAlertMenuOpen((v) => !v);
-                }}
-                aria-label={`${totalAlertsCount} alerte — filtrează pe stadiu`}
+                onClick={openAlertFilterMenu}
+                aria-label={`${totalAlertsCount} alerte active — deschide și filtrează`}
                 aria-expanded={alertMenuOpen}
                 aria-haspopup="menu"
-                title="Filtrează alertele pe stadiu"
+                title="Alerte active"
               >
                 {totalAlertsCount}
               </button>
               {alertMenuOpen ? (
                 <div className="m-brief-alert-menu" role="menu">
-                  <div className="m-brief-alert-menu-label">Filtru Atenție</div>
-                  {ATTENTION_FILTERS.map((f) => {
-                    const n = attentionFilterCounts[f.key] || 0;
+                  <div className="m-brief-alert-menu-label">Alerte active</div>
+                  {attentionFilterOptions.map((f) => {
                     const active = attentionFilter === f.key;
+                    const Icon = f.Icon;
                     return (
                       <button
                         key={f.key}
                         type="button"
                         role="menuitemradio"
                         aria-checked={active}
-                        className={`m-brief-alert-menu-item ${active ? "is-active" : ""} ${n === 0 && f.key !== "toate" ? "is-empty" : ""}`}
+                        className={`m-brief-alert-menu-item ${active ? "is-active" : ""} ${f.count === 0 && f.key !== "toate" ? "is-empty" : ""}`}
                         onClick={() => applyAttentionFilter(f.key)}
                       >
+                        {Icon ? (
+                          <span
+                            className="m-brief-alert-menu-item-icon"
+                            style={f.hex ? { color: f.hex } : undefined}
+                          >
+                            <Icon size={14} strokeWidth={2.3} />
+                          </span>
+                        ) : null}
                         <span className="m-brief-alert-menu-item-label">{f.label}</span>
-                        <span className="m-brief-alert-menu-item-count">{n}</span>
+                        <span className="m-brief-alert-menu-item-count">{f.count}</span>
                       </button>
                     );
                   })}
