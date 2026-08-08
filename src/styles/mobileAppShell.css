@@ -1595,6 +1595,54 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   flex-shrink: 0;
 }
 
+.mobile-shell.app-shell .m-brief-claim-chip.is-ap {
+  background: color-mix(in srgb, #3E6B45 18%, var(--app-surface));
+  color: #2F6B4E;
+}
+
+.mobile-shell.app-shell .m-brief-row {
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.mobile-shell.app-shell .m-brief-row.is-exiting {
+  opacity: 0;
+  transform: translateY(-8px);
+  filter: blur(0.6px);
+  pointer-events: none;
+}
+
+.mobile-shell.app-shell .m-brief-row.is-flash {
+  animation: m-brief-flash 0.48s ease;
+}
+
+@keyframes m-brief-flash {
+  0% {
+    background: transparent;
+  }
+  35% {
+    background: color-mix(in srgb, var(--app-accent) 16%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-brief-row {
+    transition: none;
+  }
+
+  .mobile-shell.app-shell .m-brief-row.is-exiting {
+    opacity: 0.35;
+    transform: none;
+    filter: none;
+  }
+
+  .mobile-shell.app-shell .m-brief-row.is-flash {
+    animation: none;
+  }
+}
+
 .mobile-shell.app-shell .m-brief-claim-status {
   margin-left: auto;
   display: flex;

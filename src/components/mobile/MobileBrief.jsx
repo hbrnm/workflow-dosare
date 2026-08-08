@@ -65,9 +65,9 @@ const STAGE_FOCUS = {
   },
   accept: {
     title: "Accept plată",
-    hint: "După reparație — așteaptă acceptul de plată / decontarea.",
-    emptyTitle: "Niciun dosar pe Accept plată",
-    emptyHint: "Dosarele pe Accept plată (AP) apar aici.",
+    hint: "AP = stadiul Accept plată — după reparație, înainte de facturare.",
+    emptyTitle: "Niciun dosar în Accept plată",
+    emptyHint: "Când un dosar ajunge în stadiul Accept plată (AP), apare aici.",
     statusKey: "accept_plata",
     Icon: BadgeCheck,
   },
@@ -148,7 +148,11 @@ export default function MobileBrief({
   const [schedulingId, setSchedulingId] = useState(null);
   const [editDate, setEditDate] = useState(todayISO);
   const [editTime, setEditTime] = useState("09:00");
+  const [exitingIds, setExitingIds] = useState(() => new Set());
+  const [flashIds, setFlashIds] = useState(() => new Set());
   const boardRef = useRef(null);
+  const EXIT_MS = 220;
+  const FLASH_MS = 480;
 
   useEffect(() => {
     try {
@@ -213,12 +217,15 @@ export default function MobileBrief({
   const ackAlert = async (e, claimId) => {
     e.stopPropagation();
     if (!onPatchClaim) return;
-    const ok = await onPatchClaim(claimId, { alerteAck: true });
+    softHaptic(8);
+    const ok = await runWithExit(claimId, () =>
+      onPatchClaim(claimId, { alerteAck: true })
+    );
     onNotify?.(
-      ok
+      ok !== false
         ? "Alertă ascunsă. Revine automat la următoarea schimbare de status."
         : "Eroare la marcarea alertei.",
-      ok ? "success" : "error"
+      ok !== false ? "success" : "error"
     );
   };
 
@@ -259,7 +266,7 @@ export default function MobileBrief({
     { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
     { key: "programat", label: "Prog.", count: stageLists.programat.length, tone: "accent" },
     { key: "lucru", label: "Repar.", count: stageLists.lucru.length, tone: "accent" },
-    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok" },
+    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok", title: "AP — Accept plată" },
     { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
 
@@ -279,10 +286,11 @@ export default function MobileBrief({
     const c = item.claim;
     const phone = c.telefonClient || "";
     const noteText = (item.noteSnippet || getLatestClaimNoteText(c) || "").trim();
+    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
     return (
       <div
         key={item.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""}`}
+        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""}`}
       >
         <button type="button" className="m-brief-row-main m-press" onClick={() => onOpen(c)}>
           <span className="m-brief-row-icon" style={{ background: alertIconColor(item.type) }}>
@@ -324,9 +332,50 @@ export default function MobileBrief({
     softHaptic(8);
     setFocus(next);
     setSchedulingId(null);
+    setExitingIds(new Set());
     requestAnimationFrame(() => {
       boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  };
+
+  const markExiting = (claimId) => {
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      next.add(claimId);
+      return next;
+    });
+  };
+
+  const clearExiting = (claimId) => {
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(claimId);
+      return next;
+    });
+  };
+
+  const flashRow = (claimId) => {
+    setFlashIds((prev) => {
+      const next = new Set(prev);
+      next.add(claimId);
+      return next;
+    });
+    window.setTimeout(() => {
+      setFlashIds((prev) => {
+        const next = new Set(prev);
+        next.delete(claimId);
+        return next;
+      });
+    }, FLASH_MS);
+  };
+
+  const runWithExit = async (claimId, action, { nextFocus } = {}) => {
+    markExiting(claimId);
+    await new Promise((resolve) => window.setTimeout(resolve, EXIT_MS));
+    const ok = await action();
+    clearExiting(claimId);
+    if (ok !== false && nextFocus) setFocus(nextFocus);
+    return ok;
   };
 
   const openCapture = (e, claimId) => {
@@ -341,6 +390,7 @@ export default function MobileBrief({
     if (!onPatchClaim) return;
     softHaptic(8);
     const ok = await onPatchClaim(claim.id, { pieseSosite: true });
+    if (ok !== false) flashRow(claim.id);
     onNotify?.(
       ok
         ? "Piese marcate ca sosite — poți seta programarea."
@@ -362,26 +412,35 @@ export default function MobileBrief({
     if (!onPatchClaim || !editDate) return;
     softHaptic(8);
     const iso = `${editDate}T${editTime || "09:00"}:00`;
-    const ok = await onPatchClaim(claim.id, { dataProgramare: iso });
-    if (ok !== false) {
-      setSchedulingId(null);
-      onNotify?.('Dosar programat — mutat în „Programări".', "success");
-      setFocus("programat");
-    } else {
-      onNotify?.("Eroare la programare.", "error");
-    }
+    setSchedulingId(null);
+    const ok = await runWithExit(
+      claim.id,
+      () => onPatchClaim(claim.id, { dataProgramare: iso }),
+      { nextFocus: "programat" }
+    );
+    onNotify?.(
+      ok !== false
+        ? 'Dosar programat — mutat în „Programări".'
+        : "Eroare la programare.",
+      ok !== false ? "success" : "error"
+    );
   };
 
   const startRepair = async (e, claim) => {
     e.stopPropagation();
     if (!onPatchClaim) return;
     softHaptic(8);
-    const ok = await onPatchClaim(claim.id, { status: "in_lucru", adusaFizic: true });
-    onNotify?.(
-      ok ? 'Dosar mutat în „Reparație".' : "Eroare la actualizare.",
-      ok ? "success" : "error"
+    const ok = await runWithExit(
+      claim.id,
+      () => onPatchClaim(claim.id, { status: "in_lucru", adusaFizic: true }),
+      { nextFocus: "lucru" }
     );
-    if (ok !== false) setFocus("lucru");
+    onNotify?.(
+      ok !== false
+        ? 'Dosar mutat în „Reparație".'
+        : "Eroare la actualizare.",
+      ok !== false ? "success" : "error"
+    );
   };
 
   const renderClaimRow = (c, idx, total) => {
@@ -403,11 +462,13 @@ export default function MobileBrief({
     const showActions = Boolean(
       phone || showStartRepair || showPartsArrived || showSchedule || showFoto || isScheduling
     );
+    const isExiting = exitingIds.has(c.id);
+    const isFlash = flashIds.has(c.id);
 
     return (
       <div
         key={c.id}
-        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""}`}
+        className={`m-brief-row ${idx < total - 1 ? "has-divider" : ""} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
       >
         <button
           type="button"
@@ -429,6 +490,11 @@ export default function MobileBrief({
               {c.pieseSosite && focus === "piese" ? (
                 <span className="m-brief-claim-chip" title="Piese sosite">
                   Sosite
+                </span>
+              ) : null}
+              {focus === "accept" ? (
+                <span className="m-brief-claim-chip is-ap" title="Stadiul Accept plată">
+                  AP
                 </span>
               ) : null}
             </span>
@@ -567,7 +633,7 @@ export default function MobileBrief({
                 className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""} ${empty ? "is-empty" : ""}`}
                 onClick={() => setBoardFocus(tile.key)}
                 aria-pressed={active}
-                title={STAGE_FOCUS[tile.key]?.hint}
+                title={tile.title || STAGE_FOCUS[tile.key]?.hint}
               >
                 <span className="m-brief-tile-top">
                   <span className="m-brief-tile-icon">
@@ -610,7 +676,9 @@ export default function MobileBrief({
           <div className="m-brief-board-head">
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
-                <h2 className="m-brief-board-title">{focusBoard.title}</h2>
+                <h2 className="m-brief-board-title">
+                  {focus === "accept" ? "Accept plată (AP)" : focusBoard.title}
+                </h2>
                 <span className="m-brief-board-count shrink-0">
                   {focusBoard.rows.length}
                 </span>
