@@ -105,6 +105,13 @@ export default function SetariModal({
   const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [themePref, setThemePref] = useState(() => loadThemePreference());
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("receptioner");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [myNewPassword, setMyNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     if (initialInsurersList && initialInsurersList.length > 0) {
@@ -138,17 +145,6 @@ export default function SetariModal({
       return next;
     });
   }, [termeneAlertaStatus]);
-
-  // New user management states
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("receptioner");
-  const [newUserPassword, setNewUserPassword] = useState("");
-  const [creatingUser, setCreatingUser] = useState(false);
-
-  // Password change states for current logged-in user
-  const [myNewPassword, setMyNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Statistics
   const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);

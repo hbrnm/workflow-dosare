@@ -279,10 +279,12 @@ export default function MobileAppLayout({
                 type="button"
                 role="menuitem"
                 className="m-float-menu-item"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   softHaptic(8);
                   setMenuOpen(false);
-                  onOpenSettings();
+                  window.setTimeout(() => onOpenSettings(), 0);
                 }}
               >
                 <span className="m-float-menu-icon">
