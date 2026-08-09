@@ -138,6 +138,25 @@ with checks as (
          'Vechea documente_read_authenticated e ștearsă'
 
   union all
+  -- Migrare 33: setări per-tenant
+  select 55, 'fn_is_default_atelier_admin',
+         case when exists (
+           select 1 from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname = 'is_default_atelier_admin'
+         ) then 'PASS' else 'WARN' end,
+         'Funcție is_default_atelier_admin (migrare 33)'
+  union all
+  select 56, 'pol_ateliere_update_no_global_admin',
+         case when coalesce((
+           select qual from pg_policies
+           where schemaname = 'public' and tablename = 'ateliere'
+             and policyname = 'ateliere_admin_update'
+         ), '') like '%is_admin()%'
+              then 'FAIL' else 'PASS' end,
+         'UPDATE ateliere fără is_admin() global'
+
+  union all
   -- Inventory
   select 60, 'count_ateliere', 'INFO',
          format('ateliere: %s', (select count(*) from public.ateliere))

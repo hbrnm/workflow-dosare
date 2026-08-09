@@ -239,15 +239,19 @@ export default function App() {
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
-  } = useSettings(session, showNotice, { atelierId });
+  } = useSettings(session, showNotice, {
+    atelierId,
+    atelierSlug: atelier?.slug || null,
+  });
 
+  // Settings loaded from ateliere when tenancy is ready; atelier row is fallback only.
   const branding = useMemo(() => {
-    if (tenancyReady && atelier?.nume) {
+    if (tenancyReady && atelier) {
       return {
         ...settingsBranding,
-        atelierNume: atelier.nume || settingsBranding?.atelierNume,
-        atelierShort: atelier.short || settingsBranding?.atelierShort,
-        logoUrl: atelier.logo_url || settingsBranding?.logoUrl,
+        atelierNume: settingsBranding?.atelierNume || atelier.nume,
+        atelierShort: settingsBranding?.atelierShort || atelier.short,
+        logoUrl: settingsBranding?.logoUrl || atelier.logo_url,
       };
     }
     return settingsBranding;

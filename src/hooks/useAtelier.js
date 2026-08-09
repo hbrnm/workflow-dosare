@@ -10,7 +10,7 @@ import {
 } from "../utils/atelierPrefs";
 
 const ATELIER_SELECT =
-  "id, slug, nume, short, logo_url, plan, trial_ends_at, seat_limit, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, stripe_customer_id, stripe_subscription_id";
+  "id, slug, nume, short, logo_url, plan, trial_ends_at, seat_limit, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, asiguratori, termene_alerta_status, stripe_customer_id, stripe_subscription_id";
 
 /**
  * Resolve active atelier + billing. Supports switcher + ?atelier=slug.
@@ -43,7 +43,7 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
       try {
         const { data: rows, error } = await supabase
           .from("atelier_membri")
-          .select("atelier_id, role, email, ateliere(id, slug, nume, short, logo_url, plan, trial_ends_at, seat_limit, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, stripe_customer_id, stripe_subscription_id)")
+          .select(`atelier_id, role, email, ateliere(${ATELIER_SELECT})`)
           .eq("user_id", myId)
           .limit(20);
 
