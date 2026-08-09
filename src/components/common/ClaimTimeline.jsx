@@ -3,6 +3,7 @@ import { CheckCircle2, History, User } from "lucide-react";
 import { PIPELINE_PHASES, getStatusDefinition } from "../../constants/config";
 import { fmtDateTime, daysBetween } from "../../utils/dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "../../utils/claimUtils";
+import { filterIstoricModificari } from "../../utils/claimAudit";
 
 export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, istoric = [], loading = false }) {
   const safeIstoric = Array.isArray(istoric) ? istoric : [];
@@ -62,7 +63,11 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
           ) : safeIstoric.length === 0 ? (
             <div className="text-[10px] text-[#8A8375] italic">Nicio modificare înregistrată.</div>
           ) : (
-            safeIstoric.map((h, i) => (
+            safeIstoric.map((h, i) => {
+              const modificari = filterIstoricModificari(h.modificari);
+              const entries = Object.entries(modificari);
+              if (entries.length === 0) return null;
+              return (
               <div key={h.id || i} className="relative pl-3 border-l-2 border-[#DAD4C6]">
                 <div className="absolute -left-[5px] top-0.5 w-2 h-2 rounded-full bg-[#3B5166]" />
                 <div className="flex items-center justify-between text-[9.5px] text-[#6B6558] font-mono">
@@ -72,7 +77,7 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
                   </span>
                 </div>
                 <div className="mt-0.5 space-y-0.5 text-[10px]">
-                  {Object.entries(h.modificari || {}).map(([camp, diff]) => {
+                  {entries.map(([camp, diff]) => {
                     const oldVal = diff && typeof diff === "object" ? diff.old : undefined;
                     const newVal = diff && typeof diff === "object" ? diff.new : diff;
                     return (
@@ -96,7 +101,8 @@ export default function ClaimTimeline({ currentStatus, dataSchimbareStatus, isto
                   })}
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </details>

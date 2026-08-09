@@ -30,6 +30,7 @@ import {
   modalHeaderClass,
 } from "../common/modalShellClasses";
 import ClaimTimeline from "../common/ClaimTimeline";
+import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import PhotoLightbox from "../common/PhotoLightbox";
@@ -147,6 +148,7 @@ export default function ClaimModal({
   onJumpTo,
   themeId = "atelier",
   desktopUi = false,
+  userEmail = "",
 }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [isDragging, setIsDragging] = useState(false);
@@ -235,7 +237,11 @@ export default function ClaimModal({
   const addNote = (customPrefix = "") => {
     const textToAdd = (customPrefix + noteText).trim();
     if (!textToAdd) return;
-    setForm((f) => ({ ...f, note: [{ id: uid(), data: nowISO(), text: textToAdd }, ...(f.note || [])] }));
+    const author = String(userEmail || "").trim() || null;
+    setForm((f) => ({
+      ...f,
+      note: [{ id: uid(), data: nowISO(), text: textToAdd, ...(author ? { author } : {}) }, ...(f.note || [])],
+    }));
     setNoteText("");
   };
 
@@ -837,6 +843,13 @@ export default function ClaimModal({
                 <Car size={10} className="shrink-0 opacity-70" />
                 <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
               </span>
+              {!isNew && (
+                <ClaimAuditMeta
+                  claim={form}
+                  compact
+                  className={`mt-0.5 ${desktopUi ? "" : "text-white/70 [&_span.font-semibold]:text-white/90"}`}
+                />
+              )}
             </div>
           </div>
 
@@ -1026,7 +1039,7 @@ export default function ClaimModal({
 
         {readOnly && (
           <div className="px-4 py-1.5 bg-[var(--app-border-soft)] text-[var(--app-muted)] text-[11px] flex items-center gap-1.5 shrink-0 border-b border-[var(--app-border)] font-medium">
-            <ShieldCheck size={13} className="text-[var(--app-accent)]" /> Vizualizare restricționată — Dosar creat de {form.createdByEmail || "alt operator"}.
+            <ShieldCheck size={13} className="text-[var(--app-accent)]" /> Vizualizare restricționată — poți citi, nu edita.
           </div>
         )}
 
@@ -1888,9 +1901,16 @@ export default function ClaimModal({
                               : "bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-text-strong)]"
                             }`}
                           >
-                            <div className="flex items-center justify-between text-[10px] font-mono text-[var(--app-muted)] border-b border-black/5 pb-1 mb-1">
-                              <span>{fmtDateTime(n.data)}</span>
-                              <button type="button" onClick={() => removeNote(n.id)} className="text-[var(--app-danger)] hover:opacity-80 p-0.5">
+                            <div className="flex items-center justify-between gap-2 text-[10px] font-mono text-[var(--app-muted)] border-b border-black/5 pb-1 mb-1">
+                              <span className="truncate min-w-0">
+                                {fmtDateTime(n.data)}
+                                {n.author ? (
+                                  <span className="ml-1.5 font-sans font-semibold text-[var(--app-text)]">
+                                    · {n.author}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <button type="button" onClick={() => removeNote(n.id)} className="text-[var(--app-danger)] hover:opacity-80 p-0.5 shrink-0">
                                 <Trash2 size={12} />
                               </button>
                             </div>
