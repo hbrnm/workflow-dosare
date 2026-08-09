@@ -5,6 +5,13 @@
   color: var(--app-text, #23282e);
 }
 
+@media (min-width: 640px) {
+  .app-alerte-panel.app-fixed-shell-modal {
+    height: 92vh;
+    max-height: 92vh;
+  }
+}
+
 .app-alerte-header {
   border-bottom: 1px solid var(--app-border, #dad4c6);
   background: var(--app-surface, #fff);
@@ -374,15 +381,6 @@
 
 .app-alerte-row.is-info {
   border-left: 3px solid #4a6fa5;
-}
-
-/* Tipografie unificată pe rând: dosar / nr. auto / status = aceeași mărime.
-   Metric (zile) rămâne evidențiat prin culoare + greutate, nu prin mărime diferită. */
-.app-alerte-row {
-  --alerte-type: 0.8125rem;
-  --alerte-type-meta: 0.8125rem;
-  --alerte-weight: 700;
-  --alerte-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 .app-alerte-metric {

@@ -787,7 +787,7 @@ export default function ClaimModal({
           desktopUi,
           // Fixed height on desktop so Date/Poze/Financiar/Istoric don't resize the window;
           // only the body scrolls (content grows downward / scrolls up).
-          "relative w-full h-full sm:h-[94vh] sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-lg flex flex-col overflow-hidden bg-[var(--app-surface)] sm:border sm:border-[var(--app-border)]"
+          "app-fixed-shell-modal relative w-full h-full sm:h-[94vh] sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-lg flex flex-col overflow-hidden bg-[var(--app-surface)] sm:border sm:border-[var(--app-border)]"
         )}
       >
         
@@ -1023,7 +1023,7 @@ export default function ClaimModal({
         )}
 
         {/* MAIN BODY — sole scroll region; header/tabs/footer stay put across tabs */}
-        <div className="app-claim-modal-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FAF8F5]">
+        <div className="app-claim-modal-body app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FAF8F5]">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0 min-h-full">
             <div className="p-3 pb-5 space-y-3 font-sans">
 

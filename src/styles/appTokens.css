@@ -118,12 +118,18 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
-/* Claim modal: keep shell height stable when switching tabs */
-.app-shell .app-modal-panel:has(.app-claim-modal-body) {
+/* Large modals (Dosar / Alerte / Setări): fixed shell; only body scrolls */
+.app-shell .app-modal-panel.app-fixed-shell-modal {
+  height: min(92vh, 100%);
+  max-height: 92vh;
+}
+
+.app-shell .app-modal-panel.app-fixed-shell-modal:has(.app-claim-modal-body) {
   height: min(94vh, 100%);
   max-height: 94vh;
 }
 
+.app-shell .app-fixed-shell-body,
 .app-shell .app-claim-modal-body {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;

@@ -267,7 +267,13 @@ export default function SetariModal({
       className={modalOverlayClass(desktopUi)}
       {...modalOverlayProps(desktopUi)}
     >
-      <div className={modalPanelClass(desktopUi, "w-full max-w-4xl flex flex-col max-h-[92vh] overflow-hidden bg-[var(--app-surface)]")}>
+      <div
+        className={modalPanelClass(
+          desktopUi,
+          // Fixed height — Parametri/Asigurători/… tabs don't resize the shell
+          "app-fixed-shell-modal w-full max-w-4xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] overflow-hidden bg-[var(--app-surface)]"
+        )}
+      >
 
         {/* Header — doar desktop; pe mobil rămâne bara de taburi rotunjită */}
         {desktopUi ? (
@@ -333,8 +339,8 @@ export default function SetariModal({
           </button>
         </div>
 
-        {/* Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
+        {/* Content Body — sole scroll region across settings tabs */}
+        <div className="app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-5 pb-5 space-y-4">
 
           {/* TAB 1: PARAMETRI GENERALI & ATELIER */}
           {activeTab === "general" && (

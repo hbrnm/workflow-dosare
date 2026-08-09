@@ -161,7 +161,8 @@ export default function AlerteModal({
       <div
         className={modalPanelClass(
           desktopUi,
-          "app-alerte-panel w-full max-w-5xl flex flex-col h-full sm:h-auto max-h-[100dvh] sm:max-h-[92vh] overflow-hidden"
+          // Fixed height on desktop — switching Blocate/Întârzieri/… only scrolls the list
+          "app-alerte-panel app-fixed-shell-modal w-full max-w-5xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] max-h-[100dvh] overflow-hidden"
         )}
       >
         {/* Desktop: classic header bar */}
@@ -255,7 +256,7 @@ export default function AlerteModal({
               </div>
             </div>
 
-            <div className="app-alerte-list flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+            <div className="app-alerte-list app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
               {list.length === 0 ? (
                 <div className="app-alerte-empty">
                   <CheckCircle2 size={28} className="text-[var(--app-success)]" />
