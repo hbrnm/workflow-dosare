@@ -14,8 +14,13 @@ import {
   emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber, SIGNED_URL_TTL_SECONDS
 } from "../../utils/claimUtils";
 import {
-  generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
+  generateazaPDF,
+  generateazaProcesVerbalMasinaSchimb,
+  generateazaFisaIntrareService,
+  generateazaCerereDespagubireOmniasig,
+  generateazaCerereDespagubireAsirom,
 } from "../../utils/pdfGenerator";
+import { resolveCerereDespagubireKind } from "../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
@@ -958,6 +963,40 @@ export default function ClaimModal({
                       >
                         <FileText size={13} /> Fișă Intrare Service
                       </button>
+                      {resolveCerereDespagubireKind(form.asigurator) === "omniasig" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            await generateazaCerereDespagubireOmniasig(form);
+                          }}
+                        >
+                          <FileText size={13} /> Cerere Omniasig
+                        </button>
+                      ) : null}
+                      {resolveCerereDespagubireKind(form.asigurator) === "asirom" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            await generateazaCerereDespagubireAsirom(form);
+                          }}
+                        >
+                          <FileText size={13} /> Cerere Asirom
+                        </button>
+                      ) : null}
                       {form.masinaSchimb ? (
                         <button
                           type="button"
