@@ -28,6 +28,7 @@ const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileC
 import CommandPalette from "./components/common/CommandPalette";
 import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import AppButton from "./components/common/AppButton";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
@@ -807,24 +808,24 @@ export default function App() {
 
           {/* Right Header Actions — same height/padding for Dosar nou + Alerte */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <AppButton
+              variant="primary"
               onClick={() => openNew()}
-              className="app-header-action-btn app-accent-bg flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold transition-all active:scale-95"
+              className="app-header-action-btn"
             >
               <Plus size={14} /> <span>Dosar nou</span>
-            </button>
+            </AppButton>
 
             {totalAlertsCount > 0 && (
-              <button
-                type="button"
+              <AppButton
+                variant="danger"
                 onClick={() => openAlerts("depasite")}
-                className="app-header-action-btn app-alert-btn flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold active:scale-95 transition-colors"
+                className="app-header-action-btn"
                 title="Deschide Centrul de Alerte"
               >
                 <Bell size={14} />
                 <span>{totalAlertsCount} Alerte</span>
-              </button>
+              </AppButton>
             )}
 
           </div>

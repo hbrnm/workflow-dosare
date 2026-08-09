@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Printer, FileSpreadsheet, FileText } from "lucide-react";
 import { EXPORT_FORMAT } from "../../utils/exportClaimsList";
+import AppButton from "./AppButton";
 
 /** Buton print/export listă — doar icoană imprimantă, meniu Excel / PDF. */
 export default function ExportFormatMenu({
@@ -33,18 +34,18 @@ export default function ExportFormatMenu({
 
   return (
     <div ref={rootRef} className={`app-export-menu relative ${className}`}>
-      <button
-        type="button"
+      <AppButton
+        variant="icon"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
-        className="app-table-export-btn inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="app-table-export-btn"
         title={title}
         aria-label={title}
         aria-expanded={open}
         aria-haspopup="menu"
       >
         <Printer size={16} />
-      </button>
+      </AppButton>
 
       {open && (
         <div

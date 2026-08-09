@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, X, ChevronDown, ChevronUp, Car, AlertTriangle } from "lucide-react";
 import {
   PROGRAMARE_STATUS,
   getProgramareCardClass,
@@ -186,8 +186,8 @@ export default function ProgramatorClaimCard({
             conflict ? "app-prog-schimb-conflict" : "app-prog-schimb-ok"
           }`}
         >
-          🚗 Auto Schimb: {claim.masinaSchimb}
-          {conflict && <span>⚠️ Conflict!</span>}
+          <Car size={10} className="shrink-0" /> Auto schimb: {claim.masinaSchimb}
+          {conflict && <span className="inline-flex items-center gap-0.5"><AlertTriangle size={10} /> Conflict</span>}
         </div>
       )}
     </div>

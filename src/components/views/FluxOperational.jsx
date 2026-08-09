@@ -455,7 +455,7 @@ export default function TablouPeFazeRedesign({
       {/* Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
         {visibleStages.length === 0 ? (
-          <div className="app-flux-empty border border-dashed rounded-xl p-8 text-center text-[13px]">
+          <div className="app-empty">
             Niciun dosar pentru filtrele selectate.
           </div>
         ) : (

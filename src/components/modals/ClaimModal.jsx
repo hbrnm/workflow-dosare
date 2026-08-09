@@ -3,7 +3,7 @@ import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
   FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
-  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer
+  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer, ClipboardList, Package
 } from "lucide-react";
 import {
   STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
@@ -71,12 +71,12 @@ function NotionPropertyRow({ icon: Icon, label, children, full }) {
 }
 
 const SLASH_COMMANDS = [
-  { cmd: "/alerta", label: "Alertă / Urgență", prefix: "[ALERTĂ]: ", icon: "🚨", color: "bg-red-50 text-[#B23A2E] border-red-200" },
-  { cmd: "/piese", label: "Comandă / Statut Piese", prefix: "[PIESE]: ", icon: "📦", color: "bg-amber-50 text-[#7A5316] border-amber-200" },
-  { cmd: "/schimb", label: "Auto la Schimb", prefix: "[AUTO SCHIMB]: ", icon: "🚗", color: "bg-blue-50 text-[#2C4160] border-blue-200" },
-  { cmd: "/apel", label: "Apel efectuat Client / Asigurător", prefix: "[APEL CLIENT]: ", icon: "📞", color: "bg-emerald-50 text-[#3E6B45] border-emerald-200" },
-  { cmd: "/deviz", label: "Deviz & Reconstatare", prefix: "[DEVIZ]: ", icon: "📋", color: "bg-purple-50 text-[#6B21A8] border-purple-200" },
-  { cmd: "/lucrare", label: "Stadiu Reparație Atelier", prefix: "[STADIU LUCRĂRI]: ", icon: "🔧", color: "bg-[#EEF1F3] text-[#3B5166] border-[#DAD4C6]" },
+  { cmd: "/alerta", label: "Alertă / Urgență", prefix: "[ALERTĂ]: ", Icon: AlertOctagon, color: "bg-red-50 text-[var(--app-danger)] border-red-200" },
+  { cmd: "/piese", label: "Comandă / Statut Piese", prefix: "[PIESE]: ", Icon: Package, color: "bg-amber-50 text-[var(--app-warning)] border-amber-200" },
+  { cmd: "/schimb", label: "Auto la Schimb", prefix: "[AUTO SCHIMB]: ", Icon: Car, color: "bg-blue-50 text-[var(--app-text)] border-blue-200" },
+  { cmd: "/apel", label: "Apel efectuat Client / Asigurător", prefix: "[APEL CLIENT]: ", Icon: Phone, color: "bg-emerald-50 text-[var(--app-success)] border-emerald-200" },
+  { cmd: "/deviz", label: "Deviz & Reconstatare", prefix: "[DEVIZ]: ", Icon: ClipboardList, color: "bg-[var(--app-surface-2)] text-[var(--app-text)] border-[var(--app-border)]" },
+  { cmd: "/lucrare", label: "Stadiu Reparație Atelier", prefix: "[STADIU LUCRĂRI]: ", Icon: Wrench, color: "bg-[var(--app-surface-2)] text-[var(--app-text)] border-[var(--app-border)]" },
 ];
 
 export function compressColorImage(file) {
@@ -800,7 +800,7 @@ export default function ClaimModal({
           )}
         >
           <div className="flex items-center gap-2 min-w-0 pr-2">
-            <span className="text-[16px] shrink-0">📄</span>
+            <FileText size={16} className={`shrink-0 ${desktopUi ? "text-[var(--app-muted)]" : "text-white/80"}`} />
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
                 <span className={`font-semibold text-[13px] tracking-tight truncate ${desktopUi ? "text-[var(--app-text)]" : "text-white"}`}>
@@ -809,25 +809,29 @@ export default function ClaimModal({
                 {/* Single status chip — elimină nevoia de badge-uri duplicate */}
                 {!isNew && (() => {
                   const sd = getStatusDefinition(form.status);
-                  const colors = { start: "#3B5166", eval: "#4A6FA5", lucru: "#C98A2B", final: "#3E6B45" };
-                  const bg = colors[sd.phase] || "#3B5166";
+                  const phaseClass = {
+                    start: "bg-[var(--app-surface-muted)] text-[var(--app-text)]",
+                    eval: "bg-[var(--app-surface-muted)] text-[var(--app-text)]",
+                    lucru: "bg-[var(--app-warning-muted)] text-[var(--app-warning)]",
+                    final: "bg-[var(--app-success-muted)] text-[var(--app-success)]",
+                  };
                   return (
                     <span
-                      className="shrink-0 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: bg, opacity: 0.9 }}
+                      className={`shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md ${phaseClass[sd.phase] || phaseClass.start}`}
                     >
                       {sd.num}/9 · {sd.label}
                     </span>
                   );
                 })()}
                 {form.blocat && (
-                  <span className="shrink-0 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded-full bg-[#B23A2E] text-white">
-                    🛑 Blocat
+                  <span className="shrink-0 inline-flex items-center gap-0.5 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--app-danger)] text-[var(--app-danger-text)]">
+                    <AlertOctagon size={10} /> Blocat
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-mono block truncate ${desktopUi ? "text-[var(--app-muted)]" : "text-[#A69F91]"}`}>
-                {form.numarInmatriculare ? `🚗 ${form.numarInmatriculare}` : "Fără nr."} · {form.marcaModel || "Model neprecizat"}
+              <span className={`text-[10px] font-mono flex items-center gap-1 truncate ${desktopUi ? "text-[var(--app-muted)]" : "text-[#A69F91]"}`}>
+                <Car size={10} className="shrink-0 opacity-70" />
+                <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
               </span>
             </div>
           </div>
@@ -850,7 +854,7 @@ export default function ClaimModal({
                   }}
                   className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
                     form.blocat
-                      ? "text-white bg-[#B23A2E] border-[#B23A2E] hover:bg-[#9A3228]"
+                      ? "text-[var(--app-danger-text)] bg-[var(--app-danger)] border-[var(--app-danger)] hover:bg-[var(--app-danger-hover)]"
                       : desktopUi
                         ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
                         : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
@@ -1523,16 +1527,16 @@ export default function ClaimModal({
                     <div className="space-y-1.5">
                       <div className="text-[10.5px] font-bold text-[#6B6558]">Adaugă poze direct în Categorie:</div>
                       <div className="grid grid-cols-3 gap-1.5 text-[11px]">
-                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#3B5166]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#EEF1F3] cursor-pointer text-[#3B5166] font-bold text-center">
-                          <span>🚗 Recepție</span>
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
+                          <Car size={12} /> <span>Recepție</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "receptie")} />
                         </label>
-                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#C98A2B]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#FBF3E6] cursor-pointer text-[#7A5316] font-bold text-center">
-                          <span>📋 Reconstatare</span>
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
+                          <ClipboardList size={12} /> <span>Reconstatare</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "reconstatare")} />
                         </label>
-                        <label className="flex items-center justify-center gap-1 border border-dashed border-[#3E6B45]/40 rounded-lg p-2 bg-[#FAF8F5] hover:bg-[#EEF5EE] cursor-pointer text-[#3E6B45] font-bold text-center">
-                          <span>✨ Predare</span>
+                        <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
+                          <Sparkles size={12} /> <span>Predare</span>
                           <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "predare")} />
                         </label>
                       </div>
@@ -1812,7 +1816,7 @@ export default function ClaimModal({
 
                       {/* Detalii Marjă Piese */}
                       <div className="mt-2.5 p-2.5 bg-white border border-[#DAD4C6] rounded-xl">
-                        <div className="text-[10.5px] font-bold text-[#6B6558] uppercase mb-1.5">📦 Marjă Piese (Audatex vs. Achiziție Service)</div>
+                        <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-1.5 flex items-center gap-1"><Package size={12} /> Marjă Piese (Audatex vs. Achiziție Service)</div>
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-[#6B6558]">Preț Audatex: <strong className="text-[#23282E] font-mono">{pretPieseAudatex.toLocaleString("ro-RO")} lei</strong></span>
                           <span className="text-[#6B6558]">Preț Service: <strong className="text-[#B23A2E] font-mono">{pretPieseService.toLocaleString("ro-RO")} lei</strong></span>

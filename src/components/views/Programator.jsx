@@ -651,14 +651,14 @@ export default function Programator({
                           }}
                           className="app-prog-action py-1.5 rounded text-center font-bold transition-colors"
                         >
-                          📄 Dosar Nou
+                          Dosar nou
                         </button>
                         <button
                           type="button"
                           onClick={() => setSelectingFromArrived(prev => !prev)}
                           className={`app-prog-action py-1.5 rounded text-center font-bold transition-colors ${selectingFromArrived ? "is-active" : ""}`}
                         >
-                          📦 Piese Sosite
+                          Piese sosite
                         </button>
                       </div>
 
@@ -702,7 +702,7 @@ export default function Programator({
                       )}
                     </div>
                   ) : (
-                    <div className="text-[12.5px] text-[#C2BCB0] italic py-0.5 pl-1.5 select-none">Liber</div>
+                    <div className="app-prog-slot-free">Liber</div>
                   )}
                 </div>
               );

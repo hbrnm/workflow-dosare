@@ -99,7 +99,7 @@ export default function ClaimTable({
     { key: "client", label: "Client", width: "11rem" },
     { key: "numarInmatriculare", label: "Nr. înmatr.", width: "7rem" },
     { key: "marcaModel", label: "Marcă/Model", width: "9rem" },
-    { key: "status", label: "Status", width: "16.5rem" },
+    { key: "status", label: "Status", width: "12.5rem" },
     { key: "dataDeschiderii", label: "Deschis", width: "6rem" },
   ];
 
@@ -145,15 +145,15 @@ export default function ClaimTable({
         </td>
         <td className={`${cellMuted} truncate`} title={c.marcaModel || ""}>{c.marcaModel || "—"}</td>
         <td className={`${cell}`} title={`${String(s.num).padStart(2, "0")}. ${s.label}`}>
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] font-semibold whitespace-nowrap">
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="app-type-xs font-medium whitespace-nowrap truncate">
                 {String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}
               </span>
               {overdue && <AlertBadge days={days} threshold={getClaimAlertDays(c)} />}
             </div>
             {isPieseComandateStatus(c.status) && (
-              <div onClick={(e) => e.stopPropagation()}>
+              <div onClick={(e) => e.stopPropagation()} className="max-w-full overflow-hidden">
                 <MobilePieseSositeRow
                   claim={c}
                   canEdit={canEditFn?.(c) !== false}
@@ -296,8 +296,8 @@ export default function ClaimTable({
             })}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-[var(--app-muted)]">
-                  Niciun dosar găsit.
+                <td colSpan={9} className="px-3 py-6">
+                  <div className="app-empty border-0 bg-transparent">Niciun dosar găsit.</div>
                 </td>
               </tr>
             )}

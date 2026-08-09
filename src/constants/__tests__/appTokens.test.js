@@ -29,4 +29,13 @@ describe("appTokens day/night", () => {
     expect(getTokensForScheme("light")["--app-bg"]).toBe("#f6f8fa");
     expect(getTokensForScheme("dark")["--app-bg"]).toBe("#0d1117");
   });
+
+  it("shares unified danger and type scale across schemes", () => {
+    const light = getTokensForScheme("light");
+    const dark = getTokensForScheme("dark");
+    expect(light["--app-danger"]).toBe("#cf222e");
+    expect(dark["--app-danger"]).toBe("#cf222e");
+    expect(light["--app-type-md"]).toBe("0.875rem");
+    expect(dark["--app-btn-height"]).toBe("2rem");
+  });
 });

@@ -2,17 +2,37 @@
 export const DAY_START_HOUR = 7;
 export const NIGHT_START_HOUR = 19;
 
+/**
+ * Design system shared tokens.
+ * Type scale: xs 12 / sm 13 / md 14 / lg 16 / xl 20
+ * Weights: regular 400, medium 500, semibold 600
+ * Radius: sm 6 / md 8 / lg 12 / pill 9999
+ */
 const SHARED_TOKENS = {
-  "--app-danger": "#f85149",
-  "--app-danger-muted": "#3d1f1f",
-  "--app-success": "#3fb950",
-  "--app-success-muted": "#1a2e1f",
+  "--app-danger": "#cf222e",
+  "--app-danger-hover": "#a40e26",
+  "--app-danger-muted": "#ffebe9",
+  "--app-danger-text": "#ffffff",
+  "--app-success": "#1a7f37",
+  "--app-success-muted": "#dafbe1",
+  "--app-warning": "#9a6700",
+  "--app-warning-muted": "#fff8c5",
   "--app-radius": "8px",
   "--app-radius-sm": "6px",
   "--app-radius-lg": "12px",
+  "--app-radius-pill": "9999px",
   "--app-shadow": "none",
+  "--app-shadow-overlay": "0 16px 48px rgba(0, 0, 0, 0.18)",
   "--app-font-body": "'Inter', system-ui, sans-serif",
   "--app-font-display": "'Inter', system-ui, sans-serif",
+  "--app-font-mono": "'JetBrains Mono', ui-monospace, monospace",
+  "--app-type-xs": "0.75rem",
+  "--app-type-sm": "0.8125rem",
+  "--app-type-md": "0.875rem",
+  "--app-type-lg": "1rem",
+  "--app-type-xl": "1.25rem",
+  "--app-btn-height": "2rem",
+  "--app-btn-height-lg": "2.5rem",
 };
 
 /** Noapte — dark confortabil (GitHub-inspired). */
@@ -34,6 +54,9 @@ export const APP_TOKEN_DARK = {
   "--app-accent": "#e6edf3",
   "--app-accent-hover": "#c9d1d9",
   "--app-accent-text": "#0d1117",
+  "--app-danger-muted": "#3d1f1f",
+  "--app-success-muted": "#1a2e1f",
+  "--app-warning-muted": "#3d2e00",
 };
 
 /** Zi — alb curat, ca aplicațiile native light. */
