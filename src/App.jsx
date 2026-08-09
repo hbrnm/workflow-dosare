@@ -804,20 +804,21 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Header Actions */}
+          {/* Right Header Actions — same height/padding for Dosar nou + Alerte */}
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg app-accent-bg text-[12px] font-semibold transition-all active:scale-95"
+              className="app-header-action-btn app-accent-bg flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold transition-all active:scale-95"
             >
-              <Plus size={16} /> <span>Dosar nou</span>
+              <Plus size={14} /> <span>Dosar nou</span>
             </button>
 
-            {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
             {totalAlertsCount > 0 && (
               <button
+                type="button"
                 onClick={() => openAlerts("depasite")}
-                className="app-alert-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold active:scale-95 transition-colors"
+                className="app-header-action-btn app-alert-btn flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold active:scale-95 transition-colors"
                 title="Deschide Centrul de Alerte"
               >
                 <Bell size={14} />
