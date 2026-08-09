@@ -372,6 +372,37 @@
   background: var(--app-surface-2);
 }
 
+/* Loading skeletons */
+.app-shell .app-skeleton-line,
+.app-shell .app-skeleton-row,
+.app-shell .app-skeleton-card {
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 0%,
+    var(--app-surface-2) 45%,
+    var(--app-surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: app-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.app-shell .app-skeleton-card {
+  border: 1px solid var(--app-border-soft);
+}
+
+@keyframes app-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .app-skeleton-line,
+  .app-shell .app-skeleton-row,
+  .app-shell .app-skeleton-card {
+    animation: none;
+  }
+}
+
 /* Header CTA pair — shared box model so Dosar nou / Alerte match */
 .app-shell .app-header-action-btn {
   box-sizing: border-box;

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, Lock, Mail } from "lucide-react";
+import { ShieldCheck, Lock, Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
 import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
 import { useDayNightTheme } from "../../hooks/useDayNightTheme";
 
 export default function Login({ onLoginSuccess, branding: brandingProp }) {
+  const [mode, setMode] = useState("login"); // "login" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
 
@@ -33,6 +35,7 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setInfo("");
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
@@ -51,13 +54,40 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
     setError("Email sau parolă incorectă.");
   };
 
+  const handleForgot = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setInfo("");
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail.includes("@")) {
+      setLoading(false);
+      setError("Introdu adresa de email a contului.");
+      return;
+    }
+
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+    const { error: resetErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo,
+    });
+    setLoading(false);
+    if (resetErr) {
+      setError(resetErr.message || "Nu am putut trimite emailul de resetare.");
+      return;
+    }
+    setInfo("Dacă există un cont cu acest email, vei primi un link de resetare. Verifică și spam-ul.");
+  };
+
   const short = (branding?.atelierShort || "WD").slice(0, 2);
   const name = branding?.atelierNume || DEFAULT_BRANDING.atelierNume;
 
   return (
     <div className="app-shell app-login">
       <div className="app-login-glow" aria-hidden />
-      <form onSubmit={handleLogin} className="app-login-card space-y-4">
+      <form
+        onSubmit={mode === "forgot" ? handleForgot : handleLogin}
+        className="app-login-card space-y-4"
+      >
         <div className="flex items-center gap-3">
           {branding?.logoUrl ? (
             <img
@@ -72,7 +102,9 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
           )}
           <div className="min-w-0">
             <div className="app-login-title truncate">{name}</div>
-            <div className="app-login-sub">Autentificare atelier</div>
+            <div className="app-login-sub">
+              {mode === "forgot" ? "Resetare parolă" : "Autentificare atelier"}
+            </div>
           </div>
         </div>
 
@@ -92,26 +124,54 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="app-login-label">
-            <Lock size={12} /> Parolă
-          </label>
-          <input
-            type="password"
-            required
-            className="app-login-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            placeholder="••••••••"
-          />
-        </div>
+        {mode === "login" ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label className="app-login-label mb-0">
+                <Lock size={12} /> Parolă
+              </label>
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                onClick={() => {
+                  setMode("forgot");
+                  setError("");
+                  setInfo("");
+                }}
+              >
+                Am uitat parola
+              </button>
+            </div>
+            <input
+              type="password"
+              required
+              className="app-login-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+          </div>
+        ) : (
+          <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
+            Trimitem un link pe email. După click, setezi o parolă nouă în aplicație.
+          </p>
+        )}
 
-        {error && <div className="app-login-error">{error}</div>}
+        {error ? <div className="app-login-error">{error}</div> : null}
+        {info ? (
+          <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2 text-[12px] text-[var(--app-text)] leading-relaxed">
+            {info}
+          </div>
+        ) : null}
 
         <button type="submit" disabled={loading} className="app-login-submit">
           {loading ? (
-            "Se conectează..."
+            mode === "forgot" ? "Se trimite..." : "Se conectează..."
+          ) : mode === "forgot" ? (
+            <>
+              <Mail size={16} /> Trimite link de resetare
+            </>
           ) : (
             <>
               <ShieldCheck size={16} /> Conectare
@@ -119,9 +179,23 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
           )}
         </button>
 
-        <p className="app-login-hint text-center">
-          Cont nou? Cere administratorului să-ți creeze unul din Setări.
-        </p>
+        {mode === "forgot" ? (
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)]"
+            onClick={() => {
+              setMode("login");
+              setError("");
+              setInfo("");
+            }}
+          >
+            <ArrowLeft size={14} /> Înapoi la conectare
+          </button>
+        ) : (
+          <p className="app-login-hint text-center">
+            Cont nou? Cere administratorului să te invite din Setări → Utilizatori. Poți reseta parola din „Am uitat parola”.
+          </p>
+        )}
       </form>
     </div>
   );

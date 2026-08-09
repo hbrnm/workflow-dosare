@@ -15,6 +15,7 @@ import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUt
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
 import { getLatestClaimNoteText } from "../../utils/alertUtils";
+import { glossaryTitle, GLOSSARY } from "../../constants/glossary";
 
 const STAGE_ICONS = {
   deschidere: ClipboardCheck,
@@ -245,16 +246,16 @@ export default function MobileClaimsList({
 
       <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtre dosare">
         {[
-          { id: "toate", label: "Toate", count: allClaimsCount ?? claims.length },
-          { id: "deschidere", label: "AIR" },
-          { id: "piese_comandate", label: "Piese" },
-          { id: "piese_sosite", label: "Sosite", count: pieseSositeCount },
-          { id: "programat", label: "Prog." },
-          { id: "in_lucru", label: "Repar." },
-          { id: "accept_plata", label: "AP" },
-          { id: "facturat", label: "Fact." },
-          { id: "blocate", label: "Blocate" },
-        ].map(({ id, label, count }) => {
+          { id: "toate", label: "Toate", count: allClaimsCount ?? claims.length, tip: "Toate dosarele din inventar" },
+          { id: "deschidere", label: "AIR", tip: glossaryTitle("deschidere") },
+          { id: "piese_comandate", label: "Piese", tip: glossaryTitle("piese_comandate") },
+          { id: "piese_sosite", label: "Sosite", count: pieseSositeCount, tip: glossaryTitle("sosite") || GLOSSARY.sosite.hint },
+          { id: "programat", label: "Prog.", tip: glossaryTitle("programat") },
+          { id: "in_lucru", label: "Repar.", tip: glossaryTitle("in_lucru") },
+          { id: "accept_plata", label: "AP", tip: glossaryTitle("accept_plata") },
+          { id: "facturat", label: "Fact.", tip: glossaryTitle("facturat") },
+          { id: "blocate", label: "Blocate", tip: "Dosare blocate — necesită deblocare" },
+        ].map(({ id, label, count, tip }) => {
           const active = statusFilter === id;
           return (
             <button
@@ -263,6 +264,7 @@ export default function MobileClaimsList({
               onClick={() => setStatusFilter(id)}
               className={`m-brief-alert-stage-chip m-press ${active ? "is-active" : ""}`}
               aria-pressed={active}
+              title={tip}
             >
               <span>{label}</span>
               {count != null ? (

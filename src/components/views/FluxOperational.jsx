@@ -9,6 +9,7 @@ import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import StageTabLabel from "../common/StageTabLabel";
+import { glossaryTitle } from "../../constants/glossary";
 import FluxStageStrip from "../common/FluxStageStrip";
 import {
   isSearchHighlighted,
@@ -503,6 +504,7 @@ export default function TablouPeFazeRedesign({
                     num={status.num}
                     label={status.label}
                     count={totalAll}
+                    title={glossaryTitle(status.key)}
                     className="flex-1 min-w-0 pointer-events-none"
                   />
                   {stageClaims.length > 0 && (

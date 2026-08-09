@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Loader2,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -8,6 +8,8 @@ import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
 import EmptyWorkspace from "../common/EmptyWorkspace";
+import ListSkeleton from "../common/ListSkeleton";
+import LoadError from "../common/LoadError";
 import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
 
@@ -25,9 +27,13 @@ const SECONDARY_NAV_ITEMS = [
 export default function MobileAppLayout({
   claims,
   loading = false,
+  loadError = null,
+  onRetryLoad = null,
+  isOffline = false,
   session,
   userEmail,
   isAdmin = true,
+  roleLabel = null,
   totalClaimsCount = 0,
   onOpenClaim,
   onNewClaim,
@@ -274,13 +280,18 @@ export default function MobileAppLayout({
 
       <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
         {loading ? (
-          <div className="flex flex-1 min-h-[40vh] items-center justify-center gap-2 text-[var(--app-muted)] text-[13px]">
-            <Loader2 className="animate-spin" size={18} /> Se încarcă dosarele…
-          </div>
+          <ListSkeleton rows={5} />
+        ) : loadError || isOffline ? (
+          <LoadError
+            message={loadError?.message}
+            offline={isOffline || loadError?.offline}
+            onRetry={onRetryLoad}
+          />
         ) : claims.length === 0 && (activeTab === "brief" || activeTab === "dosare") ? (
           <EmptyWorkspace
             onNew={onNewClaim}
             ownershipHint={!isAdmin && totalClaimsCount > 0}
+            roleLabel={roleLabel}
           />
         ) : activeTab === "capture" ? (
           <MobileQuickCapture

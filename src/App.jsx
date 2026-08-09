@@ -30,6 +30,12 @@ import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import AppButton from "./components/common/AppButton";
 import EmptyWorkspace from "./components/common/EmptyWorkspace";
+import OnboardingModal from "./components/common/OnboardingModal";
+import ListSkeleton from "./components/common/ListSkeleton";
+import LoadError from "./components/common/LoadError";
+import RecoveryPassword from "./components/auth/RecoveryPassword";
+import { isOnboardingDismissed, dismissOnboarding } from "./utils/onboardingPrefs";
+import { ROLES, resolveUserRole, canCreateClaim } from "./constants/roles";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
@@ -100,7 +106,14 @@ export default function App() {
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
-  const { session, authLoading, setSession, handleLogout } = useAuth();
+  const {
+    session,
+    authLoading,
+    setSession,
+    handleLogout,
+    passwordRecovery,
+    clearPasswordRecovery,
+  } = useAuth();
 
   useEffect(() => {
     try {
@@ -130,17 +143,36 @@ export default function App() {
     setView(target);
   }, []);
 
-  const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
+  const showNotice = useCallback((message, type = "success", extras = {}) => {
+    setNotice({ message, type, ...extras });
+  }, []);
 
   const {
     claims,
     loading,
+    loadError,
     loadAll,
     saveClaim,
     deleteClaim,
     patchClaim,
     moveToStatus,
   } = useClaims(session, showNotice);
+
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingDismissed());
+  const [isOffline, setIsOffline] = useState(
+    () => typeof navigator !== "undefined" && navigator.onLine === false
+  );
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
   const {
     capacitateZilnica,
@@ -169,15 +201,23 @@ export default function App() {
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
 
+  const myRole = useMemo(
+    () => resolveUserRole(myEmail, { adminEmails, usersList }),
+    [myEmail, adminEmails, usersList]
+  );
+  const myRoleLabel = ROLES[myRole]?.label || myRole;
+  const userCanCreate = canCreateClaim(myRole);
+
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
+    if (myRole === "admin") return true;
     const fromAdmins = adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase());
     const fromUsers = usersList.some(
       (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
     if (fromAdmins || fromUsers) return true;
     return false;
-  }, [myEmail, adminEmails, usersList]);
+  }, [myEmail, myRole, adminEmails, usersList]);
 
   const {
     search,
@@ -508,9 +548,25 @@ export default function App() {
   if (authLoading) {
     return <div className="min-h-screen bg-[#010409] flex items-center justify-center text-[#8B949E] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
+  if (session && passwordRecovery) {
+    return (
+      <RecoveryPassword
+        branding={branding}
+        onDone={() => {
+          clearPasswordRecovery();
+          showNotice("Parola a fost actualizată. Poți continua.", "success");
+        }}
+      />
+    );
+  }
   if (!session) {
     return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
   }
+
+  const dismissTour = () => {
+    dismissOnboarding();
+    setOnboardingOpen(false);
+  };
 
   if (activeMode === "mobile") {
     const fieldClaim = fieldClaimId ? claims.find((c) => c.id === fieldClaimId) : null;
@@ -528,16 +584,27 @@ export default function App() {
             onNotify={showNotice}
           />
         )}
+        <OnboardingModal
+          open={onboardingOpen}
+          onDismiss={dismissTour}
+          onCreateClaim={userCanCreate ? () => openNew() : null}
+          roleLabel={myRoleLabel}
+        />
+
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
             claims={userClaims}
             loading={loading}
+            loadError={loadError}
+            onRetryLoad={loadAll}
+            isOffline={isOffline}
             session={session}
             userEmail={myEmail}
             isAdmin={isAdmin}
+            roleLabel={myRoleLabel}
             totalClaimsCount={claims.length}
             onOpenClaim={openMobileClaim}
-            onNewClaim={openNew}
+            onNewClaim={userCanCreate ? openNew : null}
             onPatchClaim={handlePatchClaim}
             canEditFn={canEdit}
             onNotify={showNotice}
@@ -673,6 +740,14 @@ export default function App() {
     <div className="h-screen flex app-shell overflow-hidden relative font-sans">
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
+
+      <OnboardingModal
+        open={onboardingOpen}
+        onDismiss={dismissTour}
+        onCreateClaim={userCanCreate ? () => openNew() : null}
+        desktopUi
+        roleLabel={myRoleLabel}
+      />
 
       {/* --- DESKTOP MINIMAL SIDEBAR (icoane fixe) --- */}
       <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
@@ -842,13 +917,22 @@ export default function App() {
 
           {/* Right Header Actions — same height/padding for Dosar nou + Alerte */}
           <div className="flex items-center gap-2">
-            <AppButton
-              variant="primary"
-              onClick={() => openNew()}
-              className="app-header-action-btn"
-            >
-              <Plus size={14} /> <span>Dosar nou</span>
-            </AppButton>
+            {userCanCreate ? (
+              <AppButton
+                variant="primary"
+                onClick={() => openNew()}
+                className="app-header-action-btn"
+              >
+                <Plus size={14} /> <span>Dosar nou</span>
+              </AppButton>
+            ) : (
+              <span
+                className="app-type-xs text-[var(--app-muted)] px-2 hidden sm:inline"
+                title={ROLES[myRole]?.description}
+              >
+                {myRoleLabel}
+              </span>
+            )}
 
             <AppButton
               variant={totalAlertsCount > 0 ? "danger" : "secondary"}
@@ -931,11 +1015,21 @@ export default function App() {
         <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
           <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
             {loading ? (
-              <div className="flex-1 flex items-center justify-center text-[var(--app-muted)] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+              <ListSkeleton
+                rows={dosareSubView === "list" ? 8 : 6}
+                variant={dosareSubView === "list" ? "table" : "cards"}
+              />
+            ) : loadError || isOffline ? (
+              <LoadError
+                message={loadError?.message}
+                offline={isOffline || loadError?.offline}
+                onRetry={loadAll}
+              />
             ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") && userClaims.length === 0 ? (
               <EmptyWorkspace
-                onNew={() => openNew()}
+                onNew={userCanCreate ? () => openNew() : null}
                 ownershipHint={!isAdmin && claims.length > 0}
+                roleLabel={myRoleLabel}
               />
             ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
               dosareSubView === "brief" ? (
@@ -1248,7 +1342,7 @@ export default function App() {
         claims={claims}
         onOpenClaim={handleOpenClaim}
         onSwitchView={handleSwitchView}
-        onOpenNewClaim={openNew}
+        onOpenNewClaim={userCanCreate ? openNew : undefined}
         onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
