@@ -1094,22 +1094,36 @@ export default function App() {
             )}
           </div>
 
-          {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
+          {/* Search bar → same intelligent Command Palette as Ctrl+K */}
           <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
             <div className="relative app-search-lg">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Caută nr. auto, client, dosar…"
-                className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium"
+                readOnly
+                onFocus={() => setIsCommandPaletteOpen(true)}
+                onClick={() => setIsCommandPaletteOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") return;
+                  // Any printable key / Backspace opens smart search with current text
+                  if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") {
+                    e.preventDefault();
+                    setIsCommandPaletteOpen(true);
+                  }
+                }}
+                placeholder="Căutare inteligentă — dosar, client, auto, tab-uri…"
+                className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium cursor-pointer"
+                title="Deschide căutarea inteligentă (acelasi lucru ca Ctrl+K)"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
                   <button
                     type="button"
-                    onClick={() => setSearch("")}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSearch("");
+                    }}
                     className="p-0.5 rounded-full hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
                     title="Șterge căutarea"
                   >
@@ -1120,7 +1134,7 @@ export default function App() {
                   type="button"
                   onClick={() => setIsCommandPaletteOpen(true)}
                   className="app-kbd text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded"
-                  title="Deschide Paleta de Comenzi (Ctrl+K)"
+                  title="Căutare inteligentă (Ctrl+K)"
                 >
                   Ctrl+K
                 </button>
@@ -1568,7 +1582,9 @@ export default function App() {
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        claims={claims}
+        claims={userClaims}
+        initialQuery={search}
+        onQueryChange={setSearch}
         onOpenClaim={handleOpenClaim}
         onSwitchView={handleSwitchView}
         onOpenNewClaim={userCanCreate ? openNew : undefined}
