@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Plus, Building2, Check,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -388,38 +388,6 @@ export default function MobileAppLayout({
 
       {!hideBottomChrome && (
         <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
-          <div className="m-mobile-quick-actions flex items-center gap-2 px-3 pt-2">
-            {onNewClaim ? (
-              <button
-                type="button"
-                className="m-press flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[12px] font-semibold bg-[var(--app-accent)] text-[var(--app-accent-text)]"
-                onClick={() => {
-                  softHaptic(8);
-                  onNewClaim();
-                }}
-              >
-                <Plus size={15} /> Dosar nou
-              </button>
-            ) : null}
-            {onOpenAlerts ? (
-              <button
-                type="button"
-                className={`m-press inline-flex items-center justify-center gap-1.5 h-9 min-w-[6.5rem] px-3 rounded-xl text-[12px] font-semibold border ${
-                  totalAlertsCount > 0
-                    ? "bg-[color-mix(in_srgb,var(--app-danger)_75%,var(--app-surface-muted))] text-[var(--app-text-strong)] border-[color-mix(in_srgb,var(--app-danger)_45%,var(--app-border))]"
-                    : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)]"
-                }`}
-                onClick={() => {
-                  softHaptic(8);
-                  onOpenAlerts(totalAlertsCount > 0 ? "depasite" : "toate");
-                }}
-                title="Centrul de Alerte"
-              >
-                <Bell size={15} />
-                <span>{totalAlertsCount} Alerte</span>
-              </button>
-            ) : null}
-          </div>
           <MobileSearchBar value={search} onChange={handleSearchChange} />
         </div>
       )}
