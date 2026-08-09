@@ -3,7 +3,7 @@ import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
   FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
-  CheckSquare, Square, Download, Calendar, Eye, Layers
+  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer
 } from "lucide-react";
 import {
   STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
@@ -197,7 +197,20 @@ export default function ClaimModal({
   const [cropQueue, setCropQueue] = useState([]);
   const [cropMode, setCropMode] = useState("document"); // "document" | "scan"
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
+  const pdfMenuRef = useRef(null);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
+
+  useEffect(() => {
+    if (!pdfMenuOpen) return;
+    const onDoc = (e) => {
+      if (pdfMenuRef.current && !pdfMenuRef.current.contains(e.target)) {
+        setPdfMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [pdfMenuOpen]);
 
   const filteredSlashCommands = useMemo(() => {
     if (!noteText.includes("/")) return [];
@@ -819,23 +832,82 @@ export default function ClaimModal({
                   <span className="hidden md:inline"> ZIP</span>
                 </button>
 
-                {/* DROPDOWN UNIFICAT PENTRU GENERARE PDF */}
-                <select
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    if (val === "pdf") await generateazaPDF(form, istoric, loadCachedBranding());
-                    if (val === "fisa") await generateazaFisaIntrareService(form);
-                    if (val === "schimb" && form.masinaSchimb) generateazaProcesVerbalMasinaSchimb(form);
-                    e.target.value = "";
-                  }}
-                  className="bg-[#2C333D] border border-white/20 text-white text-[10.5px] font-bold rounded-lg px-2 py-1 cursor-pointer focus:outline-none hover:bg-white/10 transition-colors"
-                  title="Generează și descarcă documente PDF"
-                >
-                  <option value="">📄 Export PDF ▾</option>
-                  <option value="pdf">📄 Proces-Verbal General</option>
-                  <option value="fisa">📄 Fișă Intrare Service</option>
-                  {form.masinaSchimb && <option value="schimb">🚗 PV Auto la Schimb</option>}
-                </select>
+                {/* Print / PDF — icon-only printer */}
+                <div ref={pdfMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setPdfMenuOpen((v) => !v)}
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer ${
+                      desktopUi
+                        ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                        : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                    }`}
+                    title="Printează / exportă PDF"
+                    aria-label="Printează / exportă PDF"
+                    aria-expanded={pdfMenuOpen}
+                    aria-haspopup="menu"
+                  >
+                    <Printer size={14} />
+                  </button>
+                  {pdfMenuOpen && (
+                    <div
+                      role="menu"
+                      className={`absolute right-0 top-[calc(100%+0.3rem)] z-[70] min-w-[11rem] rounded-lg border py-1 shadow-lg ${
+                        desktopUi
+                          ? "bg-[var(--app-surface)] border-[var(--app-border)]"
+                          : "bg-[#2C333D] border-white/20"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                          desktopUi
+                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                            : "text-white hover:bg-white/10"
+                        }`}
+                        onClick={async () => {
+                          setPdfMenuOpen(false);
+                          await generateazaPDF(form, istoric, loadCachedBranding());
+                        }}
+                      >
+                        <FileText size={13} /> Proces-Verbal General
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                          desktopUi
+                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                            : "text-white hover:bg-white/10"
+                        }`}
+                        onClick={async () => {
+                          setPdfMenuOpen(false);
+                          await generateazaFisaIntrareService(form);
+                        }}
+                      >
+                        <FileText size={13} /> Fișă Intrare Service
+                      </button>
+                      {form.masinaSchimb ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={() => {
+                            setPdfMenuOpen(false);
+                            generateazaProcesVerbalMasinaSchimb(form);
+                          }}
+                        >
+                          <Car size={13} /> PV Auto la Schimb
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer">
