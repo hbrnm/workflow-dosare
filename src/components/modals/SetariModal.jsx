@@ -119,12 +119,16 @@ export default function SetariModal({
     }
   }, [initialInsurersList]);
 
+  const brandingNume = brandingProp?.atelierNume;
+  const brandingShort = brandingProp?.atelierShort;
+  const brandingLogo = brandingProp?.logoUrl;
   useEffect(() => {
-    if (!brandingProp) return;
-    setAtelierNume(brandingProp.atelierNume || "Dosare Daună");
-    setAtelierShort(brandingProp.atelierShort || "WD");
-    setLogoUrl(brandingProp.logoUrl || "");
-  }, [brandingProp]);
+    if (brandingNume == null && brandingShort == null && brandingLogo == null) return;
+    setAtelierNume(brandingNume || "Dosare Daună");
+    setAtelierShort(brandingShort || "WD");
+    setLogoUrl(brandingLogo || "");
+    // Sync pe valori primitive — nu pe referința obiectului (altfel input-ul se resetează la typing).
+  }, [brandingNume, brandingShort, brandingLogo]);
 
   useEffect(() => {
     const onThemeChange = () => setThemePref(loadThemePreference());
@@ -187,7 +191,10 @@ export default function SetariModal({
           logoUrl,
         });
         if (ok === false) {
-          onNotify("Branding-ul nu s-a putut salva. Verifică rolul de admin sau migrarea 35.", "error");
+          onNotify(
+            "Branding-ul nu s-a putut salva. Verifică rolul de admin, migrarea 37 sau edge function update-atelier-settings.",
+            "error"
+          );
           return;
         }
       }

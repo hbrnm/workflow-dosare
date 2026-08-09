@@ -202,8 +202,11 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
 
   const activeRole = useMemo(() => {
     const m = membershipOptions.find((x) => x.id === atelierId);
-    return m?.role || null;
-  }, [membershipOptions, atelierId]);
+    if (!m) return null;
+    // Solo atelier: tratează singurul membru ca admin în UI
+    if (memberCount === 1 && m.role !== "admin") return "admin";
+    return m.role || null;
+  }, [membershipOptions, atelierId, memberCount]);
 
   return {
     atelierId,

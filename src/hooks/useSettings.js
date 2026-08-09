@@ -99,6 +99,19 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
           if (cleanLoadedUsers.length === 1) nextAdmins = [myEmail];
         }
 
+        // Solo atelier: un singur membru = admin în UI (și încercare heal DB)
+        if (cleanLoadedUsers.length === 1 && myEmail) {
+          const only = cleanLoadedUsers[0];
+          const em = String(only.email || "").toLowerCase();
+          if (em === myEmail.toLowerCase() && only.role !== "admin") {
+            only.role = "admin";
+            nextAdmins = [em];
+            await supabase.rpc("ensure_atelier_admin", { p_atelier_id: atelierId });
+          } else if (em === myEmail.toLowerCase()) {
+            nextAdmins = [em];
+          }
+        }
+
         setAdminEmails(nextAdmins);
         setUsersList(cleanLoadedUsers);
         try {
@@ -259,7 +272,10 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
   const persistAtelierPatch = async (patch) => {
     if (!atelierId) return { ok: false, error: new Error("Fără atelier activ") };
 
-    // Prefer RPC (migrare 35): respectă is_atelier_admin + oglindă default
+    // Best-effort: vindecă rol admin înainte de save (migrare 37; ignoră dacă lipsește)
+    await supabase.rpc("ensure_atelier_admin", { p_atelier_id: atelierId });
+
+    // 1) RPC update_atelier_settings (migrare 35/36/37)
     const { data: rpcRow, error: rpcErr } = await supabase.rpc("update_atelier_settings", {
       p_atelier_id: atelierId,
       p_patch: patch,
@@ -270,7 +286,36 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
       return { ok: true, row: rpcRow };
     }
 
-    // Fallback: update direct + detectează RLS care „înghite” update-ul (0 rows)
+    // 2) Edge function cu service role + self-heal (nu depinde de SQL manual)
+    try {
+      const { data: fnData, error: fnErr } = await supabase.functions.invoke(
+        "update-atelier-settings",
+        { body: { atelierId, patch } }
+      );
+      if (!fnErr && fnData?.ok && fnData?.atelier) {
+        if (fnData.atelier.slug) slugRef.current = fnData.atelier.slug;
+        return { ok: true, row: fnData.atelier };
+      }
+      let fnMessage = fnData?.error || null;
+      if (!fnMessage && fnErr?.context && typeof fnErr.context.json === "function") {
+        try {
+          const body = await fnErr.context.json();
+          fnMessage = body?.error || null;
+        } catch {
+          /* ignore */
+        }
+      }
+      if (!fnMessage) fnMessage = fnErr?.message || null;
+      // Function missing / network → fall through to direct update
+      const softFail = !fnMessage || /failed to (send|fetch)|FunctionsRelayError|not found|404/i.test(String(fnMessage));
+      if (!softFail) {
+        return { ok: false, error: new Error(fnMessage) };
+      }
+    } catch (err) {
+      console.warn("update-atelier-settings edge fallback:", err?.message || err);
+    }
+
+    // 3) Fallback: update direct + detectează RLS care „înghite” update-ul (0 rows)
     const { data, error } = await supabase
       .from("ateliere")
       .update(patch)
@@ -293,7 +338,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
         ok: false,
         error: new Error(
           rpcErr?.message ||
-            "Nu ai drept de administrator pe acest atelier. Rulează migrarea 36 în Supabase SQL Editor."
+            "Nu am putut salva denumirea atelierului. Deploy edge function update-atelier-settings sau rulează migrarea 37 în Supabase SQL Editor."
         ),
       };
     }
@@ -472,16 +517,16 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
 
   const saveBranding = async (nextRaw) => {
     const next = normalizeBranding(nextRaw);
-    setBranding(next);
-    cacheBranding(next);
 
     if (atelierId) {
       const patch = brandingToAtelierPatch(next);
       const { ok, error } = await persistAtelierPatch(patch);
       if (!ok) {
-        showNotice("Branding: " + error.message, "warning");
+        showNotice("Branding: " + (error?.message || "salvare eșuată"), "error");
         return false;
       }
+      setBranding(next);
+      cacheBranding(next);
       return true;
     }
 
@@ -495,11 +540,13 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
     const { error } = await supabase.from("setari").upsert(payload);
     if (error) {
       showNotice(
-        "Branding salvat local. Rulează migrarea 20 în Supabase pentru sync cloud: " + error.message,
-        "warning"
+        "Branding: nu s-a putut salva în cloud: " + error.message,
+        "error"
       );
       return false;
     }
+    setBranding(next);
+    cacheBranding(next);
     return true;
   };
 
