@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
@@ -7,11 +7,13 @@ import {
 import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
+import { buildAtelierFunnel } from "../../utils/atelierFunnel";
 import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
 
 export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte }) {
+  const funnel = useMemo(() => buildAtelierFunnel(claims, { pragRidicare }), [claims, pragRidicare]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSecondaryKpis, setShowSecondaryKpis] = useState(false);
   const total = claims.length;
@@ -70,6 +72,36 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
             <FileSpreadsheet size={14} />
             <span>Export Excel</span>
           </AppButton>
+        </div>
+      </div>
+
+      {/* Funnel: create → programare → alerte */}
+      <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter size={16} className="text-[var(--app-muted)]" />
+          <div>
+            <h3 className="font-semibold text-[13px] text-[var(--app-text-strong)]">Funnel atelier</h3>
+            <p className="text-[11px] text-[var(--app-muted)]">Create → programare → alerte (din dosarele încărcate)</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {funnel.steps.map((step, idx) => (
+            <div
+              key={step.id}
+              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2.5"
+            >
+              <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
+                {idx + 1}. {step.label}
+              </div>
+              <div className="text-[22px] font-semibold text-[var(--app-text-strong)] leading-tight mt-0.5">
+                {step.count}
+              </div>
+              <div className="text-[10px] text-[var(--app-muted)] mt-0.5">
+                {step.hint}
+                {step.rateFromPrev != null ? ` · ${step.rateFromPrev}% din create` : null}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
