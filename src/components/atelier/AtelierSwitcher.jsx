@@ -113,12 +113,16 @@ export default function AtelierSwitcher({
             type="button"
             role="menuitem"
             className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               setOpen(false);
-              // Amână deschiderea ca pointerdown/click-ul din meniu să nu închidă modalul.
-              window.setTimeout(() => onOpenSettings?.(), 0);
+              // Delay mai lung pe desktop — click-through din meniu închidea Setările.
+              window.setTimeout(() => onOpenSettings?.(), 50);
             }}
           >
             <Settings size={14} /> Setări

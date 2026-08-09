@@ -521,19 +521,12 @@ export default function App() {
 
   const requestCloseAlerts = useCallback(() => requestClose("alerte"), [requestClose]);
   const requestCloseSettings = useCallback(() => {
-    // Pe desktop evităm history.back() din stack-ul mobil — poate închide Setări imediat după open.
     if (activeMode === "mobile") {
       requestClose("setari");
       return;
     }
+    // Desktop: fără history.back() — interfera cu deschiderea Setărilor.
     closeSettings();
-    try {
-      if (typeof window !== "undefined" && window.location.hash === "#setari") {
-        window.history.back();
-      }
-    } catch {
-      /* ignore */
-    }
   }, [activeMode, requestClose, closeSettings]);
   const requestCloseClaimModal = useCallback(() => requestClose("claim"), [requestClose]);
   const requestCloseFieldClaim = useCallback(() => requestClose("field"), [requestClose]);
@@ -545,11 +538,11 @@ export default function App() {
     const handlePopState = (event) => {
       isNavigatingHistoryRef.current = true;
       if (modalClaim) closeClaimModal();
-      else if (setariOpen) closeSettings();
       else if (alerteModalTab) closeAlerts();
       else if (quickCreateOpen) closeQuickCreate();
       else if (quickCaptureOpen) closeQuickCapture();
       else if (event.state?.view) setView(event.state.view);
+      // setariOpen: fără sync history pe desktop — nu închidem pe popstate
       window.setTimeout(() => {
         isNavigatingHistoryRef.current = false;
       }, 50);
@@ -560,8 +553,6 @@ export default function App() {
     activeMode,
     modalClaim,
     closeClaimModal,
-    setariOpen,
-    closeSettings,
     alerteModalTab,
     closeAlerts,
     quickCreateOpen,
@@ -597,18 +588,7 @@ export default function App() {
     }
   }, [activeMode, alerteModalTab, view]);
 
-  useEffect(() => {
-    if (activeMode === "mobile") return;
-    if (setariOpen && !isNavigatingHistoryRef.current) {
-      try {
-        if (window.location.hash !== "#setari") {
-          window.history.pushState({ view, overlay: "setari" }, "", "#setari");
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [activeMode, setariOpen, view]);
+  // Desktop Setări: fără pushState/#setari — history cauza închiderea imediată a modalului.
 
   // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
@@ -680,14 +660,6 @@ export default function App() {
   }, [claims, openExisting]);
 
   const clearSearch = useCallback(() => setSearch(""), [setSearch]);
-
-  const handleSearchSelectDesktop = useCallback(
-    (claim) => {
-      clearSearch();
-      handleOpenClaim(claim);
-    },
-    [clearSearch, handleOpenClaim]
-  );
 
   const handleSearchSelectMobile = useCallback(
     (claim) => {
@@ -1031,7 +1003,9 @@ export default function App() {
               const ok = await switchAtelier(id);
               if (ok) showNotice("Atelier schimbat.", "success");
             }}
-            onOpenSettings={() => openSettings()}
+            onOpenSettings={() => {
+              window.setTimeout(() => openSettings(), 50);
+            }}
             onLogout={handleLogout}
           />
         </div>
@@ -1114,7 +1088,7 @@ export default function App() {
                 }}
                 placeholder="Căutare inteligentă — dosar, client, auto, tab-uri…"
                 className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium cursor-pointer"
-                title="Deschide căutarea inteligentă (acelasi lucru ca Ctrl+K)"
+                title="Deschide căutarea inteligentă (același lucru ca Ctrl+K)"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (
@@ -1585,23 +1559,32 @@ export default function App() {
         claims={userClaims}
         initialQuery={search}
         onQueryChange={setSearch}
-        onOpenClaim={handleOpenClaim}
-        onSwitchView={handleSwitchView}
-        onOpenNewClaim={userCanCreate ? openNew : undefined}
-        onOpenQuickCapture={openQuickCapture}
+        onOpenClaim={(claim) => {
+          clearSearch();
+          handleOpenClaim(claim);
+        }}
+        onSwitchView={(id) => {
+          clearSearch();
+          handleSwitchView(id);
+        }}
+        onOpenNewClaim={
+          userCanCreate
+            ? () => {
+                clearSearch();
+                openNew();
+              }
+            : undefined
+        }
+        onOpenQuickCapture={() => {
+          clearSearch();
+          openQuickCapture();
+        }}
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
       />
 
-      {!modalClaim && !isCommandPaletteOpen && (
-        <SearchResultsOverlay
-          query={search}
-          claims={userClaims}
-          onSelect={handleSearchSelectDesktop}
-          onClear={clearSearch}
-          onNotify={showNotice}
-        />
-      )}
+      {/* Desktop: fără overlay global — bara/Ctrl+K folosesc doar paleta inteligentă.
+          Mobil păstrează SearchResultsOverlay în shell-ul mobil. */}
     </div>
   );
 }

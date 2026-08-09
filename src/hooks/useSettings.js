@@ -293,7 +293,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
         ok: false,
         error: new Error(
           rpcErr?.message ||
-            "Nu ai drept de administrator pe acest atelier (sau rulează migrarea 35)."
+            "Nu ai drept de administrator pe acest atelier. Rulează migrarea 36 în Supabase SQL Editor."
         ),
       };
     }
