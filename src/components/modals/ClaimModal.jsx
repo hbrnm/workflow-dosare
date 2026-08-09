@@ -14,7 +14,10 @@ import {
   emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath, refreshStorageUrls, formatIstoricValoare, CAMP_LABELS, parseNumber, SIGNED_URL_TTL_SECONDS
 } from "../../utils/claimUtils";
 import {
-  generateazaPDF, generateazaProcesVerbalMasinaSchimb, generateazaFisaIntrareService
+  generateazaPDF,
+  generateazaProcesVerbalMasinaSchimb,
+  generateazaFisaIntrareService,
+  generateazaCerereDespagubireOmniasig,
 } from "../../utils/pdfGenerator";
 import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
@@ -957,6 +960,21 @@ export default function ClaimModal({
                         }}
                       >
                         <FileText size={13} /> Fișă Intrare Service
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                          desktopUi
+                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                            : "text-white hover:bg-white/10"
+                        }`}
+                        onClick={async () => {
+                          setPdfMenuOpen(false);
+                          await generateazaCerereDespagubireOmniasig(form);
+                        }}
+                      >
+                        <FileText size={13} /> Cerere Omniasig
                       </button>
                       {form.masinaSchimb ? (
                         <button

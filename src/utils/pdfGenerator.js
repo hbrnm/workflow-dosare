@@ -6,6 +6,7 @@ async function createPdf(options = {}) {
 import { getStatusDefinition } from "../constants/config";
 import { fmtDateTime, fmtDate } from "./dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "./claimUtils";
+import { resolveCerereDespagubireParties } from "./cerereDespagubire";
 
 function stripDiacritics(str) {
   if (str === null || str === undefined) return "";
@@ -326,4 +327,151 @@ export async function generateazaFisaIntrareService(claim) {
   doc.text(sd("Semnătură Predare Auto în Service"), 135, y);
 
   doc.save(`fisa-intrare-service-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
+}
+
+/**
+ * Cerere despăgubire tipizată Omniasig — completează din dosar:
+ * nr. dosar, subsemnatul (delegat dacă ≠ proprietar), nr. înmatriculare, client.
+ * Sume, date accident, bife plată: goale (de mână).
+ */
+export async function generateazaCerereDespagubireOmniasig(claim) {
+  const doc = await createPdf();
+  const parties = resolveCerereDespagubireParties(claim);
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 14;
+
+  const write = (text, x, yy, opts = {}) => {
+    doc.text(sd(text), x, yy, opts);
+  };
+
+  // Header Omniasig (compact)
+  doc.setFontSize(8);
+  doc.setFont(undefined, "normal");
+  doc.setTextColor(80);
+  write("OMNIASIG Vienna Insurance Group", 14, y);
+  y += 4;
+  write("Str. Grigore Mora nr. 23, Sector 1, Bucuresti", 14, y);
+  y += 4;
+  write("Tel: +4021 405 7420 · office@omniasig.ro", 14, y);
+  y += 8;
+  doc.setTextColor(0);
+
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  write("CERERE DESPAGUBIRE", pageW / 2, y, { align: "center" });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(sd("cu privire la dosarul nr: "), 14, y);
+  doc.setFont(undefined, "bold");
+  const dosarLabel = sd(claim.numarDosar || "…………………");
+  doc.text(dosarLabel, 58, y);
+  doc.setFont(undefined, "normal");
+  y += 9;
+
+  // Subsemnatul = delegat (dacă ≠ proprietar) sau client.
+  // „reprezentant al societății” pe tipizat = spațiu pentru numele delegatului când e cazul; altfel gol.
+  doc.setFontSize(9.5);
+  const sub = sd(parties.subsemnatul || "_______________________________");
+  const societateBlank = parties.asCompanyRep
+    ? sd(parties.reprezentant)
+    : "_______________________________";
+  const repLine = `Subsemnatul(a) ${sub}, reprezentant al societatii ${societateBlank}`;
+  const repLines = doc.splitTextToSize(sd(repLine), 182);
+  doc.text(repLines, 14, y);
+  y += repLines.length * 5 + 5;
+
+  write("CNP __ __ __ __ __ __ __ __ __ __ __ __ __ , domiciliat in ________________, str. __________________, nr____, ap____, sector___,", 14, y);
+  y += 5;
+  write(`tel. ${sd(claim.telefonClient || "_______________________")}`, 14, y);
+  y += 7;
+
+  const propLine = `proprietar al autovehiculului cu numarul ${sd(claim.numarInmatriculare || "____________________")}, va rog sa aprobati plata despagubirii in suma de ____________________`;
+  const propLines = doc.splitTextToSize(sd(propLine), 182);
+  doc.text(propLines, 14, y);
+  y += propLines.length * 5 + 4;
+
+  // Bifă tip plată — goale
+  const checks = [
+    "pentru reparatie efectuata in regie proprie, pe baza evaluarii OMNIASIG;",
+    "avans – pe baza documentelor anexate",
+    "dupa efectuarea reparatiilor – plata finala, pe baza urmatoarelor documente anexate:",
+  ];
+  for (const c of checks) {
+    doc.rect(14, y - 2.5, 3.2, 3.2);
+    write(c, 20, y);
+    y += 5.5;
+  }
+  write("________________________________________________________________________________", 14, y);
+  y += 5;
+  write("________________________________________________________________________________", 14, y);
+  y += 7;
+
+  write("Suplimentar, mai anexez:", 14, y);
+  y += 5;
+  write("...............................................................................................................................................", 14, y);
+  y += 5;
+  write("...............................................................................................................................................", 14, y);
+  y += 8;
+
+  doc.setFont(undefined, "bold");
+  write("Plata se va efectua in favoarea:", 14, y);
+  y += 6;
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  doc.rect(14, y, 182, 14);
+  write("BENEFICIAR", 16, y + 5);
+  write("BANCA & CONT / CASIERIE", 70, y + 5);
+  write("SUMA", 160, y + 5);
+  y += 18;
+
+  doc.setFontSize(8);
+  const declaratii = [
+    "- Raspund de exactitatea, realitatea si corectitudinea actelor depuse, inteleg ca depunerea de documente false (facturi, devize, alte inscrisuri) indreptateste Asiguratorul sa refuze plata tuturor despagubirilor solicitate.",
+    "- Declar pe propria raspundere ca nu mai posed alte polite de asigurare de acelasi tip si nu am solicitat sau primit despagubiri/compensatii banesti de la alt asigurator sau de la terte persoane - sofer vinovat RCA.",
+    "- In cazul furtului total, daca autovehiculul va fi gasit, ma oblig sa restitui despagubirea primita sau, dupa caz, diferenta de despagubire daca autovehiculul a suferit avarii.",
+    "- In cazul in care actele incheiate de organele de politie, de unitatile de pompieri sau alte organe competente sunt anulate, ma oblig sa restitui de indata intreaga despagubire primita.",
+  ];
+  for (const d of declaratii) {
+    const lines = doc.splitTextToSize(sd(d), 182);
+    doc.text(lines, 14, y);
+    y += lines.length * 3.6 + 1.5;
+  }
+  y += 3;
+
+  doc.setFontSize(9);
+  write("Suma de (in cifre) _________________ adica (in litere) _____________________________________________,", 14, y);
+  y += 5;
+  write("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de _____________.", 14, y);
+  y += 5;
+  write("Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire", 14, y);
+  y += 5;
+  write("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila __________________ si fata de (nume sofer vinovat)", 14, y);
+  y += 5;
+  write("____________________________ persoana vinovata de producerea accidentului din data de ______________", 14, y);
+  y += 7;
+
+  write("Obiectii:", 14, y);
+  y += 5;
+  write("........................................................................................................................................................................", 14, y);
+  y += 5;
+  write("........................................................................................................................................................................", 14, y);
+  y += 10;
+
+  if (parties.proprietar && parties.asCompanyRep) {
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    write(`Proprietar (din dosar): ${parties.proprietar}`, 14, y);
+    doc.setTextColor(0);
+    y += 7;
+  }
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "bold");
+  write("DATA _________________", 14, y);
+  write("SEMNATURA / STAMPILA _______________________________", 95, y);
+
+  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
+  doc.save(`cerere-despagubire-omniasig-${token}.pdf`);
 }
