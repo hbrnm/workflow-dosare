@@ -19,6 +19,7 @@ import {
   generateazaFisaIntrareService,
   generateazaCerereDespagubireOmniasig,
 } from "../../utils/pdfGenerator";
+import { resolveCerereDespagubireKind } from "../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
@@ -961,21 +962,39 @@ export default function ClaimModal({
                       >
                         <FileText size={13} /> Fișă Intrare Service
                       </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                          desktopUi
-                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                            : "text-white hover:bg-white/10"
-                        }`}
-                        onClick={async () => {
-                          setPdfMenuOpen(false);
-                          await generateazaCerereDespagubireOmniasig(form);
-                        }}
-                      >
-                        <FileText size={13} /> Cerere Omniasig
-                      </button>
+                      {resolveCerereDespagubireKind(form.asigurator) === "omniasig" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            await generateazaCerereDespagubireOmniasig(form);
+                          }}
+                        >
+                          <FileText size={13} /> Cerere Omniasig
+                        </button>
+                      ) : null}
+                      {resolveCerereDespagubireKind(form.asigurator) === "asirom" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-muted)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white/50 hover:bg-white/10"
+                          }`}
+                          disabled
+                          title="Trimite tipizatul Asirom ca să activăm printul"
+                          onClick={() => setPdfMenuOpen(false)}
+                        >
+                          <FileText size={13} /> Cerere Asirom (în curând)
+                        </button>
+                      ) : null}
                       {form.masinaSchimb ? (
                         <button
                           type="button"

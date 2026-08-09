@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   resolveCerereDespagubireParties,
   isOmniasigAsigurator,
+  isAsiromAsigurator,
   isCompanyClientName,
+  resolveCerereDespagubireKind,
 } from "../cerereDespagubire";
 
 describe("isCompanyClientName", () => {
@@ -70,10 +72,12 @@ describe("resolveCerereDespagubireParties", () => {
   });
 });
 
-describe("isOmniasigAsigurator", () => {
-  it("matches Omniasig variants", () => {
+describe("asigurator → tip cerere", () => {
+  it("matches Omniasig / Asirom", () => {
     expect(isOmniasigAsigurator("Omniasig VIG")).toBe(true);
-    expect(isOmniasigAsigurator("OMNIASIG")).toBe(true);
-    expect(isOmniasigAsigurator("Allianz")).toBe(false);
+    expect(isAsiromAsigurator("Asirom VIG")).toBe(true);
+    expect(resolveCerereDespagubireKind("Omniasig VIG")).toBe("omniasig");
+    expect(resolveCerereDespagubireKind("Asirom VIG")).toBe("asirom");
+    expect(resolveCerereDespagubireKind("Allianz-Țiriac")).toBe(null);
   });
 });

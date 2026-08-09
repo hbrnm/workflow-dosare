@@ -65,10 +65,24 @@ export function resolveCerereDespagubireParties(claim) {
   };
 }
 
-export function isOmniasigAsigurator(asigurator) {
-  const a = String(asigurator || "")
+function normAsigurator(asigurator) {
+  return String(asigurator || "")
     .trim()
     .toLowerCase()
     .replace(/\./g, "");
-  return a.includes("omniasig");
+}
+
+export function isOmniasigAsigurator(asigurator) {
+  return normAsigurator(asigurator).includes("omniasig");
+}
+
+export function isAsiromAsigurator(asigurator) {
+  return normAsigurator(asigurator).includes("asirom");
+}
+
+/** Tip tipizat disponibil pentru asigurătorul dosarului. */
+export function resolveCerereDespagubireKind(asigurator) {
+  if (isOmniasigAsigurator(asigurator)) return "omniasig";
+  if (isAsiromAsigurator(asigurator)) return "asirom";
+  return null;
 }
