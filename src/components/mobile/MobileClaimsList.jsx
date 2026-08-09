@@ -143,6 +143,7 @@ export default function MobileClaimsList({
   allClaimsCount,
   searchQuery = "",
   onOpen,
+  onNew,
   onPatch,
   canEditFn,
   onNotify,
