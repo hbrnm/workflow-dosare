@@ -258,10 +258,47 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
 
   const persistAtelierPatch = async (patch) => {
     if (!atelierId) return { ok: false, error: new Error("Fără atelier activ") };
-    const { error } = await supabase.from("ateliere").update(patch).eq("id", atelierId);
-    if (error) return { ok: false, error };
 
-    if (shouldMirrorSetari(slugRef.current)) {
+    // Prefer RPC (migrare 35): respectă is_atelier_admin + oglindă default
+    const { data: rpcRow, error: rpcErr } = await supabase.rpc("update_atelier_settings", {
+      p_atelier_id: atelierId,
+      p_patch: patch,
+    });
+
+    if (!rpcErr && rpcRow) {
+      if (rpcRow.slug) slugRef.current = rpcRow.slug;
+      return { ok: true, row: rpcRow };
+    }
+
+    // Fallback: update direct + detectează RLS care „înghite” update-ul (0 rows)
+    const { data, error } = await supabase
+      .from("ateliere")
+      .update(patch)
+      .eq("id", atelierId)
+      .select("id, slug, nume, short, logo_url")
+      .maybeSingle();
+
+    if (error) {
+      return {
+        ok: false,
+        error: new Error(
+          rpcErr?.message ||
+            error.message ||
+            "Nu am putut salva setările atelierului."
+        ),
+      };
+    }
+    if (!data) {
+      return {
+        ok: false,
+        error: new Error(
+          rpcErr?.message ||
+            "Nu ai drept de administrator pe acest atelier (sau rulează migrarea 35)."
+        ),
+      };
+    }
+
+    if (shouldMirrorSetari(data.slug || slugRef.current)) {
       const mirror = atelierPatchToSetariMirror(patch);
       if (Object.keys(mirror).length > 0) {
         const { error: mirrorErr } = await supabase.from("setari").upsert({ id: 1, ...mirror });
@@ -270,7 +307,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
         }
       }
     }
-    return { ok: true };
+    return { ok: true, row: data };
   };
 
   const saveUsersAndAdmins = async (newUsers, newAdmins) => {

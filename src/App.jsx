@@ -35,7 +35,7 @@ import OnboardingModal from "./components/common/OnboardingModal";
 import ListSkeleton from "./components/common/ListSkeleton";
 import LoadError from "./components/common/LoadError";
 import RecoveryPassword from "./components/auth/RecoveryPassword";
-import { isOnboardingDismissed, dismissOnboarding } from "./utils/onboardingPrefs";
+import { dismissOnboarding } from "./utils/onboardingPrefs";
 import { ROLES, resolveUserRole, canCreateClaim } from "./constants/roles";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
@@ -152,7 +152,8 @@ export default function App() {
     setNotice({ message, type, ...extras });
   }, []);
 
-  const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingDismissed());
+  // Tour-ul de onboarding nu se mai deschide automat la login.
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(
     () => typeof navigator !== "undefined" && navigator.onLine === false
   );
@@ -175,6 +176,7 @@ export default function App() {
     billing,
     memberCount,
     memberships,
+    activeRole,
     switchAtelier,
     refresh: refreshAtelier,
   } = useAtelier(session, {});
@@ -233,7 +235,7 @@ export default function App() {
     savePragInactivitate,
     saveTermeneAlertaStatus,
     termeneAlertaStatus,
-    saveBranding,
+    saveBranding: saveBrandingBase,
     uploadBrandingLogo,
     saveBilling,
     handleAddUser,
@@ -243,6 +245,15 @@ export default function App() {
     atelierId,
     atelierSlug: atelier?.slug || null,
   });
+
+  const saveBranding = useCallback(
+    async (next) => {
+      const ok = await saveBrandingBase(next);
+      if (ok !== false) refreshAtelier();
+      return ok;
+    },
+    [saveBrandingBase, refreshAtelier]
+  );
 
   // Settings loaded from ateliere when tenancy is ready; atelier row is fallback only.
   const branding = useMemo(() => {
@@ -290,6 +301,7 @@ export default function App() {
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
+    if (activeRole === "admin") return true;
     if (myRole === "admin") return true;
     const fromAdmins = adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase());
     const fromUsers = usersList.some(
@@ -297,7 +309,7 @@ export default function App() {
     );
     if (fromAdmins || fromUsers) return true;
     return false;
-  }, [myEmail, myRole, adminEmails, usersList]);
+  }, [myEmail, myRole, adminEmails, usersList, activeRole]);
 
   const {
     search,
@@ -706,7 +718,7 @@ export default function App() {
           onBackToLogin={() => setAuthScreen("login")}
           onSuccess={(s) => {
             setAuthScreen("login");
-            setOnboardingOpen(true);
+            dismissOnboarding();
             setSession(s);
           }}
         />
