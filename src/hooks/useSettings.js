@@ -335,6 +335,7 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
         email: cleanEmail,
         password: cleanPassword,
         role: role || "operator",
+        atelierId: atelierId || undefined,
       },
     });
 
@@ -464,9 +465,31 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
   };
 }
 
-/** Public branding for Login (anon-readable view + local cache). */
-export async function fetchPublicBranding() {
+/** Public branding for Login — optional slug via RPC (migrare 31). */
+export async function fetchPublicBranding(slug = null) {
   const cached = loadCachedBranding();
+  const cleanSlug = String(slug || "").trim().toLowerCase();
+
+  if (cleanSlug) {
+    try {
+      const { data, error } = await supabase.rpc("get_public_atelier_branding", {
+        p_slug: cleanSlug,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!error && row) {
+        const next = normalizeBranding({
+          atelier_nume: row.nume,
+          atelier_short: row.short,
+          logo_url: row.logo_url,
+        });
+        cacheBranding(next);
+        return next;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
   try {
     const { data, error } = await supabase
       .from("atelier_branding")

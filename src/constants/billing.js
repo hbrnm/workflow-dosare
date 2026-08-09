@@ -1,5 +1,5 @@
 /**
- * Billing stub — no Stripe yet. Plans live on setari / ateliere after migrare 29.
+ * Billing — plans on ateliere/setari; Stripe via edge functions when configured.
  */
 
 export const BILLING_PLANS = {
@@ -11,7 +11,7 @@ export const BILLING_PLANS = {
   active: {
     id: "active",
     label: "Activ",
-    description: "Abonament activ (manual / Stripe ulterior).",
+    description: "Abonament Stripe activ.",
   },
   past_due: {
     id: "past_due",
@@ -29,7 +29,7 @@ export const DEFAULT_SEAT_LIMIT = 10;
 export const DEFAULT_TRIAL_DAYS = 30;
 
 /**
- * @param {{ plan?: string, trialEndsAt?: string|null, seatLimit?: number|null, memberCount?: number }} input
+ * @param {{ plan?: string, trialEndsAt?: string|null, seatLimit?: number|null, memberCount?: number, stripeCustomerId?: string|null, stripeSubscriptionId?: string|null }} input
  */
 export function normalizeBilling(input = {}) {
   const rawPlan = String(input.plan || "trial").toLowerCase();
@@ -49,6 +49,9 @@ export function normalizeBilling(input = {}) {
   const overSeatLimit = memberCount >= seatLimit;
   const canInvite = effectivePlan !== "canceled" && !overSeatLimit;
   const canCreateClaim = effectivePlan !== "canceled";
+  const stripeCustomerId = input.stripeCustomerId || null;
+  const stripeSubscriptionId = input.stripeSubscriptionId || null;
+  const hasStripeCustomer = Boolean(stripeCustomerId);
 
   return {
     plan: effectivePlan,
@@ -61,5 +64,9 @@ export function normalizeBilling(input = {}) {
     overSeatLimit,
     canInvite,
     canCreateClaim,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    hasStripeCustomer,
+    needsUpgrade: effectivePlan === "trial" || effectivePlan === "past_due" || effectivePlan === "canceled",
   };
 }

@@ -82,27 +82,59 @@ Deno.serve(async (req: Request) => {
       // Cont Auth există deja — sincronizăm lista echipei.
     }
 
-    // Prefer caller's atelier (multi-tenant); fallback slug default / setari
-    let atelierId: string | null = null;
+    const bodyAtelierId = String(body?.atelierId || body?.atelier_id || "").trim();
+
+    // Prefer explicit atelier from client, then caller's admin membership
+    let atelierId: string | null = bodyAtelierId || null;
     let seatLimit = 10;
     let tenancy = false;
     try {
-      const { data: myMembership } = await admin
-        .from("atelier_membri")
-        .select("atelier_id, role")
-        .eq("user_id", userData.user.id)
-        .eq("role", "admin")
-        .limit(1)
-        .maybeSingle();
-      if (myMembership?.atelier_id) {
-        atelierId = myMembership.atelier_id;
-        tenancy = true;
-        const { data: atelier } = await admin
-          .from("ateliere")
-          .select("seat_limit")
-          .eq("id", atelierId)
+      if (atelierId) {
+        const { data: membership } = await admin
+          .from("atelier_membri")
+          .select("atelier_id, role")
+          .eq("user_id", userData.user.id)
+          .eq("atelier_id", atelierId)
           .maybeSingle();
-        seatLimit = Number(atelier?.seat_limit) || 10;
+        if (!membership || membership.role !== "admin") {
+          // still allow global is_admin (already checked)
+          const { data: atelier } = await admin
+            .from("ateliere")
+            .select("seat_limit")
+            .eq("id", atelierId)
+            .maybeSingle();
+          if (!atelier) {
+            return json({ error: "Atelier invalid." }, 400);
+          }
+          seatLimit = Number(atelier.seat_limit) || 10;
+          tenancy = true;
+        } else {
+          tenancy = true;
+          const { data: atelier } = await admin
+            .from("ateliere")
+            .select("seat_limit")
+            .eq("id", atelierId)
+            .maybeSingle();
+          seatLimit = Number(atelier?.seat_limit) || 10;
+        }
+      } else {
+        const { data: myMembership } = await admin
+          .from("atelier_membri")
+          .select("atelier_id, role")
+          .eq("user_id", userData.user.id)
+          .eq("role", "admin")
+          .limit(1)
+          .maybeSingle();
+        if (myMembership?.atelier_id) {
+          atelierId = myMembership.atelier_id;
+          tenancy = true;
+          const { data: atelier } = await admin
+            .from("ateliere")
+            .select("seat_limit")
+            .eq("id", atelierId)
+            .maybeSingle();
+          seatLimit = Number(atelier?.seat_limit) || 10;
+        }
       }
     } catch {
       /* no tenancy tables */

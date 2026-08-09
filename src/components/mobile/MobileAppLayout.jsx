@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Plus,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Plus, Building2, Check,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -43,6 +43,9 @@ export default function MobileAppLayout({
   onLogout,
   onOpenSettings,
   onOpenAlerts,
+  memberships = [],
+  activeAtelierId = null,
+  onSwitchAtelier = null,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -240,6 +243,36 @@ export default function MobileAppLayout({
             <div className="m-float-menu-label">Cont</div>
             {userEmail ? (
               <div className="m-float-menu-meta truncate">{userEmail}</div>
+            ) : null}
+            {memberships.length > 1 ? (
+              <>
+                <div className="m-float-menu-label">Atelier</div>
+                {memberships.map((m) => {
+                  const active = m.id === activeAtelierId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      role="menuitem"
+                      className={`m-float-menu-item ${active ? "is-active" : ""}`}
+                      onClick={async () => {
+                        softHaptic(8);
+                        setMenuOpen(false);
+                        if (!active) await onSwitchAtelier?.(m.id);
+                      }}
+                    >
+                      <span className="m-float-menu-icon">
+                        {active ? <Check size={15} /> : <Building2 size={15} />}
+                      </span>
+                      <span className="m-float-menu-item-label">{m.nume}</span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : memberships[0] ? (
+              <div className="m-float-menu-meta truncate">
+                Atelier: {memberships[0].nume}
+              </div>
             ) : null}
             {onOpenSettings ? (
               <button

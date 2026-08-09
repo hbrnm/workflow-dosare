@@ -8,6 +8,8 @@ describe("normalizeBilling", () => {
     expect(b.seatsLeft).toBe(7);
     expect(b.canInvite).toBe(true);
     expect(b.canCreateClaim).toBe(true);
+    expect(b.needsUpgrade).toBe(true);
+    expect(b.hasStripeCustomer).toBe(false);
   });
 
   it("blocks invite when over seats or canceled", () => {
