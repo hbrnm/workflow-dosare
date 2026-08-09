@@ -5,7 +5,7 @@ import { fetchPublicBranding } from "../../hooks/useSettings";
 import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
 import { useDayNightTheme } from "../../hooks/useDayNightTheme";
 
-export default function Login({ onLoginSuccess, branding: brandingProp }) {
+export default function Login({ onLoginSuccess, onGoSignup, branding: brandingProp }) {
   const [mode, setMode] = useState("login"); // "login" | "forgot"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -192,9 +192,20 @@ export default function Login({ onLoginSuccess, branding: brandingProp }) {
             <ArrowLeft size={14} /> Înapoi la conectare
           </button>
         ) : (
-          <p className="app-login-hint text-center">
-            Cont nou? Cere administratorului să te invite din Setări → Utilizatori. Poți reseta parola din „Am uitat parola”.
-          </p>
+          <div className="space-y-2 text-center">
+            {onGoSignup ? (
+              <button
+                type="button"
+                className="w-full text-[12.5px] font-semibold text-[var(--app-text)] hover:underline"
+                onClick={onGoSignup}
+              >
+                Creează atelier nou (trial)
+              </button>
+            ) : null}
+            <p className="app-login-hint">
+              Coleg? Cere invitație din Setări → Utilizatori. Parolă uitată: linkul de mai sus.
+            </p>
+          </div>
         )}
       </form>
     </div>

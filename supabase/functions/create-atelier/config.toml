@@ -1,0 +1,2 @@
+# Public signup — no caller JWT required
+verify_jwt = false
