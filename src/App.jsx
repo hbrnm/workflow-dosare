@@ -605,7 +605,7 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen bg-[#010409] flex items-center justify-center text-[#8B949E] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
+    return <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center text-[var(--app-muted)] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
   }
   if (session && passwordRecovery) {
     return (
@@ -650,7 +650,7 @@ export default function App() {
           roleLabel={myRoleLabel}
         />
 
-        <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
+        <Suspense fallback={<div className="h-screen bg-[var(--app-surface)] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
             claims={userClaims}
             loading={loading}
@@ -842,9 +842,9 @@ export default function App() {
         {/* Navigare principală — doar icoane */}
         <div className="flex-1 py-3 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
           {[
-            { id: "dosare", label: "Dosare & Flux", icon: Layers, badge: userClaims.length },
+            { id: "dosare", label: "Dosare (Brief / Flux / Tabel)", icon: Layers, badge: userClaims.length },
             { id: "programator", label: "Programări", icon: CalendarClock },
-            { id: "dashboard", label: "Statistici & Rapoarte", icon: BarChart3 },
+            { id: "dashboard", label: "Statistici", icon: BarChart3 },
           ].map(({ id, label, icon: Icon, badge }) => {
             const active = view === id;
             return (
@@ -1008,40 +1008,40 @@ export default function App() {
 
         {/* DESKTOP FILTER DROPDOWNS BAR */}
         {!["brief", "programator", "flux", "dosare"].includes(view) && (
-          <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
+          <div className="hidden md:block px-4 py-2 bg-white border-b border-[var(--app-border)] shrink-0 z-10">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowFilterPanel((open) => !open)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[var(--app-muted)] bg-[var(--app-surface-muted)] text-[var(--app-text)]" : "border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:bg-[var(--app-border-soft)]"}`}
               >
                 <SlidersHorizontal size={14} />
                 <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre avansate"}</span>
               </button>
             </div>
             {showFilterPanel && (
-              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[#DAD4C6] bg-[#FAF8F5] p-2.5">
+              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] p-2.5">
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Tip asigurare</span>
+                  <span className="mb-1 block text-[10px] font-semibold text-[var(--app-muted)]">Tip asigurare</span>
                   <select className="in min-w-[130px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
                     <option value="toate">Toate</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Asigurător</span>
+                  <span className="mb-1 block text-[10px] font-semibold text-[var(--app-muted)]">Asigurător</span>
                   <select className="in min-w-[190px]" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
                     <option value="toti">Toți asigurătorii</option>
                     {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
                   </select>
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Status</span>
+                  <span className="mb-1 block text-[10px] font-semibold text-[var(--app-muted)]">Status</span>
                   <select className="in min-w-[190px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                     <option value="toate">Toate statusurile</option>
                     {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
                   </select>
                 </label>
-                {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[#B23A2E] hover:underline"><X size={13} /> Resetează</button>}
+                {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[var(--app-danger)] hover:underline"><X size={13} /> Resetează</button>}
               </div>
             )}
           </div>
@@ -1051,7 +1051,7 @@ export default function App() {
         <div className="grid grid-cols-2 gap-px bg-white/10 border-t border-white/10 text-white md:hidden text-[12px] font-bold">
           <button
             onClick={() => setMobileFilterSheetOpen(true)}
-            className={`flex items-center justify-center gap-2 py-2.5 transition-colors ${activeFilterCount > 0 ? "bg-[#C98A2B] text-white" : "bg-[#1C2127] text-white"}`}
+            className={`flex items-center justify-center gap-2 py-2.5 transition-colors ${activeFilterCount > 0 ? "bg-[var(--app-accent)] text-white" : "bg-[var(--app-surface)] text-white"}`}
           >
             <Filter size={14} className="text-white" />
             <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtrează"}</span>
@@ -1061,9 +1061,9 @@ export default function App() {
             onClick={() => {
               setMobileSort((prev) => prev === "recent" ? "status" : prev === "status" ? "numar" : prev === "numar" ? "client" : "recent");
             }}
-            className="flex items-center justify-center gap-2 py-2.5 bg-[#1C2127] active:bg-[#2C333D] transition-colors border-l border-white/10"
+            className="flex items-center justify-center gap-2 py-2.5 bg-[var(--app-surface)] active:bg-[var(--app-surface-muted)] transition-colors border-l border-white/10"
           >
-            <ArrowUpDown size={14} className="text-[#C98A2B]" />
+            <ArrowUpDown size={14} className="text-[var(--app-accent)]" />
             <span className="truncate">
               {mobileSort === "recent" ? "Recente" : mobileSort === "status" ? "Status" : mobileSort === "numar" ? "Nr. dosar" : "Client"}
             </span>
@@ -1071,7 +1071,7 @@ export default function App() {
         </div>
 
         {/* MAIN WORKSPACE CANVAS VIEW AREA */}
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
+        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[var(--app-muted)] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
           <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
             {loading ? (
               <ListSkeleton
@@ -1155,7 +1155,12 @@ export default function App() {
                 />
               )
             ) : view === "dashboard" ? (
-              <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
+              <Dashboard
+                claims={filteredClaims}
+                onOpen={openExisting}
+                pragRidicare={pragRidicare}
+                onOpenRapoarte={() => setView("rapoarte")}
+              />
             ) : view === "programator" ? (
               <Programator
                 claims={claims}
@@ -1177,7 +1182,7 @@ export default function App() {
 
       {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
       <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 md:hidden w-[92%] max-w-sm">
-        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-4 py-2 grid grid-cols-[1fr_auto_1fr_1fr] gap-3 text-white items-center">
+        <div className="bg-[var(--app-surface)]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-4 py-2 grid grid-cols-[1fr_auto_1fr_1fr] gap-3 text-white items-center">
           {[
             { id: "dosare", label: "Dosare", icon: Layers },
             { id: "quickCapture", label: "Scan/Foto", icon: Camera, isAction: true },
@@ -1191,7 +1196,7 @@ export default function App() {
                   key={id}
                   type="button"
                   onClick={() => openQuickCapture()}
-                  className="col-span-1 flex items-center justify-center p-3 rounded-full bg-gradient-to-tr from-[#C98A2B] to-[#E5A84B] text-white shadow-lg -mt-5 border-[3px] border-[#1C2127] active:scale-95 transition-transform"
+                  className="col-span-1 flex items-center justify-center p-3 rounded-full bg-gradient-to-tr from-[var(--app-accent)] to-[#E5A84B] text-white shadow-lg -mt-5 border-[3px] border-[var(--app-surface)] active:scale-95 transition-transform"
                   title="Captură rapidă foto & scanner cameră"
                 >
                   <Icon size={20} />
@@ -1206,7 +1211,7 @@ export default function App() {
                 onClick={() => setView(id)}
                 className={`flex flex-col items-center justify-center px-2 py-1 rounded-full transition-all min-w-0 ${
                   active
-                    ? "bg-[#C98A2B] text-white font-bold"
+                    ? "bg-[var(--app-accent)] text-white font-bold"
                     : "text-white/70 hover:text-white"
                 }`}
               >
@@ -1221,24 +1226,24 @@ export default function App() {
       {/* --- DECATHLON MOBILE BOTTOM SHEET FILTERS --- */}
       {mobileFilterSheetOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center md:hidden">
-          <div className="bg-[#FCFAF5] w-full rounded-t-2xl border-t border-[#DAD4C6] p-4 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            <div className="w-12 h-1.5 bg-[#DAD4C6] rounded-full mx-auto" />
+          <div className="bg-[var(--app-surface-2)] w-full rounded-t-2xl border-t border-[var(--app-border)] p-4 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
+            <div className="w-12 h-1.5 bg-[var(--app-border)] rounded-full mx-auto" />
 
-            <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-              <h3 className="font-bold text-[15px] text-[#23282E] flex items-center gap-2">
-                <Filter size={16} className="text-[#C98A2B]" /> Filtrează Dosarele
+            <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
+              <h3 className="font-bold text-[15px] text-[var(--app-text-strong)] flex items-center gap-2">
+                <Filter size={16} className="text-[var(--app-accent)]" /> Filtrează Dosarele
               </h3>
-              <button onClick={() => setMobileFilterSheetOpen(false)} className="p-1 rounded-full text-[#8A8375] hover:bg-[#EFEAE1]">
+              <button onClick={() => setMobileFilterSheetOpen(false)} className="p-1 rounded-full text-[var(--app-muted)] hover:bg-[var(--app-border-soft)]">
                 <X size={20} />
               </button>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Căutare text</label>
+              <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Căutare text</label>
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
                 <input
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#DAD4C6] text-[14px] bg-white"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--app-border)] text-[14px] bg-white"
                   placeholder="Nr. dosar, client, nr. auto, VIN..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -1248,8 +1253,8 @@ export default function App() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Tip asigurare</label>
-                <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
+                <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Tip asigurare</label>
+                <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
                   <option value="toate">Toate</option>
                   <option value="CASCO">CASCO</option>
                   <option value="RCA">RCA</option>
@@ -1257,45 +1262,45 @@ export default function App() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Doar Blocat</label>
+                <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Doar Blocat</label>
                 <button
                   type="button"
                   onClick={() => setOnlyBlocked((v) => !v)}
-                  className={`w-full p-2.5 rounded-lg border text-[13px] font-semibold text-center transition-colors ${onlyBlocked ? "bg-[#B23A2E] text-white border-[#B23A2E]" : "bg-white text-[#3B5166] border-[#DAD4C6]"}`}
+                  className={`w-full p-2.5 rounded-lg border text-[13px] font-semibold text-center transition-colors ${onlyBlocked ? "bg-[var(--app-danger)] text-white border-[var(--app-danger)]" : "bg-white text-[var(--app-muted)] border-[var(--app-border)]"}`}
                 >
-                  {onlyBlocked ? "⚠️ Blocat DA" : "Toate"}
+                  {onlyBlocked ? "Blocat DA" : "Toate"}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Asigurător</label>
-              <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
+              <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Asigurător</label>
+              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
                 <option value="toti">Toți asigurătorii</option>
                 {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Status Dosar</label>
-              <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Status Dosar</label>
+              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                 <option value="toate">Toate statusurile</option>
                 {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
               </select>
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-[#DAD4C6]">
+            <div className="flex gap-2 pt-2 border-t border-[var(--app-border)]">
               {activeFilterCount > 0 && (
                 <button
                   onClick={() => { resetFilters(); setSearch(""); }}
-                  className="flex-1 py-3 rounded-xl border border-[#B23A2E] text-[#B23A2E] text-[13px] font-bold hover:bg-red-50 text-center"
+                  className="flex-1 py-3 rounded-xl border border-[var(--app-danger)] text-[var(--app-danger)] text-[13px] font-bold hover:bg-red-50 text-center"
                 >
                   Resetează
                 </button>
               )}
               <button
                 onClick={() => setMobileFilterSheetOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] text-center shadow-md"
+                className="flex-1 py-3 rounded-xl bg-[var(--app-accent)] text-white text-[13px] font-bold hover:bg-[var(--app-accent-hover)] text-center shadow-md"
               >
                 Aplică Filtre ({filteredClaims.length} dosare)
               </button>

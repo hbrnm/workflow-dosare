@@ -273,14 +273,15 @@ export function useClaims(session, showNotice) {
           dataUltimeiActualizari: nowISO(),
           updatedByEmail: myEmail,
         };
+        // Optimistic UI — rollback on error (same pattern as moveToStatus)
+        setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
         const patchPayload = toDbPatch(current, effectivePatch, { updatedByEmail: myEmail });
         const { error } = await writeDosarWithSchemaCompat(supabase, "update", patchPayload, { id });
         if (error) {
           showNotice(error.message, "error");
-          await loadAll();
+          setClaims((prev) => prev.map((c) => (c.id === id ? current : c)));
           return false;
         }
-        setClaims((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
         // Co-programează celelalte dosare pe aceeași mașină (aceeași dată/oră)
         if (

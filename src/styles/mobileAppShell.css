@@ -103,7 +103,7 @@
 
 /* Bottom chrome: floating search pill (no tab nav) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 3.6rem;
+  --mobile-bottom-chrome: 5.6rem;
   background: var(--app-bg);
 }
 
@@ -306,6 +306,11 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
   box-shadow: none;
   padding: 0 0.75rem max(0.35rem, env(safe-area-inset-bottom, 0px));
   pointer-events: none;
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float .m-mobile-quick-actions {
+  pointer-events: auto;
+  margin-bottom: 0.4rem;
 }
 
 .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
