@@ -182,6 +182,8 @@ export default function ClaimModal({
   }, [isDragging]);
 
   const [form, setForm] = useState(safeClaim);
+  const [baseline, setBaseline] = useState(safeClaim);
+  const [unsavedPrompt, setUnsavedPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
@@ -274,8 +276,21 @@ export default function ClaimModal({
     await onPatch(form.id, patch);
   };
 
+  /** Media saved immediately via onPatch — sync baseline so it isn't "dirty". */
+  const setFormMedia = (mediaPatch) => {
+    setForm((f) => {
+      const next = { ...f, ...mediaPatch };
+      setBaseline((b) => ({ ...b, ...mediaPatch }));
+      return next;
+    });
+  };
+
   useEffect(() => {
-    setForm(sanitizeClaim(claim));
+    const next = sanitizeClaim(claim);
+    setForm(next);
+    setBaseline(next);
+    setUnsavedPrompt(false);
+    setNoteText("");
   }, [claim?.id]);
 
   useEffect(() => {
@@ -293,7 +308,9 @@ export default function ClaimModal({
         refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
       ]);
       if (!cancelled) {
+        // URL refresh is not a user edit — keep dirty baseline in sync
         setForm((current) => ({ ...current, poze, documente }));
+        setBaseline((current) => ({ ...current, poze, documente }));
       }
     };
     loadStorageUrls();
@@ -378,17 +395,42 @@ export default function ClaimModal({
     ));
   }, [allClaims, form.telefonClient, form.vin, claim?.id]);
 
+  const isDirty = useMemo(() => {
+    if (readOnly) return false;
+    if (noteText.trim()) return true;
+    if (scanSession) return true;
+    try {
+      return JSON.stringify(form) !== JSON.stringify(baseline);
+    } catch {
+      return true;
+    }
+  }, [form, baseline, noteText, scanSession, readOnly]);
+
+  const requestClose = () => {
+    if (!isDirty) {
+      setUnsavedPrompt(false);
+      onClose?.();
+      return;
+    }
+    setUnsavedPrompt(true);
+  };
+
+  const discardAndClose = () => {
+    setUnsavedPrompt(false);
+    onClose?.();
+  };
+
   const handleSave = (openProgramator = false) => {
     const numarDosar = (form.numarDosar || "").trim();
     const numarInmatriculare = (form.numarInmatriculare || "").trim().toUpperCase();
     const vin = (form.vin || "").trim().toUpperCase();
     const telefonClient = (form.telefonClient || "").trim();
 
-    if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return; }
-    if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return; }
+    if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return false; }
+    if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return false; }
     if (telefonClient && !isValidPhone(telefonClient)) {
       onNotify("Telefonul trebuie să conțină între 7 și 15 cifre.", "error");
-      return;
+      return false;
     }
 
     const duplicateDosar = Array.isArray(allClaims) ? allClaims.find((c) =>
@@ -396,7 +438,7 @@ export default function ClaimModal({
     ) : null;
     if (duplicateDosar) {
       onNotify(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`, "error");
-      return;
+      return false;
     }
 
     if (isNew && Array.isArray(allClaims)) {
@@ -406,13 +448,13 @@ export default function ClaimModal({
       );
       if (duplicat) {
         const ok = confirm(`Există deja un dosar activ pentru ${form.numarInmatriculare} (dosarul ${duplicat.numarDosar || "—"}, status „${getStatusDefinition(duplicat.status).label}"). Continui oricum?`);
-        if (!ok) return;
+        if (!ok) return false;
       }
     }
 
     if (form.status === "programat" && !form.dataProgramare) {
       onNotify("Selectează data și ora programării pentru statusul „Programat”.", "error");
-      return;
+      return false;
     }
 
     const scheduleChanged = form.dataProgramare !== claim?.dataProgramare;
@@ -448,10 +490,11 @@ export default function ClaimModal({
         !form.valoarePieseAudatex && !form.valoareAchizitiePiese;
       if (faraValori) {
         const ok = confirm("Nu ai completat nicio valoare de manoperă sau piese pentru acest dosar. Sigur vrei să-l marchezi ca facturat?");
-        if (!ok) return;
+        if (!ok) return false;
       }
     }
 
+    setUnsavedPrompt(false);
     onSave({
       ...form,
       ...deliveryState,
@@ -464,6 +507,7 @@ export default function ClaimModal({
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
       ...(statusChanged ? { alerteAck: false } : {}),
     }, { openProgramator: openProgramator || shouldOpenProgramator });
+    return true;
   };
 
   const insertSlashCommand = (prefix) => {
@@ -483,7 +527,7 @@ export default function ClaimModal({
       }
     }
     const nextDocs = form.documente.filter((d) => d.id !== id);
-    setForm((f) => ({ ...f, documente: nextDocs }));
+    setFormMedia({ documente: nextDocs });
     await persistMediaPatch({ removeDocumente: [doc] });
   };
 
@@ -547,12 +591,12 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
-    setUploadingPoze(false);
     if (noi.length) {
+      setFormMedia({ poze: [...noi, ...form.poze] });
       onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}".`, "success");
       await persistMediaPatch({ appendPoze: noi });
     }
+    setUploadingPoze(false);
   };
 
   const handleDownloadZip = async () => {
@@ -607,12 +651,12 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
-    setUploadingDocumente(false);
     if (noi.length) {
+      setFormMedia({ documente: [...noi, ...form.documente] });
       onNotify(`${noi.length} document(e) încărcat(e).`, "success");
       await persistMediaPatch({ appendDocumente: noi });
     }
+    setUploadingDocumente(false);
   };
 
   const handleStartScanSession = async (fileList) => {
@@ -724,7 +768,7 @@ export default function ClaimModal({
       }
     }
     const nextPoze = form.poze.filter((p) => p.id !== poza.id);
-    setForm((f) => ({ ...f, poze: nextPoze }));
+    setFormMedia({ poze: nextPoze });
     await persistMediaPatch({ removePoze: [poza] });
   };
 
@@ -732,6 +776,9 @@ export default function ClaimModal({
     <div
       className={modalOverlayClass(desktopUi, { dense: true, layer: "front" })}
       {...modalOverlayProps(desktopUi, themeId)}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) requestClose();
+      }}
     >
       <div 
         onClick={(e) => e.stopPropagation()} 
@@ -910,7 +957,16 @@ export default function ClaimModal({
                 </div>
               </div>
             )}
-            <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer">
+            <button
+              type="button"
+              onClick={requestClose}
+              className={`p-1 rounded-lg transition-colors ml-1 cursor-pointer ${
+                desktopUi
+                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+              aria-label="Închide"
+            >
               <X size={20} />
             </button>
           </div>
@@ -1936,7 +1992,7 @@ export default function ClaimModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="m-claim-footer-btn px-4 py-1.5 border border-[var(--app-border)] text-[12.5px] font-bold text-[var(--app-text)] hover:bg-[var(--app-surface-2)] transition-colors"
             >
               {readOnly ? "Închide" : "Anulează"}
@@ -1952,6 +2008,59 @@ export default function ClaimModal({
             )}
           </div>
         </div>
+
+        {/* Unsaved changes — click outside / close while dirty */}
+        {unsavedPrompt && (
+          <div
+            className="absolute inset-0 z-[80] flex items-center justify-center bg-black/45 p-4"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="claim-unsaved-title"
+          >
+            <div
+              className={`w-full max-w-sm rounded-xl border p-4 shadow-xl ${
+                desktopUi
+                  ? "bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-text)]"
+                  : "bg-[#2C333D] border-white/15 text-white"
+              }`}
+            >
+              <h3 id="claim-unsaved-title" className="text-[14px] font-bold tracking-tight">
+                Modificări nesalvate
+              </h3>
+              <p className={`mt-1.5 text-[12.5px] leading-snug ${desktopUi ? "text-[var(--app-muted)]" : "text-white/70"}`}>
+                Ai schimbări pe acest dosar. Salvează înainte de a închide, sau renunță la modificări.
+              </p>
+              <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUnsavedPrompt(false)}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors ${
+                    desktopUi
+                      ? "border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                      : "border-white/20 hover:bg-white/10"
+                  }`}
+                >
+                  Continuă editarea
+                </button>
+                <button
+                  type="button"
+                  onClick={discardAndClose}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[#B23A2E]/40 text-[#B23A2E] hover:bg-[#B23A2E]/10 transition-colors"
+                >
+                  Renunță
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave()}
+                  className="m-claim-footer-primary flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-extrabold transition-colors"
+                >
+                  <Save size={13} /> Salvează
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* SCANNER OVERLAY */}
         {scanSession && (
