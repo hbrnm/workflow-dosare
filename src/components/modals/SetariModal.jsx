@@ -19,6 +19,8 @@ import {
   saveThemePreference,
   THEME_PREF_EVENT,
 } from "../../utils/themePrefs";
+import ConfirmDialog from "../common/ConfirmDialog";
+import AppButton from "../common/AppButton";
 
 export default function SetariModal({
   claims = [],
@@ -47,7 +49,9 @@ export default function SetariModal({
   onChangePassword,
   desktopUi = false,
 }) {
+  const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
+  const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
 
   // Form states
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
@@ -289,7 +293,7 @@ export default function SetariModal({
                     Centrul de Administrare &amp; Setări
                   </h2>
                   <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[var(--app-accent)]/15 text-[var(--app-accent)] border border-[var(--app-accent)]/40" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"}`}>
-                    {isAdmin ? "★ Administrator" : "Operator"}
+                    {isAdmin ? "Administrator" : "Operator"}
                   </span>
                 </div>
                 <p className="text-[11px] text-[var(--app-muted)]">Conectat ca: <span className="font-semibold text-[var(--app-text)]">{userEmail || "Neautentificat"}</span></p>
@@ -301,43 +305,73 @@ export default function SetariModal({
           </div>
         ) : null}
 
-        {/* Navigation Tabs — pill language pe mobil și desktop */}
-        <div className="m-settings-tabs m-settings-tabs--pill flex shrink-0 overflow-x-auto scrollbar-thin">
-          {[
-            { id: "general", label: desktopUi ? "Parametri Generali" : "Parametri", icon: Wrench },
-            { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
-            { id: "notificari", label: desktopUi ? "Afișare & Alerte" : "Afișare", icon: Bell },
-            { id: "profil", label: desktopUi ? "Profil Utilizator" : "Profil", icon: User },
-            { id: "diagnoza", label: desktopUi ? "Diagnoză & Backup" : "Backup", icon: Database },
-          ].map(({ id, label, icon: Icon, badge }) => {
-            const active = activeTab === id;
-            return (
+        {/* Atelier vs Cont — then atelier subtabs */}
+        <div className="shrink-0 border-b border-[var(--app-border)] px-3 pt-2 space-y-2">
+          <div className="flex items-center gap-1.5">
+            {[
+              { id: "atelier", label: "Atelier", icon: Building },
+              { id: "cont", label: "Cont", icon: User },
+            ].map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveTab(id)}
-                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
-                  active ? "is-active" : ""
+                onClick={() => {
+                  setSettingsSection(id);
+                  setActiveTab(id === "cont" ? "profil" : "general");
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
+                  settingsSection === id
+                    ? "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]"
+                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
                 }`}
               >
-                <Icon size={15} />
-                <span>{label}</span>
-                {badge !== undefined && (
-                  <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
-                    {badge}
-                  </span>
-                )}
+                <Icon size={14} /> {label}
               </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={onClose}
-            className="m-settings-close ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
-            aria-label="Închide setările"
-          >
-            <X size={18} />
-          </button>
+            ))}
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
+              aria-label="Închide setările"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {settingsSection === "atelier" ? (
+            <div className="m-settings-tabs m-settings-tabs--pill flex overflow-x-auto scrollbar-thin pb-2">
+              {[
+                { id: "general", label: desktopUi ? "Parametri" : "Parametri", icon: Wrench },
+                { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
+                { id: "notificari", label: desktopUi ? "Afișare" : "Afișare", icon: Bell },
+                { id: "diagnoza", label: "Backup", icon: Database },
+              ].map(({ id, label, icon: Icon, badge }) => {
+                const active = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveTab(id)}
+                    className={`m-settings-tab flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
+                      active ? "is-active" : ""
+                    }`}
+                  >
+                    <Icon size={15} />
+                    <span>{label}</span>
+                    {badge !== undefined && (
+                      <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
+                        {badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pb-2 text-[11px] text-[var(--app-muted)] px-1">
+              Parolă, rol și membri echipă
+            </div>
+          )}
         </div>
 
         {/* Content Body — sole scroll region across settings tabs */}
@@ -347,16 +381,16 @@ export default function SetariModal({
           {activeTab === "general" && (
             <form onSubmit={handleSaveConfig} className="space-y-4">
               {/* Identitate atelier / white-label */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Building size={16} className="text-[#C98A2B]" /> Identitate atelier (white-label)
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Building size={16} className="text-[var(--app-accent)]" /> Identitate atelier (white-label)
                 </h3>
-                <p className="text-[11.5px] text-[#8A8375]">
+                <p className="text-[11.5px] text-[var(--app-muted)]">
                   Numele, inițialele și logo-ul apar în header, login, PDF și mesaje WhatsApp.
                   {isAdmin ? "" : " Doar administratorul poate salva permanent în cloud."}
                 </p>
 
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1C2127] text-white">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--app-surface)] text-white">
                   {logoUrl ? (
                     <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
                   ) : (
@@ -374,41 +408,41 @@ export default function SetariModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Nume atelier</label>
+                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">Nume atelier</label>
                     <input
                       type="text"
                       value={atelierNume}
                       onChange={(e) => setAtelierNume(e.target.value)}
                       disabled={!isAdmin}
-                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60"
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60"
                       placeholder="ex. AutoService Popescu"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Inițiale (max 4)</label>
+                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">Inițiale (max 4)</label>
                     <input
                       type="text"
                       value={atelierShort}
                       onChange={(e) => setAtelierShort(e.target.value.slice(0, 4).toUpperCase())}
                       disabled={!isAdmin}
                       maxLength={4}
-                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 uppercase"
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 uppercase"
                       placeholder="WD"
                     />
                   </div>
                   <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[12px] font-bold text-[#23282E]">URL logo (public)</label>
+                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">URL logo (public)</label>
                     <div className="flex flex-wrap gap-2">
                       <input
                         type="url"
                         value={logoUrl}
                         onChange={(e) => setLogoUrl(e.target.value)}
                         disabled={!isAdmin}
-                        className="flex-1 min-w-[180px] p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60"
+                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60"
                         placeholder="https://… sau lasă gol pentru inițiale"
                       />
                       {isAdmin && onUploadBrandingLogo && (
-                        <label className="px-3 py-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] text-[12px] font-bold cursor-pointer hover:bg-[#EFEAE1]">
+                        <label className="px-3 py-2 rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[12px] font-bold cursor-pointer hover:bg-[var(--app-border-soft)]">
                           {uploadingLogo ? "Se încarcă…" : "Încarcă fișier"}
                           <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} disabled={uploadingLogo} />
                         </label>
@@ -417,7 +451,7 @@ export default function SetariModal({
                         <button
                           type="button"
                           onClick={() => setLogoUrl("")}
-                          className="px-3 py-2 rounded-lg border border-[#DAD4C6] text-[12px] font-bold text-[#B23A2E]"
+                          className="px-3 py-2 rounded-lg border border-[var(--app-border)] text-[12px] font-bold text-[var(--app-danger)]"
                         >
                           Șterge logo
                         </button>
@@ -427,18 +461,18 @@ export default function SetariModal({
                 </div>
               </div>
 
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Wrench size={16} className="text-[#C98A2B]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Wrench size={16} className="text-[var(--app-accent)]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Prag mașini neridicate */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
                       Prag alertă mașini neridicate (zile)
                     </label>
-                    <p className="text-[11px] text-[#8A8375]">
+                    <p className="text-[11px] text-[var(--app-muted)]">
                       După câte zile de la finalizarea reparației se declanșează alerta pentru mașinile neridicate.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
@@ -446,25 +480,25 @@ export default function SetariModal({
                         type="number"
                         min="1"
                         max="30"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
                         value={prag}
                         onChange={(e) => setPrag(e.target.value)}
                       />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">zile de la finalizare</span>
+                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">zile de la finalizare</span>
                     </div>
                   </div>
 
                   {/* NOUL PRAG: Alertă dosare fără activitate (inactivitate) */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E] flex items-center gap-1.5">
-                      <Clock size={15} className="text-[#C98A2B]" /> Prag alertă dosare fără activitate (inactivitate)
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
+                      <Clock size={15} className="text-[var(--app-accent)]" /> Prag alertă dosare fără activitate (inactivitate)
                     </label>
-                    <p className="text-[11px] text-[#8A8375]">
+                    <p className="text-[11px] text-[var(--app-muted)]">
                       Semnalează dosarele deschise în care NU a existat nicio modificare, schimbare de status sau notă nouă timp de X zile.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
                       <select
-                        className="p-2 border border-[#DAD4C6] rounded-lg font-bold text-[13.5px] bg-white focus:border-[#C98A2B]"
+                        className="p-2 border border-[var(--app-border)] rounded-lg font-bold text-[13.5px] bg-white focus:border-[var(--app-accent)]"
                         value={inactivitateDays}
                         onChange={(e) => setInactivitateDays(Number(e.target.value))}
                       > 
@@ -481,11 +515,11 @@ export default function SetariModal({
                   </div>
 
                   {/* Capacitate zilnică programator */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
                       Capacitate maximă programări pe zi
                     </label>
-                    <p className="text-[11px] text-[#8A8375]">
+                    <p className="text-[11px] text-[var(--app-muted)]">
                       Limita de dosare ce pot fi programate într-o singură zi în calendarul service-ului.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
@@ -493,27 +527,27 @@ export default function SetariModal({
                         type="number"
                         min="1"
                         max="20"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
                         value={capacitate}
                         onChange={(e) => setCapacitate(e.target.value)}
                       />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">mașini / zi</span>
+                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">mașini / zi</span>
                     </div>
                   </div>
 
-                  <div className="col-span-full bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-3">
+                  <div className="col-span-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-3">
                     <div>
-                      <label className="block text-[12.5px] font-bold text-[#23282E] flex items-center gap-1.5">
-                        <Bell size={15} className="text-[#C98A2B]" /> Praguri alertă per stadiu (zile)
+                      <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
+                        <Bell size={15} className="text-[var(--app-accent)]" /> Praguri alertă per stadiu (zile)
                       </label>
-                      <p className="text-[11px] text-[#8A8375] mt-1">
+                      <p className="text-[11px] text-[var(--app-muted)] mt-1">
                         După câte zile în același stadiu se declanșează alerta pe card și în Brief.
                       </p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {STATUSES.map((s) => (
-                        <div key={s.key} className="flex items-center justify-between gap-2 bg-white border border-[#DAD4C6] rounded-lg px-2.5 py-1.5">
-                          <span className="text-[11px] font-bold text-[#23282E] truncate" title={s.label}>
+                        <div key={s.key} className="flex items-center justify-between gap-2 bg-white border border-[var(--app-border)] rounded-lg px-2.5 py-1.5">
+                          <span className="text-[11px] font-bold text-[var(--app-text-strong)] truncate" title={s.label}>
                             {s.num}. {s.label}
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
@@ -521,7 +555,7 @@ export default function SetariModal({
                               type="number"
                               min="1"
                               max="90"
-                              className="w-14 p-1 border border-[#DAD4C6] rounded-md font-bold text-[13px] bg-white text-center focus:border-[#C98A2B]"
+                              className="w-14 p-1 border border-[var(--app-border)] rounded-md font-bold text-[13px] bg-white text-center focus:border-[var(--app-accent)]"
                               value={alertDaysByStatus[s.key] ?? s.alertDays ?? 3}
                               onChange={(e) =>
                                 setAlertDaysByStatus((prev) => ({
@@ -530,7 +564,7 @@ export default function SetariModal({
                                 }))
                               }
                             />
-                            <span className="text-[10px] font-bold text-[#8A8375]">z</span>
+                            <span className="text-[10px] font-bold text-[var(--app-muted)]">z</span>
                           </div>
                         </div>
                       ))}
@@ -538,11 +572,11 @@ export default function SetariModal({
                   </div>
 
                   {/* TVA Implicit */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
+                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
                       Cotă TVA implicită (%)
                     </label>
-                    <p className="text-[11px] text-[#8A8375]">
+                    <p className="text-[11px] text-[var(--app-muted)]">
                       Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
@@ -550,11 +584,11 @@ export default function SetariModal({
                         type="number"
                         min="0"
                         max="100"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
                         value={tvaDefault}
                         onChange={(e) => setTvaDefault(e.target.value)}
                       />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">% TVA</span>
+                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">% TVA</span>
                     </div>
                   </div>
                 </div>
@@ -564,7 +598,7 @@ export default function SetariModal({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-6 py-2.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-6 py-2.5 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
                 >
                   <CheckCircle2 size={16} /> Salvează Parametrii
                 </button>
@@ -575,19 +609,19 @@ export default function SetariModal({
           {/* TAB 2: MANAGEMENT ASIGURĂTORI */}
           {activeTab === "asiguratori" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                  <h3 className="font-bold text-[14px] text-[#23282E] flex items-center gap-2">
-                    <Building size={16} className="text-[#C98A2B]" /> Nomenclator Asigurători ({insurersList.length})
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
+                  <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-2">
+                    <Building size={16} className="text-[var(--app-accent)]" /> Nomenclator Asigurători ({insurersList.length})
                   </h3>
-                  <span className="text-[11px] text-[#8A8375] font-semibold">Lista societăților de asigurare</span>
+                  <span className="text-[11px] text-[var(--app-muted)] font-semibold">Lista societăților de asigurare</span>
                 </div>
 
                 {/* Adăugare Asigurător Nou (doar pentru Admins) */}
                 {isAdmin ? (
                   <div className="flex gap-2">
                     <input
-                      className="flex-1 px-3 py-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white"
+                      className="flex-1 px-3 py-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface-2)] focus:bg-white"
                       placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
                       value={newInsurer}
                       onChange={(e) => setNewInsurer(e.target.value)}
@@ -596,27 +630,27 @@ export default function SetariModal({
                     <button
                       type="button"
                       onClick={handleAddInsurer}
-                      className="flex items-center gap-1 px-4 py-2 bg-[#3B5166] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#2C4160]"
+                      className="flex items-center gap-1 px-4 py-2 bg-[var(--app-muted)] text-white rounded-lg text-[12.5px] font-bold hover:bg-[var(--app-text)]"
                     >
                       <Plus size={15} /> Adaugă
                     </button>
                   </div>
                 ) : (
-                  <p className="text-[11.5px] text-[#8A8375] bg-[#FAF8F5] p-2.5 rounded-lg border border-[#DAD4C6]">
-                    🔒 Lista societăților de asigurare este gestionată de Administrator.
+                  <p className="text-[11.5px] text-[var(--app-muted)] bg-[var(--app-surface-2)] p-2.5 rounded-lg border border-[var(--app-border)]">
+                    Lista societăților de asigurare este gestionată de Administrator.
                   </p>
                 )}
 
                 {/* Grilă Asigurători */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
                   {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((ins) => (
-                    <div key={ins} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12.5px]">
-                      <span className="font-semibold text-[#23282E] truncate">{ins}</span>
+                    <div key={ins} className="flex items-center justify-between bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-[12.5px]">
+                      <span className="font-semibold text-[var(--app-text-strong)] truncate">{ins}</span>
                       {isAdmin && (
                         <button
                           type="button"
                           onClick={() => handleRemoveInsurer(ins)}
-                          className="text-[#8A8375] hover:text-[#B23A2E] p-1 transition-colors"
+                          className="text-[var(--app-muted)] hover:text-[var(--app-danger)] p-1 transition-colors"
                           title="Șterge din listă"
                         >
                           <Trash2 size={13} />
@@ -632,12 +666,12 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Sun size={16} className="text-[#C98A2B]" /> Aspect &amp; temă
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Sun size={16} className="text-[var(--app-accent)]" /> Aspect &amp; temă
                 </h3>
-                <p className="text-[11.5px] text-[#8A8375] leading-relaxed">
-                  <strong className="text-[#23282E]">Automat</strong> — fundal alb între 07:00–19:00, negru noaptea.
+                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
+                  <strong className="text-[var(--app-text-strong)]">Automat</strong> — fundal alb între 07:00–19:00, negru noaptea.
                   Poți forța manual tema deschisă sau întunecată.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -678,40 +712,40 @@ export default function SetariModal({
           {activeTab === "profil" && (
             <div className="space-y-4">
               {/* Informații Cont Curent */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center justify-between">
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <User size={16} className="text-[#C98A2B]" /> Detalii Cont &amp; Securitate
+                    <User size={16} className="text-[var(--app-accent)]" /> Detalii Cont &amp; Securitate
                   </span>
-                  <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${isAdmin ? "bg-[#C98A2B] text-white" : "bg-[#3B5166] text-white"}`}>
+                  <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${isAdmin ? "bg-[var(--app-accent)] text-white" : "bg-[var(--app-muted)] text-white"}`}>
                     {isAdmin ? "Rol: ADMINISTRATOR (Acces Total)" : "Rol: OPERATOR (Dosare Proprii)"}
                   </span>
                 </h3>
 
                 <div className="space-y-3">
-                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
+                  <div className="p-3.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-[#8A8375] font-bold uppercase block">Adresă de e-mail conectată</span>
-                      <span className="font-mono font-bold text-[14px] text-[#23282E]">{userEmail || "—"}</span>
-                      <span className="text-[11.5px] text-[#6B6558] block mt-0.5">
-                        {isAdmin ? "🔑 Poți edita, modifica și șterge orice dosar din sistem." : "🔒 Poți edita și șterge doar dosarele create de tine."}
+                      <span className="text-[11px] text-[var(--app-muted)] font-bold uppercase block">Adresă de e-mail conectată</span>
+                      <span className="font-mono font-bold text-[14px] text-[var(--app-text-strong)]">{userEmail || "—"}</span>
+                      <span className="text-[11.5px] text-[var(--app-muted)] block mt-0.5">
+                        {isAdmin ? "Poți edita, modifica și șterge orice dosar din sistem." : "Poți edita și șterge doar dosarele create de tine."}
                       </span>
                     </div>
-                    <span className="px-2.5 py-1 bg-[#3E6B45]/15 text-[#3E6B45] font-bold text-[11px] rounded-md">
+                    <span className="px-2.5 py-1 bg-[var(--app-success)]/15 text-[var(--app-success)] font-bold text-[11px] rounded-md">
                       ✓ Cont Activ
                     </span>
                   </div>
 
-                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
+                  <div className="p-3.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex items-center justify-between">
                     <div>
-                      <span className="text-[13px] font-bold text-[#23282E]">Deconectare din cont</span>
-                      <span className="text-[11px] text-[#8A8375] block">Închide sesiunea curentă în condiții de siguranță</span>
+                      <span className="text-[13px] font-bold text-[var(--app-text-strong)]">Deconectare din cont</span>
+                      <span className="text-[11px] text-[var(--app-muted)] block">Închide sesiunea curentă în condiții de siguranță</span>
                     </div>
                     {onSignOut && (
                       <button
                         type="button"
                         onClick={onSignOut}
-                        className="px-4 py-1.5 bg-[#B23A2E] text-white text-[12px] font-bold rounded-lg hover:bg-[#922D24] transition-colors"
+                        className="px-4 py-1.5 bg-[var(--app-danger)] text-white text-[12px] font-bold rounded-lg hover:bg-[#922D24] transition-colors"
                       >
                         Delogare
                       </button>
@@ -720,38 +754,38 @@ export default function SetariModal({
                 </div>
 
                 {/* Formular Schimbare Parolă Cont (Disponibil pentru toți utilizatorii) */}
-                <form onSubmit={handleChangePasswordSubmit} className="p-4 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl space-y-3 pt-3">
+                <form onSubmit={handleChangePasswordSubmit} className="p-4 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl space-y-3 pt-3">
                   <div>
-                    <h4 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5">
-                      <Key size={15} className="text-[#C98A2B]" /> Schimbă Parola Contului Tău
+                    <h4 className="font-bold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5">
+                      <Key size={15} className="text-[var(--app-accent)]" /> Schimbă Parola Contului Tău
                     </h4>
-                    <p className="text-[11px] text-[#8A8375]">
+                    <p className="text-[11px] text-[var(--app-muted)]">
                       Setează o parolă nouă confidențială după conectarea inițială.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Parolă Nouă</label>
+                      <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1">Parolă Nouă</label>
                       <input
                         type="password"
                         required
                         minLength={6}
                         placeholder="Parola nouă (min. 6 caractere)..."
-                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
+                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white focus:border-[var(--app-accent)]"
                         value={myNewPassword}
                         onChange={(e) => setMyNewPassword(e.target.value)}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Confirmare Parolă Nouă</label>
+                      <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1">Confirmare Parolă Nouă</label>
                       <input
                         type="password"
                         required
                         minLength={6}
                         placeholder="Reintroduceți parola nouă..."
-                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
+                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white focus:border-[var(--app-accent)]"
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                       />
@@ -762,7 +796,7 @@ export default function SetariModal({
                     <button
                       type="submit"
                       disabled={updatingPassword || !myNewPassword}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-muted)] hover:bg-[var(--app-text)] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all disabled:opacity-50"
                     >
                       <Key size={14} /> {updatingPassword ? "Se actualizează..." : "Actualizează Parola"}
                     </button>
@@ -772,21 +806,21 @@ export default function SetariModal({
 
               {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă Exclusiv pentru Administratori) */}
               {isAdmin && (
-                <div className="bg-white border border-[#C98A2B]/40 rounded-xl p-4 space-y-4 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
+                <div className="bg-white border border-[var(--app-accent)]/40 rounded-xl p-4 space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                     <div>
-                      <h3 className="font-extrabold text-[14.5px] text-[#23282E] flex items-center gap-2">
-                        <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
+                      <h3 className="font-extrabold text-[14.5px] text-[var(--app-text-strong)] flex items-center gap-2">
+                        <Shield size={17} className="text-[var(--app-accent)]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
                       </h3>
-                      <p className="text-[11px] text-[#6B6558]">
+                      <p className="text-[11px] text-[var(--app-muted)]">
                         Invită colegi cu rol clar. Trimite-le emailul + parola inițială; pot reseta parola din „Am uitat parola” la login.
                       </p>
                     </div>
                   </div>
 
                 {/* Formular Adăugare Utilizator Nou */}
-                <form onSubmit={handleAddUserSubmit} className="bg-[#FBF3E6] border border-[#C98A2B]/30 rounded-xl p-3.5 space-y-3">
-                  <h4 className="font-bold text-[13px] text-[#7A5316] flex items-center gap-1.5">
+                <form onSubmit={handleAddUserSubmit} className="bg-[var(--app-warning-muted)] border border-[var(--app-accent)]/30 rounded-xl p-3.5 space-y-3">
+                  <h4 className="font-bold text-[13px] text-[var(--app-warning)] flex items-center gap-1.5">
                     <Plus size={15} /> Invită utilizator
                   </h4>
 
@@ -795,13 +829,13 @@ export default function SetariModal({
                       type="email"
                       required
                       placeholder="E-mail (ex: coleg@service.ro)"
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-medium focus:border-[var(--app-accent)]"
                       value={newUserEmail}
                       onChange={(e) => setNewUserEmail(e.target.value)}
                     />
 
                     <select
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-bold text-[#23282E] focus:border-[#C98A2B]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-bold text-[var(--app-text-strong)] focus:border-[var(--app-accent)]"
                       value={newUserRole}
                       onChange={(e) => setNewUserRole(e.target.value)}
                       title={ROLES[normalizeRole(newUserRole)]?.description}
@@ -817,13 +851,13 @@ export default function SetariModal({
                       type="password"
                       required
                       placeholder="Parolă inițială (min. 6)"
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-medium focus:border-[var(--app-accent)]"
                       value={newUserPassword}
                       onChange={(e) => setNewUserPassword(e.target.value)}
                     />
                   </div>
 
-                  <p className="text-[11px] text-[#6B6558] leading-relaxed">
+                  <p className="text-[11px] text-[var(--app-muted)] leading-relaxed">
                     {ROLES[normalizeRole(newUserRole)]?.description || ""}
                     {" "}Partajează datele de login pe un canal sigur.
                   </p>
@@ -832,7 +866,7 @@ export default function SetariModal({
                     <button
                       type="submit"
                       disabled={creatingUser}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Plus size={15} /> {creatingUser ? "Se invită..." : "Creează invitație"}
                     </button>
@@ -841,34 +875,34 @@ export default function SetariModal({
 
                 {/* Lista Utilizatori Existenți */}
                 <div className="space-y-2 pt-1">
-                  <h4 className="font-bold text-[12.5px] text-[#23282E]">Membri Înregistrați ({usersList.length}):</h4>
+                  <h4 className="font-bold text-[12.5px] text-[var(--app-text-strong)]">Membri Înregistrați ({usersList.length}):</h4>
                   {usersList.length === 0 ? (
-                    <div className="p-4 text-center text-[12px] text-[#8A8375] bg-[#FAF8F5] rounded-xl border border-[#DAD4C6]">
+                    <div className="p-4 text-center text-[12px] text-[var(--app-muted)] bg-[var(--app-surface-2)] rounded-xl border border-[var(--app-border)]">
                       Niciun utilizator suplimentar configurat încă.
                     </div>
                   ) : (
-                    <div className="divide-y divide-[#EFEAE1] border border-[#DAD4C6] rounded-xl overflow-hidden bg-white">
+                    <div className="divide-y divide-[var(--app-border-soft)] border border-[var(--app-border)] rounded-xl overflow-hidden bg-white">
                       {usersList.map((u) => {
                         const isCurrent = u.email?.toLowerCase() === userEmail?.toLowerCase();
                         const isUserAdmin = u.role === "admin";
 
                         return (
-                          <div key={u.email} className="p-3 flex items-center justify-between gap-2 hover:bg-[#FCFAF5]">
+                          <div key={u.email} className="p-3 flex items-center justify-between gap-2 hover:bg-[var(--app-surface-2)]">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] text-white ${isUserAdmin ? "bg-[#C98A2B]" : "bg-[#3B5166]"}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] text-white ${isUserAdmin ? "bg-[var(--app-accent)]" : "bg-[var(--app-muted)]"}`}>
                                 {u.email ? u.email.charAt(0).toUpperCase() : "U"}
                               </div>
                               <div>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono font-bold text-[13px] text-[#23282E]">{u.email}</span>
+                                  <span className="font-mono font-bold text-[13px] text-[var(--app-text-strong)]">{u.email}</span>
                                   {isCurrent && (
-                                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#EFEAE1] text-[#3B5166]">
+                                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                                       Tu (Cont Curent)
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-[11px] text-[#8A8375] block">
-                                  Rol: <strong className={isUserAdmin ? "text-[#C98A2B]" : "text-[#3B5166]"}>{isUserAdmin ? "Administrator (Editare toate dosarele)" : "Operator (Editează doar propriile dosare)"}</strong>
+                                <span className="text-[11px] text-[var(--app-muted)] block">
+                                  Rol: <strong className={isUserAdmin ? "text-[var(--app-accent)]" : "text-[var(--app-muted)]"}>{isUserAdmin ? "Administrator (Editare toate dosarele)" : "Operator (Editează doar propriile dosare)"}</strong>
                                 </span>
                               </div>
                             </div>
@@ -881,13 +915,13 @@ export default function SetariModal({
                                   onClick={() => onToggleAdminRole(u.email)}
                                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
                                     isUserAdmin
-                                      ? "bg-[#EEF1F3] text-[#3B5166] border-[#DAD4C6] hover:bg-gray-200"
-                                      : "bg-[#FBF3E6] text-[#7A5316] border-[#C98A2B]/40 hover:bg-[#F3D9A8]"
+                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-200"
+                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[#F3D9A8]"
                                   }`}
                                   title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
                                 >
                                   <Key size={13} />
-                                  <span>{isUserAdmin ? "Devino Operator" : "★ Fă Administrator"}</span>
+                                  <span>{isUserAdmin ? "Devino Operator" : "Fă Administrator"}</span>
                                 </button>
                               )}
 
@@ -896,8 +930,8 @@ export default function SetariModal({
                                 <button
                                   type="button"
                                   disabled={isCurrent}
-                                  onClick={() => onDeleteUser(u.email)}
-                                  className="p-1.5 text-[#8A8375] hover:text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                  onClick={() => setPendingDeleteEmail(u.email)}
+                                  className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                                   title={isCurrent ? "Nu te poți șterge pe tine însuți" : "Șterge utilizator"}
                                 >
                                   <Trash2 size={16} />
@@ -919,37 +953,37 @@ export default function SetariModal({
           {/* TAB 5: DIAGNOZĂ & BACKUP DATA */}
           {activeTab === "diagnoza" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Database size={16} className="text-[#3B5166]" /> Diagnostic Sistem &amp; Stocare Cloud
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Database size={16} className="text-[var(--app-muted)]" /> Diagnostic Sistem &amp; Stocare Cloud
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Total Dosare</span>
-                    <span className="block font-extrabold text-[20px] text-[#23282E]">{claims.length}</span>
+                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Total Dosare</span>
+                    <span className="block font-extrabold text-[20px] text-[var(--app-text-strong)]">{claims.length}</span>
                   </div>
 
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Fotografii Salvate</span>
-                    <span className="block font-extrabold text-[20px] text-[#C98A2B]">{totalPoze}</span>
+                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Fotografii Salvate</span>
+                    <span className="block font-extrabold text-[20px] text-[var(--app-accent)]">{totalPoze}</span>
                   </div>
 
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Documente Atașate</span>
-                    <span className="block font-extrabold text-[20px] text-[#3B5166]">{totalDocumente}</span>
+                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
+                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Documente Atașate</span>
+                    <span className="block font-extrabold text-[20px] text-[var(--app-muted)]">{totalDocumente}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#DAD4C6]">
-                  <h4 className="font-bold text-[13px] text-[#23282E] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
-                  <p className="text-[11px] text-[#8A8375] mb-3">
+                <div className="pt-2 border-t border-[var(--app-border)]">
+                  <h4 className="font-bold text-[13px] text-[var(--app-text-strong)] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
+                  <p className="text-[11px] text-[var(--app-muted)] mb-3">
                     Descarcă o copie de siguranță completă a tuturor dosarelor și istoricului din aplicație în format JSON.
                   </p>
                   <button
                     type="button"
                     onClick={exportFullBackupJSON}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2C4160] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-text)] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors"
                   >
                     <Download size={15} /> Descarcă Backup Complet (.json)
                   </button>
@@ -961,17 +995,28 @@ export default function SetariModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[#DAD4C6] shrink-0 text-[12px]">
-          <span className="text-[#8A8375]">{atelierNume || "Workflow Dosare"} · setări v1.5</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg border border-[#C7C0B0] font-semibold text-[#4A443A] hover:bg-[#EFEAE1]"
-          >
+        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[var(--app-border)] shrink-0 text-[12px]">
+          <span className="text-[var(--app-muted)]">{atelierNume || "Workflow Dosare"} · setări</span>
+          <AppButton variant="secondary" onClick={onClose}>
             Închide
-          </button>
+          </AppButton>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDeleteEmail)}
+        desktopUi={desktopUi}
+        title="Șterge utilizatorul?"
+        message={`„${pendingDeleteEmail}" va fi scos din echipă. Contul Auth poate rămâne — nu se poate reconecta în app fără a fi reinvitat.`}
+        confirmLabel="Șterge"
+        danger
+        onCancel={() => setPendingDeleteEmail(null)}
+        onConfirm={async () => {
+          const email = pendingDeleteEmail;
+          setPendingDeleteEmail(null);
+          if (email && onDeleteUser) await onDeleteUser(email);
+        }}
+      />
     </div>
   );
 }

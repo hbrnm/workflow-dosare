@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3 } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
@@ -11,7 +11,7 @@ import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
 
-export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
+export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte }) {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSecondaryKpis, setShowSecondaryKpis] = useState(false);
   const total = claims.length;
@@ -59,10 +59,18 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3 }) {
           <p className="app-type-xs text-[var(--app-muted)] mt-0.5">Indicatori, etape și export</p>
         </div>
 
-        <AppButton variant="primary" onClick={() => setShowExportModal(true)}>
-          <FileSpreadsheet size={14} />
-          <span>Export Excel</span>
-        </AppButton>
+        <div className="flex items-center gap-2 shrink-0">
+          {onOpenRapoarte ? (
+            <AppButton variant="secondary" onClick={onOpenRapoarte}>
+              <Wallet size={14} />
+              <span>Rapoarte</span>
+            </AppButton>
+          ) : null}
+          <AppButton variant="primary" onClick={() => setShowExportModal(true)}>
+            <FileSpreadsheet size={14} />
+            <span>Export Excel</span>
+          </AppButton>
+        </div>
       </div>
 
       {/* Max 4 KPIs above the fold */}
