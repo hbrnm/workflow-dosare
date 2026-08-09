@@ -7,8 +7,18 @@ export function useClaimModal(showNotice) {
   const [alerteModalTab, setAlerteModalTab] = useState(null);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  /** Prefill for QuickCreate from Programator / Flux: { status, dataProgramare } */
+  const [quickCreateDefaults, setQuickCreateDefaults] = useState(null);
 
-  const openNew = useCallback(() => {
+  const openNew = useCallback((status, dataProgramare) => {
+    if (status || dataProgramare) {
+      setQuickCreateDefaults({
+        status: status || "deschidere",
+        dataProgramare: dataProgramare || null,
+      });
+    } else {
+      setQuickCreateDefaults(null);
+    }
     setQuickCreateOpen(true);
   }, []);
 
@@ -34,11 +44,14 @@ export function useClaimModal(showNotice) {
   const closeClaimModal = useCallback(() => setModalClaim(null), []);
   const openSettings = useCallback(() => setSetariOpen(true), []);
   const closeSettings = useCallback(() => setSetariOpen(false), []);
-  const openAlerts = useCallback((tab) => setAlerteModalTab(tab), []);
+  const openAlerts = useCallback((tab) => setAlerteModalTab(tab || "depasite"), []);
   const closeAlerts = useCallback(() => setAlerteModalTab(null), []);
   const openQuickCapture = useCallback(() => setQuickCaptureOpen(true), []);
   const closeQuickCapture = useCallback(() => setQuickCaptureOpen(false), []);
-  const closeQuickCreate = useCallback(() => setQuickCreateOpen(false), []);
+  const closeQuickCreate = useCallback(() => {
+    setQuickCreateOpen(false);
+    setQuickCreateDefaults(null);
+  }, []);
 
   return {
     modalClaim,
@@ -57,5 +70,6 @@ export function useClaimModal(showNotice) {
     closeQuickCapture,
     quickCreateOpen,
     closeQuickCreate,
+    quickCreateDefaults,
   };
 }

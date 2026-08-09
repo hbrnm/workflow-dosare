@@ -143,6 +143,7 @@ export default function MobileClaimsList({
   allClaimsCount,
   searchQuery = "",
   onOpen,
+  onNew,
   onPatch,
   canEditFn,
   onNotify,
@@ -274,7 +275,7 @@ export default function MobileClaimsList({
 
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         {groupedClaims.length === 0 ? (
-          <div className="m-brief-empty">
+          <div className="m-brief-empty space-y-3">
             <p className="font-bold text-[13px]">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Niciun dosar pentru filtrele alese"
@@ -283,8 +284,13 @@ export default function MobileClaimsList({
             <p className="text-[11.5px] m-muted">
               {searchQuery.trim() || statusFilter !== "toate"
                 ? "Schimbă filtrul sau șterge căutarea."
-                : "Adaugă un dosar din Acces rapid → Nou (în Brief)."}
+                : "Creează primul dosar ca să apară în listă."}
             </p>
+            {!searchQuery.trim() && statusFilter === "toate" && onNew ? (
+              <button type="button" className="m-hub-cta mx-auto" onClick={onNew}>
+                + Dosar nou
+              </button>
+            ) : null}
           </div>
         ) : (
           <ul className="app-alerte-rows m-brief-alerte-rows m-flow-list">

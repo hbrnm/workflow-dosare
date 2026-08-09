@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Loader2,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
+import EmptyWorkspace from "../common/EmptyWorkspace";
 import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
 
@@ -23,8 +24,11 @@ const SECONDARY_NAV_ITEMS = [
 
 export default function MobileAppLayout({
   claims,
+  loading = false,
   session,
   userEmail,
+  isAdmin = true,
+  totalClaimsCount = 0,
   onOpenClaim,
   onNewClaim,
   onPatchClaim,
@@ -207,6 +211,25 @@ export default function MobileAppLayout({
               );
             })}
 
+            {onOpenAlerts ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item is-secondary"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenAlerts(totalAlertsCount > 0 ? "depasite" : "toate");
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Bell size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Centrul de Alerte</span>
+                <span className="m-float-menu-badge">{totalAlertsCount > 99 ? "99+" : totalAlertsCount}</span>
+              </button>
+            ) : null}
+
             <div className="m-float-menu-divider" />
             <div className="m-float-menu-label">Cont</div>
             {userEmail ? (
@@ -250,7 +273,16 @@ export default function MobileAppLayout({
       )}
 
       <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
-        {activeTab === "capture" ? (
+        {loading ? (
+          <div className="flex flex-1 min-h-[40vh] items-center justify-center gap-2 text-[var(--app-muted)] text-[13px]">
+            <Loader2 className="animate-spin" size={18} /> Se încarcă dosarele…
+          </div>
+        ) : claims.length === 0 && (activeTab === "brief" || activeTab === "dosare") ? (
+          <EmptyWorkspace
+            onNew={onNewClaim}
+            ownershipHint={!isAdmin && totalClaimsCount > 0}
+          />
+        ) : activeTab === "capture" ? (
           <MobileQuickCapture
             claims={filteredClaims}
             searchQuery={search}

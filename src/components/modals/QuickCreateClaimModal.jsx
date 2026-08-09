@@ -20,7 +20,17 @@ const labelClass = (desktopUi) =>
     ? "app-login-label mb-1"
     : "app-mobile-label flex items-center gap-1.5 mb-1.5";
 
-export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClaims = [], themeId = "atelier", desktopUi = false }) {
+export default function QuickCreateClaimModal({
+  isOpen,
+  onClose,
+  onSave,
+  onNotify,
+  allClaims = [],
+  themeId = "atelier",
+  desktopUi = false,
+  initialStatus = "deschidere",
+  initialDataProgramare = null,
+}) {
   const defaultInsurer = getMostFrequentInsurer(allClaims, INSURERS[0]);
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
@@ -32,10 +42,20 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
 
   if (!isOpen) return null;
 
+  const statusKey = initialStatus || "deschidere";
+  const scheduleHint = initialDataProgramare
+    ? String(initialDataProgramare).replace("T", " ").slice(0, 16)
+    : null;
+
+  const notify = (message, type = "error") => {
+    if (onNotify) onNotify(message, type);
+    else if (typeof window !== "undefined") window.alert(message);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!numarInmatriculare.trim()) {
-      alert("Te rugăm să introduci numărul de înmatriculare.");
+      notify("Te rugăm să introduci numărul de înmatriculare.");
       return;
     }
 
@@ -43,7 +63,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
 
     setIsSaving(true);
     try {
-      const baseClaim = emptyClaim("deschidere");
+      const baseClaim = emptyClaim(statusKey);
       const result = await onSave({
         ...baseClaim,
         tipAsigurare: "CASCO",
@@ -52,7 +72,8 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
         client: client.trim().toUpperCase(),
         telefonClient: telefon.trim(),
         asigurator: selectedInsurer,
-        status: "deschidere",
+        status: statusKey === "primit" ? "deschidere" : statusKey,
+        ...(initialDataProgramare ? { dataProgramare: initialDataProgramare } : {}),
       });
       if (result && result.success === false) {
         return;
@@ -64,7 +85,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
       onClose();
     } catch (err) {
       console.error("Error creating claim:", err);
-      alert("Eroare la salvarea dosarului: " + err.message);
+      notify("Eroare la salvarea dosarului: " + (err?.message || "necunoscută"));
     } finally {
       setIsSaving(false);
     }
@@ -82,9 +103,16 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${desktopUi ? "app-accent-bg" : "m-modal-header-icon"}`}>
               <Plus size={20} />
             </div>
-            <h2 className={`font-semibold text-[16px] tracking-tight truncate app-display ${desktopUi ? "text-[var(--app-text)]" : "font-extrabold text-white"}`}>
-              Dosar Nou Rapid
-            </h2>
+            <div className="min-w-0">
+              <h2 className={`font-semibold text-[16px] tracking-tight truncate app-display ${desktopUi ? "text-[var(--app-text)]" : "font-extrabold text-white"}`}>
+                Dosar Nou Rapid
+              </h2>
+              {scheduleHint ? (
+                <p className={`text-[11px] truncate ${desktopUi ? "text-[var(--app-muted)]" : "text-white/70"}`}>
+                  Programare: {scheduleHint}
+                </p>
+              ) : null}
+            </div>
           </div>
           <button
             type="button"
