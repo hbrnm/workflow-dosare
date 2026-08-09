@@ -110,7 +110,7 @@ export default function App() {
     session,
     authLoading,
     setSession,
-    handleLogout,
+    handleLogout: authLogout,
     passwordRecovery,
     clearPasswordRecovery,
   } = useAuth();
@@ -293,6 +293,65 @@ export default function App() {
   const closeFieldClaim = useCallback(() => {
     setFieldClaimId(null);
   }, []);
+
+  /** Logout must reset overlays + hash — otherwise `#setari` / open Setări survive and reopen after login. */
+  const resetShellToBrief = useCallback(() => {
+    closeSettings();
+    closeAlerts();
+    closeClaimModal();
+    closeQuickCreate();
+    closeQuickCapture();
+    setFieldClaimId(null);
+    setIsCommandPaletteOpen(false);
+    setView("dosare");
+    setDosareSubView("brief");
+    setMobileTab("brief");
+    try {
+      localStorage.setItem("workflow_dosare_active_view", "dosare");
+      localStorage.setItem("workflow_dosare_sub_view", "brief");
+      const path = `${window.location.pathname}${window.location.search || ""}`;
+      window.history.replaceState({ view: "dosare", modalOpen: false }, "", path);
+    } catch (err) {
+      console.warn("Unable to reset navigation shell", err);
+    }
+  }, [
+    closeSettings,
+    closeAlerts,
+    closeClaimModal,
+    closeQuickCreate,
+    closeQuickCapture,
+  ]);
+
+  /** Logout must reset overlays + hash — otherwise `#setari` / open Setări survive and reopen after login. */
+  const handleLogout = useCallback(async () => {
+    resetShellToBrief();
+    await authLogout();
+  }, [authLogout, resetShellToBrief]);
+
+  // Session dropped without our logout handler (expired token, etc.)
+  useEffect(() => {
+    if (session || authLoading) return;
+    if (setariOpen || alerteModalTab || modalClaim || quickCreateOpen || quickCaptureOpen || fieldClaimId) {
+      resetShellToBrief();
+    } else if (typeof window !== "undefined" && window.location.hash) {
+      try {
+        const path = `${window.location.pathname}${window.location.search || ""}`;
+        window.history.replaceState({ view: "dosare", modalOpen: false }, "", path);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [
+    session,
+    authLoading,
+    setariOpen,
+    alerteModalTab,
+    modalClaim,
+    quickCreateOpen,
+    quickCaptureOpen,
+    fieldClaimId,
+    resetShellToBrief,
+  ]);
 
   // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
   useEffect(() => {
