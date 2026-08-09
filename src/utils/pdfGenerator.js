@@ -370,12 +370,12 @@ export async function generateazaCerereDespagubireOmniasig(claim) {
   doc.setFont(undefined, "normal");
   y += 9;
 
-  // Subsemnatul = delegat (dacă ≠ proprietar) sau client.
-  // „reprezentant al societății” pe tipizat = spațiu pentru numele delegatului când e cazul; altfel gol.
+  // Subsemnatul = delegat (dacă ≠ proprietar) sau client persoană.
+  // „reprezentant al societății” = clientul când e firmă; altfel gol (de mână).
   doc.setFontSize(9.5);
   const sub = sd(parties.subsemnatul || "_______________________________");
-  const societateBlank = parties.asCompanyRep
-    ? sd(parties.reprezentant)
+  const societateBlank = parties.reprezentantSocietate
+    ? sd(parties.reprezentantSocietate)
     : "_______________________________";
   const repLine = `Subsemnatul(a) ${sub}, reprezentant al societatii ${societateBlank}`;
   const repLines = doc.splitTextToSize(sd(repLine), 182);
@@ -458,14 +458,6 @@ export async function generateazaCerereDespagubireOmniasig(claim) {
   y += 5;
   write("........................................................................................................................................................................", 14, y);
   y += 10;
-
-  if (parties.proprietar && parties.asCompanyRep) {
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    write(`Proprietar (din dosar): ${parties.proprietar}`, 14, y);
-    doc.setTextColor(0);
-    y += 7;
-  }
 
   doc.setFontSize(10);
   doc.setFont(undefined, "bold");
