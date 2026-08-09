@@ -20,6 +20,7 @@ import DosarNumber from "../common/DosarNumber";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
+import { glossaryTitle } from "../../constants/glossary";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate" },
@@ -36,12 +37,12 @@ const ATTENTION_DANGER_TYPES = new Set([
 ]);
 
 const STAGE_FOCUS = {
-  air: { title: "AIR", statusKey: "deschidere", Icon: ClipboardCheck },
-  piese: { title: "Piese", statusKey: "piese_comandate", Icon: Package },
-  programat: { title: "Programări", statusKey: "programat", Icon: CalendarClock },
-  lucru: { title: "Reparație", statusKey: "in_lucru", Icon: Wrench },
-  accept: { title: "Accept plată", statusKey: "accept_plata", Icon: BadgeCheck },
-  facturat: { title: "Facturat", statusKey: "facturat", Icon: CheckCircle2 },
+  air: { title: "AIR", statusKey: "deschidere", Icon: ClipboardCheck, hint: "Acord intrare în reparație — dosar deschis, date și poze." },
+  piese: { title: "Piese", statusKey: "piese_comandate", Icon: Package, hint: "Piese comandate. Marchează Sosite când ajung în atelier." },
+  programat: { title: "Programări", statusKey: "programat", Icon: CalendarClock, hint: "Mașina are slot rezervat în calendar." },
+  lucru: { title: "Reparație", statusKey: "in_lucru", Icon: Wrench, hint: "Lucrări de tinichigerie / vopsitorie în curs." },
+  accept: { title: "Accept plată", statusKey: "accept_plata", Icon: BadgeCheck, hint: "AP — așteaptă acceptul / plata decontului." },
+  facturat: { title: "Facturat", statusKey: "facturat", Icon: CheckCircle2, hint: "Dosar închis financiar." },
 };
 
 const STATUS_TO_FOCUS = {
@@ -640,6 +641,7 @@ export default function BriefZilnic({
                     label={s.short || s.label}
                     count={count}
                     selected={active}
+                    title={glossaryTitle(s.key)}
                     onClick={() => selectStage(s.key)}
                   />
                 );

@@ -22,6 +22,7 @@ import {
 export function useClaims(session, showNotice) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   // Undo queue: { id, type, payload, timer, onCommit }
   const [undoItem, setUndoItem] = useState(null);
@@ -48,11 +49,31 @@ export function useClaims(session, showNotice) {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setLoadError({ message: "Ești offline.", offline: true });
+      setLoading(false);
+      showNotice?.("Ești offline — verifică conexiunea.", "error", {
+        actionLabel: "Reîncearcă",
+        onAction: () => loadAll(),
+        timeout: 8000,
+      });
+      return;
+    }
+
     const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
     if (error) {
-      showNotice(error.message, "error");
-      setClaims([]);
+      const message = error.message || "Nu am putut încărca dosarele.";
+      setLoadError({ message, offline: false });
+      // Keep previous claims if we already had some — avoid fake empty workspace
+      if (!claimsRef.current.length) setClaims([]);
+      showNotice?.(message, "error", {
+        actionLabel: "Reîncearcă",
+        onAction: () => loadAll(),
+        timeout: 8000,
+      });
     } else {
+      setLoadError(null);
       // Filter out pending-delete claims from display
       const pendingDeleteIds = new Set(pendingDeletes.current.keys());
       setClaims((data || []).map(fromDb).filter((c) => !pendingDeleteIds.has(c.id)));
@@ -424,6 +445,7 @@ export function useClaims(session, showNotice) {
   return {
     claims,
     loading,
+    loadError,
     loadAll,
     saveClaim,
     deleteClaim,

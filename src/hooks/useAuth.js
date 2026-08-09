@@ -4,6 +4,8 @@ import { supabase } from "../supabaseClient";
 export function useAuth() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  /** True while user arrived via recovery email link and must set a new password. */
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -13,7 +15,13 @@ export function useAuth() {
       setAuthLoading(false);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setPasswordRecovery(true);
+      }
+      if (event === "SIGNED_OUT") {
+        setPasswordRecovery(false);
+      }
       setSession(s ?? null);
     });
 
@@ -29,13 +37,18 @@ export function useAuth() {
       console.warn("Failed clearing localStorage on logout:", err);
     }
     await supabase.auth.signOut();
+    setPasswordRecovery(false);
     setSession(null);
   };
+
+  const clearPasswordRecovery = () => setPasswordRecovery(false);
 
   return {
     session,
     authLoading,
     setSession,
     handleLogout,
+    passwordRecovery,
+    clearPasswordRecovery,
   };
 }

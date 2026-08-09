@@ -47,7 +47,15 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const email = String(body?.email || "").trim().toLowerCase();
     const password = String(body?.password || "").trim();
-    const role = body?.role === "admin" ? "admin" : "operator";
+    const roleRaw = String(body?.role || "operator").toLowerCase().trim();
+    const role =
+      roleRaw === "admin"
+        ? "admin"
+        : roleRaw === "mecanic" || roleRaw === "tinichigiu" || roleRaw === "vopsitor"
+        ? "mecanic"
+        : roleRaw === "receptioner" || roleRaw === "receptionist" || roleRaw === "consilier"
+        ? "receptioner"
+        : "operator";
 
     if (!email || !email.includes("@")) {
       return json({ error: "Email invalid." }, 400);

@@ -5,6 +5,7 @@ import {
   Sun, Moon,
 } from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
+import { ROLE_OPTIONS, ROLES, normalizeRole } from "../../constants/roles";
 import * as XLSX from "xlsx";
 import { todayISO } from "../../utils/dateUtils";
 import {
@@ -104,7 +105,7 @@ export default function SetariModal({
 
   // New user management states
   const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("operator"); // "operator" | "admin"
+  const [newUserRole, setNewUserRole] = useState("receptioner");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -778,7 +779,7 @@ export default function SetariModal({
                         <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
                       </h3>
                       <p className="text-[11px] text-[#6B6558]">
-                        Adaugă membri noi, setează parola inițială, oferă drepturi de Administrator sau elimină conturi din organizație
+                        Invită colegi cu rol clar. Trimite-le emailul + parola inițială; pot reseta parola din „Am uitat parola” la login.
                       </p>
                     </div>
                   </div>
@@ -786,14 +787,14 @@ export default function SetariModal({
                 {/* Formular Adăugare Utilizator Nou */}
                 <form onSubmit={handleAddUserSubmit} className="bg-[#FBF3E6] border border-[#C98A2B]/30 rounded-xl p-3.5 space-y-3">
                   <h4 className="font-bold text-[13px] text-[#7A5316] flex items-center gap-1.5">
-                    <Plus size={15} /> Adaugă Utilizator Nou
+                    <Plus size={15} /> Invită utilizator
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <input
                       type="email"
                       required
-                      placeholder="E-mail utilizator (ex: coleg@service.ro)..."
+                      placeholder="E-mail (ex: coleg@service.ro)"
                       className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
                       value={newUserEmail}
                       onChange={(e) => setNewUserEmail(e.target.value)}
@@ -803,19 +804,29 @@ export default function SetariModal({
                       className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-bold text-[#23282E] focus:border-[#C98A2B]"
                       value={newUserRole}
                       onChange={(e) => setNewUserRole(e.target.value)}
+                      title={ROLES[normalizeRole(newUserRole)]?.description}
                     >
-                      <option value="operator">Operator (Doar dosare proprii)</option>
-                      <option value="admin">★ Administrator (Acces total)</option>
+                      {ROLE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
 
                     <input
                       type="password"
-                      placeholder="Parolă inițială (opțional)..."
+                      required
+                      placeholder="Parolă inițială (min. 6)"
                       className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
                       value={newUserPassword}
                       onChange={(e) => setNewUserPassword(e.target.value)}
                     />
                   </div>
+
+                  <p className="text-[11px] text-[#6B6558] leading-relaxed">
+                    {ROLES[normalizeRole(newUserRole)]?.description || ""}
+                    {" "}Partajează datele de login pe un canal sigur.
+                  </p>
 
                   <div className="flex justify-end">
                     <button
@@ -823,7 +834,7 @@ export default function SetariModal({
                       disabled={creatingUser}
                       className="flex items-center gap-1.5 px-4 py-2 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
                     >
-                      <Plus size={15} /> {creatingUser ? "Se adaugă..." : "Adaugă Utilizator"}
+                      <Plus size={15} /> {creatingUser ? "Se invită..." : "Creează invitație"}
                     </button>
                   </div>
                 </form>

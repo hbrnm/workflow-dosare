@@ -9,6 +9,7 @@ import AppButton from "./AppButton";
 export default function EmptyWorkspace({
   onNew,
   ownershipHint = false,
+  roleLabel = null,
   className = "",
 }) {
   return (
@@ -21,6 +22,11 @@ export default function EmptyWorkspace({
           ? "Vezi doar dosarele create de tine. Creează primul dosar sau cere unui admin acces la toate."
           : "Creează primul dosar ca să pornești Brief, Flux și Programările."}
       </p>
+      {roleLabel ? (
+        <p className="text-[11px] text-[var(--app-muted-2)] text-center">
+          Rol: <span className="font-semibold text-[var(--app-muted)]">{roleLabel}</span>
+        </p>
+      ) : null}
       {onNew ? (
         <AppButton variant="primary" onClick={onNew} className="mt-1">
           <Plus size={14} /> Dosar nou
