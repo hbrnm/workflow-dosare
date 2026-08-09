@@ -27,5 +27,14 @@ describe("atelierSignup", () => {
         passwordConfirm: "123456",
       })
     ).toBeNull();
+    expect(
+      validateAtelierSignup({
+        atelierNume: "OK",
+        email: "a@b.ro",
+        password: "123456",
+        passwordConfirm: "123456",
+        acceptDataResponsibility: false,
+      })
+    ).toMatch(/responsabil/i);
   });
 });

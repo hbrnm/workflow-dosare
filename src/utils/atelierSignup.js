@@ -21,7 +21,13 @@ export function shortFromName(input) {
  * Validate signup form fields.
  * @returns {string|null} error message or null
  */
-export function validateAtelierSignup({ email, password, passwordConfirm, atelierNume }) {
+export function validateAtelierSignup({
+  email,
+  password,
+  passwordConfirm,
+  atelierNume,
+  acceptDataResponsibility = true,
+}) {
   const cleanEmail = String(email || "").trim().toLowerCase();
   const cleanPassword = String(password || "");
   const name = String(atelierNume || "").trim();
@@ -30,6 +36,9 @@ export function validateAtelierSignup({ email, password, passwordConfirm, atelie
   if (cleanPassword.length < 6) return "Parola trebuie să aibă cel puțin 6 caractere.";
   if (passwordConfirm != null && cleanPassword !== String(passwordConfirm)) {
     return "Parolele nu coincid.";
+  }
+  if (!acceptDataResponsibility) {
+    return "Confirmă că atelierul este responsabil pentru datele clienților procesate în aplicație.";
   }
   return null;
 }
