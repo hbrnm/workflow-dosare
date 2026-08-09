@@ -46,6 +46,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { normalizeBilling } from "./constants/billing";
+import AtelierSwitcher from "./components/atelier/AtelierSwitcher";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
 import { useMobileBackStack } from "./hooks/useMobileBackStack";
@@ -167,7 +168,54 @@ export default function App() {
     };
   }, []);
 
-  const { atelierId, atelier, tenancyReady, billing, memberCount } = useAtelier(session, {});
+  const {
+    atelierId,
+    atelier,
+    tenancyReady,
+    billing,
+    memberCount,
+    memberships,
+    switchAtelier,
+    refresh: refreshAtelier,
+  } = useAtelier(session, {});
+
+  const startStripeCheckout = useCallback(async (id) => {
+    const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+      body: { atelierId: id, origin: window.location.origin },
+    });
+    if (error || data?.error) {
+      throw new Error(data?.error || error?.message || "Checkout eșuat");
+    }
+    if (data?.url) window.location.href = data.url;
+  }, []);
+
+  const startStripePortal = useCallback(async (id) => {
+    const { data, error } = await supabase.functions.invoke("create-portal-session", {
+      body: { atelierId: id, origin: window.location.origin },
+    });
+    if (error || data?.error) {
+      throw new Error(data?.error || error?.message || "Portal eșuat");
+    }
+    if (data?.url) window.location.href = data.url;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const billingFlag = params.get("billing");
+    if (billingFlag === "success") {
+      showNotice("Abonament activat. Mulțumim!", "success");
+      refreshAtelier();
+      params.delete("billing");
+      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
+    } else if (billingFlag === "cancel") {
+      showNotice("Checkout anulat.", "info");
+      params.delete("billing");
+      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
+    }
+  }, [showNotice, refreshAtelier]);
 
   const {
     capacitateZilnica,
@@ -717,6 +765,12 @@ export default function App() {
             onLogout={handleLogout}
             onOpenSettings={openSettings}
             onOpenAlerts={openAlerts}
+            memberships={memberships}
+            activeAtelierId={atelierId}
+            onSwitchAtelier={async (id) => {
+              const ok = await switchAtelier(id);
+              if (ok) showNotice("Atelier schimbat.", "success");
+            }}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
@@ -782,6 +836,9 @@ export default function App() {
               billing={effectiveBilling}
               onSaveBilling={saveBilling}
               tenancyReady={tenancyReady}
+              atelierId={atelierId}
+              onStripeCheckout={startStripeCheckout}
+              onStripePortal={startStripePortal}
             />
           </Suspense>
         )}
@@ -921,17 +978,19 @@ export default function App() {
           })}
         </div>
 
-        {/* Setări / profil */}
+        {/* Setări / profil / switcher atelier */}
         <div className="p-1.5 shrink-0 border-t border-[var(--app-border)]">
-          <button
-            onClick={() => openSettings()}
-            className="w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all"
-            title={myEmail ? `Setări — ${myEmail}` : "Centru Setări"}
-          >
-            <div className="w-7 h-7 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
-              {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
-            </div>
-          </button>
+          <AtelierSwitcher
+            memberships={memberships}
+            activeId={atelierId}
+            userEmail={myEmail}
+            onSwitch={async (id) => {
+              const ok = await switchAtelier(id);
+              if (ok) showNotice("Atelier schimbat.", "success");
+            }}
+            onOpenSettings={() => openSettings()}
+            onLogout={handleLogout}
+          />
         </div>
       </aside>
 
@@ -1409,6 +1468,9 @@ export default function App() {
             billing={effectiveBilling}
             onSaveBilling={saveBilling}
             tenancyReady={tenancyReady}
+            atelierId={atelierId}
+            onStripeCheckout={startStripeCheckout}
+            onStripePortal={startStripePortal}
             desktopUi
           />
         )}

@@ -21,7 +21,7 @@ import {
 } from "../../utils/themePrefs";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AppButton from "../common/AppButton";
-import { BILLING_PLANS, normalizeBilling } from "../../constants/billing";
+import { normalizeBilling } from "../../constants/billing";
 import { fmtDate } from "../../utils/dateUtils";
 
 export default function SetariModal({
@@ -53,6 +53,9 @@ export default function SetariModal({
   billing = null,
   onSaveBilling = null,
   tenancyReady = false,
+  atelierId = null,
+  onStripeCheckout = null,
+  onStripePortal = null,
 }) {
   const billingView = useMemo(
     () =>
@@ -64,14 +67,13 @@ export default function SetariModal({
       }),
     [billing, usersList.length]
   );
-  const [planDraft, setPlanDraft] = useState(billingView.plan === "past_due" ? "trial" : billingView.plan);
   const [seatDraft, setSeatDraft] = useState(billingView.seatLimit);
   const [savingBilling, setSavingBilling] = useState(false);
+  const [stripeBusy, setStripeBusy] = useState(false);
 
   useEffect(() => {
-    setPlanDraft(billingView.plan === "past_due" ? "trial" : billingView.plan);
     setSeatDraft(billingView.seatLimit);
-  }, [billingView.plan, billingView.seatLimit]);
+  }, [billingView.seatLimit]);
   const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
   const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
@@ -239,19 +241,46 @@ export default function SetariModal({
     onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
   };
 
-  const handleSaveBilling = async (e) => {
+  const handleSaveSeats = async (e) => {
     e.preventDefault();
     if (!onSaveBilling || !isAdmin) return;
     setSavingBilling(true);
     try {
       const ok = await onSaveBilling({
-        plan: planDraft,
+        plan: billingView.plan === "past_due" ? "trial" : billingView.plan,
         seatLimit: Number(seatDraft) || 10,
         trialEndsAt: billingView.trialEndsAt,
       });
-      if (ok !== false) onNotify("Plan atelier actualizat.", "success");
+      if (ok !== false) onNotify("Limita de locuri actualizată.", "success");
     } finally {
       setSavingBilling(false);
+    }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!onStripeCheckout || !atelierId) {
+      onNotify("Configurează Stripe (create-checkout-session) sau rulează migrarea 29.", "warning");
+      return;
+    }
+    setStripeBusy(true);
+    try {
+      await onStripeCheckout(atelierId);
+    } catch (err) {
+      onNotify(err?.message || "Nu am putut deschide Checkout.", "error");
+    } finally {
+      setStripeBusy(false);
+    }
+  };
+
+  const handleStripePortal = async () => {
+    if (!onStripePortal || !atelierId) return;
+    setStripeBusy(true);
+    try {
+      await onStripePortal(atelierId);
+    } catch (err) {
+      onNotify(err?.message || "Nu am putut deschide portalul de facturare.", "error");
+    } finally {
+      setStripeBusy(false);
     }
   };
 
@@ -759,13 +788,15 @@ export default function SetariModal({
           {/* TAB 4: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
           {activeTab === "profil" && (
             <div className="space-y-4">
-              {/* Billing stub */}
+              {/* Billing + Stripe */}
               <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Shield size={16} className="text-[var(--app-accent)]" /> Plan atelier
                 </h3>
                 <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
-                  Stub billing — fără Stripe încă. {tenancyReady ? "Multi-tenant activ (migrare 29)." : "Rulează migrarea 29 pentru izolare pe atelier."}
+                  {tenancyReady
+                    ? "Abonament pe atelier. Checkout Stripe actualizează automat planul."
+                    : "Rulează migrarea 29 (+ 31) pentru multi-tenant și branding pe slug."}
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2">
@@ -785,20 +816,32 @@ export default function SetariModal({
                     </div>
                   </div>
                 </div>
-                {isAdmin && onSaveBilling ? (
-                  <form onSubmit={handleSaveBilling} className="flex flex-wrap items-end gap-2 pt-1">
-                    <label className="text-[11px] font-bold text-[var(--app-muted)]">
-                      Plan
-                      <select
-                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white min-w-[140px]"
-                        value={planDraft}
-                        onChange={(e) => setPlanDraft(e.target.value)}
+                {isAdmin ? (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {billingView.needsUpgrade || !billingView.hasStripeCustomer ? (
+                      <AppButton
+                        type="button"
+                        variant="primary"
+                        disabled={stripeBusy || !atelierId}
+                        onClick={handleStripeCheckout}
                       >
-                        {Object.values(BILLING_PLANS).map((p) => (
-                          <option key={p.id} value={p.id}>{p.label}</option>
-                        ))}
-                      </select>
-                    </label>
+                        {stripeBusy ? "…" : "Activează abonament"}
+                      </AppButton>
+                    ) : null}
+                    {billingView.hasStripeCustomer ? (
+                      <AppButton
+                        type="button"
+                        variant="secondary"
+                        disabled={stripeBusy || !atelierId}
+                        onClick={handleStripePortal}
+                      >
+                        Gestionează facturare
+                      </AppButton>
+                    ) : null}
+                  </div>
+                ) : null}
+                {isAdmin && onSaveBilling ? (
+                  <form onSubmit={handleSaveSeats} className="flex flex-wrap items-end gap-2 pt-1 border-t border-[var(--app-border)]">
                     <label className="text-[11px] font-bold text-[var(--app-muted)]">
                       Seat limit
                       <input
@@ -811,7 +854,7 @@ export default function SetariModal({
                       />
                     </label>
                     <AppButton type="submit" variant="secondary" disabled={savingBilling}>
-                      {savingBilling ? "…" : "Salvează plan"}
+                      {savingBilling ? "…" : "Salvează locuri"}
                     </AppButton>
                   </form>
                 ) : null}

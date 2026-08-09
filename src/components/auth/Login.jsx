@@ -4,6 +4,7 @@ import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
 import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
 import { useDayNightTheme } from "../../hooks/useDayNightTheme";
+import { readAtelierSlugFromUrl } from "../../utils/atelierPrefs";
 
 export default function Login({ onLoginSuccess, onGoSignup, branding: brandingProp }) {
   const [mode, setMode] = useState("login"); // "login" | "forgot"
@@ -21,7 +22,8 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
   useEffect(() => {
     let alive = true;
     (async () => {
-      const remote = await fetchPublicBranding();
+      const slug = readAtelierSlugFromUrl();
+      const remote = await fetchPublicBranding(slug);
       if (alive && remote) setBranding(remote);
     })();
     return () => {
