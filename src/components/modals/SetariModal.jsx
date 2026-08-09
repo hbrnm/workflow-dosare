@@ -156,6 +156,10 @@ export default function SetariModal({
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate salva setările atelierului.", "error");
+      return;
+    }
     setSaving(true);
     try {
       if (capacitate !== capacitateZilnica) {
@@ -181,11 +185,15 @@ export default function SetariModal({
         await onSaveInsurers(insurersList);
       }
       if (onSaveBranding) {
-        await onSaveBranding({
+        const ok = await onSaveBranding({
           atelierNume,
           atelierShort,
           logoUrl,
         });
+        if (ok === false) {
+          onNotify("Branding-ul nu s-a putut salva. Verifică rolul de admin sau migrarea 35.", "error");
+          return;
+        }
       }
       onNotify("Setările și branding-ul au fost salvate cu succes!", "success");
       onClose();

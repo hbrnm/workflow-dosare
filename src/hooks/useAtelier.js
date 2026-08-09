@@ -200,6 +200,11 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
     [memberships]
   );
 
+  const activeRole = useMemo(() => {
+    const m = membershipOptions.find((x) => x.id === atelierId);
+    return m?.role || null;
+  }, [membershipOptions, atelierId]);
+
   return {
     atelierId,
     atelier: atelierRow,
@@ -207,6 +212,7 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
     billing,
     memberCount,
     memberships: membershipOptions,
+    activeRole,
     switchAtelier,
     refresh,
   };
