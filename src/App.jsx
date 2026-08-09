@@ -256,14 +256,26 @@ export default function App() {
     [saveBrandingBase, refreshAtelier]
   );
 
-  // Settings loaded from ateliere when tenancy is ready; atelier row is fallback only.
+  // Tenancy: settingsBranding after load/save; atelier row fills gaps / cold cache defaults.
   const branding = useMemo(() => {
     if (tenancyReady && atelier) {
+      const cachedIsColdDefault =
+        settingsBranding?.atelierNume === "Dosare Daună" &&
+        settingsBranding?.atelierShort === "WD" &&
+        !settingsBranding?.logoUrl &&
+        atelier.nume &&
+        atelier.nume !== "Dosare Daună";
+      if (cachedIsColdDefault) {
+        return {
+          atelierNume: atelier.nume,
+          atelierShort: atelier.short || "WD",
+          logoUrl: atelier.logo_url || "",
+        };
+      }
       return {
-        ...settingsBranding,
-        atelierNume: settingsBranding?.atelierNume || atelier.nume,
-        atelierShort: settingsBranding?.atelierShort || atelier.short,
-        logoUrl: settingsBranding?.logoUrl || atelier.logo_url,
+        atelierNume: settingsBranding?.atelierNume || atelier.nume || "Dosare Daună",
+        atelierShort: settingsBranding?.atelierShort || atelier.short || "WD",
+        logoUrl: settingsBranding?.logoUrl || atelier.logo_url || "",
       };
     }
     return settingsBranding;
@@ -309,8 +321,14 @@ export default function App() {
       (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
     if (fromAdmins || fromUsers) return true;
+    // Solo atelier: singurul membru poate administra (rol greșit în DB nu blochează UI)
+    if (memberCount === 1 && atelierId) return true;
+    if (Array.isArray(usersList) && usersList.length === 1) {
+      const only = usersList[0];
+      if (String(only?.email || "").toLowerCase() === myEmail.toLowerCase()) return true;
+    }
     return false;
-  }, [myEmail, myRole, adminEmails, usersList, activeRole]);
+  }, [myEmail, myRole, adminEmails, usersList, activeRole, memberCount, atelierId]);
 
   const {
     search,
