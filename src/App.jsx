@@ -22,7 +22,8 @@ const Rapoarte = lazyWithRetry(() => import("./components/views/Rapoarte"));
 const QuickCapture = lazyWithRetry(() => import("./components/views/QuickCapture"));
 const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
 const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
-const SetariModal = lazyWithRetry(() => import("./components/modals/SetariModal"));
+// Eager: Setări e flux critic — evită chunk stale după deploy PWA.
+import SetariModal from "./components/modals/SetariModal";
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
 const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
@@ -519,7 +520,21 @@ export default function App() {
   });
 
   const requestCloseAlerts = useCallback(() => requestClose("alerte"), [requestClose]);
-  const requestCloseSettings = useCallback(() => requestClose("setari"), [requestClose]);
+  const requestCloseSettings = useCallback(() => {
+    // Pe desktop evităm history.back() din stack-ul mobil — poate închide Setări imediat după open.
+    if (activeMode === "mobile") {
+      requestClose("setari");
+      return;
+    }
+    closeSettings();
+    try {
+      if (typeof window !== "undefined" && window.location.hash === "#setari") {
+        window.history.back();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [activeMode, requestClose, closeSettings]);
   const requestCloseClaimModal = useCallback(() => requestClose("claim"), [requestClose]);
   const requestCloseFieldClaim = useCallback(() => requestClose("field"), [requestClose]);
   const requestCloseQuickCreate = useCallback(() => requestClose("quickCreate"), [requestClose]);
@@ -586,7 +601,9 @@ export default function App() {
     if (activeMode === "mobile") return;
     if (setariOpen && !isNavigatingHistoryRef.current) {
       try {
-        window.history.pushState({ view, overlay: "setari" }, "", "#setari");
+        if (window.location.hash !== "#setari") {
+          window.history.pushState({ view, overlay: "setari" }, "", "#setari");
+        }
       } catch {
         /* ignore */
       }
@@ -823,41 +840,49 @@ export default function App() {
         )}
 
         {setariOpen && (
-          <Suspense fallback={null}>
-            <SetariModal
-              claims={claims}
-              capacitateZilnica={capacitateZilnica}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              termeneAlertaStatus={termeneAlertaStatus}
-              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
-              onSaveCapacitate={saveCapacitate}
-              onSavePrag={savePragRidicare}
-              onSavePragInactivitate={savePragInactivitate}
-              insurersList={customInsurers}
-              onSaveInsurers={saveInsurers}
-              branding={branding}
-              onSaveBranding={saveBranding}
-              onUploadBrandingLogo={uploadBrandingLogo}
-              onClose={requestCloseSettings}
-              onNotify={showNotice}
-              userEmail={myEmail}
-              onSignOut={handleLogout}
-              isAdmin={isAdmin}
-              usersList={usersList}
-              onAddUser={handleAddUser}
-              onDeleteUser={handleDeleteUser}
-              onToggleAdminRole={handleToggleAdminRole}
-              onChangePassword={handleChangePassword}
-              billing={effectiveBilling}
-              onSaveBilling={saveBilling}
-              tenancyReady={tenancyReady}
-              atelierId={atelierId}
-              atelierSlug={atelier?.slug || null}
-              onStripeCheckout={startStripeCheckout}
-              onStripePortal={startStripePortal}
-              onDataChanged={loadAll}
-            />
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 z-[9200] flex items-center justify-center bg-black/30 text-white gap-2">
+                <Loader2 className="animate-spin" size={18} /> Se încarcă setările…
+              </div>
+            }
+          >
+            <ErrorBoundary onReset={requestCloseSettings}>
+              <SetariModal
+                claims={claims}
+                capacitateZilnica={capacitateZilnica}
+                pragRidicare={pragRidicare}
+                pragInactivitate={pragInactivitate}
+                termeneAlertaStatus={termeneAlertaStatus}
+                onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
+                onSaveCapacitate={saveCapacitate}
+                onSavePrag={savePragRidicare}
+                onSavePragInactivitate={savePragInactivitate}
+                insurersList={customInsurers}
+                onSaveInsurers={saveInsurers}
+                branding={branding}
+                onSaveBranding={saveBranding}
+                onUploadBrandingLogo={uploadBrandingLogo}
+                onClose={requestCloseSettings}
+                onNotify={showNotice}
+                userEmail={myEmail}
+                onSignOut={handleLogout}
+                isAdmin={isAdmin}
+                usersList={usersList}
+                onAddUser={handleAddUser}
+                onDeleteUser={handleDeleteUser}
+                onToggleAdminRole={handleToggleAdminRole}
+                onChangePassword={handleChangePassword}
+                billing={effectiveBilling}
+                onSaveBilling={saveBilling}
+                tenancyReady={tenancyReady}
+                atelierId={atelierId}
+                atelierSlug={atelier?.slug || null}
+                onStripeCheckout={startStripeCheckout}
+                onStripePortal={startStripePortal}
+                onDataChanged={loadAll}
+              />
+            </ErrorBoundary>
           </Suspense>
         )}
 
@@ -1458,41 +1483,43 @@ export default function App() {
         )}
 
         {setariOpen && (
-          <SetariModal
-            claims={claims}
-            capacitateZilnica={capacitateZilnica}
-            pragRidicare={pragRidicare}
-            pragInactivitate={pragInactivitate}
-            termeneAlertaStatus={termeneAlertaStatus}
-            onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
-            insurersList={customInsurers}
-            onSaveInsurers={saveInsurers}
-            onSaveCapacitate={saveCapacitate}
-            onSavePrag={savePragRidicare}
-            onSavePragInactivitate={savePragInactivitate}
-            branding={branding}
-            onSaveBranding={saveBranding}
-            onUploadBrandingLogo={uploadBrandingLogo}
-            onClose={requestCloseSettings}
-            onNotify={showNotice}
-            userEmail={myEmail}
-            onSignOut={handleLogout}
-            isAdmin={isAdmin}
-            usersList={usersList}
-            onAddUser={handleAddUser}
-            onDeleteUser={handleDeleteUser}
-            onToggleAdminRole={handleToggleAdminRole}
-            onChangePassword={handleChangePassword}
-            billing={effectiveBilling}
-            onSaveBilling={saveBilling}
-            tenancyReady={tenancyReady}
-            atelierId={atelierId}
-            atelierSlug={atelier?.slug || null}
-            onStripeCheckout={startStripeCheckout}
-            onStripePortal={startStripePortal}
-            onDataChanged={loadAll}
-            desktopUi
-          />
+          <ErrorBoundary onReset={requestCloseSettings}>
+            <SetariModal
+              claims={claims}
+              capacitateZilnica={capacitateZilnica}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              termeneAlertaStatus={termeneAlertaStatus}
+              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
+              insurersList={customInsurers}
+              onSaveInsurers={saveInsurers}
+              onSaveCapacitate={saveCapacitate}
+              onSavePrag={savePragRidicare}
+              onSavePragInactivitate={savePragInactivitate}
+              branding={branding}
+              onSaveBranding={saveBranding}
+              onUploadBrandingLogo={uploadBrandingLogo}
+              onClose={requestCloseSettings}
+              onNotify={showNotice}
+              userEmail={myEmail}
+              onSignOut={handleLogout}
+              isAdmin={isAdmin}
+              usersList={usersList}
+              onAddUser={handleAddUser}
+              onDeleteUser={handleDeleteUser}
+              onToggleAdminRole={handleToggleAdminRole}
+              onChangePassword={handleChangePassword}
+              billing={effectiveBilling}
+              onSaveBilling={saveBilling}
+              tenancyReady={tenancyReady}
+              atelierId={atelierId}
+              atelierSlug={atelier?.slug || null}
+              onStripeCheckout={startStripeCheckout}
+              onStripePortal={startStripePortal}
+              onDataChanged={loadAll}
+              desktopUi
+            />
+          </ErrorBoundary>
         )}
 
         {quickCreateOpen && (
