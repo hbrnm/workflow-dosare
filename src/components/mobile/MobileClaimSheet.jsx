@@ -9,6 +9,7 @@ import { refreshStorageUrls } from "../../utils/claimUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
 import PhotoLightbox from "../common/PhotoLightbox";
+import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
 /**
@@ -24,6 +25,7 @@ export default function MobileClaimSheet({
   canEdit,
   onNotify,
   onCapturePhotos,
+  userEmail = "",
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -113,7 +115,8 @@ export default function MobileClaimSheet({
   const handleAddNote = async () => {
     const text = noteDraft.trim();
     if (!text || readOnly) return;
-    const entry = { id: uid(), data: nowISO(), text };
+    const author = String(userEmail || "").trim() || null;
+    const entry = { id: uid(), data: nowISO(), text, ...(author ? { author } : {}) };
     setNoteDraft("");
     setSaving(true);
     try {
@@ -146,6 +149,7 @@ export default function MobileClaimSheet({
             className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
             style={{ color: "inherit" }}
           />
+          <ClaimAuditMeta claim={claim} compact className="mt-1" />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {saving && <Loader2 size={16} className="animate-spin text-[var(--app-accent)]" />}
@@ -352,6 +356,11 @@ export default function MobileClaimSheet({
             <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-2xl px-3 py-2 border border-[var(--app-border)]">
               <div className="text-[10px] font-bold mb-0.5 opacity-80">
                 {fmtDateTime(latestNote.data)}
+                {latestNote.author ? (
+                  <span className="ml-1.5 font-semibold text-[var(--app-text)]">
+                    · {latestNote.author}
+                  </span>
+                ) : null}
               </div>
               <div className="line-clamp-3 text-[var(--app-text)]">{latestNote.text}</div>
             </div>

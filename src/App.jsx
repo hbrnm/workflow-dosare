@@ -764,6 +764,7 @@ export default function App() {
               onMoveToStatus={handleMoveToStatus}
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
+              userEmail={myEmail}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
                 requestCloseFieldClaim();
@@ -788,6 +789,7 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
+              userEmail={myEmail}
             />
           </Suspense>
         )}
@@ -1385,6 +1387,7 @@ export default function App() {
               onJumpTo={openExisting}
               onNotify={showNotice}
               desktopUi
+              userEmail={myEmail}
             />
           </ErrorBoundary>
         )}
