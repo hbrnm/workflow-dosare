@@ -6,6 +6,7 @@ import {
 } from "../../utils/programareStatus";
 import DosarNumber from "../common/DosarNumber";
 import { normalizePlate } from "../../utils/plateSchedule";
+import { getStageAccent } from "../../constants/config";
 
 export default function ProgramatorClaimCard({
   claim,
@@ -34,9 +35,14 @@ export default function ProgramatorClaimCard({
 
   const stopDrag = (e) => e.stopPropagation();
 
+  const stageAccent = getStageAccent(lead.status);
+
   if (stack) {
     return (
-      <div className={`app-prog-claim-card border rounded-lg text-[13px] overflow-hidden ${cardClass}`}>
+      <div
+        className={`app-prog-claim-card border rounded-lg text-[13px] overflow-hidden ${cardClass} ${stageAccent.className}`}
+        style={{ borderLeftWidth: 3, borderLeftColor: stageAccent.color }}
+      >
         <div
           draggable={true}
           onDragStart={(e) => {
@@ -107,7 +113,8 @@ export default function ProgramatorClaimCard({
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`app-prog-claim-card p-1.5 border rounded-lg cursor-pointer transition-colors text-[13px] flex flex-col active:opacity-60 ${cardClass}`}
+      className={`app-prog-claim-card p-1.5 border rounded-lg cursor-pointer transition-colors text-[13px] flex flex-col active:opacity-60 ${cardClass} ${stageAccent.className}`}
+      style={{ borderLeftWidth: 3, borderLeftColor: stageAccent.color }}
     >
       <div className="flex items-start justify-between gap-1.5 mb-1">
         <div className="flex items-center gap-1.5 min-w-0 flex-1">

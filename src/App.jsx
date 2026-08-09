@@ -902,6 +902,7 @@ export default function App() {
                 <BriefZilnic
                   claims={userClaims}
                   onOpen={openExisting}
+                  onPatchClaim={handlePatchClaim}
                   onMoveToStatus={handleMoveToStatus}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
@@ -915,7 +916,26 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} onNotify={showNotice} />
+                <ClaimTable
+                  claims={filteredClaims}
+                  onOpen={openExisting}
+                  onDelete={handleDelete}
+                  canEditFn={canEdit}
+                  highlightClaimIds={highlightClaimIds}
+                  onNotify={showNotice}
+                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
+                  onScheduleFromPiese={async (claim, iso) => {
+                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
+                    if (ok !== false) {
+                      showNotice(
+                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                        "success"
+                      );
+                    }
+                    return ok;
+                  }}
+                  onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}

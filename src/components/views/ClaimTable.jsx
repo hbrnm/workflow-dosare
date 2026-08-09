@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel } from "../../constants/config";
+import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel, isPieseComandateStatus } from "../../constants/config";
 import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
@@ -10,13 +10,24 @@ import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import FluxStageStrip from "../common/FluxStageStrip";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import {
   isSearchHighlighted,
   groupHasSearchHighlight,
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
 
-export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highlightClaimIds = null, onNotify }) {
+export default function ClaimTable({
+  claims,
+  onOpen,
+  onDelete,
+  canEditFn,
+  highlightClaimIds = null,
+  onNotify,
+  onTogglePieseSosite,
+  onScheduleFromPiese,
+  onPatchPieseDates,
+}) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
   const [focusedStage, setFocusedStage] = useState(null);
@@ -88,7 +99,7 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
     { key: "client", label: "Client", width: "11rem" },
     { key: "numarInmatriculare", label: "Nr. înmatr.", width: "7rem" },
     { key: "marcaModel", label: "Marcă/Model", width: "9rem" },
-    { key: "status", label: "Status", width: "12rem" },
+    { key: "status", label: "Status", width: "16.5rem" },
     { key: "dataDeschiderii", label: "Deschis", width: "6rem" },
   ];
 
@@ -133,14 +144,27 @@ export default function ClaimTable({ claims, onOpen, onDelete, canEditFn, highli
           {c.blocat && <span className="ml-1 text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}
         </td>
         <td className={`${cellMuted} truncate`} title={c.marcaModel || ""}>{c.marcaModel || "—"}</td>
-        <td className={`${cell} truncate`} title={`${String(s.num).padStart(2, "0")}. ${s.label}`}>
-          <span className="text-[11px] font-semibold">{String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}</span>
-          {c.status === "piese_comandate" && c.dataComandaPiese && (
-            <span className="app-table-parts-badge ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap">
-              📦 {c.dataComandaPiese}
-            </span>
-          )}
-          {overdue && <AlertBadge days={days} threshold={getClaimAlertDays(c)} />}
+        <td className={`${cell}`} title={`${String(s.num).padStart(2, "0")}. ${s.label}`}>
+          <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[11px] font-semibold whitespace-nowrap">
+                {String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}
+              </span>
+              {overdue && <AlertBadge days={days} threshold={getClaimAlertDays(c)} />}
+            </div>
+            {isPieseComandateStatus(c.status) && (
+              <div onClick={(e) => e.stopPropagation()}>
+                <MobilePieseSositeRow
+                  claim={c}
+                  canEdit={canEditFn?.(c) !== false}
+                  layout="inline"
+                  onToggle={onTogglePieseSosite}
+                  onSchedule={onScheduleFromPiese}
+                  onPatchDates={onPatchPieseDates}
+                />
+              </div>
+            )}
+          </div>
         </td>
         <td className={`${cellMuted} whitespace-nowrap`}>{fmtDate(c.dataDeschiderii)}</td>
         <td className={`${cell} whitespace-nowrap text-right`} onClick={(e) => e.stopPropagation()}>

@@ -755,6 +755,352 @@
   border-color: var(--app-muted-2);
 }
 
+/* Atenție — accent roșu pe cardurile de alertă (parity mobil) */
+.app-shell .app-brief-alert-card.is-attention {
+  box-shadow: inset 3px 0 0 var(--app-danger, #b23a2e);
+  border-color: color-mix(in srgb, var(--app-danger, #b23a2e) 35%, var(--app-border));
+}
+
+.app-shell .app-brief-reason-box.is-attention {
+  color: var(--app-danger, #b23a2e);
+  border-color: color-mix(in srgb, var(--app-danger, #b23a2e) 28%, var(--app-border));
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 8%, var(--app-surface));
+}
+
+/* Sosite roșu/verde — Brief + Flux desktop */
+.app-shell .app-brief-btn-sosite {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.app-shell .app-brief-btn-sosite.is-off {
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 14%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, var(--app-danger, #b23a2e) 45%, transparent);
+  color: var(--app-danger, #b23a2e);
+}
+
+.app-shell .app-brief-btn-sosite.is-on {
+  background: color-mix(in srgb, #2f8f5b 22%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, #2f8f5b 55%, transparent);
+  color: #1f7a45;
+}
+
+/* Board stadiu Brief desktop — carduri tip flow */
+.app-shell .app-brief-flow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-shell .app-brief-flow-card {
+  --flow-accent: #3b5166;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 96%, transparent);
+  box-shadow:
+    0 1px 6px color-mix(in srgb, #000 5%, transparent),
+    inset 3px 0 0 var(--flow-accent);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.app-shell .app-brief-flow-card:hover {
+  border-color: color-mix(in srgb, var(--flow-accent) 35%, var(--app-border));
+  background: color-mix(in srgb, var(--flow-accent) 5%, var(--app-surface));
+}
+
+.app-shell .app-brief-flow-card.stage-air { --flow-accent: #3b5166; }
+.app-shell .app-brief-flow-card.stage-piese { --flow-accent: #4a6fa5; }
+.app-shell .app-brief-flow-card.stage-programat { --flow-accent: #c98a2b; }
+.app-shell .app-brief-flow-card.stage-lucru { --flow-accent: #b8791e; }
+.app-shell .app-brief-flow-card.stage-accept { --flow-accent: #2f6b4e; }
+.app-shell .app-brief-flow-card.stage-facturat { --flow-accent: #3e6b45; }
+
+.app-shell .app-brief-flow-metric {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 9999px;
+  color: var(--flow-accent);
+  background: color-mix(in srgb, var(--flow-accent) 12%, var(--app-surface));
+  flex-shrink: 0;
+}
+
+.app-shell .app-brief-flow-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.app-shell .app-brief-flow-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.45rem;
+  min-width: 0;
+}
+
+.app-shell .app-brief-flow-status {
+  padding: 0.05rem 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--flow-accent) 12%, var(--app-surface));
+  color: var(--flow-accent);
+}
+
+.app-shell .app-brief-flow-blocked {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #fff;
+  background: var(--app-danger, #b23a2e);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.28rem;
+}
+
+.app-shell .app-brief-flow-since {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.app-shell .app-brief-flow-sub {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--app-muted);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell .app-brief-flow-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.28rem;
+}
+
+.app-shell .app-brief-flow-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 9999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.app-shell .app-brief-flow-icon-btn:hover {
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-brief-flow-action-primary {
+  padding: 0.18rem 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface));
+  color: var(--app-accent);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.app-shell .app-brief-flow-action-primary:hover {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.app-shell .app-brief-flow-cancel-btn {
+  padding: 0.18rem 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.app-shell .app-brief-schedule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-brief-schedule-input {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.app-shell .app-brief-tab--etapa.is-selected {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-accent-text);
+  opacity: 1;
+}
+
+/* Inline C / T / Sosite pe Flux + Tabel (aceleași clase ca mobil) */
+.app-shell .app-flux-piese-inline,
+.app-shell .m-piese-sosite-inline {
+  min-width: 0;
+}
+
+.app-shell .m-piese-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem 0.4rem;
+  min-width: 0;
+}
+
+.app-shell .m-piese-inline-dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.app-shell .m-piese-inline-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--flow-accent, #4a6fa5) 8%, var(--app-surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--flow-accent, #4a6fa5) 16%, transparent);
+  color: var(--app-muted, #6b7280);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.app-shell .m-piese-inline-chip.is-editable {
+  cursor: pointer;
+}
+
+.app-shell .m-piese-inline-chip.is-overdue {
+  color: var(--app-danger, #b42318);
+  border-color: color-mix(in srgb, var(--app-danger, #b42318) 35%, transparent);
+  background: color-mix(in srgb, var(--app-danger, #b42318) 8%, var(--app-surface, #fff));
+}
+
+.app-shell .m-piese-inline-k {
+  color: inherit;
+  opacity: 0.75;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-size: 0.58rem;
+}
+
+.app-shell .m-piese-inline-v {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--app-text-strong, #1a2330);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell .m-piese-inline-chip.is-overdue .m-piese-inline-v {
+  color: inherit;
+}
+
+.app-shell .m-piese-inline-input-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  color-scheme: light;
+}
+
+.app-shell .m-piese-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, #2f8f5b 28%, transparent);
+  background: color-mix(in srgb, #2f8f5b 8%, var(--app-surface, #fff));
+  color: #1f7a45;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-shell .m-piese-inline-check:not(.is-checked) {
+  border-color: color-mix(in srgb, var(--app-danger, #b23a2e) 35%, transparent);
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 10%, var(--app-surface, #fff));
+  color: var(--app-danger, #b23a2e);
+}
+
+.app-shell .m-piese-inline-check.is-checked {
+  background: color-mix(in srgb, #2f8f5b 18%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, #2f8f5b 45%, transparent);
+  color: #1f7a45;
+}
+
+.app-shell .m-piese-inline-check.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-shell .m-piese-inline-checkbox {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin: 0;
+  accent-color: #2f8f5b;
+}
+
+.app-shell .app-flux-card .m-piese-sosite-inline {
+  --flow-accent: #4a6fa5;
+}
+
 .app-shell .app-brief-list-item {
   background: var(--app-surface-2);
   border: 1px solid var(--app-border);
