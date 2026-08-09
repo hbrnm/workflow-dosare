@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { INSURERS, cacheStatusAlertOverrides } from "../constants/config";
 import {
@@ -7,11 +7,21 @@ import {
   loadCachedBranding,
   cacheBranding,
 } from "../constants/branding";
+import {
+  shouldMirrorSetari,
+  atelierRowToSettings,
+  brandingToAtelierPatch,
+  atelierPatchToSetariMirror,
+  brandingLogoStoragePath,
+} from "../utils/atelierSettings";
 
 const BRANDING_SELECT =
   "atelier_nume, atelier_short, logo_url";
 
-export function useSettings(session, showNotice, { atelierId = null } = {}) {
+const ATELIER_SETTINGS_SELECT =
+  "id, slug, nume, short, logo_url, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, asiguratori, termene_alerta_status, plan, trial_ends_at, seat_limit";
+
+export function useSettings(session, showNotice, { atelierId = null, atelierSlug = null } = {}) {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [pragInactivitate, setPragInactivitate] = useState(7);
@@ -25,8 +35,15 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
     trialEndsAt: null,
     seatLimit: 10,
   });
+  const [resolvedSlug, setResolvedSlug] = useState(atelierSlug);
 
   const myEmail = session?.user?.email || "";
+  const slugRef = useRef(atelierSlug);
+  slugRef.current = resolvedSlug || atelierSlug;
+
+  useEffect(() => {
+    setResolvedSlug(atelierSlug);
+  }, [atelierSlug, atelierId]);
 
   useEffect(() => {
     if (!session) return;
@@ -42,6 +59,58 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
         console.warn("Invalid local settings in localStorage", err);
       }
 
+      // ── Per-tenant: load from ateliere ────────────────────
+      if (atelierId) {
+        const { data: atelierRow, error: atelierErr } = await supabase
+          .from("ateliere")
+          .select(ATELIER_SETTINGS_SELECT)
+          .eq("id", atelierId)
+          .maybeSingle();
+
+        if (!atelierErr && atelierRow) {
+          setResolvedSlug(atelierRow.slug || atelierSlug);
+          applySettingsData(atelierRowToSettings(atelierRow));
+        }
+
+        let cleanLoadedUsers = [];
+        let nextAdmins = [];
+        try {
+          const { data: members, error: memErr } = await supabase
+            .from("atelier_membri")
+            .select("email, role")
+            .eq("atelier_id", atelierId);
+          if (!memErr && Array.isArray(members)) {
+            cleanLoadedUsers = sanitizeUsers(
+              members.map((m) => ({
+                email: String(m.email || "").toLowerCase(),
+                role: m.role || "operator",
+              }))
+            );
+            nextAdmins = cleanLoadedUsers
+              .filter((u) => u.role === "admin")
+              .map((u) => u.email);
+          }
+        } catch {
+          /* ignore */
+        }
+
+        if (myEmail && !cleanLoadedUsers.some((u) => u.email?.toLowerCase() === myEmail.toLowerCase())) {
+          cleanLoadedUsers.push({ email: myEmail, role: cleanLoadedUsers.length === 0 ? "admin" : "operator" });
+          if (cleanLoadedUsers.length === 1) nextAdmins = [myEmail];
+        }
+
+        setAdminEmails(nextAdmins);
+        setUsersList(cleanLoadedUsers);
+        try {
+          localStorage.setItem("workflow_dosare_users", JSON.stringify(cleanLoadedUsers));
+          localStorage.setItem("workflow_dosare_admins", JSON.stringify(nextAdmins));
+        } catch (err) {
+          console.warn("Unable to persist users/admins to localStorage", err);
+        }
+        return;
+      }
+
+      // ── Legacy: setari id=1 ───────────────────────────────
       let publicData = null;
       let publicErr = null;
       {
@@ -107,37 +176,12 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
         ...(publicData || settingsFromTable || {}),
         admin_emails: adminData?.admin_emails,
         termene_alerta_status: adminData?.termene_alerta_status,
+        plan: adminData?.plan,
+        trial_ends_at: adminData?.trial_ends_at,
+        seat_limit: adminData?.seat_limit,
       };
 
-      if (data?.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
-      if (data?.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
-      if (data?.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
-      if (data?.termene_alerta_status && typeof data.termene_alerta_status === "object") {
-        setTermeneAlertaStatus(data.termene_alerta_status);
-        cacheStatusAlertOverrides(data.termene_alerta_status);
-      }
-      if (Array.isArray(data?.asiguratori) && data.asiguratori.length > 0) {
-        setCustomInsurers(data.asiguratori);
-        try {
-          localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(data.asiguratori));
-        } catch (err) {
-          console.warn("Unable to persist insurers to localStorage", err);
-        }
-      }
-
-      if (data?.atelier_nume || data?.atelier_short || data?.logo_url) {
-        const nextBrand = normalizeBranding(data);
-        setBranding(nextBrand);
-        cacheBranding(nextBrand);
-      }
-
-      if (adminData?.plan || adminData?.trial_ends_at || adminData?.seat_limit) {
-        setBillingSettings({
-          plan: adminData.plan || "trial",
-          trialEndsAt: adminData.trial_ends_at || null,
-          seatLimit: adminData.seat_limit ?? 10,
-        });
-      }
+      applySettingsData(data);
 
       const loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
         ? data.admin_emails
@@ -160,42 +204,48 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
         }
       }
 
-      let cleanLoadedUsers = sanitizeUsers(loadedUsers);
-      let nextAdmins = loadedAdmins;
-
-      // Multi-tenant: team from atelier_membri when available
-      if (atelierId) {
-        try {
-          const { data: members, error: memErr } = await supabase
-            .from("atelier_membri")
-            .select("email, role")
-            .eq("atelier_id", atelierId);
-          if (!memErr && Array.isArray(members) && members.length > 0) {
-            cleanLoadedUsers = sanitizeUsers(
-              members.map((m) => ({
-                email: String(m.email || "").toLowerCase(),
-                role: m.role || "operator",
-              }))
-            );
-            nextAdmins = cleanLoadedUsers
-              .filter((u) => u.role === "admin")
-              .map((u) => u.email);
-          }
-        } catch {
-          /* keep setari team */
-        }
-      }
-
-      setAdminEmails(nextAdmins);
+      const cleanLoadedUsers = sanitizeUsers(loadedUsers);
+      setAdminEmails(loadedAdmins);
       setUsersList(cleanLoadedUsers);
       try {
         localStorage.setItem("workflow_dosare_users", JSON.stringify(cleanLoadedUsers));
-        localStorage.setItem("workflow_dosare_admins", JSON.stringify(nextAdmins));
+        localStorage.setItem("workflow_dosare_admins", JSON.stringify(loadedAdmins));
       } catch (err) {
         console.warn("Unable to persist users/admins to localStorage", err);
       }
     })();
-  }, [session, myEmail, atelierId]);
+  }, [session, myEmail, atelierId, atelierSlug]);
+
+  function applySettingsData(data) {
+    if (!data) return;
+    if (data.capacitate_zilnica) setCapacitateZilnica(data.capacitate_zilnica);
+    if (data.prag_ridicare_zile) setPragRidicare(data.prag_ridicare_zile);
+    if (data.prag_inactivitate_zile) setPragInactivitate(data.prag_inactivitate_zile);
+    if (data.termene_alerta_status && typeof data.termene_alerta_status === "object") {
+      setTermeneAlertaStatus(data.termene_alerta_status);
+      cacheStatusAlertOverrides(data.termene_alerta_status);
+    }
+    if (Array.isArray(data.asiguratori) && data.asiguratori.length > 0) {
+      setCustomInsurers(data.asiguratori);
+      try {
+        localStorage.setItem("workflow_dosare_asiguratori", JSON.stringify(data.asiguratori));
+      } catch (err) {
+        console.warn("Unable to persist insurers to localStorage", err);
+      }
+    }
+    if (data.atelier_nume || data.atelier_short || data.logo_url) {
+      const nextBrand = normalizeBranding(data);
+      setBranding(nextBrand);
+      cacheBranding(nextBrand);
+    }
+    if (data.plan || data.trial_ends_at || data.seat_limit) {
+      setBillingSettings({
+        plan: data.plan || "trial",
+        trialEndsAt: data.trial_ends_at || null,
+        seatLimit: data.seat_limit ?? 10,
+      });
+    }
+  }
 
   const sanitizeUsers = (list) => {
     if (!Array.isArray(list)) return [];
@@ -204,6 +254,23 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
       const { password, ...safeUser } = u;
       return safeUser;
     });
+  };
+
+  const persistAtelierPatch = async (patch) => {
+    if (!atelierId) return { ok: false, error: new Error("Fără atelier activ") };
+    const { error } = await supabase.from("ateliere").update(patch).eq("id", atelierId);
+    if (error) return { ok: false, error };
+
+    if (shouldMirrorSetari(slugRef.current)) {
+      const mirror = atelierPatchToSetariMirror(patch);
+      if (Object.keys(mirror).length > 0) {
+        const { error: mirrorErr } = await supabase.from("setari").upsert({ id: 1, ...mirror });
+        if (mirrorErr) {
+          console.warn("Mirror setari (default) failed:", mirrorErr.message);
+        }
+      }
+    }
+    return { ok: true };
   };
 
   const saveUsersAndAdmins = async (newUsers, newAdmins) => {
@@ -216,6 +283,70 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
       localStorage.setItem("workflow_dosare_admins", JSON.stringify(newAdmins));
     } catch (err) {
       console.warn("Unable to persist users/admins to localStorage", err);
+    }
+
+    if (atelierId) {
+      const { data: current, error: curErr } = await supabase
+        .from("atelier_membri")
+        .select("user_id, email, role")
+        .eq("atelier_id", atelierId);
+      if (curErr) {
+        showNotice("Eroare citire echipă: " + curErr.message, "error");
+        return;
+      }
+
+      const keep = new Set(cleanUsers.map((u) => String(u.email || "").toLowerCase()));
+      for (const m of current || []) {
+        const em = String(m.email || "").toLowerCase();
+        if (!keep.has(em)) {
+          const { error: delErr } = await supabase
+            .from("atelier_membri")
+            .delete()
+            .eq("atelier_id", atelierId)
+            .eq("user_id", m.user_id);
+          if (delErr) {
+            showNotice("Eroare la eliminarea membrului: " + delErr.message, "error");
+            return;
+          }
+        }
+      }
+
+      for (const u of cleanUsers) {
+        const em = String(u.email || "").toLowerCase();
+        const role = newAdmins.some((e) => String(e).toLowerCase() === em)
+          ? "admin"
+          : u.role || "operator";
+        const { error: upErr } = await supabase
+          .from("atelier_membri")
+          .update({ role, email: em })
+          .eq("atelier_id", atelierId)
+          .eq("email", em);
+        if (upErr) {
+          // try case-insensitive match via filter on existing rows
+          const match = (current || []).find((m) => String(m.email || "").toLowerCase() === em);
+          if (match) {
+            const { error: up2 } = await supabase
+              .from("atelier_membri")
+              .update({ role, email: em })
+              .eq("atelier_id", atelierId)
+              .eq("user_id", match.user_id);
+            if (up2) {
+              showNotice("Eroare actualizare rol: " + up2.message, "error");
+              return;
+            }
+          }
+        }
+      }
+
+      if (shouldMirrorSetari(slugRef.current)) {
+        const { error } = await supabase.from("setari").upsert({
+          id: 1,
+          utilizatori: cleanUsers,
+          admin_emails: newAdmins,
+        });
+        if (error) console.warn("Mirror team → setari failed:", error.message);
+      }
+      return;
     }
 
     const { error } = await supabase.from("setari").upsert({ id: 1, utilizatori: cleanUsers, admin_emails: newAdmins });
@@ -233,6 +364,12 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
       console.warn("Unable to persist insurers to localStorage", err);
     }
 
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ asiguratori: newList });
+      if (!ok) showNotice("Eroare la salvarea asigurătorilor: " + error.message, "error");
+      return;
+    }
+
     const { error } = await supabase.from("setari").upsert({ id: 1, asiguratori: newList });
     if (error) {
       console.error("Setari asiguratori error:", error);
@@ -242,18 +379,33 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
 
   const saveCapacitate = async (n) => {
     setCapacitateZilnica(n);
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ capacitate_zilnica: n });
+      if (!ok) showNotice(error.message, "error");
+      return;
+    }
     const { error } = await supabase.from("setari").upsert({ id: 1, capacitate_zilnica: n });
     if (error) showNotice(error.message, "error");
   };
 
   const savePragRidicare = async (n) => {
     setPragRidicare(n);
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ prag_ridicare_zile: n });
+      if (!ok) showNotice(error.message, "error");
+      return;
+    }
     const { error } = await supabase.from("setari").upsert({ id: 1, prag_ridicare_zile: n });
     if (error) showNotice(error.message, "error");
   };
 
   const savePragInactivitate = async (n) => {
     setPragInactivitate(n);
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ prag_inactivitate_zile: n });
+      if (!ok) showNotice(error.message, "error");
+      return;
+    }
     const { error } = await supabase.from("setari").upsert({ id: 1, prag_inactivitate_zile: n });
     if (error) showNotice(error.message, "error");
   };
@@ -262,6 +414,14 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
     const next = map && typeof map === "object" ? map : {};
     setTermeneAlertaStatus(next);
     cacheStatusAlertOverrides(next);
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ termene_alerta_status: next });
+      if (!ok) {
+        showNotice("Praguri alertă: " + error.message, "warning");
+        return false;
+      }
+      return true;
+    }
     const { error } = await supabase.from("setari").upsert({ id: 1, termene_alerta_status: next });
     if (error) {
       showNotice(
@@ -277,6 +437,16 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
     const next = normalizeBranding(nextRaw);
     setBranding(next);
     cacheBranding(next);
+
+    if (atelierId) {
+      const patch = brandingToAtelierPatch(next);
+      const { ok, error } = await persistAtelierPatch(patch);
+      if (!ok) {
+        showNotice("Branding: " + error.message, "warning");
+        return false;
+      }
+      return true;
+    }
 
     const payload = {
       id: 1,
@@ -302,7 +472,7 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
     if (file.size > 2 * 1024 * 1024) throw new Error("Logo-ul trebuie să aibă maxim 2 MB.");
 
     const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-    const path = `atelier/logo.${ext}`;
+    const path = brandingLogoStoragePath(atelierId, ext);
     const { error } = await supabase.storage.from("branding").upload(path, file, {
       upsert: true,
       contentType: file.type,
@@ -413,11 +583,8 @@ export function useSettings(session, showNotice, { atelierId = null } = {}) {
     });
 
     if (atelierId) {
-      const { error } = await supabase
-        .from("ateliere")
-        .update({ plan, trial_ends_at, seat_limit })
-        .eq("id", atelierId);
-      if (error) {
+      const { ok, error } = await persistAtelierPatch({ plan, trial_ends_at, seat_limit });
+      if (!ok) {
         showNotice("Nu am putut salva planul atelierului: " + error.message, "error");
         return false;
       }
