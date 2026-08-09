@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
-  Search, FileText, Layers, Sunrise, LayoutGrid, List, BarChart3, CalendarClock,
-  Wallet, Plus, Download, X, ArrowRight, CornerDownLeft, Car, ShieldCheck, Camera
+  Search, FileText, Layers, Sunrise, List, BarChart3, CalendarClock,
+  Wallet, Plus, Download, X, CornerDownLeft, Camera
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
-import Pill from "./Pill";
+import { claimMatchesSearch } from "../../utils/searchUtils";
 
 export default function CommandPalette({
   isOpen,
   onClose,
   claims = [],
+  initialQuery = "",
+  onQueryChange = null,
   onOpenClaim,
   onSwitchView,
   onOpenNewClaim,
@@ -20,15 +22,26 @@ export default function CommandPalette({
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef(null);
+  const wasOpenRef = useRef(false);
 
-  // Focus input when opened
+  // Prefill + focus only when palette opens (not on every parent search sync)
   useEffect(() => {
-    if (isOpen) {
-      setQuery("");
+    if (isOpen && !wasOpenRef.current) {
+      setQuery(String(initialQuery || ""));
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const t = window.setTimeout(() => inputRef.current?.focus(), 50);
+      wasOpenRef.current = true;
+      return () => window.clearTimeout(t);
     }
-  }, [isOpen]);
+    if (!isOpen) wasOpenRef.current = false;
+    return undefined;
+  }, [isOpen, initialQuery]);
+
+  const updateQuery = (next) => {
+    setQuery(next);
+    setSelectedIndex(0);
+    if (typeof onQueryChange === "function") onQueryChange(next);
+  };
 
   // Global Ctrl+K / Cmd+K listener when palette is open
   useEffect(() => {
@@ -71,18 +84,11 @@ export default function CommandPalette({
       return [...recentClaims, ...views.slice(0, 4), ...actions];
     }
 
-    // Filter Claims
-    const matchedClaims = claims.filter((c) => {
-      return (
-        (c.numarDosar || "").toLowerCase().includes(q) ||
-        (c.client || "").toLowerCase().includes(q) ||
-        (c.numarInmatriculare || "").toLowerCase().includes(q) ||
-        (c.vin || "").toLowerCase().includes(q) ||
-        (c.marcaModel || "").toLowerCase().includes(q) ||
-        (c.asigurator || "").toLowerCase().includes(q) ||
-        (c.telefonClient || "").includes(q)
-      );
-    }).slice(0, 8).map((c) => ({ type: "claim", claim: c }));
+    // Filter Claims — same matcher as header / overlay / list filters
+    const matchedClaims = claims
+      .filter((c) => claimMatchesSearch(c, q))
+      .slice(0, 8)
+      .map((c) => ({ type: "claim", claim: c }));
 
     // Filter Views
     const matchedViews = views.filter(
@@ -145,15 +151,16 @@ export default function CommandPalette({
             ref={inputRef}
             type="text"
             className="w-full bg-transparent text-[14px] font-medium text-[#23282E] placeholder-[#8A8375] focus:outline-none"
-            placeholder="Căutare inteligentă dosar, client, nr. auto, VIN, tab-uri (ex: 'B-100', 'Omniasig', 'Calendar')..."
+            placeholder="Căutare inteligentă: dosar, client, nr. auto, VIN, tab-uri, acțiuni…"
             value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setSelectedIndex(0);
-            }}
+            onChange={(e) => updateQuery(e.target.value)}
           />
           {query ? (
-            <button onClick={() => setQuery("")} className="p-1 text-[#8A8375] hover:text-[#23282E] mr-2">
+            <button
+              type="button"
+              onClick={() => updateQuery("")}
+              className="p-1 text-[#8A8375] hover:text-[#23282E] mr-2"
+            >
               <X size={15} />
             </button>
           ) : null}
