@@ -29,6 +29,7 @@ import CommandPalette from "./components/common/CommandPalette";
 import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import AppButton from "./components/common/AppButton";
+import EmptyWorkspace from "./components/common/EmptyWorkspace";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
@@ -54,7 +55,15 @@ export default function App() {
     }
   });
 
-  const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
+  const [dosareSubView, setDosareSubView] = useState(() => {
+    try {
+      const saved = localStorage.getItem("workflow_dosare_sub_view");
+      if (saved === "flux" || saved === "brief" || saved === "list") return saved;
+    } catch (err) {
+      /* ignore */
+    }
+    return "brief"; // land = logo home = Brief
+  });
   const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => isCompactMobileViewport());
@@ -103,6 +112,23 @@ export default function App() {
       setShowFilterPanel(false);
     }
   }, [view]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("workflow_dosare_sub_view", dosareSubView);
+    } catch (err) {
+      console.warn("Unable to persist dosare sub-view", err);
+    }
+  }, [dosareSubView]);
+
+  const handleSwitchView = useCallback((target) => {
+    if (target === "brief" || target === "flux" || target === "list") {
+      setView("dosare");
+      setDosareSubView(target);
+      return;
+    }
+    setView(target);
+  }, []);
 
   const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
 
@@ -211,6 +237,7 @@ export default function App() {
     closeQuickCapture,
     quickCreateOpen,
     closeQuickCreate,
+    quickCreateDefaults,
   } = useClaimModal(showNotice);
 
   // Mobile field sheet (thin claim view) — full ClaimModal only via "Detalii complete"
@@ -504,8 +531,11 @@ export default function App() {
         <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
           <MobileAppLayout
             claims={userClaims}
+            loading={loading}
             session={session}
             userEmail={myEmail}
+            isAdmin={isAdmin}
+            totalClaimsCount={claims.length}
             onOpenClaim={openMobileClaim}
             onNewClaim={openNew}
             onPatchClaim={handlePatchClaim}
@@ -586,6 +616,10 @@ export default function App() {
               isOpen={quickCreateOpen}
               onClose={requestCloseQuickCreate}
               onSave={handleSave}
+              onNotify={showNotice}
+              allClaims={claims}
+              initialStatus={quickCreateDefaults?.status}
+              initialDataProgramare={quickCreateDefaults?.dataProgramare}
             />
           </Suspense>
         )}
@@ -816,17 +850,15 @@ export default function App() {
               <Plus size={14} /> <span>Dosar nou</span>
             </AppButton>
 
-            {totalAlertsCount > 0 && (
-              <AppButton
-                variant="danger"
-                onClick={() => openAlerts("depasite")}
-                className="app-header-action-btn"
-                title="Deschide Centrul de Alerte"
-              >
-                <Bell size={14} />
-                <span>{totalAlertsCount} Alerte</span>
-              </AppButton>
-            )}
+            <AppButton
+              variant={totalAlertsCount > 0 ? "danger" : "secondary"}
+              onClick={() => openAlerts(totalAlertsCount > 0 ? "depasite" : "toate")}
+              className="app-header-action-btn"
+              title="Deschide Centrul de Alerte"
+            >
+              <Bell size={14} />
+              <span>{totalAlertsCount} Alerte</span>
+            </AppButton>
 
           </div>
         </header>
@@ -899,7 +931,12 @@ export default function App() {
         <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
           <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
             {loading ? (
-              <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+              <div className="flex-1 flex items-center justify-center text-[var(--app-muted)] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
+            ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") && userClaims.length === 0 ? (
+              <EmptyWorkspace
+                onNew={() => openNew()}
+                ownershipHint={!isAdmin && claims.length > 0}
+              />
             ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
               dosareSubView === "brief" ? (
                 <BriefZilnic
@@ -1168,6 +1205,10 @@ export default function App() {
             isOpen={quickCreateOpen}
             onClose={requestCloseQuickCreate}
             onSave={handleSave}
+            onNotify={showNotice}
+            allClaims={claims}
+            initialStatus={quickCreateDefaults?.status}
+            initialDataProgramare={quickCreateDefaults?.dataProgramare}
             desktopUi
           />
         )}
@@ -1206,7 +1247,7 @@ export default function App() {
         onClose={() => setIsCommandPaletteOpen(false)}
         claims={claims}
         onOpenClaim={handleOpenClaim}
-        onSwitchView={setView}
+        onSwitchView={handleSwitchView}
         onOpenNewClaim={openNew}
         onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}

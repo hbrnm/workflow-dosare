@@ -968,7 +968,16 @@ export default function MobileBrief({
         <div className="m-hub-grid">
           {[
             { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
-            { id: "alerte", label: `Alerte (${totalAlertsCount})`, Icon: AlertTriangle, color: "var(--m-hub-b)", action: () => setActiveAlertTab("toate") },
+            {
+              id: "alerte",
+              label: `Alerte (${totalAlertsCount})`,
+              Icon: AlertTriangle,
+              color: "var(--m-hub-b)",
+              action: () => {
+                if (onOpenAlerts) onOpenAlerts(totalAlertsCount > 0 ? "depasite" : "toate");
+                else setActiveAlertTab("toate");
+              },
+            },
             { id: "dosare", label: "Toate dosarele", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
             { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-accent)", action: () => (onNew ? onNew() : go("dosare")), iconColor: "#000" },
           ].map((tile) => (
