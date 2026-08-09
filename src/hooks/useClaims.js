@@ -19,10 +19,12 @@ import {
   isValidPlateKey,
 } from "../utils/plateSchedule";
 
-export function useClaims(session, showNotice) {
+export function useClaims(session, showNotice, { atelierId = null } = {}) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const atelierIdRef = useRef(atelierId);
+  atelierIdRef.current = atelierId;
 
   // Undo queue: { id, type, payload, timer, onCommit }
   const [undoItem, setUndoItem] = useState(null);
@@ -120,6 +122,7 @@ export function useClaims(session, showNotice) {
         createdBy: isNewClaim ? myId : claimToSave.createdBy || myId,
         createdByEmail: isNewClaim ? myEmail : claimToSave.createdByEmail || myEmail,
         updatedByEmail: myEmail,
+        atelierId: claimToSave.atelierId || atelierIdRef.current || null,
       });
       const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", payload);
       if (error) {

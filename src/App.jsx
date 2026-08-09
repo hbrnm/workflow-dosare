@@ -42,6 +42,7 @@ import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
+import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
@@ -147,17 +148,6 @@ export default function App() {
     setNotice({ message, type, ...extras });
   }, []);
 
-  const {
-    claims,
-    loading,
-    loadError,
-    loadAll,
-    saveClaim,
-    deleteClaim,
-    patchClaim,
-    moveToStatus,
-  } = useClaims(session, showNotice);
-
   const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingDismissed());
   const [isOffline, setIsOffline] = useState(
     () => typeof navigator !== "undefined" && navigator.onLine === false
@@ -182,6 +172,7 @@ export default function App() {
     usersList,
     customInsurers,
     branding,
+    billingSettings,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
@@ -191,10 +182,27 @@ export default function App() {
     termeneAlertaStatus,
     saveBranding,
     uploadBrandingLogo,
+    saveBilling,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
   } = useSettings(session, showNotice);
+
+  const { atelierId, tenancyReady, billing } = useAtelier(session, {
+    usersList,
+    billingFromSettings: billingSettings,
+  });
+
+  const {
+    claims,
+    loading,
+    loadError,
+    loadAll,
+    saveClaim,
+    deleteClaim,
+    patchClaim,
+    moveToStatus,
+  } = useClaims(session, showNotice, { atelierId });
 
   useDayNightTheme();
 
@@ -206,7 +214,7 @@ export default function App() {
     [myEmail, adminEmails, usersList]
   );
   const myRoleLabel = ROLES[myRole]?.label || myRole;
-  const userCanCreate = canCreateClaim(myRole);
+  const userCanCreate = canCreateClaim(myRole) && billing.canCreateClaim;
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
@@ -732,6 +740,9 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
+              billing={billing}
+              onSaveBilling={saveBilling}
+              tenancyReady={tenancyReady}
             />
           </Suspense>
         )}
@@ -1354,6 +1365,9 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
+            billing={billing}
+            onSaveBilling={saveBilling}
+            tenancyReady={tenancyReady}
             desktopUi
           />
         )}

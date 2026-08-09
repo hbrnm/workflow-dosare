@@ -20,6 +20,11 @@ export function useSettings(session, showNotice) {
   const [customInsurers, setCustomInsurers] = useState(INSURERS);
   const [branding, setBranding] = useState(() => loadCachedBranding());
   const [termeneAlertaStatus, setTermeneAlertaStatus] = useState({});
+  const [billingSettings, setBillingSettings] = useState({
+    plan: "trial",
+    trialEndsAt: null,
+    seatLimit: 10,
+  });
 
   const myEmail = session?.user?.email || "";
 
@@ -60,11 +65,24 @@ export function useSettings(session, showNotice) {
         }
       }
 
-      const { data: adminData } = await supabase
-        .from("setari")
-        .select("admin_emails, termene_alerta_status")
-        .eq("id", 1)
-        .maybeSingle();
+      let adminData = null;
+      {
+        const adminRes = await supabase
+          .from("setari")
+          .select("admin_emails, termene_alerta_status, plan, trial_ends_at, seat_limit, default_atelier_id")
+          .eq("id", 1)
+          .maybeSingle();
+        if (adminRes.error) {
+          const adminRes2 = await supabase
+            .from("setari")
+            .select("admin_emails, termene_alerta_status")
+            .eq("id", 1)
+            .maybeSingle();
+          adminData = adminRes2.data;
+        } else {
+          adminData = adminRes.data;
+        }
+      }
 
       let settingsFromTable = null;
       if (publicErr || !publicData) {
@@ -111,6 +129,14 @@ export function useSettings(session, showNotice) {
         const nextBrand = normalizeBranding(data);
         setBranding(nextBrand);
         cacheBranding(nextBrand);
+      }
+
+      if (adminData?.plan || adminData?.trial_ends_at || adminData?.seat_limit) {
+        setBillingSettings({
+          plan: adminData.plan || "trial",
+          trialEndsAt: adminData.trial_ends_at || null,
+          seatLimit: adminData.seat_limit ?? 10,
+        });
       }
 
       const loadedAdmins = Array.isArray(data?.admin_emails) && data.admin_emails.length > 0
@@ -350,6 +376,29 @@ export function useSettings(session, showNotice) {
     );
   };
 
+  const saveBilling = async (next) => {
+    const payload = {
+      id: 1,
+      plan: next.plan || "trial",
+      trial_ends_at: next.trialEndsAt || null,
+      seat_limit: Number(next.seatLimit) || 10,
+    };
+    setBillingSettings({
+      plan: payload.plan,
+      trialEndsAt: payload.trial_ends_at,
+      seatLimit: payload.seat_limit,
+    });
+    const { error } = await supabase.from("setari").upsert(payload);
+    if (error) {
+      showNotice(
+        "Plan salvat local. Rulează migrarea 29 în Supabase pentru sync: " + error.message,
+        "warning"
+      );
+      return false;
+    }
+    return true;
+  };
+
   return {
     capacitateZilnica,
     pragRidicare,
@@ -358,6 +407,7 @@ export function useSettings(session, showNotice) {
     usersList,
     customInsurers,
     branding,
+    billingSettings,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
@@ -367,6 +417,7 @@ export function useSettings(session, showNotice) {
     termeneAlertaStatus,
     saveBranding,
     uploadBrandingLogo,
+    saveBilling,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,

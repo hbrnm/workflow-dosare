@@ -118,6 +118,63 @@ Deno.serve(async (req: Request) => {
       return json({ error: upsertErr.message }, 500);
     }
 
+    // Multi-tenant (migrare 29): sync membership when tables exist
+    try {
+      const { data: setariRow } = await admin
+        .from("setari")
+        .select("default_atelier_id, seat_limit, plan")
+        .eq("id", 1)
+        .maybeSingle();
+
+      let atelierId = setariRow?.default_atelier_id as string | null;
+      if (!atelierId) {
+        const { data: atelier } = await admin
+          .from("ateliere")
+          .select("id, seat_limit, plan")
+          .eq("slug", "default")
+          .maybeSingle();
+        atelierId = atelier?.id ?? null;
+      }
+
+      if (atelierId) {
+        const seatLimit = Number(setariRow?.seat_limit) || 10;
+        const { count } = await admin
+          .from("atelier_membri")
+          .select("user_id", { count: "exact", head: true })
+          .eq("atelier_id", atelierId);
+
+        const { data: listed } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+        const targetUser =
+          created?.user ||
+          listed?.users?.find((u) => (u.email || "").toLowerCase() === email) ||
+          null;
+
+        if (targetUser?.id) {
+          const { data: existingMember } = await admin
+            .from("atelier_membri")
+            .select("user_id")
+            .eq("atelier_id", atelierId)
+            .eq("user_id", targetUser.id)
+            .maybeSingle();
+
+          if (!existingMember && typeof count === "number" && count >= seatLimit) {
+            return json({
+              error: `Limita de locuri (${seatLimit}) e atinsă pentru acest atelier.`,
+            }, 400);
+          }
+
+          await admin.from("atelier_membri").upsert({
+            atelier_id: atelierId,
+            user_id: targetUser.id,
+            email,
+            role,
+          });
+        }
+      }
+    } catch {
+      /* tables may not exist yet — setari sync is enough */
+    }
+
     return json({
       ok: true,
       user: { email, role, id: created?.user?.id ?? null },

@@ -21,6 +21,8 @@ import {
 } from "../../utils/themePrefs";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AppButton from "../common/AppButton";
+import { BILLING_PLANS, normalizeBilling } from "../../constants/billing";
+import { fmtDate } from "../../utils/dateUtils";
 
 export default function SetariModal({
   claims = [],
@@ -48,7 +50,28 @@ export default function SetariModal({
   onToggleAdminRole,
   onChangePassword,
   desktopUi = false,
+  billing = null,
+  onSaveBilling = null,
+  tenancyReady = false,
 }) {
+  const billingView = useMemo(
+    () =>
+      billing ||
+      normalizeBilling({
+        memberCount: usersList.length,
+        seatLimit: 10,
+        plan: "trial",
+      }),
+    [billing, usersList.length]
+  );
+  const [planDraft, setPlanDraft] = useState(billingView.plan === "past_due" ? "trial" : billingView.plan);
+  const [seatDraft, setSeatDraft] = useState(billingView.seatLimit);
+  const [savingBilling, setSavingBilling] = useState(false);
+
+  useEffect(() => {
+    setPlanDraft(billingView.plan === "past_due" ? "trial" : billingView.plan);
+    setSeatDraft(billingView.seatLimit);
+  }, [billingView.plan, billingView.seatLimit]);
   const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
   const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
@@ -216,6 +239,22 @@ export default function SetariModal({
     onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
   };
 
+  const handleSaveBilling = async (e) => {
+    e.preventDefault();
+    if (!onSaveBilling || !isAdmin) return;
+    setSavingBilling(true);
+    try {
+      const ok = await onSaveBilling({
+        plan: planDraft,
+        seatLimit: Number(seatDraft) || 10,
+        trialEndsAt: billingView.trialEndsAt,
+      });
+      if (ok !== false) onNotify("Plan atelier actualizat.", "success");
+    } finally {
+      setSavingBilling(false);
+    }
+  };
+
   const handleAddUserSubmit = async (e) => {
     e.preventDefault();
     const email = newUserEmail.trim().toLowerCase();
@@ -225,6 +264,15 @@ export default function SetariModal({
     }
     if (!newUserPassword || newUserPassword.trim().length < 6) {
       onNotify("Setează o parolă inițială de cel puțin 6 caractere pentru utilizator.", "error");
+      return;
+    }
+    if (!billingView.canInvite) {
+      onNotify(
+        billingView.overSeatLimit
+          ? `Limita de locuri (${billingView.seatLimit}) e atinsă. Mărește seat limit sau scoate un membru.`
+          : "Planul curent nu permite invitații noi.",
+        "error"
+      );
       return;
     }
     setCreatingUser(true);
@@ -711,6 +759,64 @@ export default function SetariModal({
           {/* TAB 4: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
           {activeTab === "profil" && (
             <div className="space-y-4">
+              {/* Billing stub */}
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Shield size={16} className="text-[var(--app-accent)]" /> Plan atelier
+                </h3>
+                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
+                  Stub billing — fără Stripe încă. {tenancyReady ? "Multi-tenant activ (migrare 29)." : "Rulează migrarea 29 pentru izolare pe atelier."}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Plan</div>
+                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">{billingView.planMeta.label}</div>
+                  </div>
+                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2">
+                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Locuri</div>
+                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">
+                      {billingView.memberCount}/{billingView.seatLimit}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2 col-span-2">
+                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Trial până la</div>
+                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">
+                      {billingView.trialEndsAt ? fmtDate(billingView.trialEndsAt) : "—"}
+                    </div>
+                  </div>
+                </div>
+                {isAdmin && onSaveBilling ? (
+                  <form onSubmit={handleSaveBilling} className="flex flex-wrap items-end gap-2 pt-1">
+                    <label className="text-[11px] font-bold text-[var(--app-muted)]">
+                      Plan
+                      <select
+                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white min-w-[140px]"
+                        value={planDraft}
+                        onChange={(e) => setPlanDraft(e.target.value)}
+                      >
+                        {Object.values(BILLING_PLANS).map((p) => (
+                          <option key={p.id} value={p.id}>{p.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-[11px] font-bold text-[var(--app-muted)]">
+                      Seat limit
+                      <input
+                        type="number"
+                        min={1}
+                        max={200}
+                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white w-24"
+                        value={seatDraft}
+                        onChange={(e) => setSeatDraft(e.target.value)}
+                      />
+                    </label>
+                    <AppButton type="submit" variant="secondary" disabled={savingBilling}>
+                      {savingBilling ? "…" : "Salvează plan"}
+                    </AppButton>
+                  </form>
+                ) : null}
+              </div>
+
               {/* Informații Cont Curent */}
               <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center justify-between">
@@ -819,6 +925,14 @@ export default function SetariModal({
                   </div>
 
                 {/* Formular Adăugare Utilizator Nou */}
+                {!billingView.canInvite ? (
+                  <div className="text-[12px] text-[var(--app-danger)] bg-[var(--app-danger)]/10 border border-[var(--app-danger)]/30 rounded-lg px-3 py-2">
+                    {billingView.overSeatLimit
+                      ? `Nu mai poți invita — ${billingView.memberCount}/${billingView.seatLimit} locuri ocupate.`
+                      : "Planul curent blochează invitațiile noi."}
+                  </div>
+                ) : null}
+
                 <form onSubmit={handleAddUserSubmit} className="bg-[var(--app-warning-muted)] border border-[var(--app-accent)]/30 rounded-xl p-3.5 space-y-3">
                   <h4 className="font-bold text-[13px] text-[var(--app-warning)] flex items-center gap-1.5">
                     <Plus size={15} /> Invită utilizator
@@ -865,7 +979,7 @@ export default function SetariModal({
                   <div className="flex justify-end">
                     <button
                       type="submit"
-                      disabled={creatingUser}
+                      disabled={creatingUser || !billingView.canInvite}
                       className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
                     >
                       <Plus size={15} /> {creatingUser ? "Se invită..." : "Creează invitație"}

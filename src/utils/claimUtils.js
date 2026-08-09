@@ -40,6 +40,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     financiar: { tvaProc: 21, pieseFacturateFaraTva: 0, costManoperaInterna: 0, costuriExterne: 0, costMasinaSchimb: 0, numarFactura: "", dataFactura: null },
     blocat: false, motivBlocare: "",
     createdBy: null, createdByEmail: "", updatedByEmail: "",
+    atelierId: null,
     poze: [],
     damageMarks: [],
     tipDocumente: [],
@@ -473,8 +474,11 @@ export function toDb(c) {
     piese_sosite: !!c.pieseSosite,
   };
 
-  // Coloane opționale (migrări 22–27) — omit când goale, ca save-ul să meargă
+  // Coloane opționale (migrări 22–29) — omit când goale, ca save-ul să meargă
   // și dacă migrarea nu e încă aplicată pe Supabase.
+  if (c.atelierId) {
+    row.atelier_id = c.atelierId;
+  }
   if (c.programareStatus === "onorata" || c.programareStatus === "neonorata") {
     row.programare_status = c.programareStatus;
   }
@@ -669,6 +673,7 @@ export function fromDb(row) {
     createdBy: row.created_by,
     createdByEmail: row.created_by_email || "",
     updatedByEmail: row.updated_by_email || "",
+    atelierId: row.atelier_id || null,
     gataDeRidicare: !!row.gata_de_ridicare,
     dataGataRidicare: row.data_gata_ridicare || null,
     ridicata: !!row.ridicata,
