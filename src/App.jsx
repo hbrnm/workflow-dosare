@@ -841,8 +841,10 @@ export default function App() {
               onSaveBilling={saveBilling}
               tenancyReady={tenancyReady}
               atelierId={atelierId}
+              atelierSlug={atelier?.slug || null}
               onStripeCheckout={startStripeCheckout}
               onStripePortal={startStripePortal}
+              onDataChanged={loadAll}
             />
           </Suspense>
         )}
@@ -1473,8 +1475,10 @@ export default function App() {
             onSaveBilling={saveBilling}
             tenancyReady={tenancyReady}
             atelierId={atelierId}
+            atelierSlug={atelier?.slug || null}
             onStripeCheckout={startStripeCheckout}
             onStripePortal={startStripePortal}
+            onDataChanged={loadAll}
             desktopUi
           />
         )}

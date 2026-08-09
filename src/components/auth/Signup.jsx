@@ -22,6 +22,7 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [acceptDataResponsibility, setAcceptDataResponsibility] = useState(false);
   const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
       password,
       passwordConfirm,
       atelierNume,
+      acceptDataResponsibility,
     });
     if (validationError) {
       setError(validationError);
@@ -283,6 +285,19 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
             />
           </div>
         </div>
+
+        <label className="flex items-start gap-2 text-[11.5px] text-[var(--app-muted)] leading-snug cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-0.5 shrink-0"
+            checked={acceptDataResponsibility}
+            onChange={(e) => setAcceptDataResponsibility(e.target.checked)}
+          />
+          <span>
+            Confirm că atelierul este responsabil pentru datele clienților (GDPR) introduse în
+            Workflow Dosare și că am temei legal să le prelucrez.
+          </span>
+        </label>
 
         {error ? <div className="app-login-error">{error}</div> : null}
 

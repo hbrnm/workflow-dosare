@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   X, Settings, User, Building, Database, Bell, Wrench, Download,
   CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock,
-  Sun, Moon,
+  Sun, Moon, Scale,
 } from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
 import { ROLE_OPTIONS, ROLES, normalizeRole } from "../../constants/roles";
@@ -23,6 +23,8 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import AppButton from "../common/AppButton";
 import { normalizeBilling } from "../../constants/billing";
 import { fmtDate } from "../../utils/dateUtils";
+import { supabase } from "../../supabaseClient";
+import { downloadAtelierGdprExport, wipeAtelierDosare } from "../../utils/gdprExport";
 
 export default function SetariModal({
   claims = [],
@@ -54,8 +56,10 @@ export default function SetariModal({
   onSaveBilling = null,
   tenancyReady = false,
   atelierId = null,
+  atelierSlug = null,
   onStripeCheckout = null,
   onStripePortal = null,
+  onDataChanged = null,
 }) {
   const billingView = useMemo(
     () =>
@@ -75,8 +79,11 @@ export default function SetariModal({
     setSeatDraft(billingView.seatLimit);
   }, [billingView.seatLimit]);
   const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
-  const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
+  const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza" | "date"
   const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
+  const [gdprExporting, setGdprExporting] = useState(false);
+  const [wipeSlugConfirm, setWipeSlugConfirm] = useState("");
+  const [wipeBusy, setWipeBusy] = useState(false);
 
   // Form states
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
@@ -231,6 +238,10 @@ export default function SetariModal({
   };
 
   const exportFullBackupJSON = () => {
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate descărca backup-ul.", "error");
+      return;
+    }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(claims, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
@@ -239,6 +250,49 @@ export default function SetariModal({
     downloadAnchor.click();
     downloadAnchor.remove();
     onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
+  };
+
+  const handleGdprExport = async () => {
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate exporta datele GDPR.", "error");
+      return;
+    }
+    if (!atelierId) {
+      onNotify("Selectează un atelier activ, apoi reîncearcă.", "warning");
+      return;
+    }
+    setGdprExporting(true);
+    try {
+      const { filename, summary } = await downloadAtelierGdprExport(supabase, atelierId, {
+        slug: atelierSlug || brandingProp?.atelierShort,
+      });
+      onNotify(
+        `Export GDPR descărcat (${filename}): ${summary.dosare} dosare, ${summary.membri} membri, ${summary.arhiva} arhivate.`,
+        "success"
+      );
+    } catch (err) {
+      onNotify(err?.message || "Export GDPR eșuat. Rulează migrarea 34 în Supabase.", "error");
+    } finally {
+      setGdprExporting(false);
+    }
+  };
+
+  const handleWipeAtelier = async () => {
+    if (!isAdmin || !atelierId) return;
+    setWipeBusy(true);
+    try {
+      const result = await wipeAtelierDosare(supabase, atelierId, wipeSlugConfirm);
+      setWipeSlugConfirm("");
+      onNotify(
+        `Date șterse: ${result?.dosare_sterse ?? 0} dosare (arhivate + fișiere Storage curățate).`,
+        "success"
+      );
+      if (typeof onDataChanged === "function") await onDataChanged();
+    } catch (err) {
+      onNotify(err?.message || "Ștergerea a eșuat. Rulează migrarea 34.", "error");
+    } finally {
+      setWipeBusy(false);
+    }
   };
 
   const handleSaveSeats = async (e) => {
@@ -422,6 +476,7 @@ export default function SetariModal({
                 { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
                 { id: "notificari", label: desktopUi ? "Afișare" : "Afișare", icon: Bell },
                 { id: "diagnoza", label: "Backup", icon: Database },
+                { id: "date", label: "Date", icon: Scale },
               ].map(({ id, label, icon: Icon, badge }) => {
                 const active = activeTab === id;
                 return (
@@ -1135,16 +1190,95 @@ export default function SetariModal({
                 <div className="pt-2 border-t border-[var(--app-border)]">
                   <h4 className="font-bold text-[13px] text-[var(--app-text-strong)] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
                   <p className="text-[11px] text-[var(--app-muted)] mb-3">
-                    Descarcă o copie de siguranță completă a tuturor dosarelor și istoricului din aplicație în format JSON.
+                    Copie rapidă a dosarelor încărcate în sesiune (JSON). Pentru export complet GDPR (inclusiv arhivă și echipă), folosește tab-ul Date.
                   </p>
                   <button
                     type="button"
                     onClick={exportFullBackupJSON}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-text)] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors"
+                    disabled={!isAdmin}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-text)] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors disabled:opacity-50"
                   >
                     <Download size={15} /> Descarcă Backup Complet (.json)
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DATE & CONFIDENȚIALITATE */}
+          {activeTab === "date" && (
+            <div className="space-y-4">
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
+                  <Scale size={16} className="text-[var(--app-muted)]" /> Date &amp; confidențialitate
+                </h3>
+                <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
+                  Atelierul tău este operatorul datelor din dosare (clienți, contacte, documente).
+                  Workflow Dosare procesează datele ca furnizor tehnic. Exportă periodic o copie și șterge ce nu mai ai temei să păstrezi.
+                </p>
+                <ul className="text-[11.5px] text-[var(--app-muted)] list-disc pl-4 space-y-1">
+                  <li>Export GDPR: atelier, membri, dosare active, arhivă, istoric (fără chei Stripe).</li>
+                  <li>Eliminarea unui membru din Cont scoate accesul; contul Auth poate rămâne.</li>
+                  <li>Ștergerea unui dosar arhivează rândul și curăță pozele/documentele din Storage (migrare 34).</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+                <h4 className="font-bold text-[13px] text-[var(--app-text-strong)]">Export date atelier (GDPR)</h4>
+                <p className="text-[11.5px] text-[var(--app-muted)]">
+                  Descarcă pachetul JSON complet pentru atelierul activ
+                  {atelierSlug ? ` (${atelierSlug})` : ""}. Doar administrator.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleGdprExport}
+                  disabled={!isAdmin || !atelierId || gdprExporting}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-accent)] text-white text-[12.5px] font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <Download size={15} />
+                  {gdprExporting ? "Se exportă…" : "Descarcă export GDPR (.json)"}
+                </button>
+                {!atelierId && (
+                  <p className="text-[11px] text-[var(--app-warning,#b45309)]">
+                    Nu există atelier activ — reîncarcă pagina după login.
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-white border border-[var(--app-danger)]/30 rounded-xl p-4 space-y-3">
+                <h4 className="font-bold text-[13px] text-[var(--app-danger)]">Șterge toate dosarele atelierului</h4>
+                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
+                  Mută dosarele active în arhivă, le elimină din flux și curăță fișierele din Storage.
+                  Membrii, branding-ul și abonamentul rămân. Irreversibil din UI.
+                </p>
+                <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase tracking-wide">
+                  Tastează slug-ul pentru confirmare
+                  {atelierSlug ? `: ${atelierSlug}` : ""}
+                </label>
+                <input
+                  type="text"
+                  value={wipeSlugConfirm}
+                  onChange={(e) => setWipeSlugConfirm(e.target.value)}
+                  disabled={!isAdmin || !atelierId || wipeBusy}
+                  placeholder={atelierSlug || "slug-atelier"}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-[13px] bg-[var(--app-surface-2)]"
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={handleWipeAtelier}
+                  disabled={
+                    !isAdmin ||
+                    !atelierId ||
+                    wipeBusy ||
+                    !atelierSlug ||
+                    wipeSlugConfirm.trim().toLowerCase() !== String(atelierSlug).toLowerCase()
+                  }
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-danger)] text-white text-[12.5px] font-bold rounded-lg disabled:opacity-40"
+                >
+                  <Trash2 size={15} />
+                  {wipeBusy ? "Se șterge…" : "Șterge toate dosarele"}
+                </button>
               </div>
             </div>
           )}

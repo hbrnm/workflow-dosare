@@ -157,6 +157,24 @@ with checks as (
          'UPDATE ateliere fără is_admin() global'
 
   union all
+  -- Migrare 34: GDPR
+  select 70, 'fn_export_atelier_gdpr_bundle',
+         case when exists (
+           select 1 from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname = 'export_atelier_gdpr_bundle'
+         ) then 'PASS' else 'WARN' end,
+         'RPC export_atelier_gdpr_bundle (migrare 34)'
+  union all
+  select 71, 'fn_wipe_atelier_dosare',
+         case when exists (
+           select 1 from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace
+           where n.nspname = 'public' and p.proname = 'wipe_atelier_dosare'
+         ) then 'PASS' else 'WARN' end,
+         'RPC wipe_atelier_dosare (migrare 34)'
+
+  union all
   -- Inventory
   select 60, 'count_ateliere', 'INFO',
          format('ateliere: %s', (select count(*) from public.ateliere))
