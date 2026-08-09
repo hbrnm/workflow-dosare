@@ -18,6 +18,7 @@ import {
   generateazaProcesVerbalMasinaSchimb,
   generateazaFisaIntrareService,
   generateazaCerereDespagubireOmniasig,
+  generateazaCerereDespagubireAsirom,
 } from "../../utils/pdfGenerator";
 import { resolveCerereDespagubireKind } from "../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../constants/branding";
@@ -985,14 +986,15 @@ export default function ClaimModal({
                           role="menuitem"
                           className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
                             desktopUi
-                              ? "text-[var(--app-muted)] hover:bg-[var(--app-surface-2)]"
-                              : "text-white/50 hover:bg-white/10"
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
                           }`}
-                          disabled
-                          title="Trimite tipizatul Asirom ca să activăm printul"
-                          onClick={() => setPdfMenuOpen(false)}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            await generateazaCerereDespagubireAsirom(form);
+                          }}
                         >
-                          <FileText size={13} /> Cerere Asirom (în curând)
+                          <FileText size={13} /> Cerere Asirom
                         </button>
                       ) : null}
                       {form.masinaSchimb ? (

@@ -331,7 +331,8 @@ export async function generateazaFisaIntrareService(claim) {
 
 /**
  * Cerere despăgubire tipizată Omniasig — completează din dosar:
- * nr. dosar, subsemnatul (delegat dacă ≠ proprietar), nr. înmatriculare, client.
+ * nr. dosar, nr. înmatriculare, telefon;
+ * Subsemnatul = delegat dacă ≠ client; reprezentant societate = client dacă e firmă.
  * Sume, date accident, bife plată: goale (de mână).
  */
 export async function generateazaCerereDespagubireOmniasig(claim) {
@@ -466,4 +467,196 @@ export async function generateazaCerereDespagubireOmniasig(claim) {
 
   const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
   doc.save(`cerere-despagubire-omniasig-${token}.pdf`);
+}
+
+/**
+ * Cerere despăgubire tipizată Asirom (după formularul public „Cerere de plată… asigurări generale”).
+ * Auto: nr. dosar, tip poliță, bun avariat, asigurat, subsemnatul/delegat.
+ * Sume, IBAN, CNP, bife plată: goale (de mână).
+ */
+export async function generateazaCerereDespagubireAsirom(claim) {
+  const doc = await createPdf();
+  const parties = resolveCerereDespagubireParties(claim);
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 14;
+
+  const write = (text, x, yy, opts = {}) => {
+    doc.text(sd(text), x, yy, opts);
+  };
+
+  const tip = String(claim.tipAsigurare || "").toUpperCase();
+  const isRca = tip.includes("RCA");
+  const isCasco = tip.includes("CASCO");
+  const mark = (on) => (on ? "[X]" : "[ ]");
+
+  doc.setFontSize(8);
+  doc.setTextColor(80);
+  write("ASIROM Vienna Insurance Group", 14, y);
+  y += 4;
+  write("www.asirom.ro · Call Center 021 9146", 14, y);
+  y += 8;
+  doc.setTextColor(0);
+
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  write("CERERE", pageW / 2, y, { align: "center" });
+  y += 6;
+  doc.setFontSize(10);
+  write("de plata a drepturilor din asigurare la asigurarile generale", pageW / 2, y, { align: "center" });
+  y += 9;
+
+  // Tabel antet
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  doc.setFillColor(245, 245, 245);
+  doc.rect(14, y, 182, 22, "F");
+  doc.setDrawColor(180);
+  doc.rect(14, y, 182, 22, "S");
+
+  let rowY = y + 5;
+  doc.setFont(undefined, "bold");
+  write("Nr. dosar:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(claim.numarDosar || "……………", 36, rowY);
+
+  doc.setFont(undefined, "bold");
+  write("Polita tip:", 90, rowY);
+  doc.setFont(undefined, "normal");
+  write(`${mark(isRca)} RCA   ${mark(isCasco)} Casco   ${mark(!isRca && !isCasco)} Non Auto`, 110, rowY);
+  rowY += 6;
+
+  const bun = [claim.numarInmatriculare, claim.marcaModel].filter(Boolean).join(" · ") || "……………………";
+  doc.setFont(undefined, "bold");
+  write("Bunul avariat:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(bun, 42, rowY);
+  rowY += 6;
+
+  doc.setFont(undefined, "bold");
+  write("Asigurat/Pagubit:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(parties.proprietar || "……………………", 48, rowY);
+  doc.setFont(undefined, "bold");
+  write("Data eveniment:", 120, rowY);
+  doc.setFont(undefined, "normal");
+  write("____________", 152, rowY);
+
+  y += 26;
+
+  const calitate = parties.asCompanyOwner || parties.hasSeparateDelegat
+    ? "Reprezentant al beneficiarului"
+    : "Asigurat/Pagubit";
+  const sub = parties.subsemnatul || "…………………………………………";
+  const firmNote = parties.reprezentantSocietate
+    ? ` (reprezentant al societatii ${parties.reprezentantSocietate})`
+    : "";
+
+  doc.setFontSize(9);
+  const intro = `Subsemnatul(a) ${sub}${firmNote}, CNP ____________________, domiciliat in localitatea ____________________, adresa completa ______________________________________________, nr. telefon ${claim.telefonClient || "______________"}, email ____________________, cu actul de identitate seria ____, nr. ____________, in calitate de ${calitate}, solicit plata despagubirii in valoare de ____________________ (lei):`;
+  const introLines = doc.splitTextToSize(sd(intro), 182);
+  doc.text(introLines, 14, y);
+  y += introLines.length * 4.2 + 4;
+
+  doc.rect(14, y - 2.2, 3, 3);
+  write("conform evaluare ASIROM (fara documente justificative);", 20, y);
+  y += 5.5;
+  doc.rect(14, y - 2.2, 3, 3);
+  write("conform documente justificative anexate, astfel:", 20, y);
+  y += 5.5;
+  write("In original: .......................................................................................................................", 14, y);
+  y += 5;
+  write("In fotocopie: .....................................................................................................................", 14, y);
+  y += 8;
+
+  doc.setFont(undefined, "bold");
+  write("Despagubirea cuvenita sunt de acord sa fie platita:", 14, y);
+  y += 6;
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  write("[ ] prin casieriile BCR, suma _____________ lei, beneficiar _________________________________", 14, y);
+  y += 5;
+  write("[ ] prin cont bancar, suma _____________ lei, IBAN _________________________________________", 14, y);
+  y += 5;
+  write("    banca _______________________________, titular _________________________________________", 14, y);
+  y += 8;
+
+  doc.setFontSize(8);
+  doc.setFont(undefined, "bold");
+  write("Declar, pe propria raspundere, urmatoarele:", 14, y);
+  y += 4.5;
+  doc.setFont(undefined, "normal");
+  const decls = [
+    "Am avizat acest eveniment si la Asiguratorul: .............................., iar suma stabilita de acesta este ……….. / Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurare.",
+    "Nu mai posed aceeasi forma de asigurare pentru bunul respectiv incheiata si la alta societate de asigurare.",
+    "Ma oblig sa restitui de indata, partial sau total, societatii de asigurare suma de bani primita cu titlu de despagubire, in functie de o eventuala hotarare a instantei ori in cazul anularii actelor organelor competente.",
+    "Declar ca, prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nicio pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata de producerea evenimentului.",
+  ];
+  for (const d of decls) {
+    const lines = doc.splitTextToSize(sd(d), 182);
+    doc.text(lines, 14, y);
+    y += lines.length * 3.5 + 1.2;
+  }
+  y += 3;
+
+  doc.setFontSize(9);
+  write("Doresc sa primesc informare dupa realizarea platii pe email: _______________________________", 14, y);
+  y += 5;
+  write("Observatii: ...........................................................................................................................", 14, y);
+  y += 5;
+  write("Localitate: _______________________________", 14, y);
+  y += 10;
+
+  doc.setFont(undefined, "bold");
+  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
+  write("Data completarii: __________", 130, y);
+  y += 5;
+  doc.setFont(undefined, "normal");
+  write(`(nume/prenume in clar): ${sd(sub)}`, 14, y);
+  y += 8;
+  write("Semnatura (stampila daca este cazul): _______________________________", 14, y);
+
+  // Pagina 2 — consimțământ GDPR (compact)
+  doc.addPage();
+  y = 16;
+  doc.setFontSize(11);
+  doc.setFont(undefined, "bold");
+  write("DECLARATIE SI CONSIMTAMANT PRIVIND PRELUCRAREA DATELOR CU CARACTER PERSONAL", pageW / 2, y, {
+    align: "center",
+  });
+  y += 10;
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+  const gdprIntro = `Subsemnatul(a) ${sub}, domiciliat(a) in ____________________ si cu CNP _______________, declar ca am citit si am inteles continutul Notei de informare cu privire la prelucrarea de catre ASIROM a datelor cu caracter personal (disponibila pe site-ul ASIROM) si ca imi exprim consimtamantul pentru urmatoarele:`;
+  const gdprLines = doc.splitTextToSize(sd(gdprIntro), 182);
+  doc.text(gdprLines, 14, y);
+  y += gdprLines.length * 4.2 + 6;
+
+  doc.setFontSize(8.5);
+  write("[ ] Sunt de acord   [ ] Nu sunt de acord — utilizarea datelor mele pentru oferte / promotii ASIROM.", 14, y);
+  y += 8;
+
+  const gdprBody = [
+    "Pentru derularea contractului de asigurare ASIROM are acordul meu expres sa contacteze medici / institutii medicale si sa obtina date privind starea mea de sanatate, in masura in care sunt necesare pentru solutionarea dosarului de dauna.",
+    "Sunt de acord ca aceste date sa fie transmise catre ASIROM si reasiguratori / spitale / medici doar in scopul determinarii cuantumului despagubirii.",
+    "Fara acces la datele necesare, ASIROM poate fi in imposibilitatea obiectiva de a solutiona pretentiile de despagubire.",
+  ];
+  for (const g of gdprBody) {
+    const lines = doc.splitTextToSize(sd(g), 182);
+    doc.text(lines, 14, y);
+    y += lines.length * 3.6 + 2;
+  }
+  y += 6;
+  write("[ ] Sunt de acord   [ ] Nu sunt de acord — prelucrare date privind sanatatea pentru dosarul de dauna.", 14, y);
+  y += 14;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, "bold");
+  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
+  write("Data: __________", 130, y);
+  y += 6;
+  doc.setFont(undefined, "normal");
+  write(`(nume/prenume, semnatura): ${sd(sub)} _______________________________`, 14, y);
+
+  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
+  doc.save(`cerere-despagubire-asirom-${token}.pdf`);
 }
