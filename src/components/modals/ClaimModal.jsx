@@ -3,7 +3,7 @@ import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
   FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
-  CheckSquare, Square, Download, Calendar, Eye, Layers
+  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer
 } from "lucide-react";
 import {
   STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
@@ -182,6 +182,8 @@ export default function ClaimModal({
   }, [isDragging]);
 
   const [form, setForm] = useState(safeClaim);
+  const [baseline, setBaseline] = useState(safeClaim);
+  const [unsavedPrompt, setUnsavedPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
@@ -197,7 +199,20 @@ export default function ClaimModal({
   const [cropQueue, setCropQueue] = useState([]);
   const [cropMode, setCropMode] = useState("document"); // "document" | "scan"
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
+  const pdfMenuRef = useRef(null);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
+
+  useEffect(() => {
+    if (!pdfMenuOpen) return;
+    const onDoc = (e) => {
+      if (pdfMenuRef.current && !pdfMenuRef.current.contains(e.target)) {
+        setPdfMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [pdfMenuOpen]);
 
   const filteredSlashCommands = useMemo(() => {
     if (!noteText.includes("/")) return [];
@@ -261,8 +276,21 @@ export default function ClaimModal({
     await onPatch(form.id, patch);
   };
 
+  /** Media saved immediately via onPatch — sync baseline so it isn't "dirty". */
+  const setFormMedia = (mediaPatch) => {
+    setForm((f) => {
+      const next = { ...f, ...mediaPatch };
+      setBaseline((b) => ({ ...b, ...mediaPatch }));
+      return next;
+    });
+  };
+
   useEffect(() => {
-    setForm(sanitizeClaim(claim));
+    const next = sanitizeClaim(claim);
+    setForm(next);
+    setBaseline(next);
+    setUnsavedPrompt(false);
+    setNoteText("");
   }, [claim?.id]);
 
   useEffect(() => {
@@ -280,7 +308,9 @@ export default function ClaimModal({
         refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
       ]);
       if (!cancelled) {
+        // URL refresh is not a user edit — keep dirty baseline in sync
         setForm((current) => ({ ...current, poze, documente }));
+        setBaseline((current) => ({ ...current, poze, documente }));
       }
     };
     loadStorageUrls();
@@ -365,17 +395,42 @@ export default function ClaimModal({
     ));
   }, [allClaims, form.telefonClient, form.vin, claim?.id]);
 
+  const isDirty = useMemo(() => {
+    if (readOnly) return false;
+    if (noteText.trim()) return true;
+    if (scanSession) return true;
+    try {
+      return JSON.stringify(form) !== JSON.stringify(baseline);
+    } catch {
+      return true;
+    }
+  }, [form, baseline, noteText, scanSession, readOnly]);
+
+  const requestClose = () => {
+    if (!isDirty) {
+      setUnsavedPrompt(false);
+      onClose?.();
+      return;
+    }
+    setUnsavedPrompt(true);
+  };
+
+  const discardAndClose = () => {
+    setUnsavedPrompt(false);
+    onClose?.();
+  };
+
   const handleSave = (openProgramator = false) => {
     const numarDosar = (form.numarDosar || "").trim();
     const numarInmatriculare = (form.numarInmatriculare || "").trim().toUpperCase();
     const vin = (form.vin || "").trim().toUpperCase();
     const telefonClient = (form.telefonClient || "").trim();
 
-    if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return; }
-    if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return; }
+    if (!numarDosar) { onNotify("Introduceți numărul dosarului.", "error"); return false; }
+    if (!numarInmatriculare) { onNotify("Introduceți numărul de înmatriculare.", "error"); return false; }
     if (telefonClient && !isValidPhone(telefonClient)) {
       onNotify("Telefonul trebuie să conțină între 7 și 15 cifre.", "error");
-      return;
+      return false;
     }
 
     const duplicateDosar = Array.isArray(allClaims) ? allClaims.find((c) =>
@@ -383,7 +438,7 @@ export default function ClaimModal({
     ) : null;
     if (duplicateDosar) {
       onNotify(`Numărul de dosar „${numarDosar}” este deja folosit de un alt dosar.`, "error");
-      return;
+      return false;
     }
 
     if (isNew && Array.isArray(allClaims)) {
@@ -393,13 +448,13 @@ export default function ClaimModal({
       );
       if (duplicat) {
         const ok = confirm(`Există deja un dosar activ pentru ${form.numarInmatriculare} (dosarul ${duplicat.numarDosar || "—"}, status „${getStatusDefinition(duplicat.status).label}"). Continui oricum?`);
-        if (!ok) return;
+        if (!ok) return false;
       }
     }
 
     if (form.status === "programat" && !form.dataProgramare) {
       onNotify("Selectează data și ora programării pentru statusul „Programat”.", "error");
-      return;
+      return false;
     }
 
     const scheduleChanged = form.dataProgramare !== claim?.dataProgramare;
@@ -435,10 +490,11 @@ export default function ClaimModal({
         !form.valoarePieseAudatex && !form.valoareAchizitiePiese;
       if (faraValori) {
         const ok = confirm("Nu ai completat nicio valoare de manoperă sau piese pentru acest dosar. Sigur vrei să-l marchezi ca facturat?");
-        if (!ok) return;
+        if (!ok) return false;
       }
     }
 
+    setUnsavedPrompt(false);
     onSave({
       ...form,
       ...deliveryState,
@@ -451,6 +507,7 @@ export default function ClaimModal({
       dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
       ...(statusChanged ? { alerteAck: false } : {}),
     }, { openProgramator: openProgramator || shouldOpenProgramator });
+    return true;
   };
 
   const insertSlashCommand = (prefix) => {
@@ -470,7 +527,7 @@ export default function ClaimModal({
       }
     }
     const nextDocs = form.documente.filter((d) => d.id !== id);
-    setForm((f) => ({ ...f, documente: nextDocs }));
+    setFormMedia({ documente: nextDocs });
     await persistMediaPatch({ removeDocumente: [doc] });
   };
 
@@ -534,12 +591,12 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, poze: [...noi, ...f.poze] }));
-    setUploadingPoze(false);
     if (noi.length) {
+      setFormMedia({ poze: [...noi, ...form.poze] });
       onNotify(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}".`, "success");
       await persistMediaPatch({ appendPoze: noi });
     }
+    setUploadingPoze(false);
   };
 
   const handleDownloadZip = async () => {
@@ -594,12 +651,12 @@ export default function ClaimModal({
       }
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
     }
-    setForm((f) => ({ ...f, documente: [...noi, ...f.documente] }));
-    setUploadingDocumente(false);
     if (noi.length) {
+      setFormMedia({ documente: [...noi, ...form.documente] });
       onNotify(`${noi.length} document(e) încărcat(e).`, "success");
       await persistMediaPatch({ appendDocumente: noi });
     }
+    setUploadingDocumente(false);
   };
 
   const handleStartScanSession = async (fileList) => {
@@ -711,21 +768,26 @@ export default function ClaimModal({
       }
     }
     const nextPoze = form.poze.filter((p) => p.id !== poza.id);
-    setForm((f) => ({ ...f, poze: nextPoze }));
+    setFormMedia({ poze: nextPoze });
     await persistMediaPatch({ removePoze: [poza] });
   };
 
   return (
     <div
-      className={modalOverlayClass(desktopUi, { dense: true })}
+      className={modalOverlayClass(desktopUi, { dense: true, layer: "front" })}
       {...modalOverlayProps(desktopUi, themeId)}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) requestClose();
+      }}
     >
       <div 
         onClick={(e) => e.stopPropagation()} 
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
         className={modalPanelClass(
           desktopUi,
-          "relative w-full h-full sm:h-auto sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-lg flex flex-col overflow-hidden bg-[var(--app-surface)] sm:border sm:border-[var(--app-border)]"
+          // Fixed height on desktop so Date/Poze/Financiar/Istoric don't resize the window;
+          // only the body scrolls (content grows downward / scrolls up).
+          "app-fixed-shell-modal relative w-full h-full sm:h-[94vh] sm:max-h-[94vh] sm:max-w-5xl rounded-none sm:rounded-lg flex flex-col overflow-hidden bg-[var(--app-surface)] sm:border sm:border-[var(--app-border)]"
         )}
       >
         
@@ -819,26 +881,94 @@ export default function ClaimModal({
                   <span className="hidden md:inline"> ZIP</span>
                 </button>
 
-                {/* DROPDOWN UNIFICAT PENTRU GENERARE PDF */}
-                <select
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    if (val === "pdf") await generateazaPDF(form, istoric, loadCachedBranding());
-                    if (val === "fisa") await generateazaFisaIntrareService(form);
-                    if (val === "schimb" && form.masinaSchimb) generateazaProcesVerbalMasinaSchimb(form);
-                    e.target.value = "";
-                  }}
-                  className="bg-[#2C333D] border border-white/20 text-white text-[10.5px] font-bold rounded-lg px-2 py-1 cursor-pointer focus:outline-none hover:bg-white/10 transition-colors"
-                  title="Generează și descarcă documente PDF"
-                >
-                  <option value="">📄 Export PDF ▾</option>
-                  <option value="pdf">📄 Proces-Verbal General</option>
-                  <option value="fisa">📄 Fișă Intrare Service</option>
-                  {form.masinaSchimb && <option value="schimb">🚗 PV Auto la Schimb</option>}
-                </select>
+                {/* Print / PDF — icon-only printer */}
+                <div ref={pdfMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setPdfMenuOpen((v) => !v)}
+                    className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer ${
+                      desktopUi
+                        ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                        : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                    }`}
+                    title="Printează / exportă PDF"
+                    aria-label="Printează / exportă PDF"
+                    aria-expanded={pdfMenuOpen}
+                    aria-haspopup="menu"
+                  >
+                    <Printer size={14} />
+                  </button>
+                  {pdfMenuOpen && (
+                    <div
+                      role="menu"
+                      className={`absolute right-0 top-[calc(100%+0.3rem)] z-[70] min-w-[11rem] rounded-lg border py-1 shadow-lg ${
+                        desktopUi
+                          ? "bg-[var(--app-surface)] border-[var(--app-border)]"
+                          : "bg-[#2C333D] border-white/20"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                          desktopUi
+                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                            : "text-white hover:bg-white/10"
+                        }`}
+                        onClick={async () => {
+                          setPdfMenuOpen(false);
+                          await generateazaPDF(form, istoric, loadCachedBranding());
+                        }}
+                      >
+                        <FileText size={13} /> Proces-Verbal General
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                          desktopUi
+                            ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                            : "text-white hover:bg-white/10"
+                        }`}
+                        onClick={async () => {
+                          setPdfMenuOpen(false);
+                          await generateazaFisaIntrareService(form);
+                        }}
+                      >
+                        <FileText size={13} /> Fișă Intrare Service
+                      </button>
+                      {form.masinaSchimb ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={() => {
+                            setPdfMenuOpen(false);
+                            generateazaProcesVerbalMasinaSchimb(form);
+                          }}
+                        >
+                          <Car size={13} /> PV Auto la Schimb
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            <button onClick={onClose} className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors ml-1 cursor-pointer">
+            <button
+              type="button"
+              onClick={requestClose}
+              className={`p-1 rounded-lg transition-colors ml-1 cursor-pointer ${
+                desktopUi
+                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+              aria-label="Închide"
+            >
               <X size={20} />
             </button>
           </div>
@@ -892,10 +1022,10 @@ export default function ClaimModal({
           </div>
         )}
 
-        {/* MAIN BODY CONTAINER */}
-        <div className="flex-1 min-h-0 overflow-y-auto bg-[#FAF8F5]">
-          <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0">
-            <div className="p-3 space-y-3 font-sans">
+        {/* MAIN BODY — sole scroll region; header/tabs/footer stay put across tabs */}
+        <div className="app-claim-modal-body app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[#FAF8F5]">
+          <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0 min-h-full">
+            <div className="p-3 pb-5 space-y-3 font-sans">
 
               {/* ========================================================================= */}
               {/* TAB 1: DATE DOSAR & VEHICUL                                               */}
@@ -1864,7 +1994,7 @@ export default function ClaimModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               className="m-claim-footer-btn px-4 py-1.5 border border-[var(--app-border)] text-[12.5px] font-bold text-[var(--app-text)] hover:bg-[var(--app-surface-2)] transition-colors"
             >
               {readOnly ? "Închide" : "Anulează"}
@@ -1880,6 +2010,59 @@ export default function ClaimModal({
             )}
           </div>
         </div>
+
+        {/* Unsaved changes — click outside / close while dirty */}
+        {unsavedPrompt && (
+          <div
+            className="absolute inset-0 z-[80] flex items-center justify-center bg-black/45 p-4"
+            onMouseDown={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="claim-unsaved-title"
+          >
+            <div
+              className={`w-full max-w-sm rounded-xl border p-4 shadow-xl ${
+                desktopUi
+                  ? "bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-text)]"
+                  : "bg-[#2C333D] border-white/15 text-white"
+              }`}
+            >
+              <h3 id="claim-unsaved-title" className="text-[14px] font-bold tracking-tight">
+                Modificări nesalvate
+              </h3>
+              <p className={`mt-1.5 text-[12.5px] leading-snug ${desktopUi ? "text-[var(--app-muted)]" : "text-white/70"}`}>
+                Ai schimbări pe acest dosar. Salvează înainte de a închide, sau renunță la modificări.
+              </p>
+              <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setUnsavedPrompt(false)}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-colors ${
+                    desktopUi
+                      ? "border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                      : "border-white/20 hover:bg-white/10"
+                  }`}
+                >
+                  Continuă editarea
+                </button>
+                <button
+                  type="button"
+                  onClick={discardAndClose}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[#B23A2E]/40 text-[#B23A2E] hover:bg-[#B23A2E]/10 transition-colors"
+                >
+                  Renunță
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSave()}
+                  className="m-claim-footer-primary flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-extrabold transition-colors"
+                >
+                  <Save size={13} /> Salvează
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* SCANNER OVERLAY */}
         {scanSession && (

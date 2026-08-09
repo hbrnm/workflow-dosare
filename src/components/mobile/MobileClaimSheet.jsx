@@ -128,7 +128,7 @@ export default function MobileClaimSheet({
 
   return (
     <div
-      className="m-claim-sheet app-shell fixed inset-0 z-[9000] flex flex-col font-sans"
+      className="m-claim-sheet app-shell fixed inset-0 z-[9100] flex flex-col font-sans"
       style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
       <header className="m-sheet-header shrink-0">

@@ -118,6 +118,23 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
+/* Large modals (Dosar / Alerte / Setări): fixed shell; only body scrolls */
+.app-shell .app-modal-panel.app-fixed-shell-modal {
+  height: min(92vh, 100%);
+  max-height: 92vh;
+}
+
+.app-shell .app-modal-panel.app-fixed-shell-modal:has(.app-claim-modal-body) {
+  height: min(94vh, 100%);
+  max-height: 94vh;
+}
+
+.app-shell .app-fixed-shell-body,
+.app-shell .app-claim-modal-body {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 .app-modal-header {
   display: flex;
   align-items: center;
@@ -250,10 +267,19 @@
   background: var(--app-border);
 }
 
+/* Header CTA pair — shared box model so Dosar nou / Alerte match */
+.app-shell .app-header-action-btn {
+  box-sizing: border-box;
+  height: 2rem;
+  min-height: 2rem;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+
 .app-shell .app-alert-btn {
   background: color-mix(in srgb, var(--app-danger) 75%, var(--app-surface-muted));
   color: var(--app-text-strong);
-  border: 1px solid color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+  border-color: color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
 }
 
 .app-shell .app-alert-btn:hover {

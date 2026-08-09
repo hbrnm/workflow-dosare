@@ -140,12 +140,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* Piese comandate — bloc funcțional compact */}
       {isPieseComandateStatus(claim.status) && (
-        <div className="mt-1.5">
+        <div className="mt-1.5 app-flux-piese-inline">
           <MobilePieseSositeRow
             claim={claim}
             canEdit={canEdit}
-            compact
-            hideDatesUntilHover
+            layout="inline"
             onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
             onSchedule={onScheduleFromPiese}
             onPatchDates={onPatchPieseDates}

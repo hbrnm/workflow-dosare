@@ -1,14 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Download, ChevronDown, FileSpreadsheet, FileText } from "lucide-react";
+import { Printer, FileSpreadsheet, FileText } from "lucide-react";
 import { EXPORT_FORMAT } from "../../utils/exportClaimsList";
 
-/** Buton descărcare listă cu alegere Excel / PDF. */
+/** Buton print/export listă — doar icoană imprimantă, meniu Excel / PDF. */
 export default function ExportFormatMenu({
   count = 0,
   disabled = false,
   onExport,
   className = "",
-  label = "Descarcă listă",
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -27,7 +26,10 @@ export default function ExportFormatMenu({
     onExport?.(format);
   };
 
-  const countLabel = count > 0 ? ` (${count})` : "";
+  const title =
+    count > 0
+      ? `Printează / exportă lista (${count})`
+      : "Printează / exportă lista";
 
   return (
     <div ref={rootRef} className={`app-export-menu relative ${className}`}>
@@ -35,14 +37,13 @@ export default function ExportFormatMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         disabled={disabled}
-        className="app-table-export-btn inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        title="Descarcă lista filtrată"
+        className="app-table-export-btn inline-flex items-center justify-center w-9 h-9 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        title={title}
+        aria-label={title}
         aria-expanded={open}
         aria-haspopup="menu"
       >
-        <Download size={14} />
-        {label}{countLabel}
-        <ChevronDown size={12} className={`opacity-70 transition-transform ${open ? "rotate-180" : ""}`} />
+        <Printer size={16} />
       </button>
 
       {open && (

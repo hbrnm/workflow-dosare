@@ -532,6 +532,64 @@ export default function App() {
           />
         </Suspense>
 
+        {alerteModalTab && (
+          <Suspense fallback={null}>
+            <AlerteModal
+              claims={userClaims}
+              alertBuckets={alertBuckets}
+              initialTab={alerteModalTab}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onClose={requestCloseAlerts}
+              onOpenClaim={openClaimFromAlerts}
+              onPatchClaim={handlePatchClaim}
+              onNotify={showNotice}
+            />
+          </Suspense>
+        )}
+
+        {setariOpen && (
+          <Suspense fallback={null}>
+            <SetariModal
+              claims={claims}
+              capacitateZilnica={capacitateZilnica}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              termeneAlertaStatus={termeneAlertaStatus}
+              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
+              onSaveCapacitate={saveCapacitate}
+              onSavePrag={savePragRidicare}
+              onSavePragInactivitate={savePragInactivitate}
+              insurersList={customInsurers}
+              onSaveInsurers={saveInsurers}
+              branding={branding}
+              onSaveBranding={saveBranding}
+              onUploadBrandingLogo={uploadBrandingLogo}
+              onClose={requestCloseSettings}
+              onNotify={showNotice}
+              userEmail={myEmail}
+              onSignOut={handleLogout}
+              isAdmin={isAdmin}
+              usersList={usersList}
+              onAddUser={handleAddUser}
+              onDeleteUser={handleDeleteUser}
+              onToggleAdminRole={handleToggleAdminRole}
+              onChangePassword={handleChangePassword}
+            />
+          </Suspense>
+        )}
+
+        {quickCreateOpen && (
+          <Suspense fallback={null}>
+            <QuickCreateClaimModal
+              isOpen={quickCreateOpen}
+              onClose={requestCloseQuickCreate}
+              onSave={handleSave}
+            />
+          </Suspense>
+        )}
+
+        {/* Dosar/sheet above Alerte (layer front) — closing returns to Alerte still open */}
         {fieldClaim && !modalClaim && (
           <Suspense fallback={null}>
             <MobileClaimSheet
@@ -569,63 +627,6 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
-            />
-          </Suspense>
-        )}
-
-        {quickCreateOpen && (
-          <Suspense fallback={null}>
-            <QuickCreateClaimModal
-              isOpen={quickCreateOpen}
-              onClose={requestCloseQuickCreate}
-              onSave={handleSave}
-            />
-          </Suspense>
-        )}
-
-        {setariOpen && (
-          <Suspense fallback={null}>
-            <SetariModal
-              claims={claims}
-              capacitateZilnica={capacitateZilnica}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              termeneAlertaStatus={termeneAlertaStatus}
-              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
-              onSaveCapacitate={saveCapacitate}
-              onSavePrag={savePragRidicare}
-              onSavePragInactivitate={savePragInactivitate}
-              insurersList={customInsurers}
-              onSaveInsurers={saveInsurers}
-              branding={branding}
-              onSaveBranding={saveBranding}
-              onUploadBrandingLogo={uploadBrandingLogo}
-              onClose={requestCloseSettings}
-              onNotify={showNotice}
-              userEmail={myEmail}
-              onSignOut={handleLogout}
-              isAdmin={isAdmin}
-              usersList={usersList}
-              onAddUser={handleAddUser}
-              onDeleteUser={handleDeleteUser}
-              onToggleAdminRole={handleToggleAdminRole}
-              onChangePassword={handleChangePassword}
-            />
-          </Suspense>
-        )}
-
-        {alerteModalTab && (
-          <Suspense fallback={null}>
-            <AlerteModal
-              claims={userClaims}
-              alertBuckets={alertBuckets}
-              initialTab={alerteModalTab}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              onClose={requestCloseAlerts}
-              onOpenClaim={openClaimFromAlerts}
-              onPatchClaim={handlePatchClaim}
-              onNotify={showNotice}
             />
           </Suspense>
         )}
@@ -804,20 +805,21 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Header Actions */}
+          {/* Right Header Actions — same height/padding for Dosar nou + Alerte */}
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg app-accent-bg text-[12px] font-semibold transition-all active:scale-95"
+              className="app-header-action-btn app-accent-bg flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold transition-all active:scale-95"
             >
-              <Plus size={16} /> <span>Dosar nou</span>
+              <Plus size={14} /> <span>Dosar nou</span>
             </button>
 
-            {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
             {totalAlertsCount > 0 && (
               <button
+                type="button"
                 onClick={() => openAlerts("depasite")}
-                className="app-alert-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-semibold active:scale-95 transition-colors"
+                className="app-header-action-btn app-alert-btn flex items-center justify-center gap-1.5 h-8 min-w-[7.5rem] px-3 rounded-lg text-[12px] font-semibold active:scale-95 transition-colors"
                 title="Deschide Centrul de Alerte"
               >
                 <Bell size={14} />
@@ -902,6 +904,7 @@ export default function App() {
                 <BriefZilnic
                   claims={userClaims}
                   onOpen={openExisting}
+                  onPatchClaim={handlePatchClaim}
                   onMoveToStatus={handleMoveToStatus}
                   onDuplicate={duplicateClaim}
                   canEditFn={canEdit}
@@ -915,7 +918,26 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} highlightClaimIds={highlightClaimIds} onNotify={showNotice} />
+                <ClaimTable
+                  claims={filteredClaims}
+                  onOpen={openExisting}
+                  onDelete={handleDelete}
+                  canEditFn={canEdit}
+                  highlightClaimIds={highlightClaimIds}
+                  onNotify={showNotice}
+                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
+                  onScheduleFromPiese={async (claim, iso) => {
+                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
+                    if (ok !== false) {
+                      showNotice(
+                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                        "success"
+                      );
+                    }
+                    return ok;
+                  }}
+                  onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                />
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
@@ -1091,26 +1113,10 @@ export default function App() {
         </div>
       )}
 
-      {/* --- MODALS & OVERLAYS --- */}
+      {/* --- MODALS & OVERLAYS ---
+          Alerte (base z) before Claim (front z) so dosarul din alerte rămâne deasupra;
+          la închiderea dosarului, Centrul de Alerte rămâne deschis. */}
       <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
-        {modalClaim && (
-          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={requestCloseClaimModal}>
-            <ClaimModal
-              claim={activeModalClaim}
-              onClose={requestCloseClaimModal}
-              onSave={handleSave}
-              onPatch={handlePatchClaim}
-              onDelete={handleDelete}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
-              allClaims={claims}
-              insurersList={customInsurers}
-              onJumpTo={openExisting}
-              onNotify={showNotice}
-              desktopUi
-            />
-          </ErrorBoundary>
-        )}
-
         {alerteModalTab && (
           <AlerteModal
             claims={userClaims}
@@ -1163,6 +1169,24 @@ export default function App() {
             onSave={handleSave}
             desktopUi
           />
+        )}
+
+        {modalClaim && (
+          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={requestCloseClaimModal}>
+            <ClaimModal
+              claim={activeModalClaim}
+              onClose={requestCloseClaimModal}
+              onSave={handleSave}
+              onPatch={handlePatchClaim}
+              onDelete={handleDelete}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
+              allClaims={claims}
+              insurersList={customInsurers}
+              onJumpTo={openExisting}
+              onNotify={showNotice}
+              desktopUi
+            />
+          </ErrorBoundary>
         )}
 
         {quickCaptureOpen && (

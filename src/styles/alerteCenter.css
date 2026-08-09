@@ -5,6 +5,13 @@
   color: var(--app-text, #23282e);
 }
 
+@media (min-width: 640px) {
+  .app-alerte-panel.app-fixed-shell-modal {
+    height: 92vh;
+    max-height: 92vh;
+  }
+}
+
 .app-alerte-header {
   border-bottom: 1px solid var(--app-border, #dad4c6);
   background: var(--app-surface, #fff);
@@ -336,6 +343,12 @@
 }
 
 .app-alerte-row {
+  /* Tipografie unificată: dosar / nr. auto / status = aceeași mărime.
+     Metric (zile) e evidențiat prin culoare + greutate. */
+  --alerte-type: 0.8125rem;
+  --alerte-type-meta: 0.8125rem;
+  --alerte-weight: 700;
+  --alerte-mono: "JetBrains Mono", ui-monospace, monospace;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.65rem;
@@ -389,14 +402,15 @@
 }
 
 .app-alerte-metric-value {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: var(--m-type-body, 0.9rem);
+  font-family: var(--alerte-mono);
+  font-size: var(--alerte-type);
   font-weight: 800;
 }
 
 .app-alerte-metric-unit {
-  font-size: var(--m-type-micro, 0.65rem);
-  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.6rem;
+  font-weight: var(--alerte-weight);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   opacity: 0.85;
@@ -423,7 +437,8 @@
 .app-alerte-reason,
 .app-alerte-note {
   margin: 0;
-  font-size: var(--m-type-meta, 0.75rem);
+  font-size: var(--alerte-type-meta);
+  font-weight: 600;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -432,17 +447,15 @@
 }
 
 .app-alerte-reason {
-  font-weight: 600;
   color: var(--app-danger, #b23a2e);
 }
 
 .app-alerte-note {
-  font-weight: 500;
   color: var(--app-text-muted, #6b7280);
 }
 
 .app-alerte-meta-label {
-  font-weight: 700;
+  font-weight: var(--alerte-weight);
   letter-spacing: 0.02em;
   margin-right: 0.35rem;
   opacity: 0.85;
@@ -453,28 +466,31 @@
 }
 
 .app-alerte-dosar {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: var(--m-type-body, 0.9rem);
-  font-weight: 800;
+  font-family: var(--alerte-mono);
+  font-size: var(--alerte-type);
+  font-weight: var(--alerte-weight);
   color: var(--app-text-strong, #23282e);
   flex-shrink: 0;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  line-height: 1.2;
 }
 
 .app-alerte-plate {
-  font-size: var(--m-type-body, 0.9rem);
-  font-weight: 700;
-  color: var(--app-text, #3b5166);
+  font-family: var(--alerte-mono);
+  font-size: var(--alerte-type);
+  font-weight: var(--alerte-weight);
+  color: var(--app-text-strong, #23282e);
   white-space: nowrap;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .app-alerte-identity {
   margin: 0;
-  font-size: var(--m-type-meta, 0.75rem);
+  font-size: var(--alerte-type-meta);
   font-weight: 600;
   color: var(--app-text, #3b5166);
   line-height: 1.2;
@@ -485,18 +501,21 @@
 }
 
 .app-alerte-status-chip {
-  font-size: var(--m-type-micro, 0.65rem);
-  font-weight: 700;
-  padding: 0.12rem 0.4rem;
+  font-family: inherit;
+  font-size: var(--alerte-type);
+  font-weight: var(--alerte-weight);
+  padding: 0.08rem 0.4rem;
   border-radius: 0.35rem;
   background: var(--app-surface-muted, #efeae1);
-  color: var(--app-text, #4a443a);
+  color: var(--app-text-strong, #23282e);
   white-space: nowrap;
   flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .app-alerte-insurer {
-  font-size: var(--m-type-micro, 0.65rem);
+  font-size: var(--alerte-type);
+  font-weight: 600;
   color: var(--app-muted, #8a8375);
   white-space: nowrap;
   flex-shrink: 0;

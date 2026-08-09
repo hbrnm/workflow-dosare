@@ -1883,14 +1883,17 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .mobile-shell.app-shell .m-flow-card .app-alerte-dosar,
 .mobile-shell.app-shell .m-flow-card .app-alerte-plate,
 .mobile-shell.app-shell .m-brief-alerte-card .app-alerte-dosar,
-.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-plate {
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-plate,
+.mobile-shell.app-shell .m-flow-card .app-alerte-status-chip,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-status-chip {
   font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .mobile-shell.app-shell .m-flow-card .app-alerte-status-chip,
 .mobile-shell.app-shell .m-brief-alerte-card .app-alerte-status-chip {
   padding: 0.05rem 0.35rem;
-  font-size: 0.62rem;
   border-radius: 999px;
 }
 

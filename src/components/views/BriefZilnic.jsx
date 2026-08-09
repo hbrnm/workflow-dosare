@@ -1,13 +1,19 @@
 import React, { useState, useMemo } from "react";
 import {
-  CalendarClock, PackageCheck, AlertOctagon, Phone, Car,
-  Clock, CheckCircle2, ShieldAlert, BarChart3, Boxes, ExternalLink, ShoppingCart,
-  ChevronRight, User, Truck
+  CalendarClock, PackageCheck, Phone, Clock, CheckCircle2, ShieldAlert,
+  BarChart3, ExternalLink, ChevronRight, User, Package, ClipboardCheck,
+  BadgeCheck, Wrench,
 } from "lucide-react";
-import { todayISO, telLink } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
+import { todayISO, telLink, fmtDate, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
+import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import { isPendingArrivalToday } from "../../utils/scheduleStatusEffects";
-import { STATUSES, getStatusDefinition } from "../../constants/config";
+import {
+  STATUSES,
+  getStatusDefinition,
+  getStatusShortLabel,
+  getStageAccent,
+  isPieseComandateStatus,
+} from "../../constants/config";
 import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
@@ -20,9 +26,60 @@ const ALERT_TABS = [
   ...ALERT_GROUPS.map((g) => ({ key: g.key, label: g.label })),
 ];
 
+/** Tipuri de alertă cu accent roșu (parity cu Brief mobil Atenție). */
+const ATTENTION_DANGER_TYPES = new Set([
+  "blocate",
+  "stagnate",
+  "livrare_piese",
+  "restante",
+  "inactivitate",
+]);
+
+const STAGE_FOCUS = {
+  air: { title: "AIR", statusKey: "deschidere", Icon: ClipboardCheck },
+  piese: { title: "Piese", statusKey: "piese_comandate", Icon: Package },
+  programat: { title: "Programări", statusKey: "programat", Icon: CalendarClock },
+  lucru: { title: "Reparație", statusKey: "in_lucru", Icon: Wrench },
+  accept: { title: "Accept plată", statusKey: "accept_plata", Icon: BadgeCheck },
+  facturat: { title: "Facturat", statusKey: "facturat", Icon: CheckCircle2 },
+};
+
+const STATUS_TO_FOCUS = {
+  deschidere: "air",
+  piese_comandate: "piese",
+  programat: "programat",
+  in_lucru: "lucru",
+  accept_plata: "accept",
+  facturat: "facturat",
+};
+
+function claimStatusKey(claim) {
+  return getStatusDefinition(claim?.status).key;
+}
+
+function claimsForStatus(claims, statusKey) {
+  return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
+}
+
+function sortClaimsForFocus(rows, focusKey) {
+  const list = [...(rows || [])];
+  if (focusKey === "programat") {
+    return list.sort((a, b) =>
+      String(a.dataProgramare || "").localeCompare(String(b.dataProgramare || ""))
+    );
+  }
+  return list.sort((a, b) =>
+    String(b.dataSchimbareStatus || b.dataUltimeiActualizari || "").localeCompare(
+      String(a.dataSchimbareStatus || a.dataUltimeiActualizari || "")
+    )
+  );
+}
+
 export default function BriefZilnic({
   claims,
   onOpen,
+  onPatchClaim,
+  canEditFn,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -31,6 +88,10 @@ export default function BriefZilnic({
 }) {
   const todayStr = todayISO();
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
+  const [stageFocus, setStageFocus] = useState(null);
+  const [schedulingId, setSchedulingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayISO());
+  const [editTime, setEditTime] = useState("09:00");
 
   const formattedTodayDate = useMemo(() => {
     const d = new Date();
@@ -44,13 +105,11 @@ export default function BriefZilnic({
 
   const { counts, totalAlertsCount: totalActiuniUrgente } = buckets;
 
-  // 1. Programări intrări astăzi — dispar după mutare în Reparație
   const programariAzi = useMemo(() =>
     claims.filter((c) => isPendingArrivalToday(c, todayStr))
       .sort((a, b) => a.dataProgramare.localeCompare(b.dataProgramare)),
     [claims, todayStr]);
 
-  // 2. Finalizate astăzi (gata de predat — flag, independent de stadiu)
   const gataAzi = useMemo(() =>
     claims.filter((c) => c.gataDeRidicare && !c.ridicata && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
     [claims, todayStr]);
@@ -63,12 +122,10 @@ export default function BriefZilnic({
     }));
   }, [buckets.items, activeAlertTab]);
 
-  // Număr total dosare active
   const activeClaimsCount = useMemo(() =>
     claims.filter((c) => getStatusDefinition(c.status).key !== "facturat").length,
     [claims]);
 
-  // Număr dosare înregistrate pe fiecare etapă din workflow (6 stadii)
   const statusStats = useMemo(() => {
     const map = {};
     STATUSES.forEach((s) => (map[s.key] = 0));
@@ -79,10 +136,231 @@ export default function BriefZilnic({
     return map;
   }, [claims]);
 
+  const stageLists = useMemo(() => ({
+    air: sortClaimsForFocus(claimsForStatus(claims, "deschidere"), "air"),
+    piese: sortClaimsForFocus(claimsForStatus(claims, "piese_comandate"), "piese"),
+    programat: sortClaimsForFocus(claimsForStatus(claims, "programat"), "programat"),
+    lucru: sortClaimsForFocus(claimsForStatus(claims, "in_lucru"), "lucru"),
+    accept: sortClaimsForFocus(claimsForStatus(claims, "accept_plata"), "accept"),
+    facturat: sortClaimsForFocus(claimsForStatus(claims, "facturat"), "facturat"),
+  }), [claims]);
+
+  const focusMeta = stageFocus ? STAGE_FOCUS[stageFocus] : null;
+  const FocusIcon = focusMeta?.Icon || null;
+  const focusRows = stageFocus ? (stageLists[stageFocus] || []) : [];
+
+  const canEditClaim = (c) => (typeof canEditFn === "function" ? canEditFn(c) : true);
+
+  const markPartsArrived = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim || !canEditClaim(claim)) return;
+    const next = !claim.pieseSosite;
+    const ok = await onPatchClaim(claim.id, { pieseSosite: next });
+    onNotify?.(
+      ok === false
+        ? "Eroare la actualizare."
+        : next
+          ? "Piese marcate ca sosite — poți seta programarea."
+          : "Bifa „Piese sosite” a fost ștearsă.",
+      ok === false ? "error" : next ? "success" : "info"
+    );
+  };
+
+  const openScheduler = (e, claim) => {
+    e.stopPropagation();
+    setEditDate(todayISO());
+    setEditTime("09:00");
+    setSchedulingId(claim.id);
+  };
+
+  const saveSchedule = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim || !editDate) return;
+    const iso = `${editDate}T${editTime || "09:00"}:00`;
+    setSchedulingId(null);
+    const ok = await onPatchClaim(claim.id, { dataProgramare: iso });
+    if (ok !== false) setStageFocus("programat");
+    onNotify?.(
+      ok !== false
+        ? 'Dosar programat — mutat în „Programări".'
+        : "Eroare la programare.",
+      ok !== false ? "success" : "error"
+    );
+  };
+
+  const startRepair = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim || !canEditClaim(claim)) return;
+    const ok = await onPatchClaim(claim.id, { status: "in_lucru", adusaFizic: true });
+    if (ok !== false) setStageFocus("lucru");
+    onNotify?.(
+      ok !== false ? 'Dosar mutat în „Reparație".' : "Eroare la actualizare.",
+      ok !== false ? "success" : "error"
+    );
+  };
+
+  const selectStage = (statusKey) => {
+    const focusKey = STATUS_TO_FOCUS[statusKey] || null;
+    setStageFocus((prev) => (prev === focusKey ? null : focusKey));
+    setSchedulingId(null);
+  };
+
+  const renderStageClaimRow = (c) => {
+    const phone = c.telefonClient || "";
+    const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
+    const programareLabel = c.dataProgramare
+      ? (stageFocus === "programat"
+        ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
+        : fmtDate(String(c.dataProgramare).slice(0, 10)))
+      : "";
+    const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
+    const RowIcon = focusMeta?.Icon || Wrench;
+    const stageAccent = getStageAccent(c.status);
+    const stShort = getStatusShortLabel(c.status);
+    const editable = canEditClaim(c) && !!onPatchClaim && !c.blocat;
+    const showPartsArrived = stageFocus === "piese" && editable;
+    const showSchedule = stageFocus === "piese" && editable && !c.dataProgramare;
+    const showStartRepair = stageFocus === "programat" && editable;
+    const isScheduling = schedulingId === c.id;
+    const subline = [
+      stageFocus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
+      noteText,
+    ].filter(Boolean).join(" · ");
+
+    return (
+      <li key={c.id} className="space-y-1">
+        <article
+          className={`app-brief-flow-card ${stageAccent.className}`}
+          onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="app-brief-flow-metric" title={getStatusDefinition(c.status).label}>
+            <RowIcon size={14} />
+          </div>
+          <div className="app-brief-flow-body min-w-0">
+            <div className="app-brief-flow-main">
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-brief-flow-dosar font-mono font-bold text-[12px]"
+              />
+              <span className="font-mono font-bold text-[12px] uppercase truncate">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-brief-flow-status" title={getStatusDefinition(c.status).label}>
+                {stShort}
+              </span>
+              {c.blocat ? (
+                <span className="app-brief-flow-blocked" title={c.motivBlocare || "Blocat"}>B</span>
+              ) : null}
+              {sinceBits.length ? (
+                <span className="app-brief-flow-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
+                </span>
+              ) : null}
+            </div>
+            {subline ? (
+              <p className="app-brief-flow-sub" title={subline}>{subline}</p>
+            ) : null}
+          </div>
+          <div className="app-brief-flow-actions" onClick={(e) => e.stopPropagation()}>
+            {phone ? (
+              <>
+                <WhatsAppButton phone={phone} claim={c} size={11} />
+                <a href={telLink(phone)} className="app-brief-flow-icon-btn" title="Sună">
+                  <Phone size={13} />
+                </a>
+              </>
+            ) : null}
+            {showPartsArrived ? (
+              <button
+                type="button"
+                className={`app-brief-btn-sosite ${c.pieseSosite ? "is-on" : "is-off"}`}
+                onClick={(e) => markPartsArrived(e, c)}
+                aria-pressed={!!c.pieseSosite}
+                title={c.pieseSosite ? "Piese sosite — apasă ca să anulezi" : "Marchează piesele ca sosite"}
+              >
+                Sosite
+              </button>
+            ) : null}
+            {showSchedule && !isScheduling ? (
+              <button
+                type="button"
+                className="app-brief-flow-action-primary"
+                onClick={(e) => openScheduler(e, c)}
+              >
+                Prog.
+              </button>
+            ) : null}
+            {showStartRepair ? (
+              <button
+                type="button"
+                className="app-brief-flow-action-primary"
+                onClick={(e) => startRepair(e, c)}
+              >
+                Repar.
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="app-brief-flow-icon-btn"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </article>
+        {isScheduling ? (
+          <div className="app-brief-schedule" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="app-brief-schedule-input"
+            />
+            <input
+              type="time"
+              value={editTime}
+              onChange={(e) => setEditTime(e.target.value)}
+              className="app-brief-schedule-input"
+            />
+            <button
+              type="button"
+              className="app-brief-flow-action-primary"
+              onClick={(e) => saveSchedule(e, c)}
+            >
+              Salvează
+            </button>
+            <button
+              type="button"
+              className="app-brief-flow-cancel-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSchedulingId(null);
+              }}
+            >
+              Anulează
+            </button>
+          </div>
+        ) : null}
+      </li>
+    );
+  };
+
   return (
     <div className="space-y-4 flex flex-col flex-1 min-h-0 text-[var(--app-text)] pb-4">
 
-      {/* 1. TOP HEADER & OPERATIONAL BRIEF BANNER */}
+      {/* 1. TOP HEADER */}
       <div className="app-brief-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="app-brief-icon-box w-10 h-10 rounded-lg flex items-center justify-center">
@@ -106,7 +384,6 @@ export default function BriefZilnic({
           </div>
         </div>
 
-        {/* Badge sumar dosare active */}
         <div className="flex items-center gap-2 text-[11.5px]">
           <div className="app-brief-stat-badge px-3 py-1 rounded-lg flex items-center gap-2">
             <span className="text-[var(--app-muted)] font-semibold">Total Dosare Active:</span>
@@ -115,7 +392,7 @@ export default function BriefZilnic({
         </div>
       </div>
 
-      {/* 2. CENTRUL DE TRIAJ ALERTE URGENTE (PRIORITATE MAXIMĂ) */}
+      {/* 2. ALERTE */}
       <div className="app-brief-panel rounded-xl p-3 space-y-2 shrink-0">
         <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2">
           <div className="flex items-center gap-2">
@@ -128,7 +405,6 @@ export default function BriefZilnic({
             </span>
           </div>
 
-          {/* Tab-uri de filtrare alerte */}
           <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
             {ALERT_TABS.map(({ key, label }) => {
               const n = key === "toate" ? totalActiuniUrgente : countAlertsForGroup(counts, key);
@@ -147,10 +423,9 @@ export default function BriefZilnic({
           </div>
         </div>
 
-        {/* Grilă de carduri interactive de alerte cu acțiuni 1-click */}
         {alertsList.length === 0 ? (
           <div className="app-brief-empty py-3.5 px-4 text-center text-[12px] rounded-xl font-medium">
-            ✨ Nicio alertă detectată pentru filtrul selectat. Toate dosarele sunt în parametrii optimi!
+            Nicio alertă detectată pentru filtrul selectat. Toate dosarele sunt în parametrii optimi.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto pr-1 scrollbar-thin">
@@ -158,11 +433,17 @@ export default function BriefZilnic({
               const c = item.claim;
               const IconComp = item.icon;
               const phone = c.telefonClient || "";
+              const isAttention = ATTENTION_DANGER_TYPES.has(item.type);
+              const showSosite =
+                isPieseComandateStatus(c.status) &&
+                onPatchClaim &&
+                canEditClaim(c) &&
+                !c.blocat;
 
               return (
                 <div
                   key={item.id}
-                  className={`app-brief-alert-card p-3 rounded-xl transition-all flex flex-col justify-between space-y-2.5 ${item.borderColor}`}
+                  className={`app-brief-alert-card p-3 rounded-xl transition-all flex flex-col justify-between space-y-2.5 ${item.borderColor} ${isAttention ? "is-attention" : ""}`}
                 >
                   <div>
                     <div className="app-brief-panel-header flex items-start justify-between gap-2 pb-2">
@@ -188,7 +469,7 @@ export default function BriefZilnic({
                           empty="—"
                         />
                       </div>
-                      <div className="app-brief-reason-box text-[11px] font-bold p-2 rounded-lg leading-tight">
+                      <div className={`app-brief-reason-box text-[11px] font-bold p-2 rounded-lg leading-tight ${isAttention ? "is-attention" : ""}`}>
                         {item.reason}
                       </div>
                     </div>
@@ -208,6 +489,17 @@ export default function BriefZilnic({
                           </a>
                         </>
                       )}
+                      {showSosite ? (
+                        <button
+                          type="button"
+                          className={`app-brief-btn-sosite ${c.pieseSosite ? "is-on" : "is-off"}`}
+                          onClick={(e) => markPartsArrived(e, c)}
+                          aria-pressed={!!c.pieseSosite}
+                          title={c.pieseSosite ? "Piese sosite — apasă ca să anulezi" : "Marchează piesele ca sosite"}
+                        >
+                          Sosite
+                        </button>
+                      ) : null}
                     </div>
 
                     <button
@@ -226,11 +518,10 @@ export default function BriefZilnic({
         )}
       </div>
 
-      {/* 3. SECȚIUNEA OPERATIVĂ ZILNICĂ & SUMAR ATELIER */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 flex-1 min-h-0">
+      {/* 3. OPERATIV ZILNIC */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 shrink-0">
 
-        {/* COLOANA 1: INTRĂRI PROGRAMATE ASTĂZI */}
-        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[380px]">
+        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[320px]">
           <div className="app-brief-panel-header flex items-center justify-between pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <CalendarClock size={16} className="text-[var(--app-accent)]" /> Intrări Programate Astăzi ({programariAzi.length})
@@ -282,8 +573,7 @@ export default function BriefZilnic({
           </div>
         </div>
 
-        {/* COLOANA 2: FINALIZATE AZI / DE PREDAI */}
-        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[380px]">
+        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[320px]">
           <div className="app-brief-panel-header flex items-center justify-between pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <PackageCheck size={16} className="text-[var(--app-success)]" /> Finalizate Azi / Gata Predare ({gataAzi.length})
@@ -330,21 +620,25 @@ export default function BriefZilnic({
           </div>
         </div>
 
-        {/* COLOANA 3: STATISTICI & PULSUL ATELIERULUI */}
-        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[380px]">
+        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[320px]">
           <div className="app-brief-panel-header pb-1.5 mb-2 shrink-0">
             <h3 className="font-bold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
               <BarChart3 size={16} className="text-[var(--app-accent)]" /> Pulsul Atelierului
             </h3>
+            <p className="text-[10px] text-[var(--app-muted)] mt-1 font-medium">
+              Alege un stadiu ca să vezi lista și acțiunile rapide (Sosite / Prog. / Repar.).
+            </p>
           </div>
 
-          <div className="flex-1 min-h-0 flex flex-col justify-between">
+          <div className="flex-1 min-h-0 flex flex-col">
             <h4 className="text-[10px] font-extrabold text-[var(--app-muted)] uppercase tracking-wider mb-1.5 shrink-0">
               AIR · Piese · Programări · Reparație · AP · Facturat
             </h4>
             <div className="flex flex-wrap gap-1.5 text-[11px]">
               {STATUSES.map((s) => {
                 const count = statusStats[s.key] || 0;
+                const focusKey = STATUS_TO_FOCUS[s.key];
+                const active = stageFocus === focusKey;
                 return (
                   <StageTabLabel
                     key={s.key}
@@ -352,15 +646,61 @@ export default function BriefZilnic({
                     num={s.num}
                     label={s.short || s.label}
                     count={count}
-                    onClick={() => onSelectStatusFilter?.(s.key)}
+                    selected={active}
+                    onClick={() => selectStage(s.key)}
                   />
                 );
               })}
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* 4. BOARD STADIU — parity cu Brief mobil */}
+      {stageFocus && focusMeta ? (
+        <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-0 flex-1">
+          <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2 mb-2">
+            <div className="min-w-0">
+              <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                {FocusIcon ? <FocusIcon size={16} /> : null}
+                {focusMeta.title}
+                <span className="font-mono text-[12px] text-[var(--app-muted)]">({focusRows.length})</span>
+              </h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {focusMeta.statusKey && onSelectStatusFilter ? (
+                <button
+                  type="button"
+                  className="app-brief-action-open px-2.5 py-1 rounded text-[11px] font-bold"
+                  onClick={() => onSelectStatusFilter(focusMeta.statusKey)}
+                >
+                  Deschide în Tabel
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="app-brief-action-phone px-2.5 py-1 rounded text-[11px] font-bold"
+                onClick={() => {
+                  setStageFocus(null);
+                  setSchedulingId(null);
+                }}
+              >
+                Închide
+              </button>
+            </div>
+          </div>
+
+          {focusRows.length === 0 ? (
+            <div className="app-brief-empty py-6 text-center text-[12px] rounded-xl font-medium">
+              Niciun dosar în acest stadiu.
+            </div>
+          ) : (
+            <ul className="app-brief-flow-list space-y-1.5 overflow-y-auto pr-1 max-h-[420px] scrollbar-thin">
+              {focusRows.map(renderStageClaimRow)}
+            </ul>
+          )}
+        </div>
+      ) : null}
 
     </div>
   );
