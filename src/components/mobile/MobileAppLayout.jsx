@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, CircleHelp,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -43,6 +43,7 @@ export default function MobileAppLayout({
   onLogout,
   onOpenSettings,
   onOpenAlerts,
+  onOpenHelp,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -144,6 +145,9 @@ export default function MobileAppLayout({
         hideBottomChrome ? "is-chrome-hidden" : ""
       }`}
     >
+      <a href="#main-content" className="app-skip-link">
+        Sari la conținut
+      </a>
       {!hideBottomChrome && (
       <div className="m-float-brand-wrap" ref={menuRef}>
         <button
@@ -241,6 +245,23 @@ export default function MobileAppLayout({
             {userEmail ? (
               <div className="m-float-menu-meta truncate">{userEmail}</div>
             ) : null}
+            {onOpenHelp ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenHelp();
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <CircleHelp size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Ajutor</span>
+              </button>
+            ) : null}
             {onOpenSettings ? (
               <button
                 type="button"
@@ -278,7 +299,7 @@ export default function MobileAppLayout({
       </div>
       )}
 
-      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
+      <main id="main-content" tabIndex={-1} className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin outline-none">
         {loading ? (
           <ListSkeleton rows={5} />
         ) : loadError || isOffline ? (

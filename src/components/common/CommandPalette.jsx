@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search, FileText, Layers, Sunrise, LayoutGrid, List, BarChart3, CalendarClock,
-  Wallet, Plus, Download, X, ArrowRight, CornerDownLeft, Car, ShieldCheck, Camera
+  Wallet, Plus, Download, X, ArrowRight, CornerDownLeft, Car, ShieldCheck, Camera, CircleHelp
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import Pill from "./Pill";
@@ -16,6 +16,7 @@ export default function CommandPalette({
   onOpenQuickCapture,
   onExportExcel,
   onExportPdf,
+  onOpenHelp,
 }) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -61,9 +62,10 @@ export default function CommandPalette({
     const actions = [
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
       { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte cu auto-crop, cameră live", icon: Camera, handler: onOpenQuickCapture },
+      { type: "action", id: "help", label: "Ajutor", sub: "Ghiduri: primul dosar, programare, alerte", icon: CircleHelp, handler: onOpenHelp },
       { type: "action", id: "excel", label: "Exportă Excel", sub: "Descarcă toate dosarele în format .xlsx", icon: Download, handler: onExportExcel },
       { type: "action", id: "pdf", label: "Exportă PDF", sub: "Descarcă toate dosarele în format .pdf", icon: FileText, handler: onExportPdf },
-    ];
+    ].filter((a) => typeof a.handler === "function");
 
     if (!q) {
       // Default view when query is empty: show recent claims + quick views + actions
@@ -95,7 +97,7 @@ export default function CommandPalette({
     );
 
     return [...matchedClaims, ...matchedViews, ...matchedActions];
-  }, [query, claims, onOpenNewClaim, onOpenQuickCapture, onExportExcel, onExportPdf]);
+  }, [query, claims, onOpenNewClaim, onOpenQuickCapture, onExportExcel, onExportPdf, onOpenHelp]);
 
   // Keyboard navigation within list
   const handleKeyDownList = (e) => {

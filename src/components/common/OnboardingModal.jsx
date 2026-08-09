@@ -32,6 +32,7 @@ export default function OnboardingModal({
   open,
   onDismiss,
   onCreateClaim,
+  onOpenHelp,
   desktopUi = false,
   roleLabel = null,
 }) {
@@ -86,22 +87,36 @@ export default function OnboardingModal({
           ))}
         </ul>
 
-        <div className="px-5 pb-5 flex flex-col sm:flex-row gap-2">
-          {onCreateClaim ? (
-            <AppButton
-              variant="primary"
-              className="flex-1 app-btn-lg"
+        <div className="px-5 pb-5 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
+            {onCreateClaim ? (
+              <AppButton
+                variant="primary"
+                className="flex-1 app-btn-lg"
+                onClick={() => {
+                  onDismiss?.();
+                  onCreateClaim();
+                }}
+              >
+                <Plus size={16} /> Creează primul dosar
+              </AppButton>
+            ) : null}
+            <AppButton variant="secondary" className="flex-1 app-btn-lg" onClick={onDismiss}>
+              Am înțeles
+            </AppButton>
+          </div>
+          {onOpenHelp ? (
+            <button
+              type="button"
+              className="text-[12px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] underline-offset-2 hover:underline self-center app-focusable rounded px-1"
               onClick={() => {
                 onDismiss?.();
-                onCreateClaim();
+                onOpenHelp("primul-dosar");
               }}
             >
-              <Plus size={16} /> Creează primul dosar
-            </AppButton>
+              Citește ghidul: primul dosar
+            </button>
           ) : null}
-          <AppButton variant="secondary" className="flex-1 app-btn-lg" onClick={onDismiss}>
-            Am înțeles
-          </AppButton>
         </div>
       </div>
     </div>

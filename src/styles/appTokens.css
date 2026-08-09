@@ -45,6 +45,44 @@
   outline-offset: 2px;
 }
 
+/* ── A11y: visible focus + skip link ── */
+.app-shell :is(a, button, [role="button"], .app-btn, .app-focusable, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+
+.app-shell :is(a, button, [role="button"], .app-btn):focus:not(:focus-visible) {
+  outline: none;
+}
+
+.app-skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 100100;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--app-radius, 8px);
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  font-size: var(--app-type-sm);
+  font-weight: 600;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease;
+}
+
+.app-skip-link:focus,
+.app-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--app-text-strong);
+  outline-offset: 2px;
+}
+
+/* Icon-only buttons: ensure min hit target */
+.app-shell .app-btn-icon {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+
 .app-header {
   background: var(--app-bg, #0a0a0a);
   border-color: var(--app-border-soft, #222);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText, CircleHelp
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { STATUSES, INSURERS } from "./constants/config";
@@ -31,6 +31,7 @@ import ErrorBoundary from "./components/common/ErrorBoundary";
 import AppButton from "./components/common/AppButton";
 import EmptyWorkspace from "./components/common/EmptyWorkspace";
 import OnboardingModal from "./components/common/OnboardingModal";
+import HelpModal from "./components/common/HelpModal";
 import ListSkeleton from "./components/common/ListSkeleton";
 import LoadError from "./components/common/LoadError";
 import RecoveryPassword from "./components/auth/RecoveryPassword";
@@ -159,9 +160,21 @@ export default function App() {
   } = useClaims(session, showNotice);
 
   const [onboardingOpen, setOnboardingOpen] = useState(() => !isOnboardingDismissed());
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpArticleId, setHelpArticleId] = useState(null);
   const [isOffline, setIsOffline] = useState(
     () => typeof navigator !== "undefined" && navigator.onLine === false
   );
+
+  const openHelp = useCallback((articleId = null) => {
+    setHelpArticleId(articleId || null);
+    setHelpOpen(true);
+  }, []);
+
+  const closeHelp = useCallback(() => {
+    setHelpOpen(false);
+    setHelpArticleId(null);
+  }, []);
 
   useEffect(() => {
     const on = () => setIsOffline(false);
@@ -647,6 +660,7 @@ export default function App() {
           open={onboardingOpen}
           onDismiss={dismissTour}
           onCreateClaim={userCanCreate ? () => openNew() : null}
+          onOpenHelp={openHelp}
           roleLabel={myRoleLabel}
         />
 
@@ -670,6 +684,7 @@ export default function App() {
             onLogout={handleLogout}
             onOpenSettings={openSettings}
             onOpenAlerts={openAlerts}
+            onOpenHelp={openHelp}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
@@ -791,12 +806,21 @@ export default function App() {
             />
           </Suspense>
         )}
+
+        <HelpModal
+          open={helpOpen}
+          onClose={closeHelp}
+          initialArticleId={helpArticleId}
+        />
       </ErrorBoundary>
     );
   }
 
   return (
     <div className="h-screen flex app-shell overflow-hidden relative font-sans">
+      <a href="#main-content" className="app-skip-link">
+        Sari la conținut
+      </a>
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
@@ -804,12 +828,16 @@ export default function App() {
         open={onboardingOpen}
         onDismiss={dismissTour}
         onCreateClaim={userCanCreate ? () => openNew() : null}
+        onOpenHelp={openHelp}
         desktopUi
         roleLabel={myRoleLabel}
       />
 
       {/* --- DESKTOP MINIMAL SIDEBAR (icoane fixe) --- */}
-      <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
+      <aside
+        className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden"
+        aria-label="Navigare principală"
+      >
 
         {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
         <button
@@ -820,6 +848,7 @@ export default function App() {
           }}
           className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 hover:bg-[var(--app-surface-2)] transition-colors w-full cursor-pointer"
           title="Revenire la ecranul principal (Brief Zilnic)"
+          aria-label="Acasă — Brief Zilnic"
         >
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0 overflow-hidden border border-[var(--app-border)]"
@@ -850,11 +879,14 @@ export default function App() {
             return (
               <button
                 key={id}
+                type="button"
                 onClick={() => setView(id)}
                 className={`w-full flex items-center justify-center p-2.5 transition-all app-nav-btn ${
                   active ? "is-active" : ""
                 }`}
                 title={label}
+                aria-label={label}
+                aria-current={active ? "page" : undefined}
               >
                 <span className="relative inline-flex">
                   <Icon size={20} className="shrink-0" />
@@ -872,9 +904,11 @@ export default function App() {
         {/* Setări / profil */}
         <div className="p-1.5 shrink-0 border-t border-[var(--app-border)]">
           <button
+            type="button"
             onClick={() => openSettings()}
             className="w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all"
             title={myEmail ? `Setări — ${myEmail}` : "Centru Setări"}
+            aria-label={myEmail ? `Setări — ${myEmail}` : "Centru Setări"}
           >
             <div className="w-7 h-7 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
               {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
@@ -896,26 +930,30 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("flux")}
+                  aria-label="Flux operațional"
+                  aria-pressed={dosareSubView === "flux"}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "flux"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Layers size={12} />
+                  <Layers size={12} aria-hidden />
                   <span className="hidden md:inline">Flux</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setDosareSubView("brief")}
+                  aria-label="Brief zilnic"
+                  aria-pressed={dosareSubView === "brief"}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "brief"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <Sunrise size={12} />
+                  <Sunrise size={12} aria-hidden />
                   <span className="hidden md:inline">Brief</span>
                   {totalAlertsCount > 0 && (
                     <span className="bg-[var(--app-danger)] text-white text-[9px] px-1 py-0 rounded-full font-mono min-w-[14px] text-center">
@@ -927,13 +965,15 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDosareSubView("list")}
+                  aria-label="Tabel dosare"
+                  aria-pressed={dosareSubView === "list"}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "list"
                       ? "app-segment-active"
                       : "app-muted hover:text-[var(--app-text)]"
                   }`}
                 >
-                  <List size={12} />
+                  <List size={12} aria-hidden />
                   <span className="hidden md:inline">Tabel</span>
                 </button>
               </div>
@@ -967,6 +1007,7 @@ export default function App() {
                   onClick={() => setIsCommandPaletteOpen(true)}
                   className="app-kbd text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded"
                   title="Deschide Paleta de Comenzi (Ctrl+K)"
+                  aria-label="Deschide paleta de comenzi (Ctrl+K)"
                 >
                   Ctrl+K
                 </button>
@@ -998,9 +1039,20 @@ export default function App() {
               onClick={() => openAlerts(totalAlertsCount > 0 ? "depasite" : "toate")}
               className="app-header-action-btn"
               title="Deschide Centrul de Alerte"
+              aria-label={`Centru de alerte${totalAlertsCount > 0 ? `, ${totalAlertsCount} active` : ""}`}
             >
-              <Bell size={14} />
+              <Bell size={14} aria-hidden />
               <span>{totalAlertsCount} Alerte</span>
+            </AppButton>
+
+            <AppButton
+              variant="icon"
+              onClick={() => openHelp()}
+              className="app-header-action-btn"
+              title="Ajutor"
+              aria-label="Deschide ajutorul"
+            >
+              <CircleHelp size={16} aria-hidden />
             </AppButton>
 
           </div>
@@ -1072,7 +1124,11 @@ export default function App() {
 
         {/* MAIN WORKSPACE CANVAS VIEW AREA */}
         <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
-          <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 outline-none ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}
+          >
             {loading ? (
               <ListSkeleton
                 rows={dosareSubView === "list" ? 8 : 6}
@@ -1405,6 +1461,14 @@ export default function App() {
         onOpenQuickCapture={openQuickCapture}
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
+        onOpenHelp={() => openHelp()}
+      />
+
+      <HelpModal
+        open={helpOpen}
+        onClose={closeHelp}
+        initialArticleId={helpArticleId}
+        desktopUi
       />
 
       {!modalClaim && !isCommandPaletteOpen && (
