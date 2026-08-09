@@ -11,6 +11,7 @@ import { emptyClaim } from "./utils/claimUtils";
 import NotificationQueue from "./components/common/NotificationQueue";
 import UndoToast from "./components/common/UndoToast";
 import Login from "./components/auth/Login";
+import Signup from "./components/auth/Signup";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 const TablouPeFaze = lazyWithRetry(() => import("./components/views/FluxOperational"));
 const BriefZilnic = lazyWithRetry(() => import("./components/views/BriefZilnic"));
@@ -44,6 +45,7 @@ import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
+import { normalizeBilling } from "./constants/billing";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
 import { useMobileBackStack } from "./hooks/useMobileBackStack";
@@ -106,6 +108,7 @@ export default function App() {
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [authScreen, setAuthScreen] = useState("login"); // "login" | "signup"
 
   const {
     session,
@@ -164,6 +167,8 @@ export default function App() {
     };
   }, []);
 
+  const { atelierId, atelier, tenancyReady, billing, memberCount } = useAtelier(session, {});
+
   const {
     capacitateZilnica,
     pragRidicare,
@@ -171,7 +176,7 @@ export default function App() {
     adminEmails,
     usersList,
     customInsurers,
-    branding,
+    branding: settingsBranding,
     billingSettings,
     saveUsersAndAdmins,
     saveInsurers,
@@ -186,12 +191,27 @@ export default function App() {
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
-  } = useSettings(session, showNotice);
+  } = useSettings(session, showNotice, { atelierId });
 
-  const { atelierId, tenancyReady, billing } = useAtelier(session, {
-    usersList,
-    billingFromSettings: billingSettings,
-  });
+  const branding = useMemo(() => {
+    if (tenancyReady && atelier?.nume) {
+      return {
+        ...settingsBranding,
+        atelierNume: atelier.nume || settingsBranding?.atelierNume,
+        atelierShort: atelier.short || settingsBranding?.atelierShort,
+        logoUrl: atelier.logo_url || settingsBranding?.logoUrl,
+      };
+    }
+    return settingsBranding;
+  }, [tenancyReady, atelier, settingsBranding]);
+
+  const effectiveBilling = useMemo(() => {
+    if (tenancyReady && atelier) return billing;
+    return normalizeBilling({
+      ...billingSettings,
+      memberCount: memberCount || usersList.length,
+    });
+  }, [tenancyReady, atelier, billing, billingSettings, memberCount, usersList.length]);
 
   const {
     claims,
@@ -214,7 +234,7 @@ export default function App() {
     [myEmail, adminEmails, usersList]
   );
   const myRoleLabel = ROLES[myRole]?.label || myRole;
-  const userCanCreate = canCreateClaim(myRole) && billing.canCreateClaim;
+  const userCanCreate = canCreateClaim(myRole) && effectiveBilling.canCreateClaim;
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
@@ -627,7 +647,26 @@ export default function App() {
     );
   }
   if (!session) {
-    return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
+    if (authScreen === "signup") {
+      return (
+        <Signup
+          branding={branding}
+          onBackToLogin={() => setAuthScreen("login")}
+          onSuccess={(s) => {
+            setAuthScreen("login");
+            setOnboardingOpen(true);
+            setSession(s);
+          }}
+        />
+      );
+    }
+    return (
+      <Login
+        branding={branding}
+        onGoSignup={() => setAuthScreen("signup")}
+        onLoginSuccess={(s) => setSession(s)}
+      />
+    );
   }
 
   const dismissTour = () => {
@@ -740,7 +779,7 @@ export default function App() {
               onDeleteUser={handleDeleteUser}
               onToggleAdminRole={handleToggleAdminRole}
               onChangePassword={handleChangePassword}
-              billing={billing}
+              billing={effectiveBilling}
               onSaveBilling={saveBilling}
               tenancyReady={tenancyReady}
             />
@@ -1367,7 +1406,7 @@ export default function App() {
             onDeleteUser={handleDeleteUser}
             onToggleAdminRole={handleToggleAdminRole}
             onChangePassword={handleChangePassword}
-            billing={billing}
+            billing={effectiveBilling}
             onSaveBilling={saveBilling}
             tenancyReady={tenancyReady}
             desktopUi

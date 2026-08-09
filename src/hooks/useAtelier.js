@@ -45,7 +45,7 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
         const primary = memberships[0];
         const { data: atelier } = await supabase
           .from("ateliere")
-          .select("id, slug, nume, short, plan, trial_ends_at, seat_limit")
+          .select("id, slug, nume, short, logo_url, plan, trial_ends_at, seat_limit, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile")
           .eq("id", primary.atelier_id)
           .maybeSingle();
 

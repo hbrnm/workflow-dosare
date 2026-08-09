@@ -11,7 +11,7 @@ import {
 const BRANDING_SELECT =
   "atelier_nume, atelier_short, logo_url";
 
-export function useSettings(session, showNotice) {
+export function useSettings(session, showNotice, { atelierId = null } = {}) {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
   const [pragRidicare, setPragRidicare] = useState(3);
   const [pragInactivitate, setPragInactivitate] = useState(7);
@@ -160,17 +160,42 @@ export function useSettings(session, showNotice) {
         }
       }
 
-      const cleanLoadedUsers = sanitizeUsers(loadedUsers);
-      setAdminEmails(loadedAdmins);
+      let cleanLoadedUsers = sanitizeUsers(loadedUsers);
+      let nextAdmins = loadedAdmins;
+
+      // Multi-tenant: team from atelier_membri when available
+      if (atelierId) {
+        try {
+          const { data: members, error: memErr } = await supabase
+            .from("atelier_membri")
+            .select("email, role")
+            .eq("atelier_id", atelierId);
+          if (!memErr && Array.isArray(members) && members.length > 0) {
+            cleanLoadedUsers = sanitizeUsers(
+              members.map((m) => ({
+                email: String(m.email || "").toLowerCase(),
+                role: m.role || "operator",
+              }))
+            );
+            nextAdmins = cleanLoadedUsers
+              .filter((u) => u.role === "admin")
+              .map((u) => u.email);
+          }
+        } catch {
+          /* keep setari team */
+        }
+      }
+
+      setAdminEmails(nextAdmins);
       setUsersList(cleanLoadedUsers);
       try {
         localStorage.setItem("workflow_dosare_users", JSON.stringify(cleanLoadedUsers));
-        localStorage.setItem("workflow_dosare_admins", JSON.stringify(loadedAdmins));
+        localStorage.setItem("workflow_dosare_admins", JSON.stringify(nextAdmins));
       } catch (err) {
         console.warn("Unable to persist users/admins to localStorage", err);
       }
     })();
-  }, [session, myEmail]);
+  }, [session, myEmail, atelierId]);
 
   const sanitizeUsers = (list) => {
     if (!Array.isArray(list)) return [];
@@ -377,18 +402,33 @@ export function useSettings(session, showNotice) {
   };
 
   const saveBilling = async (next) => {
-    const payload = {
-      id: 1,
-      plan: next.plan || "trial",
-      trial_ends_at: next.trialEndsAt || null,
-      seat_limit: Number(next.seatLimit) || 10,
-    };
+    const plan = next.plan || "trial";
+    const trial_ends_at = next.trialEndsAt || null;
+    const seat_limit = Number(next.seatLimit) || 10;
     setBillingSettings({
-      plan: payload.plan,
-      trialEndsAt: payload.trial_ends_at,
-      seatLimit: payload.seat_limit,
+      plan,
+      trialEndsAt: trial_ends_at,
+      seatLimit: seat_limit,
     });
-    const { error } = await supabase.from("setari").upsert(payload);
+
+    if (atelierId) {
+      const { error } = await supabase
+        .from("ateliere")
+        .update({ plan, trial_ends_at, seat_limit })
+        .eq("id", atelierId);
+      if (error) {
+        showNotice("Nu am putut salva planul atelierului: " + error.message, "error");
+        return false;
+      }
+      return true;
+    }
+
+    const { error } = await supabase.from("setari").upsert({
+      id: 1,
+      plan,
+      trial_ends_at,
+      seat_limit,
+    });
     if (error) {
       showNotice(
         "Plan salvat local. Rulează migrarea 29 în Supabase pentru sync: " + error.message,

@@ -82,6 +82,131 @@ Deno.serve(async (req: Request) => {
       // Cont Auth există deja — sincronizăm lista echipei.
     }
 
+    // Prefer caller's atelier (multi-tenant); fallback slug default / setari
+    let atelierId: string | null = null;
+    let seatLimit = 10;
+    let tenancy = false;
+    try {
+      const { data: myMembership } = await admin
+        .from("atelier_membri")
+        .select("atelier_id, role")
+        .eq("user_id", userData.user.id)
+        .eq("role", "admin")
+        .limit(1)
+        .maybeSingle();
+      if (myMembership?.atelier_id) {
+        atelierId = myMembership.atelier_id;
+        tenancy = true;
+        const { data: atelier } = await admin
+          .from("ateliere")
+          .select("seat_limit")
+          .eq("id", atelierId)
+          .maybeSingle();
+        seatLimit = Number(atelier?.seat_limit) || 10;
+      }
+    } catch {
+      /* no tenancy tables */
+    }
+
+    if (!atelierId) {
+      try {
+        const { data: setariRow } = await admin
+          .from("setari")
+          .select("default_atelier_id, seat_limit")
+          .eq("id", 1)
+          .maybeSingle();
+        atelierId = (setariRow?.default_atelier_id as string) || null;
+        seatLimit = Number(setariRow?.seat_limit) || seatLimit;
+        if (!atelierId) {
+          const { data: atelier } = await admin
+            .from("ateliere")
+            .select("id, seat_limit")
+            .eq("slug", "default")
+            .maybeSingle();
+          atelierId = atelier?.id ?? null;
+          if (atelier?.seat_limit) seatLimit = Number(atelier.seat_limit) || seatLimit;
+        }
+        if (atelierId) tenancy = true;
+      } catch {
+        /* ignore */
+      }
+    }
+
+    const { data: listed } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const targetUser =
+      created?.user ||
+      listed?.users?.find((u) => (u.email || "").toLowerCase() === email) ||
+      null;
+
+    if (tenancy && atelierId && targetUser?.id) {
+      const { count } = await admin
+        .from("atelier_membri")
+        .select("user_id", { count: "exact", head: true })
+        .eq("atelier_id", atelierId);
+
+      const { data: existingMember } = await admin
+        .from("atelier_membri")
+        .select("user_id")
+        .eq("atelier_id", atelierId)
+        .eq("user_id", targetUser.id)
+        .maybeSingle();
+
+      if (!existingMember && typeof count === "number" && count >= seatLimit) {
+        return json({
+          error: `Limita de locuri (${seatLimit}) e atinsă pentru acest atelier.`,
+        }, 400);
+      }
+
+      const { error: memberErr } = await admin.from("atelier_membri").upsert({
+        atelier_id: atelierId,
+        user_id: targetUser.id,
+        email,
+        role,
+      });
+      if (memberErr) {
+        return json({ error: memberErr.message }, 500);
+      }
+
+      const { data: members } = await admin
+        .from("atelier_membri")
+        .select("email, role")
+        .eq("atelier_id", atelierId);
+
+      const utilizatori: TeamUser[] = (members || []).map((m) => ({
+        email: String(m.email).toLowerCase(),
+        role: m.role || "operator",
+      }));
+      const admin_emails = utilizatori.filter((u) => u.role === "admin").map((u) => u.email);
+
+      // Keep legacy setari in sync only for the default atelier
+      try {
+        const { data: def } = await admin
+          .from("ateliere")
+          .select("slug")
+          .eq("id", atelierId)
+          .maybeSingle();
+        if (def?.slug === "default") {
+          await admin.from("setari").upsert({
+            id: 1,
+            utilizatori,
+            admin_emails,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+
+      return json({
+        ok: true,
+        user: { email, role, id: targetUser.id },
+        utilizatori,
+        admin_emails,
+        atelier_id: atelierId,
+        created_by: userData.user.email,
+      });
+    }
+
+    // Legacy path: setari id=1 only
     const { data: settings, error: settingsErr } = await admin
       .from("setari")
       .select("utilizatori, admin_emails")
@@ -116,63 +241,6 @@ Deno.serve(async (req: Request) => {
 
     if (upsertErr) {
       return json({ error: upsertErr.message }, 500);
-    }
-
-    // Multi-tenant (migrare 29): sync membership when tables exist
-    try {
-      const { data: setariRow } = await admin
-        .from("setari")
-        .select("default_atelier_id, seat_limit, plan")
-        .eq("id", 1)
-        .maybeSingle();
-
-      let atelierId = setariRow?.default_atelier_id as string | null;
-      if (!atelierId) {
-        const { data: atelier } = await admin
-          .from("ateliere")
-          .select("id, seat_limit, plan")
-          .eq("slug", "default")
-          .maybeSingle();
-        atelierId = atelier?.id ?? null;
-      }
-
-      if (atelierId) {
-        const seatLimit = Number(setariRow?.seat_limit) || 10;
-        const { count } = await admin
-          .from("atelier_membri")
-          .select("user_id", { count: "exact", head: true })
-          .eq("atelier_id", atelierId);
-
-        const { data: listed } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
-        const targetUser =
-          created?.user ||
-          listed?.users?.find((u) => (u.email || "").toLowerCase() === email) ||
-          null;
-
-        if (targetUser?.id) {
-          const { data: existingMember } = await admin
-            .from("atelier_membri")
-            .select("user_id")
-            .eq("atelier_id", atelierId)
-            .eq("user_id", targetUser.id)
-            .maybeSingle();
-
-          if (!existingMember && typeof count === "number" && count >= seatLimit) {
-            return json({
-              error: `Limita de locuri (${seatLimit}) e atinsă pentru acest atelier.`,
-            }, 400);
-          }
-
-          await admin.from("atelier_membri").upsert({
-            atelier_id: atelierId,
-            user_id: targetUser.id,
-            email,
-            role,
-          });
-        }
-      }
-    } catch {
-      /* tables may not exist yet — setari sync is enough */
     }
 
     return json({
