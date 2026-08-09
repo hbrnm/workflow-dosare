@@ -321,7 +321,7 @@ export default function AlerteModal({
                                 empty="fără nr."
                                 className="app-alerte-dosar hover:text-[var(--app-accent)]"
                               />
-                              <span className="app-alerte-plate font-mono font-bold">
+                              <span className="app-alerte-plate">
                                 {c.numarInmatriculare || "—"}
                               </span>
                               <span className="app-alerte-status-chip" title={stFull}>
