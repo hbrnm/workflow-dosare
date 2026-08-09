@@ -160,13 +160,8 @@ export function useMobileBackStack({
 
   const openClaimFromAlerts = useCallback((claim) => {
     if (!claim?.id) return;
-    apiRef.current.closeAlerts?.();
-    stackRef.current.replaceTop({
-      t: "overlay",
-      name: "field",
-      id: claim.id,
-      tab: mobileTabRef.current || "brief",
-    });
+    // Keep Alerte open; field/claim stacks on top (z-index front). Closing
+    // the dosar returns to the still-open Centru de Alerte.
     apiRef.current.openField?.(claim.id);
   }, []);
 

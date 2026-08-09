@@ -717,7 +717,7 @@ export default function ClaimModal({
 
   return (
     <div
-      className={modalOverlayClass(desktopUi, { dense: true })}
+      className={modalOverlayClass(desktopUi, { dense: true, layer: "front" })}
       {...modalOverlayProps(desktopUi, themeId)}
     >
       <div 

@@ -532,6 +532,64 @@ export default function App() {
           />
         </Suspense>
 
+        {alerteModalTab && (
+          <Suspense fallback={null}>
+            <AlerteModal
+              claims={userClaims}
+              alertBuckets={alertBuckets}
+              initialTab={alerteModalTab}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onClose={requestCloseAlerts}
+              onOpenClaim={openClaimFromAlerts}
+              onPatchClaim={handlePatchClaim}
+              onNotify={showNotice}
+            />
+          </Suspense>
+        )}
+
+        {setariOpen && (
+          <Suspense fallback={null}>
+            <SetariModal
+              claims={claims}
+              capacitateZilnica={capacitateZilnica}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              termeneAlertaStatus={termeneAlertaStatus}
+              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
+              onSaveCapacitate={saveCapacitate}
+              onSavePrag={savePragRidicare}
+              onSavePragInactivitate={savePragInactivitate}
+              insurersList={customInsurers}
+              onSaveInsurers={saveInsurers}
+              branding={branding}
+              onSaveBranding={saveBranding}
+              onUploadBrandingLogo={uploadBrandingLogo}
+              onClose={requestCloseSettings}
+              onNotify={showNotice}
+              userEmail={myEmail}
+              onSignOut={handleLogout}
+              isAdmin={isAdmin}
+              usersList={usersList}
+              onAddUser={handleAddUser}
+              onDeleteUser={handleDeleteUser}
+              onToggleAdminRole={handleToggleAdminRole}
+              onChangePassword={handleChangePassword}
+            />
+          </Suspense>
+        )}
+
+        {quickCreateOpen && (
+          <Suspense fallback={null}>
+            <QuickCreateClaimModal
+              isOpen={quickCreateOpen}
+              onClose={requestCloseQuickCreate}
+              onSave={handleSave}
+            />
+          </Suspense>
+        )}
+
+        {/* Dosar/sheet above Alerte (layer front) — closing returns to Alerte still open */}
         {fieldClaim && !modalClaim && (
           <Suspense fallback={null}>
             <MobileClaimSheet
@@ -569,63 +627,6 @@ export default function App() {
               readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
               allClaims={claims}
               adminEmails={adminEmails}
-            />
-          </Suspense>
-        )}
-
-        {quickCreateOpen && (
-          <Suspense fallback={null}>
-            <QuickCreateClaimModal
-              isOpen={quickCreateOpen}
-              onClose={requestCloseQuickCreate}
-              onSave={handleSave}
-            />
-          </Suspense>
-        )}
-
-        {setariOpen && (
-          <Suspense fallback={null}>
-            <SetariModal
-              claims={claims}
-              capacitateZilnica={capacitateZilnica}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              termeneAlertaStatus={termeneAlertaStatus}
-              onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
-              onSaveCapacitate={saveCapacitate}
-              onSavePrag={savePragRidicare}
-              onSavePragInactivitate={savePragInactivitate}
-              insurersList={customInsurers}
-              onSaveInsurers={saveInsurers}
-              branding={branding}
-              onSaveBranding={saveBranding}
-              onUploadBrandingLogo={uploadBrandingLogo}
-              onClose={requestCloseSettings}
-              onNotify={showNotice}
-              userEmail={myEmail}
-              onSignOut={handleLogout}
-              isAdmin={isAdmin}
-              usersList={usersList}
-              onAddUser={handleAddUser}
-              onDeleteUser={handleDeleteUser}
-              onToggleAdminRole={handleToggleAdminRole}
-              onChangePassword={handleChangePassword}
-            />
-          </Suspense>
-        )}
-
-        {alerteModalTab && (
-          <Suspense fallback={null}>
-            <AlerteModal
-              claims={userClaims}
-              alertBuckets={alertBuckets}
-              initialTab={alerteModalTab}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              onClose={requestCloseAlerts}
-              onOpenClaim={openClaimFromAlerts}
-              onPatchClaim={handlePatchClaim}
-              onNotify={showNotice}
             />
           </Suspense>
         )}
@@ -1112,26 +1113,10 @@ export default function App() {
         </div>
       )}
 
-      {/* --- MODALS & OVERLAYS --- */}
+      {/* --- MODALS & OVERLAYS ---
+          Alerte (base z) before Claim (front z) so dosarul din alerte rămâne deasupra;
+          la închiderea dosarului, Centrul de Alerte rămâne deschis. */}
       <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
-        {modalClaim && (
-          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={requestCloseClaimModal}>
-            <ClaimModal
-              claim={activeModalClaim}
-              onClose={requestCloseClaimModal}
-              onSave={handleSave}
-              onPatch={handlePatchClaim}
-              onDelete={handleDelete}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
-              allClaims={claims}
-              insurersList={customInsurers}
-              onJumpTo={openExisting}
-              onNotify={showNotice}
-              desktopUi
-            />
-          </ErrorBoundary>
-        )}
-
         {alerteModalTab && (
           <AlerteModal
             claims={userClaims}
@@ -1184,6 +1169,24 @@ export default function App() {
             onSave={handleSave}
             desktopUi
           />
+        )}
+
+        {modalClaim && (
+          <ErrorBoundary key={activeModalClaim?.id || "new-claim"} onReset={requestCloseClaimModal}>
+            <ClaimModal
+              claim={activeModalClaim}
+              onClose={requestCloseClaimModal}
+              onSave={handleSave}
+              onPatch={handlePatchClaim}
+              onDelete={handleDelete}
+              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === activeModalClaim?.id) && !canEdit(activeModalClaim)}
+              allClaims={claims}
+              insurersList={customInsurers}
+              onJumpTo={openExisting}
+              onNotify={showNotice}
+              desktopUi
+            />
+          </ErrorBoundary>
         )}
 
         {quickCaptureOpen && (
