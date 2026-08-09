@@ -360,35 +360,28 @@ export default function BriefZilnic({
   return (
     <div className="space-y-4 flex flex-col flex-1 min-h-0 text-[var(--app-text)] pb-4">
 
-      {/* 1. TOP HEADER */}
-      <div className="app-brief-panel rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="app-brief-icon-box w-10 h-10 rounded-lg flex items-center justify-center">
-            <BarChart3 size={20} />
-          </div>
-          <div>
-            <h1 className="text-[16px] font-bold tracking-tight capitalize text-[var(--app-text-strong)]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Centrul de Comandă &amp; Brief Atelier · {formattedTodayDate}
-            </h1>
-            <p className="text-[11.5px] text-[var(--app-muted)] font-medium flex items-center gap-1.5 mt-0.5">
-              {totalActiuniUrgente > 0 ? (
-                <span className="app-brief-status-alert flex items-center gap-1 font-bold px-2 py-0.5 rounded-md text-[11px]">
-                  <ShieldAlert size={12} /> {totalActiuniUrgente} alerte operative ce necesită reacție
-                </span>
-              ) : (
-                <span className="app-brief-status-ok flex items-center gap-1 font-bold px-2 py-0.5 rounded-md text-[11px]">
-                  <CheckCircle2 size={12} /> Nicio alertă urgentă nesoluționată
-                </span>
-              )}
-            </p>
-          </div>
+      {/* 1. TOP HEADER — quiet: title + one status line + active count */}
+      <div className="app-brief-panel rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="min-w-0">
+          <h1 className="app-type-lg font-semibold tracking-tight text-[var(--app-text-strong)]">
+            Brief · {formattedTodayDate}
+          </h1>
+          <p className="app-type-xs text-[var(--app-muted)] font-medium flex items-center gap-1.5 mt-1">
+            {totalActiuniUrgente > 0 ? (
+              <span className="app-brief-status-alert inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-md">
+                <ShieldAlert size={12} /> {totalActiuniUrgente} alerte de reacție
+              </span>
+            ) : (
+              <span className="app-brief-status-ok inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-md">
+                <CheckCircle2 size={12} /> Fără alerte urgente
+              </span>
+            )}
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 text-[11.5px]">
-          <div className="app-brief-stat-badge px-3 py-1 rounded-lg flex items-center gap-2">
-            <span className="text-[var(--app-muted)] font-semibold">Total Dosare Active:</span>
-            <span className="font-bold font-mono text-[13px] text-[var(--app-text-strong)]">{activeClaimsCount}</span>
-          </div>
+        <div className="app-brief-stat-badge px-3 py-1 rounded-lg flex items-center gap-2 app-type-xs">
+          <span className="text-[var(--app-muted)] font-medium">Active</span>
+          <span className="font-semibold font-mono app-type-sm text-[var(--app-text-strong)]">{activeClaimsCount}</span>
         </div>
       </div>
 
@@ -397,8 +390,8 @@ export default function BriefZilnic({
         <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2">
           <div className="flex items-center gap-2">
             <ShieldAlert size={18} className={totalActiuniUrgente > 0 ? "text-[var(--app-danger)]" : "text-[var(--app-success)]"} />
-            <h2 className="font-bold text-[14px] text-[var(--app-text-strong)]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Centrul de Alerte Urgente &amp; Acțiuni Rapide
+            <h2 className="font-semibold app-type-md text-[var(--app-text-strong)]">
+              Alerte &amp; acțiuni
             </h2>
             <span className={`px-2 py-0.5 rounded-full text-[11px] font-mono font-bold ${totalActiuniUrgente > 0 ? "bg-[var(--app-danger)] text-white" : "bg-[var(--app-success)] text-white"}`}>
               {totalActiuniUrgente}

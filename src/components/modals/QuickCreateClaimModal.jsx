@@ -8,6 +8,7 @@ import {
   modalPanelClass,
   modalHeaderClass,
 } from "../common/modalShellClasses";
+import AppButton from "../common/AppButton";
 
 const fieldClass = (desktopUi) =>
   desktopUi
@@ -104,7 +105,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
               required
               autoFocus
               className={`${fieldClass(desktopUi)} font-mono font-extrabold tracking-wider uppercase`}
-              placeholder="ex: B 123 ABC"
+              placeholder="Ex: B 123 ABC"
               value={numarInmatriculare}
               onChange={(e) => setNumarInmatriculare(e.target.value)}
             />
@@ -117,7 +118,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
             <input
               type="text"
               className={`${fieldClass(desktopUi)} font-mono font-bold`}
-              placeholder="ex: 10328323"
+              placeholder="Ex: 10328323"
               value={numarDosar}
               onChange={(e) => setNumarDosar(e.target.value)}
             />
@@ -130,7 +131,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
             <input
               type="text"
               className={`${fieldClass(desktopUi)} font-semibold uppercase`}
-              placeholder="ex: POPESCU ION"
+              placeholder="Ex: Popescu Ion"
               value={client}
               onChange={(e) => setClient(e.target.value)}
             />
@@ -143,7 +144,7 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
             <input
               type="tel"
               className={`${fieldClass(desktopUi)} font-bold`}
-              placeholder="ex: 0722123456"
+              placeholder="Ex: 0722 123 456"
               value={telefon}
               onChange={(e) => setTelefon(e.target.value)}
             />
@@ -179,21 +180,35 @@ export default function QuickCreateClaimModal({ isOpen, onClose, onSave, allClai
           </div>
 
           <div className="pt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="m-modal-btn-secondary flex-1 py-3 px-4 rounded-xl font-bold text-[13px]"
-            >
-              Anulează
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="m-modal-btn-primary flex-1 py-3 px-4 rounded-xl font-extrabold text-[13.5px] flex items-center justify-center gap-1.5 disabled:opacity-50"
-            >
-              <Check size={18} />
-              <span>{isSaving ? "Se salvează..." : "Creează dosar"}</span>
-            </button>
+            {desktopUi ? (
+              <>
+                <AppButton variant="secondary" onClick={onClose} className="flex-1 app-btn-lg">
+                  Anulează
+                </AppButton>
+                <AppButton type="submit" variant="primary" disabled={isSaving} className="flex-1 app-btn-lg">
+                  <Check size={16} />
+                  <span>{isSaving ? "Se salvează..." : "Creează dosar"}</span>
+                </AppButton>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="m-modal-btn-secondary flex-1 py-3 px-4 rounded-xl font-bold text-[13px]"
+                >
+                  Anulează
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="m-modal-btn-primary flex-1 py-3 px-4 rounded-xl font-extrabold text-[13.5px] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <Check size={18} />
+                  <span>{isSaving ? "Se salvează..." : "Creează dosar"}</span>
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

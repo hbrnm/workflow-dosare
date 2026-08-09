@@ -267,13 +267,127 @@
   background: var(--app-border);
 }
 
+/* ── Shared buttons ── */
+.app-shell .app-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: var(--app-btn-height, 2rem);
+  min-height: var(--app-btn-height, 2rem);
+  padding: 0 0.75rem;
+  border-radius: var(--app-radius, 8px);
+  border: 1px solid transparent;
+  font-size: var(--app-type-xs, 0.75rem);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+}
+
+.app-shell .app-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-shell .app-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border-color: var(--app-accent);
+}
+
+.app-shell .app-btn-primary:hover:not(:disabled) {
+  background: var(--app-accent-hover);
+  border-color: var(--app-accent-hover);
+}
+
+.app-shell .app-btn-secondary {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.app-shell .app-btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-btn-danger {
+  background: color-mix(in srgb, var(--app-danger) 75%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+  border-color: color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+}
+
+.app-shell .app-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-danger) 65%, var(--app-surface-muted));
+}
+
+.app-shell .app-btn-ghost {
+  background: transparent;
+  color: var(--app-muted);
+  border-color: transparent;
+}
+
+.app-shell .app-btn-ghost:hover:not(:disabled) {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+.app-shell .app-btn-icon {
+  width: var(--app-btn-height, 2rem);
+  padding: 0;
+  background: transparent;
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+
+.app-shell .app-btn-icon:hover:not(:disabled) {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+.app-shell .app-btn-lg {
+  height: var(--app-btn-height-lg, 2.5rem);
+  min-height: var(--app-btn-height-lg, 2.5rem);
+  font-size: var(--app-type-sm, 0.8125rem);
+  padding: 0 1rem;
+}
+
+/* Type scale helpers */
+.app-shell .app-type-xs { font-size: var(--app-type-xs); }
+.app-shell .app-type-sm { font-size: var(--app-type-sm); }
+.app-shell .app-type-md { font-size: var(--app-type-md); }
+.app-shell .app-type-lg { font-size: var(--app-type-lg); }
+.app-shell .app-type-xl { font-size: var(--app-type-xl); }
+
+/* Unified empty states */
+.app-shell .app-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: var(--app-type-sm);
+  color: var(--app-muted);
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-2);
+}
+
 /* Header CTA pair — shared box model so Dosar nou / Alerte match */
 .app-shell .app-header-action-btn {
   box-sizing: border-box;
   height: 2rem;
   min-height: 2rem;
+  min-width: 7.5rem;
   border: 1px solid transparent;
   line-height: 1;
+}
+
+.app-shell .app-prog-slot-free {
+  color: var(--app-muted);
+  font-style: italic;
+  font-size: var(--app-type-sm);
+  padding: 0.125rem 0 0.125rem 0.375rem;
+  user-select: none;
 }
 
 .app-shell .app-alert-btn {
