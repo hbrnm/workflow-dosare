@@ -482,23 +482,32 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   if (dosarVal) draw(dosarVal, dosarValX + 2, y, 11.5, fontBold);
   else dots(dosarValX, y, 160);
 
-  // —— Corp: Subsemnatul / societate ——
+  // —— Corp: Subsemnatul / societate (linii separate, lățime maximă) ——
   y -= 26;
   draw("Subsemnatul(a)", left, y, bodySize, font);
-  let cx = left + textW("Subsemnatul(a)", bodySize, font) + 5;
-  const subVal = fit(parties.subsemnatul || "", bodySize, 150, fontBold);
-  if (subVal) draw(subVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, 150);
-  cx += 156;
-  draw(", reprezentant al societatii", cx, y, bodySize, font);
-  cx += textW(", reprezentant al societatii", bodySize, font) + 5;
-  const firmVal = fit(parties.reprezentantSocietate || "", bodySize, right - cx - 2, fontBold);
-  if (firmVal) draw(firmVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, Math.max(40, right - cx));
+  {
+    const labelW = textW("Subsemnatul(a)", bodySize, font) + 5;
+    const fieldX = left + labelW;
+    const fieldW = Math.max(80, right - fieldX);
+    const subVal = fit(parties.subsemnatul || "", bodySize, fieldW - 4, fontBold);
+    if (subVal) draw(subVal, fieldX, y, bodySize, fontBold);
+    else dots(fieldX, y, fieldW);
+  }
+
+  y -= lineStep;
+  draw("reprezentant al societatii", left, y, bodySize, font);
+  {
+    const labelW = textW("reprezentant al societatii", bodySize, font) + 5;
+    const fieldX = left + labelW;
+    const fieldW = Math.max(80, right - fieldX);
+    const firmVal = fit(parties.reprezentantSocietate || "", bodySize, fieldW - 4, fontBold);
+    if (firmVal) draw(firmVal, fieldX, y, bodySize, fontBold);
+    else dots(fieldX, y, fieldW);
+  }
 
   y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
-  cx = left + textW("CUI/CNP", bodySize, font) + 5;
+  let cx = left + textW("CUI/CNP", bodySize, font) + 5;
   dots(cx, y, 82);
   cx += 86;
   draw(", domiciliat in", cx, y, bodySize, font);
