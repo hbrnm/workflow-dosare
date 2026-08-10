@@ -276,7 +276,7 @@ export default function BriefZilnic({
             {phone ? (
               <>
                 <WhatsAppButton phone={phone} claim={c} size={11} />
-                <a href={telLink(phone)} className="app-brief-flow-icon-btn" title="Sună">
+                <a href={telLink(phone)} className="app-brief-flow-icon-btn" title="Sună" aria-label="Sună">
                   <Phone size={13} />
                 </a>
               </>
@@ -574,6 +574,7 @@ export default function BriefZilnic({
                     <button
                       type="button"
                       onClick={() => onOpen(c)}
+                      aria-label="Deschide dosarul"
                       className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)] rounded transition-colors"
                     >
                       <ChevronRight size={16} />
@@ -621,6 +622,7 @@ export default function BriefZilnic({
                     <button
                       type="button"
                       onClick={() => onOpen(c)}
+                      aria-label="Deschide dosarul"
                       className="p-1 text-[var(--app-muted)] hover:text-[var(--app-success)] hover:bg-[var(--app-surface-muted)] rounded transition-colors"
                     >
                       <ChevronRight size={16} />

@@ -343,39 +343,47 @@
   color: #A7A7A7 !important;
 }
 
-/* WhatsApp + Call — default (atelier) */
+/* WhatsApp + Call — default (atelier); surfaces use app tokens so portal menus stay dark-safe */
 .wa-btn {
-  background: #EEF5EE;
-  border: 1px solid rgba(62, 107, 69, 0.3);
-  color: #3E6B45;
+  background: color-mix(in srgb, var(--app-success, #3E6B45) 14%, var(--app-surface-muted, #21262d));
+  border: 1px solid color-mix(in srgb, var(--app-success, #3E6B45) 35%, var(--app-border, #30363d));
+  color: var(--app-success, #3E6B45);
 }
-.wa-btn:hover { background: #D3E8D5; }
+.wa-btn:hover {
+  background: color-mix(in srgb, var(--app-success, #3E6B45) 22%, var(--app-surface-muted, #21262d));
+}
 .m-call-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  background: #EEF1F3;
-  color: #3B5166;
-  border: 1px solid #DAD4C6;
+  background: var(--app-surface-muted, #21262d);
+  color: var(--app-text, #c9d1d9);
+  border: 1px solid var(--app-border, #30363d);
   border-radius: 0.75rem;
   transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 .m-call-btn:active { transform: scale(0.96); }
 .wa-popover {
-  background: #fff;
-  border: 1px solid #DAD4C6;
-  color: #23282E;
+  background: var(--app-surface, #161b22);
+  border: 1px solid var(--app-border, #30363d);
+  color: var(--app-text, #c9d1d9);
 }
 .wa-popover-label {
-  color: #8A8375;
-  border-color: #EFEAE1;
+  color: var(--app-muted, #8b949e);
+  border-color: var(--app-border, #30363d);
 }
-.wa-popover-item { color: #23282E; }
-.wa-popover-item:hover { background: #EEF5EE; color: #3E6B45; }
-.wa-popover-footer { border-color: #EFEAE1; }
-.wa-popover-muted { color: #6B6558; }
-.wa-popover-muted:hover { background: #FAF8F5; }
+.wa-popover-item { color: var(--app-text, #c9d1d9); }
+.wa-popover-item:hover {
+  background: var(--app-surface-muted, #21262d);
+  color: var(--app-success, #3E6B45);
+}
+.wa-popover-footer { border-color: var(--app-border, #30363d); }
+.wa-popover-muted { color: var(--app-muted, #8b949e); }
+.wa-popover-muted:hover {
+  background: var(--app-surface-muted, #21262d);
+  color: var(--app-text, #c9d1d9);
+}
 
 /* Pulse / Spotify-style action chrome (document + shell + overlays) */
 html[data-mtheme="pulse"] .wa-btn,

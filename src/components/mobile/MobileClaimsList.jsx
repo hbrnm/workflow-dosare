@@ -121,7 +121,7 @@ function CompactClaimCard({
         {phone ? (
           <>
             <WhatsAppButton phone={phone} claim={c} size={11} />
-            <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
+            <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună" aria-label="Sună">
               <Phone size={13} />
             </a>
           </>
