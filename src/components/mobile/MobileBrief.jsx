@@ -1103,7 +1103,7 @@ export default function MobileBrief({
 
   // Legacy list — keep for fallback
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
+    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[var(--app-text)] pb-4">
       <div className="flex gap-1.5 overflow-x-auto scrollbar-none text-[11px] font-bold pb-0.5">
         {FILTER_CHIPS.map((chip) => {
           const n = chipCount(chip.key);
@@ -1116,7 +1116,7 @@ export default function MobileBrief({
               className={`shrink-0 py-2 px-3 rounded-xl border text-center transition-all whitespace-nowrap ${
                 active
                   ? "bg-[#2C4160] text-white border-[#2C4160] shadow-xs"
-                  : "bg-white text-[#6B6558] border-[#DAD4C6]"
+                  : "bg-[var(--app-surface)] text-[var(--app-muted)] border-[var(--app-border)]"
               }`}
             >
               {chip.label}
@@ -1138,13 +1138,13 @@ export default function MobileBrief({
             const phone = c.telefonClient || "";
 
             return (
-              <div key={item.id} className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-sm space-y-2.5">
+              <div key={item.id} className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl p-3.5 shadow-sm space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="m-brief-row-plate">
                     <span className="m-plate">{c.numarInmatriculare || "—"}</span>
                     <span className="m-dosar-num">{c.numarDosar || "—"}</span>
                   </span>
-                  <span className="text-[10px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded-md text-[#3B5166] truncate max-w-[40%]">
+                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded-md text-[var(--app-text)] truncate max-w-[40%]">
                     {item.title}
                   </span>
                 </div>
@@ -1155,7 +1155,7 @@ export default function MobileBrief({
                   {item.reason}
                 </div>
 
-                <div className="pt-2 border-t border-[#EFEAE1] flex items-center justify-between gap-2">
+                <div className="pt-2 border-t border-[var(--app-border)] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {phone && (
                       <>
@@ -1175,7 +1175,7 @@ export default function MobileBrief({
                       <button
                         type="button"
                         onClick={(e) => ackAlert(e, c.id)}
-                        className="px-2.5 py-1.5 rounded-xl bg-[#EFEAE1] text-[#3B5166] text-[11px] font-bold"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--app-surface-2)] text-[var(--app-text)] text-[11px] font-bold"
                       >
                         Rezolvat
                       </button>
