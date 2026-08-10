@@ -491,22 +491,24 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   draw(subLabel, cx, y, partySize, font);
   cx += textW(subLabel, partySize, font) + 4;
 
+  const afterSubMin = cx + 70;
   const firmLabelW = textW(firmLabel, partySize, font) + 4;
-  const valuesBudget = Math.max(120, right - cx - firmLabelW);
-  // ~45% pentru nume, restul pentru societate
-  const subFieldW = Math.min(150, Math.floor(valuesBudget * 0.42));
-  const firmFieldW = valuesBudget - subFieldW;
-
-  const subVal = fit(parties.subsemnatul || "", partySize, subFieldW - 3, fontBold);
-  if (subVal) draw(subVal, cx, y, partySize, fontBold);
-  else dots(cx, y, subFieldW);
-  cx += subFieldW;
+  const subVal = fit(parties.subsemnatul || "", partySize, 155, fontBold);
+  if (subVal) {
+    draw(subVal, cx, y, partySize, fontBold);
+    cx += textW(subVal, partySize, fontBold) + 3;
+  } else {
+    dots(cx, y, 110);
+    cx += 110;
+  }
+  cx = Math.max(cx, afterSubMin);
 
   draw(firmLabel, cx, y, partySize, font);
   cx += firmLabelW;
-  const firmVal = fit(parties.reprezentantSocietate || "", partySize, firmFieldW - 2, fontBold);
+  const firmMaxW = Math.max(60, right - cx - 2);
+  const firmVal = fit(parties.reprezentantSocietate || "", partySize, firmMaxW, fontBold);
   if (firmVal) draw(firmVal, cx, y, partySize, fontBold);
-  else dots(cx, y, Math.max(40, right - cx));
+  else dots(cx, y, firmMaxW);
 
   y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
