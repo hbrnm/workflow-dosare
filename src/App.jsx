@@ -1214,7 +1214,7 @@ export default function App() {
 
         {/* DESKTOP FILTER DROPDOWNS BAR */}
         {!["brief", "programator", "flux", "dosare"].includes(view) && (
-          <div className="hidden md:block px-4 py-2 bg-white border-b border-[var(--app-border)] shrink-0 z-10">
+          <div className="hidden md:block px-4 py-2 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0 z-10">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -1332,7 +1332,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setOnlyBlocked(false)}
-                        className="shrink-0 rounded-lg border border-[var(--app-border)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]"
+                        className="shrink-0 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-1.5 text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]"
                       >
                         Arată toate
                       </button>
@@ -1391,6 +1391,8 @@ export default function App() {
                 pragRidicare={pragRidicare}
                 onOpenRapoarte={() => setView("rapoarte")}
                 onOpenAlerts={openAlerts}
+                onOpenBlocked={openBlockedClaims}
+                stageOverdueCount={alertBuckets.counts.stagnate}
               />
             ) : view === "programator" ? (
               <Programator
@@ -1474,7 +1476,7 @@ export default function App() {
               <div className="relative">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
                 <input
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--app-border)] text-[14px] bg-white"
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[var(--app-border)] text-[14px] bg-[var(--app-surface)]"
                   placeholder="Nr. dosar, client, nr. auto, VIN..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -1485,7 +1487,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Tip asigurare</label>
-                <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
+                <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-[var(--app-surface)] font-semibold" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
                   <option value="toate">Toate</option>
                   <option value="CASCO">CASCO</option>
                   <option value="RCA">RCA</option>
@@ -1497,7 +1499,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setOnlyBlocked((v) => !v)}
-                  className={`w-full p-2.5 rounded-lg border text-[13px] font-semibold text-center transition-colors ${onlyBlocked ? "bg-[var(--app-danger)] text-white border-[var(--app-danger)]" : "bg-white text-[var(--app-muted)] border-[var(--app-border)]"}`}
+                  className={`w-full p-2.5 rounded-lg border text-[13px] font-semibold text-center transition-colors ${onlyBlocked ? "bg-[var(--app-danger)] text-white border-[var(--app-danger)]" : "bg-[var(--app-surface)] text-[var(--app-muted)] border-[var(--app-border)]"}`}
                 >
                   {onlyBlocked ? "Blocat DA" : "Toate"}
                 </button>
@@ -1506,7 +1508,7 @@ export default function App() {
 
             <div>
               <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Asigurător</label>
-              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
+              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-[var(--app-surface)] font-semibold" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
                 <option value="toti">Toți asigurătorii</option>
                 {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
               </select>
@@ -1514,7 +1516,7 @@ export default function App() {
 
             <div>
               <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase mb-1">Status Dosar</label>
-              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-white font-semibold" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <select className="w-full p-2.5 rounded-lg border border-[var(--app-border)] text-[13px] bg-[var(--app-surface)] font-semibold" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                 <option value="toate">Toate statusurile</option>
                 {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
               </select>

@@ -172,6 +172,8 @@ export default function MobileClaimSheet({
               type="button"
               onClick={() => !readOnly && setStatusOpen((v) => !v)}
               disabled={readOnly}
+              aria-expanded={statusOpen}
+              aria-label="Schimbă status"
               className="flex items-center gap-2 min-w-0 flex-1 text-left disabled:opacity-80"
             >
               <span
@@ -270,6 +272,7 @@ export default function MobileClaimSheet({
                   href={telLink(phone)}
                   className="m-call-btn p-2 rounded-full"
                   title="Sună"
+                  aria-label="Sună"
                 >
                   <Phone size={16} />
                 </a>
@@ -328,6 +331,7 @@ export default function MobileClaimSheet({
                   key={idx}
                   type="button"
                   onClick={() => setPreviewIndex(idx)}
+                  aria-label={`Vezi poza ${idx + 1}`}
                   className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
                 >
                   <img src={p.url || p} alt="" className="w-full h-full object-cover" />

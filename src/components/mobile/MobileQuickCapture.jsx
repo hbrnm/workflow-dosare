@@ -586,7 +586,7 @@ export default function MobileQuickCapture({
               Fotografii ({displayPoze.length})
             </span>
             {displayPoze.length === 0 ? (
-              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+              <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Nicio fotografie atașată încă.
               </div>
             ) : (
@@ -597,7 +597,7 @@ export default function MobileQuickCapture({
                     <div
                       key={p.path || p.id || idx}
                       onClick={() => setPreviewMediaIndex(idx)}
-                      className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
+                      className="relative aspect-square rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-muted)] group cursor-pointer shadow-2xs"
                     >
                       <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
                       
@@ -619,6 +619,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeletePhoto(e, idx)}
                         className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
                         title="Șterge fotografia"
+                        aria-label="Șterge fotografia"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -630,12 +631,12 @@ export default function MobileQuickCapture({
           </div>
 
           {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
-          <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
+          <div className="space-y-1.5 pt-2 border-t border-[var(--app-border)]">
             <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
               Documente ({displayDocs.length})
             </span>
             {displayDocs.length === 0 ? (
-              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+              <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Niciun document PDF atașat.
               </div>
             ) : (
@@ -643,15 +644,15 @@ export default function MobileQuickCapture({
                 {displayDocs.map((doc, idx) => (
                   <div
                     key={doc.path || doc.id || idx}
-                    className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[11.5px] font-semibold text-[#23282E]"
+                    className="flex items-center justify-between p-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[11.5px] font-semibold text-[var(--app-text)]"
                   >
                     <a
                       href={doc.url || doc}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[#23282E]"
+                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[var(--app-text)]"
                     >
-                      <FileText size={15} className="text-[#3B5166] shrink-0" />
+                      <FileText size={15} className="text-[var(--app-text)] shrink-0" />
                       <span className="truncate">{doc.name || doc.nume || `Document_${idx + 1}.pdf`}</span>
                     </a>
 
@@ -660,7 +661,7 @@ export default function MobileQuickCapture({
                         href={doc.url || doc}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1 text-[#8A8375] hover:text-[#3B5166]"
+                        className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)]"
                         title="Vizualizează"
                       >
                         <Eye size={15} />
@@ -672,6 +673,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeleteDocument(e, idx)}
                         className="p-1 bg-[#B23A2E]/10 hover:bg-[#B23A2E] text-[#B23A2E] hover:text-white rounded-lg transition-colors"
                         title="Șterge documentul"
+                        aria-label="Șterge documentul"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -691,7 +693,7 @@ export default function MobileQuickCapture({
           {/* Header Modal Scanare */}
           <div className="flex items-center justify-between border-b border-white/15 pb-3 shrink-0">
             <div className="flex items-center gap-2">
-              <FileText size={20} className="text-[#C98A2B]" />
+              <FileText size={20} className="text-[var(--app-accent)]" />
               <h3 className="font-extrabold text-[15px] text-white">
                 Scanare Documente ({scanSession.pages.length} pagini)
               </h3>
@@ -723,6 +725,7 @@ export default function MobileQuickCapture({
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
                       className="absolute top-2 right-2 bg-[#B23A2E] text-white p-1.5 rounded-lg shadow-md"
                       title="Șterge pagina"
+                      aria-label="Șterge pagina"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -742,11 +745,11 @@ export default function MobileQuickCapture({
                 onClick={() => setShowLiveScanner(true)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold transition-colors"
               >
-                <Camera size={18} className="text-[#C98A2B]" />
+                <Camera size={18} className="text-[var(--app-accent)]" />
                 <span>Scanner live</span>
               </button>
               <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold cursor-pointer transition-colors">
-                <ImageIcon size={18} className="text-[#C98A2B]" />
+                <ImageIcon size={18} className="text-[var(--app-accent)]" />
                 <span>Din galerie</span>
                 <input
                   type="file"
@@ -784,7 +787,7 @@ export default function MobileQuickCapture({
                 type="button"
                 onClick={handleSaveScanPDF}
                 disabled={uploading || scanSession.pages.length === 0}
-                className="flex-1 py-3 rounded-xl bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[13px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-accent-text)] font-extrabold text-[13px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : "Salvează PDF pe Dosar"}
               </button>

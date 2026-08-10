@@ -543,7 +543,7 @@ export default function SetariModal({
           {activeTab === "general" && (
             <form onSubmit={handleSaveConfig} className="space-y-4">
               {/* Identitate atelier / white-label */}
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Building size={16} className="text-[var(--app-accent)]" /> Identitate atelier (white-label)
                 </h3>
@@ -577,7 +577,7 @@ export default function SetariModal({
                       onChange={(e) => setAtelierNume(e.target.value)}
                       disabled={!isAdmin}
                       title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed"
                       placeholder="ex. AutoService Popescu"
                     />
                   </div>
@@ -590,7 +590,7 @@ export default function SetariModal({
                       disabled={!isAdmin}
                       title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
                       maxLength={4}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 disabled:cursor-not-allowed uppercase"
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed uppercase"
                       placeholder="WD"
                     />
                   </div>
@@ -603,7 +603,7 @@ export default function SetariModal({
                         onChange={(e) => setLogoUrl(e.target.value)}
                         disabled={!isAdmin}
                         title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
-                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="https://… sau lasă gol pentru inițiale"
                       />
                       {isAdmin && onUploadBrandingLogo && (
@@ -626,7 +626,7 @@ export default function SetariModal({
                 </div>
               </div>
 
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Wrench size={16} className="text-[var(--app-accent)]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
                 </h3>
@@ -645,7 +645,7 @@ export default function SetariModal({
                         type="number"
                         min="1"
                         max="30"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
                         value={prag}
                         onChange={(e) => setPrag(e.target.value)}
                       />
@@ -663,7 +663,7 @@ export default function SetariModal({
                     </p>
                     <div className="flex items-center gap-2 pt-1">
                       <select
-                        className="p-2 border border-[var(--app-border)] rounded-lg font-bold text-[13.5px] bg-white focus:border-[var(--app-accent)]"
+                        className="p-2 border border-[var(--app-border)] rounded-lg font-bold text-[13.5px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
                         value={inactivitateDays}
                         onChange={(e) => setInactivitateDays(Number(e.target.value))}
                       > 
@@ -692,7 +692,7 @@ export default function SetariModal({
                         type="number"
                         min="1"
                         max="20"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
                         value={capacitate}
                         onChange={(e) => setCapacitate(e.target.value)}
                       />
@@ -711,7 +711,7 @@ export default function SetariModal({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                       {STATUSES.map((s) => (
-                        <div key={s.key} className="flex items-center justify-between gap-2 bg-white border border-[var(--app-border)] rounded-lg px-2.5 py-1.5">
+                        <div key={s.key} className="flex items-center justify-between gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-2.5 py-1.5">
                           <span className="text-[11px] font-bold text-[var(--app-text-strong)] truncate" title={s.label}>
                             {s.num}. {s.label}
                           </span>
@@ -720,7 +720,7 @@ export default function SetariModal({
                               type="number"
                               min="1"
                               max="90"
-                              className="w-14 p-1 border border-[var(--app-border)] rounded-md font-bold text-[13px] bg-white text-center focus:border-[var(--app-accent)]"
+                              className="w-14 p-1 border border-[var(--app-border)] rounded-md font-bold text-[13px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
                               value={alertDaysByStatus[s.key] ?? s.alertDays ?? 3}
                               onChange={(e) =>
                                 setAlertDaysByStatus((prev) => ({
@@ -749,7 +749,7 @@ export default function SetariModal({
                         type="number"
                         min="0"
                         max="100"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[var(--app-accent)]"
+                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
                         value={tvaDefault}
                         onChange={(e) => setTvaDefault(e.target.value)}
                       />
@@ -774,7 +774,7 @@ export default function SetariModal({
           {/* TAB 2: MANAGEMENT ASIGURĂTORI */}
           {activeTab === "asiguratori" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                   <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-2">
                     <Building size={16} className="text-[var(--app-accent)]" /> Nomenclator Asigurători ({insurersList.length})
@@ -786,7 +786,7 @@ export default function SetariModal({
                 {isAdmin ? (
                   <div className="flex gap-2">
                     <input
-                      className="flex-1 px-3 py-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface-2)] focus:bg-white"
+                      className="flex-1 px-3 py-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface-2)] focus:bg-[var(--app-surface)]"
                       placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
                       value={newInsurer}
                       onChange={(e) => setNewInsurer(e.target.value)}
@@ -831,7 +831,7 @@ export default function SetariModal({
           {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Sun size={16} className="text-[var(--app-accent)]" /> Aspect &amp; temă
                 </h3>
@@ -877,7 +877,7 @@ export default function SetariModal({
           {activeTab === "profil" && (
             <div className="space-y-4">
               {/* Billing + Stripe */}
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Shield size={16} className="text-[var(--app-accent)]" /> Plan atelier
                 </h3>
@@ -936,7 +936,7 @@ export default function SetariModal({
                         type="number"
                         min={1}
                         max={200}
-                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white w-24"
+                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] w-24"
                         value={seatDraft}
                         onChange={(e) => setSeatDraft(e.target.value)}
                       />
@@ -949,7 +949,7 @@ export default function SetariModal({
               </div>
 
               {/* Informații Cont Curent */}
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <User size={16} className="text-[var(--app-accent)]" /> Detalii Cont &amp; Securitate
@@ -1009,7 +1009,7 @@ export default function SetariModal({
                         required
                         minLength={6}
                         placeholder="Parola nouă (min. 6 caractere)..."
-                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white focus:border-[var(--app-accent)]"
+                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
                         value={myNewPassword}
                         onChange={(e) => setMyNewPassword(e.target.value)}
                       />
@@ -1022,7 +1022,7 @@ export default function SetariModal({
                         required
                         minLength={6}
                         placeholder="Reintroduceți parola nouă..."
-                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white focus:border-[var(--app-accent)]"
+                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                       />
@@ -1043,7 +1043,7 @@ export default function SetariModal({
 
               {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă Exclusiv pentru Administratori) */}
               {isAdmin && (
-                <div className="bg-white border border-[var(--app-accent)]/40 rounded-xl p-4 space-y-4 shadow-sm">
+                <div className="bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl p-4 space-y-4 shadow-sm">
                   <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
                     <div>
                       <h3 className="font-extrabold text-[14.5px] text-[var(--app-text-strong)] flex items-center gap-2">
@@ -1074,13 +1074,13 @@ export default function SetariModal({
                       type="email"
                       required
                       placeholder="E-mail (ex: coleg@service.ro)"
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-medium focus:border-[var(--app-accent)]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-medium focus:border-[var(--app-accent)]"
                       value={newUserEmail}
                       onChange={(e) => setNewUserEmail(e.target.value)}
                     />
 
                     <select
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-bold text-[var(--app-text-strong)] focus:border-[var(--app-accent)]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-bold text-[var(--app-text-strong)] focus:border-[var(--app-accent)]"
                       value={newUserRole}
                       onChange={(e) => setNewUserRole(e.target.value)}
                       title={ROLES[normalizeRole(newUserRole)]?.description}
@@ -1096,7 +1096,7 @@ export default function SetariModal({
                       type="password"
                       required
                       placeholder="Parolă inițială (min. 6)"
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-white font-medium focus:border-[var(--app-accent)]"
+                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-medium focus:border-[var(--app-accent)]"
                       value={newUserPassword}
                       onChange={(e) => setNewUserPassword(e.target.value)}
                     />
@@ -1126,7 +1126,7 @@ export default function SetariModal({
                       Niciun utilizator suplimentar configurat încă.
                     </div>
                   ) : (
-                    <div className="divide-y divide-[var(--app-border-soft)] border border-[var(--app-border)] rounded-xl overflow-hidden bg-white">
+                    <div className="divide-y divide-[var(--app-border-soft)] border border-[var(--app-border)] rounded-xl overflow-hidden bg-[var(--app-surface)]">
                       {usersList.map((u) => {
                         const isCurrent = u.email?.toLowerCase() === userEmail?.toLowerCase();
                         const isUserAdmin = u.role === "admin";
@@ -1160,8 +1160,8 @@ export default function SetariModal({
                                   onClick={() => onToggleAdminRole(u.email)}
                                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
                                     isUserAdmin
-                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-200"
-                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[#F3D9A8]"
+                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"
+                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[var(--app-accent)]/15"
                                   }`}
                                   title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
                                 >
@@ -1198,7 +1198,7 @@ export default function SetariModal({
           {/* TAB 5: DIAGNOZĂ & BACKUP DATA */}
           {activeTab === "diagnoza" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-4">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Database size={16} className="text-[var(--app-muted)]" /> Diagnostic Sistem &amp; Stocare Cloud
                 </h3>
@@ -1241,7 +1241,7 @@ export default function SetariModal({
           {/* TAB: DATE & CONFIDENȚIALITATE */}
           {activeTab === "date" && (
             <div className="space-y-4">
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
                 <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
                   <Scale size={16} className="text-[var(--app-muted)]" /> Date &amp; confidențialitate
                 </h3>
@@ -1256,7 +1256,7 @@ export default function SetariModal({
                 </ul>
               </div>
 
-              <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
                 <h4 className="font-bold text-[13px] text-[var(--app-text-strong)]">Export date atelier (GDPR)</h4>
                 <p className="text-[11.5px] text-[var(--app-muted)]">
                   Descarcă pachetul JSON complet pentru atelierul activ
@@ -1278,7 +1278,7 @@ export default function SetariModal({
                 )}
               </div>
 
-              <div className="bg-white border border-[var(--app-danger)]/30 rounded-xl p-4 space-y-3">
+              <div className="bg-[var(--app-surface-2)] border border-[var(--app-danger)]/30 rounded-xl p-4 space-y-3">
                 <h4 className="font-bold text-[13px] text-[var(--app-danger)]">Șterge toate dosarele atelierului</h4>
                 <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
                   Mută dosarele active în arhivă, le elimină din flux și curăță fișierele din Storage.
@@ -1319,7 +1319,7 @@ export default function SetariModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[var(--app-border)] shrink-0 text-[12px]">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--app-surface-2)] border-t border-[var(--app-border)] shrink-0 text-[12px]">
           <span className="text-[var(--app-muted)]">{atelierNume || "Workflow Dosare"} · setări</span>
           <AppButton variant="secondary" onClick={onClose}>
             Închide

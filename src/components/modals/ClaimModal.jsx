@@ -1130,7 +1130,7 @@ export default function ClaimModal({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
 
                     {/* COLOANA 1: DATE DOSAR */}
-                    <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
+                    <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
                       <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)] border-b border-[var(--app-border)]/60 pb-1 flex items-center gap-1.5">
                         <FileText size={13} className="text-[var(--app-muted)]" /> 1. Date Dosar
                       </div>
@@ -1141,7 +1141,7 @@ export default function ClaimModal({
                           <FileText size={12} className="text-[var(--app-muted)]" /> Nr. Dosar Daună
                         </label>
                         <input
-                          className="w-full font-bold text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                          className="w-full font-bold text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                           value={form.numarDosar}
                           onChange={(e) => set("numarDosar", e.target.value.toUpperCase())}
                           placeholder="ex: 2026-00451"
@@ -1169,7 +1169,7 @@ export default function ClaimModal({
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           <select
-                            className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white text-[var(--app-text-strong)]"
+                            className="col-span-1 font-bold text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text-strong)]"
                             value={form.tipAsigurare}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -1185,7 +1185,7 @@ export default function ClaimModal({
                           </select>
                           <select
                             disabled={form.tipAsigurare === "Fără asigurare"}
-                            className={`col-span-2 text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white font-semibold text-[var(--app-text-strong)] ${
+                            className={`col-span-2 text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] font-semibold text-[var(--app-text-strong)] ${
                               form.tipAsigurare === "Fără asigurare" ? "opacity-50 bg-[var(--app-border-soft)] cursor-not-allowed" : ""
                             }`}
                             value={form.asigurator}
@@ -1231,7 +1231,7 @@ export default function ClaimModal({
                             <AlertOctagon size={12} /> Motiv blocare dosar
                           </label>
                           <input
-                            className="w-full text-[11.5px] p-1.5 border border-red-200 rounded-lg bg-white font-semibold text-[var(--app-text-strong)]"
+                            className="w-full text-[11.5px] p-1.5 border border-red-200 rounded-lg bg-[var(--app-surface)] font-semibold text-[var(--app-text-strong)]"
                             placeholder="ex: Litigiu, așteptare deviz..."
                             value={form.motivBlocare || ""}
                             onChange={(e) => set("motivBlocare", e.target.value)}
@@ -1264,7 +1264,7 @@ export default function ClaimModal({
                             </div>
                           ) : (
                             form.operatiuni.map((op, idx) => (
-                              <div key={op.id || idx} className="flex items-center gap-1 bg-white p-1 rounded-lg border border-[var(--app-border)]">
+                              <div key={op.id || idx} className="flex items-center gap-1 bg-[var(--app-surface)] p-1 rounded-lg border border-[var(--app-border)]">
                                 <input
                                   className="flex-1 font-semibold text-[11px] px-1.5 py-0.5 border border-[var(--app-border)] rounded uppercase text-[var(--app-text-strong)]"
                                   placeholder="ex: Oglindă ext. stanga, Bara față..."
@@ -1277,16 +1277,16 @@ export default function ClaimModal({
                                   }}
                                 />
                                 <div className="flex items-center gap-0.5 shrink-0">
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Înlocuire">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Înlocuire">
                                     <input type="checkbox" checked={!!op.inl} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], inl: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> INL
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Revopsire">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Revopsire">
                                     <input type="checkbox" checked={!!op.rev} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rev: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REV
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[var(--app-success)] text-white border-[var(--app-success)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Reparație">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[var(--app-success)] text-white border-[var(--app-success)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Reparație">
                                     <input type="checkbox" checked={!!op.rep} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rep: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REP
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[var(--app-text)] text-white border-[var(--app-text)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Demontare / Montare">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[var(--app-text)] text-white border-[var(--app-text)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Demontare / Montare">
                                     <input type="checkbox" checked={!!op.uni} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], uni: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> UNI
                                   </label>
                                   <button type="button" onClick={() => { const newList = form.operatiuni.filter((_, i) => i !== idx); set("operatiuni", newList); set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", ")); }} className="p-1 text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors ml-0.5" title="Șterge linia">
@@ -1301,7 +1301,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT */}
-                    <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-2.5 shadow-2xs">
+                    <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-2.5 shadow-2xs">
                       <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)] border-b border-[var(--app-border)]/60 pb-1 flex items-center gap-1.5">
                         <Car size={13} className="text-[var(--app-muted)]" /> 2. Date Vehicul, Proprietar &amp; Delegat
                       </div>
@@ -1312,7 +1312,7 @@ export default function ClaimModal({
                           <Car size={13} className="text-[var(--app-muted)]" /> Nr. Înmatriculare
                         </label>
                         <input
-                          className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                          className="w-full font-mono font-bold text-[12.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                           value={form.numarInmatriculare}
                           onChange={(e) => set("numarInmatriculare", e.target.value.toUpperCase())}
                           placeholder="ex: B111AAA"
@@ -1326,7 +1326,7 @@ export default function ClaimModal({
                           <Tag size={13} className="text-[var(--app-muted)]" /> Serie Șasiu (VIN 17 caractere)
                         </label>
                         <input
-                          className="w-full font-mono text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                          className="w-full font-mono text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                           value={form.vin}
                           onChange={(e) => set("vin", e.target.value.toUpperCase())}
                           maxLength={17}
@@ -1340,7 +1340,7 @@ export default function ClaimModal({
                           <Car size={13} className="text-[var(--app-muted)]" /> Marcă &amp; Model Vehicul
                         </label>
                         <input
-                          className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                          className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                           value={form.marcaModel}
                           onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
                           placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
@@ -1354,7 +1354,7 @@ export default function ClaimModal({
                             <UserIcon size={13} className="text-[var(--app-muted)]" /> Proprietar Auto
                           </label>
                           <input
-                            className="w-full font-semibold text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                            className="w-full font-semibold text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                             value={form.client}
                             onChange={(e) => set("client", e.target.value.toUpperCase())}
                             placeholder="Nume proprietar auto"
@@ -1365,7 +1365,7 @@ export default function ClaimModal({
                             <UserIcon size={13} className="text-[var(--app-muted)]" /> Delegat
                           </label>
                           <input
-                            className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                            className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
                             value={form.delegat || ""}
                             onChange={(e) => set("delegat", e.target.value.toUpperCase())}
                             placeholder="Nume delegat (opțional)"
@@ -1380,7 +1380,7 @@ export default function ClaimModal({
                         </label>
                         <div className="flex items-center gap-1">
                           <input
-                            className="flex-1 font-mono text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-white"
+                            className="flex-1 font-mono text-[11.5px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)]"
                             type="tel"
                             placeholder="07xx xxx xxx"
                             value={form.telefonClient}
@@ -1388,8 +1388,8 @@ export default function ClaimModal({
                           />
                           {form.telefonClient && (
                             <>
-                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-white border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[#D3E8D5] text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
+                              <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
                             </>
                           )}
                         </div>
@@ -1397,7 +1397,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* BARA INTERACTIVĂ DE STADII FLUX */}
-                    <div className="col-span-1 md:col-span-2 bg-white border border-[var(--app-border)] rounded-xl p-2.5 shadow-2xs space-y-2">
+                    <div className="col-span-1 md:col-span-2 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-2.5 shadow-2xs space-y-2">
                       {/* 9 Segmented Progress Bar */}
                       <div className="flex items-center gap-1 h-2.5 w-full bg-[var(--app-border-soft)] rounded-full overflow-hidden p-0.5">
                         {STATUSES.map((s, idx) => {
@@ -1416,7 +1416,7 @@ export default function ClaimModal({
                               title={`${s.num}. ${s.label}`}
                               className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
                               style={{
-                                backgroundColor: isDone || isCurrent ? phaseColor : "#D1CDC0",
+                                backgroundColor: isDone || isCurrent ? phaseColor : "var(--app-border)",
                                 opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3,
                               }}
                             />
@@ -1478,7 +1478,7 @@ export default function ClaimModal({
                   {/* STARE FIZICĂ & MAȘINĂ LA SCHIMB */}
                   <div className="grid md:grid-cols-2 gap-3 pt-1">
                     {/* Stepper Stare Fizică */}
-                    <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-3 shadow-2xs">
+                    <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-3 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
                         <span className="flex items-center gap-1.5"><Wrench size={14} /> Stare Fizică &amp; Lucrări</span>
                         {!isNew && (
@@ -1553,7 +1553,7 @@ export default function ClaimModal({
                     </div>
 
                     {/* Mașină la Schimb */}
-                    <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
+                    <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
                       <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
                         <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
                         {!isNew && form.masinaSchimb && (
@@ -1599,7 +1599,7 @@ export default function ClaimModal({
               {activeTab === "media" && (
                 <div className="grid md:grid-cols-2 gap-3">
                   {/* Galerie Poze */}
-                  <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
                       <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze ({form.poze.length})</span>
                       <button type="button" onClick={handleDownloadZip} disabled={downloadingZip || form.poze.length === 0} className="text-[11px] font-bold text-[var(--app-muted)] hover:underline flex items-center gap-1 disabled:opacity-40">
@@ -1662,7 +1662,7 @@ export default function ClaimModal({
                   </div>
 
                   {/* Documente PDF & Scaner Pro */}
-                  <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
                       <span className="flex items-center gap-1.5"><FolderOpen size={14} /> Documente PDF &amp; Scanate ({form.documente.length})</span>
                     </div>
@@ -1703,7 +1703,7 @@ export default function ClaimModal({
               {activeTab === "financial" && (
                 <div className="space-y-3">
                   {/* Secțiunea 1: Valori Deviz Audatex, Accept Plată & Franșiză */}
-                  <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
                       <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[var(--app-accent)]" /> 1. Valori Deviz Audatex, Accept Plată &amp; Franșiză</span>
                       <span className="text-[10.5px] font-mono font-semibold text-[var(--app-muted)]">TOATE SUMELE ÎN LEI (FĂRĂ TVA)</span>
@@ -1715,7 +1715,7 @@ export default function ClaimModal({
                         <input
                           type="number"
                           min={0}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-white text-[var(--app-text-strong)]"
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)] text-[var(--app-text-strong)]"
                           value={form.valoareDevizAudatex || 0}
                           onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)}
                           placeholder="0"
@@ -1744,7 +1744,7 @@ export default function ClaimModal({
                         <input
                           type="number"
                           min={0}
-                          className="w-full p-2 border border-[var(--app-danger)]/30 rounded-lg font-mono font-bold text-[12.5px] bg-[#FBEAE9]/40 text-[#8C2E2E]"
+                          className="w-full p-2 border border-[var(--app-danger)]/30 rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-danger)]/10 text-[#8C2E2E]"
                           value={financial.valoareFransiza || 0}
                           onChange={(e) => setFinancial("valoareFransiza", Number(e.target.value) || 0)}
                           placeholder="0"
@@ -1754,7 +1754,7 @@ export default function ClaimModal({
                         <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Nr. Factură &amp; Stadiu</label>
                         <input
                           type="text"
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-bold text-[12px] bg-white"
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-bold text-[12px] bg-[var(--app-surface)]"
                           placeholder="ex: FACT-1029"
                           value={financial.numarFactura || form.numarFactura || ""}
                           onChange={(e) => setFinancial("numarFactura", e.target.value)}
@@ -1764,7 +1764,7 @@ export default function ClaimModal({
                   </div>
 
                   {/* Secțiunea 2: Defalcare Manoperă & Cost Piese Audatex vs Service */}
-                  <div className="bg-white border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
                       <span>2. Defalcare Manoperă &amp; Preț Piese (Audatex vs. Service)</span>
                     </div>
@@ -1781,7 +1781,7 @@ export default function ClaimModal({
                             <input
                               type="number"
                               min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-white"
+                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
                               value={manoperaTinichigerie || 0}
                               onChange={(e) => setFinancial("manoperaTinichigerie", Number(e.target.value) || 0)}
                             />
@@ -1791,7 +1791,7 @@ export default function ClaimModal({
                             <input
                               type="number"
                               min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-white"
+                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
                               value={manoperaVopsitorie || 0}
                               onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)}
                             />
@@ -1803,7 +1803,7 @@ export default function ClaimModal({
                           <input
                             type="number"
                             min={0}
-                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text)] text-[12.5px] bg-white"
+                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text)] text-[12.5px] bg-[var(--app-surface)]"
                             value={form.valoarePieseAudatex || 0}
                             onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)}
                             placeholder="Preț piese din deviz"
@@ -1821,7 +1821,7 @@ export default function ClaimModal({
                           <input
                             type="number"
                             min={0}
-                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-danger)] text-[12.5px] bg-white"
+                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-danger)] text-[12.5px] bg-[var(--app-surface)]"
                             value={form.valoareAchizitiePiese || 0}
                             onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
                             placeholder="Cost real piese achiziționate"
@@ -1834,7 +1834,7 @@ export default function ClaimModal({
                             <input
                               type="number"
                               min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-white"
+                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
                               value={cheltuieliDiverse || 0}
                               onChange={(e) => setFinancial("cheltuieliDiverse", Number(e.target.value) || 0)}
                               placeholder="Subcontractări / alte"
@@ -1845,7 +1845,7 @@ export default function ClaimModal({
                             <input
                               type="number"
                               min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-white"
+                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
                               value={costMasinaSchimb || 0}
                               onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
                             />
@@ -1863,21 +1863,21 @@ export default function ClaimModal({
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                         {/* Venit Net */}
-                        <div className="p-2.5 rounded-xl bg-white border border-[var(--app-border)]">
+                        <div className="p-2.5 rounded-xl bg-[var(--app-surface)] border border-[var(--app-border)]">
                           <div className="text-[10px] font-semibold text-[var(--app-muted)] uppercase mb-1">Venit Net</div>
                           <div className="text-[15px] font-extrabold text-[var(--app-text-strong)] font-mono">{venitNetTotal.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
                           <div className="text-[9px] text-[var(--app-muted)] mt-0.5">{valoareAcceptPlata > 0 ? "Accept Plată" : "Deviz Audatex"}</div>
                         </div>
 
                         {/* Total Costuri */}
-                        <div className="p-2.5 rounded-xl bg-white border border-[var(--app-danger)]/30">
+                        <div className="p-2.5 rounded-xl bg-[var(--app-surface)] border border-[var(--app-danger)]/30">
                           <div className="text-[10px] font-semibold text-[var(--app-danger)] uppercase mb-1">Total Costuri</div>
                           <div className="text-[15px] font-extrabold text-[var(--app-danger)] font-mono">{totalCosturiService.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
                           <div className="text-[9px] text-[var(--app-muted)] mt-0.5">Piese + Diverse + Schimb</div>
                         </div>
 
                         {/* Profit Brut */}
-                        <div className={`p-2.5 rounded-xl bg-white border ${profitBrutReal >= 0 ? "border-[var(--app-success)]/30" : "border-[var(--app-danger)]/30"}`}>
+                        <div className={`p-2.5 rounded-xl bg-[var(--app-surface)] border ${profitBrutReal >= 0 ? "border-[var(--app-success)]/30" : "border-[var(--app-danger)]/30"}`}>
                           <div className="text-[10px] font-semibold text-[var(--app-muted)] uppercase mb-1">Profit Brut</div>
                           <div className={`text-[15px] font-extrabold font-mono ${profitBrutReal >= 0 ? "text-[var(--app-success)]" : "text-[var(--app-danger)]"}`}>
                             {profitBrutReal >= 0 ? "+" : ""}{profitBrutReal.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span>
@@ -1898,7 +1898,7 @@ export default function ClaimModal({
                       </div>
 
                       {/* Detalii Marjă Piese */}
-                      <div className="mt-2.5 p-2.5 bg-white border border-[var(--app-border)] rounded-xl">
+                      <div className="mt-2.5 p-2.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl">
                         <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-1.5 flex items-center gap-1"><Package size={12} /> Marjă Piese (Audatex vs. Achiziție Service)</div>
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="text-[var(--app-muted)]">Preț Audatex: <strong className="text-[var(--app-text-strong)] font-mono">{pretPieseAudatex.toLocaleString("ro-RO")} lei</strong></span>
@@ -1924,7 +1924,7 @@ export default function ClaimModal({
               {activeTab === "history" && (
                 <div className="space-y-3">
                   {/* Note Interne Echipă */}
-                  <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-3 shadow-2xs">
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-3 shadow-2xs">
                     <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
                       <h3 className="font-bold text-[12px] text-[var(--app-text-strong)] flex items-center gap-1.5">
                         <Sparkles size={14} className="text-[var(--app-accent)]" /> Notițe interne echipă ({form.note.length})
@@ -1934,7 +1934,7 @@ export default function ClaimModal({
                     <div className="flex gap-2">
                       <input
                         ref={noteInputRef}
-                        className="flex-1 p-2 border border-[var(--app-border)] rounded-lg text-[12px] bg-[var(--app-surface-2)] focus:bg-white focus:border-[var(--app-accent)]"
+                        className="flex-1 p-2 border border-[var(--app-border)] rounded-lg text-[12px] bg-[var(--app-surface-2)] focus:bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
                         placeholder="Adaugă o notă internă..."
                         value={noteText}
                         onChange={(e) => { setNoteText(e.target.value); setSlashIndex(0); }}
@@ -1997,7 +1997,7 @@ export default function ClaimModal({
 
                   {/* Stepper Statusuri & Istoric Timeline */}
                   {!isNew && (
-                    <div className="bg-white border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
+                    <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
                       <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)] border-b border-[var(--app-border)]/60 pb-1 flex items-center gap-1.5">
                         <Layers size={13} className="text-[var(--app-muted)]" /> Etape Flux &amp; Jurnal de Activități
                       </div>

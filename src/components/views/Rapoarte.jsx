@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CheckCircle2, Clock, ShieldCheck, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Clock, ShieldCheck } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
@@ -75,8 +75,16 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
 
   const sorted = [...filteredIncasare].sort((a, b) => b.venitTotal - a.venitTotal);
 
+  const tooltipStyle = {
+    fontSize: 12,
+    borderRadius: 6,
+    border: "1px solid var(--app-border)",
+    background: "var(--app-surface)",
+    color: "var(--app-text)",
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-[var(--app-text)]">
       {/* Financial Stat Cards */}
       <div className="flex flex-wrap gap-3">
         <StatCard label="Venit Piese (Marjă)" value={leiFmt(totalPiese)} tone="amber" />
@@ -88,7 +96,7 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
 
       {/* Financial Charts */}
       <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg border border-[var(--app-border)] p-3">
+        <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
           <div className="text-[12px] font-bold text-[var(--app-text-strong)] mb-2">Venit lunar (piese vs manoperă)</div>
           {perLuna.length === 0 ? <div className="text-[12px] text-[var(--app-muted)] py-10 text-center">Fără dosare facturate încă.</div> : (
             <ResponsiveContainer width="100%" height={220}>
@@ -96,14 +104,14 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
                 <XAxis dataKey="luna" tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)" }} formatter={(v) => `${Math.round(v)} lei`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${Math.round(v)} lei`} />
                 <Bar dataKey="piese" name="Piese" stackId="a" fill="var(--app-accent)" />
                 <Bar dataKey="manopera" name="Manoperă" stackId="a" fill="var(--app-muted)" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-white rounded-lg border border-[var(--app-border)] p-3">
+        <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
           <div className="text-[12px] font-bold text-[var(--app-text-strong)] mb-2">Venit pe asigurător</div>
           {perAsigurator.length === 0 ? <div className="text-[12px] text-[var(--app-muted)] py-10 text-center">Fără date încă.</div> : (
             <ResponsiveContainer width="100%" height={220}>
@@ -111,7 +119,7 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "var(--app-muted)" }} width={95} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)" }} formatter={(v) => `${v} lei`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${v} lei`} />
                 <Bar dataKey="value" fill="var(--app-muted)" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -119,21 +127,21 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
         </div>
       </div>
 
-      {/* NEW SECTION: Uncollected Breakdown by Insurer */}
-      <div className="bg-white rounded-lg border border-[var(--app-border)] overflow-hidden shadow-xs">
-        <div className="px-3 py-2 bg-[var(--app-muted)] text-white text-[12.5px] font-bold flex items-center justify-between">
-          <span className="flex items-center gap-1.5"><ShieldCheck size={14} /> Situație Restanțe Încasare per Asigurător</span>
-          <span className="text-[11px] font-semibold opacity-85">Centralizator plăților pe asigurători</span>
+      {/* Uncollected Breakdown by Insurer */}
+      <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] overflow-hidden">
+        <div className="px-3 py-2 bg-[var(--app-surface-2)] border-b border-[var(--app-border)] text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-[var(--app-muted)]" /> Situație Restanțe Încasare per Asigurător</span>
+          <span className="text-[11px] font-semibold text-[var(--app-muted)] hidden sm:inline">Centralizator plăților pe asigurători</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="bg-[var(--app-surface-2)] text-[var(--app-muted)] border-b border-[var(--app-border)]">
-                <th className="text-left px-3 py-2">Societate Asigurări</th>
-                <th className="text-right px-3 py-2">Total Facturat</th>
-                <th className="text-right px-3 py-2">Total Încasat</th>
-                <th className="text-right px-3 py-2">Restanță În Așteptare</th>
-                <th className="text-center px-3 py-2">Dosare Neîncasate</th>
+              <tr className="bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-b border-[var(--app-border)]">
+                <th className="text-left px-3 py-2 font-semibold">Societate Asigurări</th>
+                <th className="text-right px-3 py-2 font-semibold">Total Facturat</th>
+                <th className="text-right px-3 py-2 font-semibold">Total Încasat</th>
+                <th className="text-right px-3 py-2 font-semibold">Restanță În Așteptare</th>
+                <th className="text-center px-3 py-2 font-semibold">Dosare Neîncasate</th>
               </tr>
             </thead>
             <tbody>
@@ -147,11 +155,11 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                   </td>
                   <td className="px-3 py-2 text-center font-bold">
                     {item.countNeincasat > 0 ? (
-                      <span className="px-2 py-0.5 rounded bg-[var(--app-danger)]/10 text-[var(--app-danger)] text-[11px]">
+                      <span className="px-2 py-0.5 rounded bg-[var(--app-danger)]/15 text-[var(--app-danger)] text-[11px]">
                         {item.countNeincasat} / {item.countTotal} dosare
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded bg-[var(--app-success)]/10 text-[var(--app-success)] text-[11px]">
+                      <span className="px-2 py-0.5 rounded bg-[var(--app-success)]/15 text-[var(--app-success)] text-[11px]">
                         Toate achitate ({item.countTotal})
                       </span>
                     )}
@@ -171,32 +179,34 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
       </div>
 
       {/* Detailed Invoice Collection Table */}
-      <div className="bg-white rounded-lg border border-[var(--app-border)] overflow-hidden shadow-sm">
-        <div className="px-3 py-2.5 bg-[var(--app-text-strong)] text-white text-[12.5px] font-bold flex flex-wrap items-center justify-between gap-2">
+      <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] overflow-hidden">
+        <div className="px-3 py-2.5 bg-[var(--app-surface-2)] border-b border-[var(--app-border)] text-[12.5px] font-bold text-[var(--app-text-strong)] flex flex-wrap items-center justify-between gap-2">
           <span>Detaliu dosare facturate &amp; Status încasare</span>
 
-          {/* Collection Status Filter Pills */}
-          <div className="flex items-center gap-1 bg-black/20 p-1 rounded-md border border-white/20">
+          <div className="flex items-center gap-1 app-segment-track border border-[var(--app-border)] p-0.5 rounded-md">
             <button
+              type="button"
               onClick={() => setFilterIncasare("toate")}
               className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                filterIncasare === "toate" ? "bg-white text-[var(--app-text-strong)]" : "text-white/70 hover:text-white"
+                filterIncasare === "toate" ? "app-segment-active" : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
               }`}
             >
               Toate ({withMargin.length})
             </button>
             <button
+              type="button"
               onClick={() => setFilterIncasare("incasate")}
               className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                filterIncasare === "incasate" ? "bg-[var(--app-success)] text-white" : "text-white/70 hover:text-white"
+                filterIncasare === "incasate" ? "app-segment-active" : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
               }`}
             >
               Încasate ({withMargin.filter((c) => c.incasat).length})
             </button>
             <button
+              type="button"
               onClick={() => setFilterIncasare("neincasate")}
               className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                filterIncasare === "neincasate" ? "bg-[var(--app-danger)] text-white" : "text-white/70 hover:text-white"
+                filterIncasare === "neincasate" ? "app-segment-active" : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
               }`}
             >
               În așteptare ({withMargin.filter((c) => !c.incasat).length})
@@ -207,14 +217,14 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="bg-[#F5F2EA] text-[var(--app-muted)]">
-                <th className="text-left px-3 py-2">Nr. dosar</th>
-                <th className="text-left px-3 py-2">Asigurător</th>
-                <th className="text-left px-3 py-2">Client / Auto</th>
-                <th className="text-right px-3 py-2">Venit Piese</th>
-                <th className="text-right px-3 py-2">Venit Manoperă</th>
-                <th className="text-right px-3 py-2">Total Facturat</th>
-                <th className="text-center px-3 py-2">Status Încasare</th>
+              <tr className="bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-b border-[var(--app-border)]">
+                <th className="text-left px-3 py-2 font-semibold">Nr. dosar</th>
+                <th className="text-left px-3 py-2 font-semibold">Asigurător</th>
+                <th className="text-left px-3 py-2 font-semibold">Client / Auto</th>
+                <th className="text-right px-3 py-2 font-semibold">Venit Piese</th>
+                <th className="text-right px-3 py-2 font-semibold">Venit Manoperă</th>
+                <th className="text-right px-3 py-2 font-semibold">Total Facturat</th>
+                <th className="text-center px-3 py-2 font-semibold">Status Încasare</th>
               </tr>
             </thead>
             <tbody>
@@ -234,6 +244,7 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                     <td className="px-3 py-2 text-right font-mono font-bold text-[var(--app-text-strong)]">{leiFmt(c.venitTotal)}</td>
                     <td className="px-3 py-2 text-center">
                       <button
+                        type="button"
                         disabled={!editable || !onPatch}
                         onClick={() => {
                           if (onPatch) {
@@ -243,10 +254,10 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                             });
                           }
                         }}
-                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all inline-flex items-center gap-1 ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-bold border transition-all inline-flex items-center gap-1 disabled:opacity-50 ${
                           c.incasat
-                            ? "bg-[#E8F3E9] text-[var(--app-success)] border-[var(--app-success)]/40 hover:bg-[#D3E8D5]"
-                            : "bg-[#FFF2F0] text-[var(--app-danger)] border-[var(--app-danger)]/40 hover:bg-[#FCE3E0]"
+                            ? "bg-[var(--app-success)]/15 text-[var(--app-success)] border-[var(--app-success)]/40 hover:bg-[var(--app-success)]/25"
+                            : "bg-[var(--app-danger)]/15 text-[var(--app-danger)] border-[var(--app-danger)]/40 hover:bg-[var(--app-danger)]/25"
                         }`}
                         title={c.incasat ? `Încasat pe ${fmtDate(c.dataIncasarii)} · Click pentru schimbare` : "Click pentru a marca ca încasat"}
                       >

@@ -43,6 +43,9 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
         type="button"
         onClick={() => setOpen(!open)}
         title="Trimite mesaj WhatsApp (Apasă pentru șabloane)"
+        aria-label="Mesaj WhatsApp"
+        aria-expanded={open}
+        aria-haspopup="menu"
         className={`wa-btn p-1.5 rounded-md transition-colors flex items-center gap-0.5 ${className}`}
       >
         <MessageCircle size={size} />
@@ -51,7 +54,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
 
       {open &&
         createPortal(
-          <>
+          <div className="app-shell">
             <div
               className="fixed inset-0 z-[99998] bg-black/40 backdrop-blur-[1px]"
               onClick={(e) => {
@@ -61,6 +64,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
             />
 
             <div
+              role="menu"
               style={{
                 top: `${coords.top}px`,
                 right: `${coords.right}px`,
@@ -76,6 +80,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
                 {WA_TEMPLATES.map((tmpl) => (
                   <a
                     key={tmpl.key}
+                    role="menuitem"
                     href={getWaTemplateLink(phone, tmpl.key, claim, atelierName)}
                     target="_blank"
                     rel="noreferrer"
@@ -89,6 +94,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
 
               <div className="wa-popover-footer border-t pt-1">
                 <a
+                  role="menuitem"
                   href={waLink(phone)}
                   target="_blank"
                   rel="noreferrer"
@@ -99,7 +105,7 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
                 </a>
               </div>
             </div>
-          </>,
+          </div>,
           document.body
         )}
     </div>

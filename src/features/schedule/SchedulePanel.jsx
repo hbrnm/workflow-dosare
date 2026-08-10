@@ -20,7 +20,7 @@ export default function SchedulePanel({
         </h1>
         <p className="text-xs text-[var(--v2-muted)]">Calendar și sloturi orare din atelier</p>
       </div>
-      <div className="v2-legacy-light min-h-0 flex-1 overflow-y-auto bg-[#F7F5F0] p-3 text-[#23282E]">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--app-bg)] p-3 text-[var(--app-text)]">
         <Programator
           claims={claims}
           onOpen={(c) => onOpen(typeof c === "string" ? c : c?.id)}

@@ -12,7 +12,16 @@ import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
 
-export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte, onOpenAlerts }) {
+export default function Dashboard({
+  claims,
+  onOpen,
+  pragRidicare = 3,
+  onOpenRapoarte,
+  onOpenAlerts,
+  onOpenBlocked,
+  /** Same stagnate count as Centrul de Alerte (excludes blocate). */
+  stageOverdueCount = null,
+}) {
   const funnel = useMemo(() => buildAtelierFunnel(claims, { pragRidicare }), [claims, pragRidicare]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSecondaryKpis, setShowSecondaryKpis] = useState(false);
@@ -22,7 +31,11 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
   const gataNeridicateCount = claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length;
-  const overdueCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
+  // Same rule as buildAlertBuckets: blocate = inventar, not „termen depășit”
+  const overdueCount = useMemo(() => {
+    if (typeof stageOverdueCount === "number") return stageOverdueCount;
+    return claims.filter((c) => !c?.blocat && isStageOverdue(c)).length;
+  }, [claims, stageOverdueCount]);
 
   const masiniSchimbActive = useMemo(() => {
     return claims.filter((c) => c.masinaSchimb && c.masinaSchimb.trim() && c.status !== "facturat")
@@ -82,23 +95,43 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {funnel.steps.map((step, idx) => (
-            <div
-              key={step.id}
-              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2.5"
-            >
-              <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
-                {idx + 1}. {step.label}
+          {funnel.steps.map((step, idx) => {
+            const alerteClickable = step.id === "alerte" && typeof onOpenAlerts === "function";
+            const className = `rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2.5 text-left w-full${
+              alerteClickable ? " hover:bg-[var(--app-surface-muted)] transition-colors cursor-pointer" : ""
+            }`;
+            const body = (
+              <>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
+                  {idx + 1}. {step.label}
+                </div>
+                <div className="text-[22px] font-semibold text-[var(--app-text-strong)] leading-tight mt-0.5">
+                  {step.count}
+                </div>
+                <div className="text-[10px] text-[var(--app-muted)] mt-0.5">
+                  {step.hint}
+                  {step.rateFromPrev != null ? ` · ${step.rateFromPrev}% din create` : null}
+                </div>
+              </>
+            );
+            if (alerteClickable) {
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => onOpenAlerts("toate")}
+                  className={className}
+                >
+                  {body}
+                </button>
+              );
+            }
+            return (
+              <div key={step.id} className={className}>
+                {body}
               </div>
-              <div className="text-[22px] font-semibold text-[var(--app-text-strong)] leading-tight mt-0.5">
-                {step.count}
-              </div>
-              <div className="text-[10px] text-[var(--app-muted)] mt-0.5">
-                {step.hint}
-                {step.rateFromPrev != null ? ` · ${step.rateFromPrev}% din create` : null}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -106,8 +139,24 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Total dosare" value={total} tone="steel" />
         <StatCard label="Active" value={active} tone="amber" />
-        <StatCard label="Blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
-        <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
+        {onOpenBlocked && blockedCount > 0 ? (
+          <button type="button" onClick={onOpenBlocked} className="text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]">
+            <StatCard label="Blocate" value={blockedCount} sub="Click → inventar" tone="danger" />
+          </button>
+        ) : (
+          <StatCard label="Blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
+        )}
+        {onOpenAlerts && gataNeridicateCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => onOpenAlerts("neridicate")}
+            className="text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+          >
+            <StatCard label="Gata, neridicate" value={gataNeridicateCount} sub="Click → Alerte" tone="danger" />
+          </button>
+        ) : (
+          <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
+        )}
       </div>
 
       {!showSecondaryKpis ? (
@@ -213,7 +262,7 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
               {overdueCount} {overdueCount === 1 ? "dosar cu termen depășit" : "dosare cu termen depășit"}
             </span>
             <span className="block app-type-xs text-[var(--app-muted)]">
-              Lista și acțiunile sunt în Centrul de Alerte
+              Aceeași listă ca în Centrul de Alerte (fără dosare blocate)
             </span>
           </span>
           <ChevronRight size={16} className="text-[var(--app-muted)] shrink-0" />

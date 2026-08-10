@@ -119,7 +119,7 @@ export default function AlerteModal({
         style={active ? { "--alerte-cat-accent": cat.hex } : undefined}
         title={cat.label}
       >
-        <span className="app-alerte-cat-icon" style={{ color: active ? "#fff" : cat.hex }}>
+        <span className="app-alerte-cat-icon" style={{ color: active ? "inherit" : cat.hex }}>
           <Icon size={16} strokeWidth={2.25} />
         </span>
         <span className="app-alerte-cat-text">
