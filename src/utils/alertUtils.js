@@ -3,9 +3,11 @@ import { getStatusDefinition, getClaimAlertDays, isPieseComandateStatus } from "
 import { isPaymentOverdue, getDaysPaymentOverdue, getSettlementAmount, getEffectivePaymentDue } from "./settlementUtils";
 import { resolveAlertGroupKey, getAlertTypesForTab } from "../constants/alertCategories";
 
-/** Canonical alert type keys used by Brief, MobileBrief, and AlerteModal. */
+/**
+ * Tipuri de alertă operațională (Centru Alerte / badge Alerte).
+ * Dosarele blocate sunt stare de inventar — vezi `counts.blocate`, nu intră aici.
+ */
 export const ALERT_TYPES = [
-  "blocate",
   "masini_schimb",
   "stagnate",
   "livrare_piese",
@@ -97,9 +99,8 @@ export function getDaysSinceLastActivity(claim) {
   return lastUpdate ? daysBetween(lastUpdate) : 0;
 }
 
-/** Dosar blocat / litigiu — respectă alerteAck ca celelalte categorii. */
+/** Dosar blocat / litigiu (stare inventar, nu alertă de reacție). */
 export function isBlocked(claim) {
-  if (claim?.alerteAck) return false;
   return Boolean(claim?.blocat);
 }
 
@@ -209,23 +210,26 @@ export function alertSeverityClass(severity) {
 export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivitate = 7 } = {}) {
   const list = Array.isArray(claims) ? claims.filter(Boolean) : [];
 
+  // Blocate = inventar separat; nu generez alerte operaționale pe ele.
   const blocate = list.filter(isBlocked);
-  const masiniSchimb = list
+  const active = list.filter((c) => !c.blocat);
+
+  const masiniSchimb = active
     .filter(isLoanerOverdue)
     .map((c) => ({ ...c, zile: getLoanerDaysUsed(c), depasit: true }))
     .sort((a, b) => b.zile - a.zile);
-  const stagnate = sortByDaysDesc(list.filter(isStageOverdue), "dataSchimbareStatus");
-  const livrarePiese = list
+  const stagnate = sortByDaysDesc(active.filter(isStageOverdue), "dataSchimbareStatus");
+  const livrarePiese = active
     .filter(isDeliveryDeadlineOverdue)
     .sort((a, b) => getDaysPastDeliveryDeadline(b) - getDaysPastDeliveryDeadline(a));
-  const piese = list.filter(isPartsArrivedUnscheduled);
+  const piese = active.filter(isPartsArrivedUnscheduled);
   const neridicate = sortByDaysDesc(
-    list.filter((c) => isReadyForPickupOverdue(c, pragRidicare)),
+    active.filter((c) => isReadyForPickupOverdue(c, pragRidicare)),
     "dataGataRidicare"
   );
-  const acceptPlata = list.filter(isAcceptPlataWithoutParts);
-  const inactivitate = list.filter((c) => isInactiveClaim(c, pragInactivitate));
-  const restante = list
+  const acceptPlata = active.filter(isAcceptPlataWithoutParts);
+  const inactivitate = active.filter((c) => isInactiveClaim(c, pragInactivitate));
+  const restante = active
     .filter(isPaymentOverdue)
     .sort((a, b) => getDaysPaymentOverdue(b) - getDaysPaymentOverdue(a));
 
@@ -260,19 +264,6 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   counts.plati = counts.restante || 0;
 
   const items = [];
-
-  blocate.forEach((c) => {
-    const motiv = String(c.motivBlocare || "").trim();
-    items.push({
-      id: `blocate-${c.id}`,
-      claim: c,
-      type: "blocate",
-      title: "Dosar Blocat",
-      reason: motiv || "Lipsă motiv specificat",
-      noteSnippet: getLatestClaimNoteText(c),
-      severity: "critical",
-    });
-  });
 
   masiniSchimb.forEach((c) => {
     const depasireZile = c.zile - (Number(c.zileChirieAudatex) || 0);

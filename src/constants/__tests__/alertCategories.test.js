@@ -7,9 +7,8 @@ import {
 } from '../alertCategories';
 
 describe('alert groups', () => {
-  it('exposes five compact UI groups', () => {
+  it('exposes four compact UI groups (without Blocate)', () => {
     expect(ALERT_GROUPS.map((g) => g.key)).toEqual([
-      'blocate',
       'intarzieri',
       'piese',
       'predare',

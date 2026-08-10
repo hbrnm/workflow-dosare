@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -50,6 +50,7 @@ export default function MobileAppLayout({
   pragInactivitate = 7,
   alertBuckets = null,
   totalAlertsCount = 0,
+  blockedCount = 0,
   branding = null,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
@@ -71,7 +72,15 @@ export default function MobileAppLayout({
   const [focusClaimId, setFocusClaimId] = useState(null);
   const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
   const menuRef = useRef(null);
+
+  const openBlockedDosare = () => {
+    softHaptic(8);
+    setMenuOpen(false);
+    setDosareStatusFilter("blocate");
+    setActiveTab("dosare");
+  };
 
   useEffect(() => {
     saveMobileTab(activeTab);
@@ -122,6 +131,7 @@ export default function MobileAppLayout({
 
   const handleTabChange = (id) => {
     softHaptic(8);
+    if (id === "dosare") setDosareStatusFilter("toate");
     setActiveTab(id);
     setMenuOpen(false);
   };
@@ -239,6 +249,21 @@ export default function MobileAppLayout({
               </button>
             ) : null}
 
+            {blockedCount > 0 ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item is-secondary"
+                onClick={openBlockedDosare}
+              >
+                <span className="m-float-menu-icon">
+                  <Ban size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Dosare blocate</span>
+                <span className="m-float-menu-badge">{blockedCount > 99 ? "99+" : blockedCount}</span>
+              </button>
+            ) : null}
+
             <div className="m-float-menu-divider" />
             <div className="m-float-menu-label">Cont</div>
             {userEmail ? (
@@ -352,6 +377,7 @@ export default function MobileAppLayout({
             onGoTab={handleTabChange}
             onGoCapture={openCaptureForClaim}
             onOpenAlerts={onOpenAlerts}
+            onOpenBlocked={openBlockedDosare}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
@@ -373,6 +399,7 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             highlightClaimIds={highlightClaimIds}
             onBackToBrief={() => handleTabChange("brief")}
+            initialStatusFilter={dosareStatusFilter}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari

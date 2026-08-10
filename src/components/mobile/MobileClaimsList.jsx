@@ -150,8 +150,13 @@ export default function MobileClaimsList({
   onNotify,
   highlightClaimIds = null,
   onBackToBrief = null,
+  initialStatusFilter = "toate",
 }) {
-  const [statusFilter, setStatusFilter] = useState("toate");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || "toate");
+
+  React.useEffect(() => {
+    if (initialStatusFilter) setStatusFilter(initialStatusFilter);
+  }, [initialStatusFilter]);
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {

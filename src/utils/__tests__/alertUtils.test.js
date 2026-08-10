@@ -108,9 +108,10 @@ describe('alertUtils', () => {
     expect(isInactiveClaim(closed, 7)).toBe(false);
   });
 
-  it('isBlocked respects alerteAck', () => {
+  it('isBlocked reflects dossier inventory flag', () => {
     expect(isBlocked({ blocat: true })).toBe(true);
-    expect(isBlocked({ blocat: true, alerteAck: true })).toBe(false);
+    expect(isBlocked({ blocat: true, alerteAck: true })).toBe(true);
+    expect(isBlocked({ blocat: false })).toBe(false);
   });
 
   it('isLoanerOverdue detects Audatex overrun', () => {
@@ -150,7 +151,6 @@ describe('alertUtils', () => {
   it('normalizeAlertTab maps legacy tabs to compact groups', () => {
     expect(normalizeAlertTab('depasite')).toBe('intarzieri');
     expect(normalizeAlertTab('stagnate')).toBe('intarzieri');
-    expect(normalizeAlertTab('blocate')).toBe('blocate');
     expect(normalizeAlertTab('livrare_piese')).toBe('piese');
     expect(normalizeAlertTab('neridicate')).toBe('predare');
   });
@@ -161,16 +161,14 @@ describe('alertUtils', () => {
       { id: 'b', type: 'inactivitate', claim: { id: '2' } },
       { id: 'c', type: 'livrare_piese', claim: { id: '3' } },
       { id: 'd', type: 'accept_plata', claim: { id: '4' } },
-      { id: 'e', type: 'blocate', claim: { id: '5' } },
     ];
     expect(filterAlertItems(items, 'intarzieri').map((i) => i.id)).toEqual(['a', 'b']);
     expect(filterAlertItems(items, 'piese').map((i) => i.id)).toEqual(['c']);
     expect(filterAlertItems(items, 'plati').map((i) => i.id)).toEqual(['d']);
     expect(filterAlertItems(items, 'depasite').map((i) => i.id)).toEqual(['a', 'b']);
-    expect(filterAlertItems(items, 'blocate')).toHaveLength(1);
   });
 
-  it('buildAlertBuckets returns unified counts and items', () => {
+  it('buildAlertBuckets keeps blocate out of alert items/total', () => {
     const claims = [
       {
         id: '1',
@@ -227,6 +225,7 @@ describe('alertUtils', () => {
 
     const buckets = buildAlertBuckets(claims, { pragRidicare: 3, pragInactivitate: 7 });
     expect(buckets.counts.blocate).toBe(1);
+    expect(buckets.blocate).toHaveLength(1);
     expect(buckets.counts.stagnate).toBe(1);
     expect(buckets.counts.depasite).toBe(1);
     expect(buckets.counts.accept_plata).toBe(1);
@@ -235,14 +234,9 @@ describe('alertUtils', () => {
     expect(buckets.counts.livrare_piese).toBe(1);
     expect(buckets.counts.masini_schimb).toBe(1);
     expect(buckets.counts.inactivitate).toBe(1);
-    expect(buckets.totalAlertsCount).toBe(8);
-    expect(buckets.items).toHaveLength(8);
-
-    const onlyBlocked = filterAlertItems(buckets.items, 'blocate');
-    expect(onlyBlocked).toHaveLength(1);
-    expect(onlyBlocked[0].type).toBe('blocate');
-    expect(onlyBlocked[0].reason).toBe('Litigiu');
-    expect(onlyBlocked[0].noteSnippet).toBe('Așteptăm răspuns de la asigurător');
+    expect(buckets.totalAlertsCount).toBe(7);
+    expect(buckets.items).toHaveLength(7);
+    expect(buckets.items.every((i) => i.type !== 'blocate')).toBe(true);
 
     const viaAlias = filterAlertItems(buckets.items, 'depasite');
     expect(viaAlias.length).toBeGreaterThanOrEqual(1);
@@ -250,6 +244,22 @@ describe('alertUtils', () => {
     expect(buckets.counts.intarzieri).toBe(
       (buckets.counts.stagnate || 0) + (buckets.counts.inactivitate || 0)
     );
+  });
+
+  it('blocked claims do not generate operational alerts', () => {
+    const buckets = buildAlertBuckets([
+      {
+        id: 'b1',
+        blocat: true,
+        status: 'in_lucru',
+        dataSchimbareStatus: isoDaysAgo(30),
+        termenAlertaZile: 3,
+        dataUltimeiActualizari: isoDaysAgo(30),
+      },
+    ], { pragRidicare: 3, pragInactivitate: 7 });
+    expect(buckets.counts.blocate).toBe(1);
+    expect(buckets.totalAlertsCount).toBe(0);
+    expect(buckets.items).toHaveLength(0);
   });
 
   it('accept_plata alert uses short Accept plată title', () => {
