@@ -330,135 +330,297 @@ export async function generateazaFisaIntrareService(claim) {
 }
 
 /**
- * Cerere despăgubire tipizată Omniasig — după formularul „Cerere-Despagubire-Omniasig.docx”.
- * Auto din dosar: nr. dosar, subsemnatul/delegat, societate (client firmă), telefon, nr. auto.
- * Anexe tip: factură + Deviz Audatex (nr. gol).
- * Plată: beneficiar atelier (+ bancă/IBAN dacă sunt în options.plata).
- * Sume, CUI/CNP, adresă, bife, accident: goale (de mână).
+ * Cerere despăgubire Omniasig — layout curat (fără linii sub textul completat),
+ * cu antet Omniasig sus. Date din dosar + plată atelier.
  *
  * @param {object} claim
  * @param {{ atelierNume?: string, plata?: { beneficiar?: string, banca?: string, cont?: string } } | null} [options]
  */
 export async function generateazaCerereDespagubireOmniasig(claim, options = null) {
-  const doc = await createPdf();
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
   const parties = resolveCerereDespagubireParties(claim);
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  let y = 12;
+  const plata = options?.plata || {};
+  const beneficiar = String(
+    plata.beneficiar || options?.atelierNume || "SC AUTO WASH IMPEX SRL"
+  ).trim();
+  const banca = String(plata.banca || "PRO CREDIT BANK").trim();
+  const cont = String(plata.cont || "RO56 MIRO 0000 1184 0304 0301").trim();
 
-  const write = (text, x, yy, opts = {}) => {
-    doc.text(sd(text), x, yy, opts);
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595.44, 841.68]);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const { width, height } = page.getSize();
+
+  const green = rgb(0, 0.48, 0.37); // Omniasig-ish
+  const ink = rgb(0.08, 0.08, 0.08);
+  const muted = rgb(0.35, 0.35, 0.35);
+  const line = rgb(0.75, 0.75, 0.75);
+  const left = 36;
+  const right = width - 36;
+  const contentW = right - left;
+
+  const drawText = (text, x, y, size = 10, opts = {}) => {
+    const raw = sd(text);
+    if (!raw) return 0;
+    page.drawText(raw, {
+      x,
+      y,
+      size,
+      font: opts.bold ? fontBold : font,
+      color: opts.color || ink,
+    });
+    return size;
   };
 
-  const plata = options?.plata || {};
-  const beneficiar =
-    String(plata.beneficiar || options?.atelierNume || "").trim() || "_______________________________";
-  const banca = String(plata.banca || "").trim() || "_______________________________";
-  const cont = String(plata.cont || "").trim() || "_______________________________";
+  const drawWrapped = (text, x, y, size, maxW, opts = {}) => {
+    const raw = sd(text);
+    const words = raw.split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = "";
+    const f = opts.bold ? fontBold : font;
+    for (const w of words) {
+      const next = cur ? `${cur} ${w}` : w;
+      if (f.widthOfTextAtSize(next, size) <= maxW) cur = next;
+      else {
+        if (cur) lines.push(cur);
+        cur = w;
+      }
+    }
+    if (cur) lines.push(cur);
+    const leading = size + 2.2;
+    lines.forEach((ln, i) => {
+      page.drawText(ln, {
+        x,
+        y: y - i * leading,
+        size,
+        font: f,
+        color: opts.color || ink,
+      });
+    });
+    return lines.length * leading;
+  };
 
-  // Title
-  doc.setFontSize(14);
-  doc.setFont(undefined, "bold");
-  doc.setTextColor(0);
-  write("CERERE DESPAGUBIRE", pageW / 2, y, { align: "center" });
-  y += 7;
+  let y = height - 28;
 
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  doc.text(sd("cu privire la dosarul nr: "), 14, y);
-  doc.setFont(undefined, "bold");
-  doc.text(sd(claim.numarDosar || "…………………"), 58, y);
-  doc.setFont(undefined, "normal");
-  y += 8;
+  // ── Antet Omniasig ──
+  page.drawRectangle({
+    x: 0,
+    y: height - 52,
+    width,
+    height: 52,
+    color: green,
+  });
+  drawText("OMNIASIG", left, height - 28, 16, { bold: true, color: rgb(1, 1, 1) });
+  drawText("Vienna Insurance Group", left, height - 42, 8.5, { color: rgb(0.85, 0.95, 0.9) });
+  drawText("www.omniasig.ro", right - 90, height - 28, 8.5, { color: rgb(1, 1, 1) });
+  drawText("Tel: (+40) 21 405 7420", right - 110, height - 42, 7.5, { color: rgb(0.85, 0.95, 0.9) });
 
-  // Subsemnatul + societate
-  doc.setFontSize(9.2);
-  const sub = sd(parties.subsemnatul || "_______________________________");
-  const societate = parties.reprezentantSocietate
-    ? sd(parties.reprezentantSocietate)
-    : "_______________________________";
-  const repLines = doc.splitTextToSize(
-    sd(`Subsemnatul(a) ${sub}, reprezentant al societatii ${societate}`),
-    182
-  );
-  doc.text(repLines, 14, y);
-  y += repLines.length * 4.6 + 3.5;
+  y = height - 72;
+  drawText("CERERE DESPAGUBIRE", width / 2 - 70, y, 13, { bold: true });
+  y -= 4;
+  page.drawLine({
+    start: { x: width / 2 - 72, y },
+    end: { x: width / 2 + 72, y },
+    thickness: 1,
+    color: green,
+  });
 
-  // CUI/CNP + adresă + tel
-  const tel = sd(claim.telefonClient || "_______________");
-  const adrLines = doc.splitTextToSize(
-    sd(
-      `CUI/CNP ____________________, domiciliat in _______________, str. ____________________, nr ____ ap ____, sector ____ tel.${tel}`
-    ),
-    182
-  );
-  doc.text(adrLines, 14, y);
-  y += adrLines.length * 4.6 + 3.5;
+  y -= 18;
+  drawText("cu privire la dosarul nr:", left, y, 10, { color: muted });
+  const dosar = sd(claim.numarDosar || "");
+  if (dosar) {
+    drawText(dosar, left + 118, y, 11, { bold: true });
+  } else {
+    page.drawLine({
+      start: { x: left + 118, y: y - 1 },
+      end: { x: left + 260, y: y - 1 },
+      thickness: 0.6,
+      color: line,
+    });
+  }
 
-  // Proprietar auto + sumă
-  const propLines = doc.splitTextToSize(
-    sd(
-      `proprietar al autovehiculului cu numarul ${sd(claim.numarInmatriculare || "____________________")}, va rog sa aprobati plata despagubirii in suma de ____________________`
-    ),
-    182
-  );
-  doc.text(propLines, 14, y);
-  y += propLines.length * 4.6 + 3;
+  y -= 18;
+  // Subsemnatul + societate pe același rând, fără underlines sub valori
+  const sub = sd(parties.subsemnatul || "");
+  const societate = sd(parties.reprezentantSocietate || "");
+  let xCursor = left;
+  drawText("Subsemnatul(a)", xCursor, y, 9.5, { color: muted });
+  xCursor += font.widthOfTextAtSize("Subsemnatul(a) ", 9.5);
+  if (sub) {
+    drawText(sub, xCursor, y, 10, { bold: true });
+    xCursor += fontBold.widthOfTextAtSize(sub, 10) + 6;
+  } else {
+    page.drawLine({
+      start: { x: xCursor, y: y - 1 },
+      end: { x: xCursor + 120, y: y - 1 },
+      thickness: 0.6,
+      color: line,
+    });
+    xCursor += 126;
+  }
+  drawText(", reprezentant al societatii", xCursor, y, 9.5, { color: muted });
+  xCursor += font.widthOfTextAtSize(", reprezentant al societatii ", 9.5);
+  if (societate) {
+    // poate trece pe rândul următor dacă e lung
+    const remain = right - xCursor;
+    if (fontBold.widthOfTextAtSize(societate, 10) <= remain) {
+      drawText(societate, xCursor, y, 10, { bold: true });
+    } else {
+      y -= 13;
+      drawText(societate, left, y, 10, { bold: true });
+    }
+  } else {
+    page.drawLine({
+      start: { x: xCursor, y: y - 1 },
+      end: { x: right, y: y - 1 },
+      thickness: 0.6,
+      color: line,
+    });
+  }
 
-  // Tip plată — bife goale
+  y -= 16;
+  // CUI/CNP + adresă (de mână) + tel completat
+  drawText("CUI/CNP", left, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 42, y: y - 1 }, end: { x: left + 160, y: y - 1 }, thickness: 0.6, color: line });
+  drawText("domiciliat in", left + 168, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 230, y: y - 1 }, end: { x: left + 330, y: y - 1 }, thickness: 0.6, color: line });
+  drawText("str.", left + 338, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 356, y: y - 1 }, end: { x: right, y: y - 1 }, thickness: 0.6, color: line });
+
+  y -= 14;
+  drawText("nr.", left, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 18, y: y - 1 }, end: { x: left + 55, y: y - 1 }, thickness: 0.6, color: line });
+  drawText("ap.", left + 62, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 80, y: y - 1 }, end: { x: left + 115, y: y - 1 }, thickness: 0.6, color: line });
+  drawText("sector", left + 122, y, 9, { color: muted });
+  page.drawLine({ start: { x: left + 155, y: y - 1 }, end: { x: left + 190, y: y - 1 }, thickness: 0.6, color: line });
+  const tel = sd(claim.telefonClient || "");
+  drawText("tel.", left + 200, y, 9, { color: muted });
+  if (tel) drawText(tel, left + 220, y, 10, { bold: true });
+  else page.drawLine({ start: { x: left + 220, y: y - 1 }, end: { x: left + 320, y: y - 1 }, thickness: 0.6, color: line });
+
+  y -= 16;
+  const plate = sd(claim.numarInmatriculare || "");
+  drawText("proprietar al autovehiculului cu numarul", left, y, 9.5, { color: muted });
+  const plateLabelW = font.widthOfTextAtSize("proprietar al autovehiculului cu numarul ", 9.5);
+  if (plate) drawText(plate, left + plateLabelW, y, 10, { bold: true });
+  else {
+    page.drawLine({
+      start: { x: left + plateLabelW, y: y - 1 },
+      end: { x: left + plateLabelW + 90, y: y - 1 },
+      thickness: 0.6,
+      color: line,
+    });
+  }
+
+  y -= 14;
+  drawText("va rog sa aprobati plata despagubirii in suma de", left, y, 9.5, { color: muted });
+  page.drawLine({
+    start: { x: left + font.widthOfTextAtSize("va rog sa aprobati plata despagubirii in suma de ", 9.5), y: y - 1 },
+    end: { x: right, y: y - 1 },
+    thickness: 0.6,
+    color: line,
+  });
+
+  y -= 16;
   const checks = [
     "pentru reparatie efectuata in regie proprie, pe baza evaluarii OMNIASIG;",
     "avans – pe baza documentelor anexate",
     "dupa efectuarea reparatiilor – plata finala, pe baza urmatoarelor documente anexate:",
   ];
   for (const c of checks) {
-    doc.rect(14, y - 2.4, 3.1, 3.1);
-    write(c, 20, y);
-    y += 5.2;
+    page.drawRectangle({
+      x: left,
+      y: y - 1,
+      width: 8,
+      height: 8,
+      borderColor: ink,
+      borderWidth: 0.8,
+    });
+    drawText(c, left + 12, y, 9);
+    y -= 13;
   }
-  y += 1.5;
 
-  write("Suplimentar, mai anexez:", 14, y);
-  y += 5;
-  write("FACTURA FISCALA NUMARUL ____________________", 14, y);
-  y += 5;
-  write("DEVIZ AUDATEX ____________________", 14, y);
-  y += 7;
+  // linii goale documente anexate
+  for (let i = 0; i < 2; i++) {
+    page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.5, color: line });
+    y -= 11;
+  }
 
-  // Tabel plată (beneficiar atelier)
-  doc.setFont(undefined, "bold");
-  write("Plata se va efectua in favoarea:", 14, y);
-  y += 4;
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8);
-  const colX = [14, 70, 150];
-  const colW = [56, 80, 46];
-  const rowH = 6;
+  y -= 2;
+  drawText("Suplimentar, mai anexez:", left, y, 9.5, { bold: true });
+  y -= 13;
+  drawText("FACTURA FISCALA NUMARUL", left, y, 9, { color: muted });
+  page.drawLine({
+    start: { x: left + 130, y: y - 1 },
+    end: { x: left + 260, y: y - 1 },
+    thickness: 0.6,
+    color: line,
+  });
+  y -= 12;
+  drawText("DEVIZ AUDATEX", left, y, 9, { color: muted });
+  page.drawLine({
+    start: { x: left + 90, y: y - 1 },
+    end: { x: left + 220, y: y - 1 },
+    thickness: 0.6,
+    color: line,
+  });
+
+  y -= 18;
+  drawText("Plata se va efectua in favoarea:", left, y, 10, { bold: true });
+  y -= 8;
+
+  // Tabel plată
+  const tableTop = y;
+  const rowH = 16;
+  const cols = [
+    { x: left, w: 150, title: "BENEFICIAR" },
+    { x: left + 150, w: 260, title: "BANCA & CONT / CASIERIE" },
+    { x: left + 410, w: contentW - 410, title: "SUMA" },
+  ];
   // header
-  doc.setFillColor(245, 245, 245);
-  doc.rect(14, y, 182, rowH, "FD");
-  write("BENEFICIAR", colX[0] + 1.5, y + 4.2);
-  write("BANCA & CONT/CASIERIE", colX[1] + 1.5, y + 4.2);
-  write("SUMA", colX[2] + 1.5, y + 4.2);
-  y += rowH;
-  // data row 1 — banca
-  doc.rect(14, y, colW[0], rowH);
-  doc.rect(colX[1], y, colW[1], rowH);
-  doc.rect(colX[2], y, colW[2], rowH);
-  write(banca, colX[1] + 1.5, y + 4.2);
-  y += rowH;
-  // data row 2 — beneficiar + cont
-  doc.rect(14, y, colW[0], rowH);
-  doc.rect(colX[1], y, colW[1], rowH);
-  doc.rect(colX[2], y, colW[2], rowH);
-  const benLines = doc.splitTextToSize(sd(beneficiar), colW[0] - 3);
-  doc.text(benLines.slice(0, 1), colX[0] + 1.5, y + 4.2);
-  const contLines = doc.splitTextToSize(sd(cont), colW[1] - 3);
-  doc.text(contLines.slice(0, 1), colX[1] + 1.5, y + 4.2);
-  y += rowH + 5;
+  page.drawRectangle({
+    x: left,
+    y: tableTop - rowH,
+    width: contentW,
+    height: rowH,
+    color: rgb(0.93, 0.96, 0.94),
+    borderColor: line,
+    borderWidth: 0.7,
+  });
+  cols.forEach((c) => {
+    drawText(c.title, c.x + 4, tableTop - 11, 8, { bold: true, color: green });
+  });
+  // verticals header
+  page.drawLine({ start: { x: cols[1].x, y: tableTop }, end: { x: cols[1].x, y: tableTop - rowH }, thickness: 0.7, color: line });
+  page.drawLine({ start: { x: cols[2].x, y: tableTop }, end: { x: cols[2].x, y: tableTop - rowH }, thickness: 0.7, color: line });
 
-  // Declarații
-  doc.setFontSize(7.6);
+  // 2 data rows
+  const dataTop = tableTop - rowH;
+  page.drawRectangle({
+    x: left,
+    y: dataTop - rowH * 2,
+    width: contentW,
+    height: rowH * 2,
+    borderColor: line,
+    borderWidth: 0.7,
+  });
+  page.drawLine({
+    start: { x: left, y: dataTop - rowH },
+    end: { x: right, y: dataTop - rowH },
+    thickness: 0.5,
+    color: line,
+  });
+  page.drawLine({ start: { x: cols[1].x, y: dataTop }, end: { x: cols[1].x, y: dataTop - rowH * 2 }, thickness: 0.7, color: line });
+  page.drawLine({ start: { x: cols[2].x, y: dataTop }, end: { x: cols[2].x, y: dataTop - rowH * 2 }, thickness: 0.7, color: line });
+
+  drawText(banca, cols[1].x + 4, dataTop - 11, 8, { bold: true });
+  drawText(beneficiar, cols[0].x + 4, dataTop - rowH - 11, 8, { bold: true });
+  drawText(cont, cols[1].x + 4, dataTop - rowH - 11, 7.5, { bold: true });
+
+  y = dataTop - rowH * 2 - 14;
+
   const declaratii = [
     "Raspund de exactitatea, realitatea si corectitudinea actelor depuse. Inteleg ca depunerea de documente false (facturi, devize, alte inscrisuri) indreptateste Asiguratorul sa refuze plata tuturor despagubirilor solicitate.",
     "Declar pe propria raspundere ca nu mai posed alte polite de asigurare de acelasi tip si nu am solicitat sau primit despagubiri/compensatii banesti de la alt asigurator sau de la terte persoane - sofer vinovat RCA.",
@@ -466,49 +628,71 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     "In cazul in care actele incheiate de organele de politie, unitatile de pompieri sau alte organe competente sa cerceteze accidentele de autovehicule, sunt anulate, ma oblig sa restitui de indata intreaga despagubire primita.",
   ];
   for (const d of declaratii) {
-    const lines = doc.splitTextToSize(sd(d), 182);
-    doc.text(lines, 14, y);
-    y += lines.length * 3.3 + 1.2;
+    const used = drawWrapped(`- ${d}`, left, y, 7.4, contentW, { color: muted });
+    y -= used + 2;
   }
-  y += 2.5;
 
-  doc.setFontSize(8.5);
-  write("Suma de (in cifre) _______________ adica (in litere) ____________________________________________,", 14, y);
-  y += 4.5;
-  write("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de _____________.", 14, y);
-  y += 4.5;
-  const quitLines = doc.splitTextToSize(
-    sd(
-      "Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila __________________ si fata de (nume sofer vinovat) ____________________________ persoana vinovata de producerea accidentului din data de ______________"
-    ),
-    182
+  y -= 4;
+  drawText("Suma de (in cifre)", left, y, 9.5, { color: muted });
+  page.drawLine({ start: { x: left + 95, y: y - 1 }, end: { x: left + 180, y: y - 1 }, thickness: 0.6, color: line });
+  drawText("adica (in litere)", left + 188, y, 9.5, { color: muted });
+  page.drawLine({ start: { x: left + 275, y: y - 1 }, end: { x: right, y: y - 1 }, thickness: 0.6, color: line });
+
+  y -= 13;
+  const acc = drawWrapped(
+    "reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de _____________.",
+    left,
+    y,
+    9,
+    contentW,
+    { color: muted }
   );
-  doc.text(quitLines, 14, y);
-  y += quitLines.length * 3.8 + 3;
+  y -= acc + 4;
 
-  write("Obiectii:", 14, y);
-  y += 4.5;
-  write(".............................................................................................................................................................", 14, y);
-  y += 4.5;
-  write(".............................................................................................................................................................", 14, y);
-  y += 8;
+  const quit = drawWrapped(
+    "Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila _________________ si fata de (nume sofer vinovat) ____________________________ persoana vinovata de producerea accidentului din data de _____________.",
+    left,
+    y,
+    9,
+    contentW
+  );
+  y -= quit + 8;
 
-  doc.setFontSize(9.5);
-  doc.setFont(undefined, "bold");
-  write("DATA _________________", 14, y);
-  write("SEMNATURA / STAMPILA _______________________________", 90, y);
+  drawText("Obiectii:", left, y, 9, { bold: true, color: muted });
+  y -= 10;
+  for (let i = 0; i < 2; i++) {
+    page.drawLine({ start: { x: left, y }, end: { x: right, y }, thickness: 0.5, color: line });
+    y -= 11;
+  }
 
-  // Footer Omniasig
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(90);
-  const footerY = pageH - 16;
-  write("Tel: (+40) 21 405 7420 · Fax: (+40) 21 311 4490 · Email: office@omniasig.ro", 14, footerY);
-  write("CUI 14360018 · J40/10454/2001 · Capital social: 250.258.347,5 lei · www.omniasig.ro", 14, footerY + 3.5);
-  write("Autorizata CSA R.A.-047/10.04.2003 · Societate administrata in sistem dualist · Operator date personale nr. 1641", 14, footerY + 7);
+  y -= 6;
+  drawText("DATA", left, y, 10, { bold: true });
+  page.drawLine({ start: { x: left + 35, y: y - 1 }, end: { x: left + 140, y: y - 1 }, thickness: 0.7, color: line });
+  drawText("SEMNATURA / STAMPILA", left + 180, y, 10, { bold: true });
+  page.drawLine({ start: { x: left + 310, y: y - 1 }, end: { x: right, y: y - 1 }, thickness: 0.7, color: line });
 
+  // Footer
+  page.drawLine({
+    start: { x: left, y: 42 },
+    end: { x: right, y: 42 },
+    thickness: 0.6,
+    color: green,
+  });
+  drawText("Tel: (+40) 21 405 7420  ·  Fax: (+40) 21 311 4490  ·  office@omniasig.ro", left, 30, 7, { color: muted });
+  drawText("CUI 14360018  ·  J40/10454/2001  ·  Capital social: 250.258.347,5 lei  ·  www.omniasig.ro", left, 20, 6.5, { color: muted });
+  drawText("Autorizata CSA R.A.-047/10.04.2003 · Societate administrata in sistem dualist · Operator date personale nr. 1641", left, 10, 6, { color: muted });
+
+  const pdfBytes = await pdfDoc.save();
   const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
-  doc.save(`cerere-despagubire-omniasig-${token}.pdf`);
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cerere-despagubire-omniasig-${token}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 /**
