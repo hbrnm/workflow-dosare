@@ -136,23 +136,27 @@ export default function CommandPalette({
 
   if (!isOpen) return null;
 
+  const rowIdle = "hover:bg-[var(--app-surface-2)] text-[var(--app-text)]";
+  const rowSelected = "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]";
+  const rowActionSelected = "bg-[var(--app-accent)] text-[var(--app-accent-text)]";
+
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-xs flex items-start justify-center pt-[10vh] px-4 overflow-y-auto"
+      className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-start justify-center pt-[10vh] px-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl border border-[#DAD4C6] w-full max-w-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+        className="bg-[var(--app-surface)] rounded-xl shadow-2xl border border-[var(--app-border)] w-full max-w-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDownList}
       >
         {/* Search Header */}
-        <div className="flex items-center px-4 py-3.5 border-b border-[#DAD4C6] bg-[#FAF8F5]">
-          <Search size={18} className="text-[#3B5166] shrink-0 mr-3" />
+        <div className="flex items-center px-4 py-3.5 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]">
+          <Search size={18} className="text-[var(--app-muted)] shrink-0 mr-3" />
           <input
             ref={inputRef}
             type="text"
-            className="w-full bg-transparent text-[14px] font-medium text-[#23282E] placeholder-[#8A8375] focus:outline-none"
+            className="w-full bg-transparent text-[14px] font-medium text-[var(--app-text-strong)] placeholder-[var(--app-muted)] focus:outline-none"
             placeholder="Căutare inteligentă: dosar, client, nr. auto, VIN, tab-uri, acțiuni…"
             value={query}
             onChange={(e) => updateQuery(e.target.value)}
@@ -161,12 +165,13 @@ export default function CommandPalette({
             <button
               type="button"
               onClick={() => updateQuery("")}
-              className="p-1 text-[#8A8375] hover:text-[#23282E] mr-2"
+              className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)] mr-2"
+              aria-label="Șterge căutarea"
             >
               <X size={15} />
             </button>
           ) : null}
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono text-[#8A8375] bg-[#EFEAE1] px-1.5 py-0.5 rounded border border-[#DAD4C6]">
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono app-kbd px-1.5 py-0.5 rounded">
             ESC
           </span>
         </div>
@@ -174,8 +179,8 @@ export default function CommandPalette({
         {/* Results Body */}
         <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
           {results.length === 0 ? (
-            <div className="py-10 text-center text-[12.5px] text-[#8A8375]">
-              Niciun rezultat găsit pentru „<span className="font-semibold text-[#23282E]">{query}</span>”.
+            <div className="py-10 text-center text-[12.5px] text-[var(--app-muted)]">
+              Niciun rezultat găsit pentru „<span className="font-semibold text-[var(--app-text-strong)]">{query}</span>”.
             </div>
           ) : (
             results.map((item, idx) => {
@@ -188,16 +193,20 @@ export default function CommandPalette({
                 return (
                   <div
                     key={`claim-${c.id}`}
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
-                      isSelected ? "bg-[#3B5166] text-white shadow-xs" : "hover:bg-[#FCFAF5] text-[#23282E]"
+                      isSelected ? rowSelected : rowIdle
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-white/20 text-white" : "bg-[#EFEAE1] text-[#3B5166]"
+                          isSelected
+                            ? "bg-[var(--app-accent)]/20 text-[var(--app-accent)]"
+                            : "bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
                         }`}
                       >
                         <FileText size={15} />
@@ -205,11 +214,11 @@ export default function CommandPalette({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-mono font-bold">{c.numarDosar || "Fără nr."}</span>
-                          <span className={isSelected ? "text-white/80" : "text-[#6B6558]"}>
+                          <span className={isSelected ? "text-[var(--app-muted)]" : "text-[var(--app-muted)]"}>
                             — {c.client || "Client nespecificat"}
                           </span>
                         </div>
-                        <div className={`text-[11px] truncate flex items-center gap-2 mt-0.5 ${isSelected ? "text-white/70" : "text-[#8A8375]"}`}>
+                        <div className="text-[11px] truncate flex items-center gap-2 mt-0.5 text-[var(--app-muted)]">
                           <span className="font-mono font-semibold">{c.numarInmatriculare || "—"}</span>
                           <span>· {c.marcaModel || "—"}</span>
                           <span>· {c.asigurator}</span>
@@ -218,10 +227,16 @@ export default function CommandPalette({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 ml-3">
-                      <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded ${isSelected ? "bg-white/20 text-white" : "bg-[#F5F2EA] text-[#6B6558]"}`}>
+                      <span
+                        className={`text-[10.5px] font-semibold px-2 py-0.5 rounded ${
+                          isSelected
+                            ? "bg-[var(--app-surface-2)] text-[var(--app-text)]"
+                            : "bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
+                        }`}
+                      >
                         {statusDef.num}. {statusDef.label}
                       </span>
-                      {isSelected && <CornerDownLeft size={14} className="text-white/90" />}
+                      {isSelected && <CornerDownLeft size={14} className="text-[var(--app-muted)]" />}
                     </div>
                   </div>
                 );
@@ -232,27 +247,41 @@ export default function CommandPalette({
                 return (
                   <div
                     key={`view-${item.id}`}
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
-                      isSelected ? "bg-[#3B5166] text-white shadow-xs" : "hover:bg-[#FCFAF5] text-[#23282E]"
+                      isSelected ? rowSelected : rowIdle
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-[#F5F2EA] text-[#3B5166]"}`}>
+                      <div
+                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                          isSelected
+                            ? "bg-[var(--app-accent)]/20 text-[var(--app-accent)]"
+                            : "bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
+                        }`}
+                      >
                         <Icon size={15} />
                       </div>
                       <div>
                         <div className="font-bold flex items-center gap-1.5">
                           <span>{item.label}</span>
-                          <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${isSelected ? "bg-white/20 text-white" : "bg-[#EFEAE1] text-[#6B6558]"}`}>
+                          <span
+                            className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                              isSelected
+                                ? "bg-[var(--app-surface-2)] text-[var(--app-muted)]"
+                                : "bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
+                            }`}
+                          >
                             TAB
                           </span>
                         </div>
-                        <div className={`text-[11px] ${isSelected ? "text-white/70" : "text-[#8A8375]"}`}>{item.sub}</div>
+                        <div className="text-[11px] text-[var(--app-muted)]">{item.sub}</div>
                       </div>
                     </div>
-                    {isSelected && <CornerDownLeft size={14} className="text-white/90" />}
+                    {isSelected && <CornerDownLeft size={14} className="text-[var(--app-muted)]" />}
                   </div>
                 );
               }
@@ -262,22 +291,32 @@ export default function CommandPalette({
                 return (
                   <div
                     key={`action-${item.id}`}
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
-                      isSelected ? "bg-[#C98A2B] text-white shadow-xs" : "hover:bg-[#FBF3E6] text-[#23282E]"
+                      isSelected ? rowActionSelected : rowIdle
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${isSelected ? "bg-white/20 text-white" : "bg-[#FBF3E6] text-[#C98A2B]"}`}>
+                      <div
+                        className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
+                          isSelected
+                            ? "bg-black/15 text-[var(--app-accent-text)]"
+                            : "bg-[var(--app-accent)]/15 text-[var(--app-accent)]"
+                        }`}
+                      >
                         <Icon size={15} />
                       </div>
                       <div>
                         <div className="font-bold">{item.label}</div>
-                        <div className={`text-[11px] ${isSelected ? "text-white/80" : "text-[#8A8375]"}`}>{item.sub}</div>
+                        <div className={`text-[11px] ${isSelected ? "text-[var(--app-accent-text)]/80" : "text-[var(--app-muted)]"}`}>
+                          {item.sub}
+                        </div>
                       </div>
                     </div>
-                    {isSelected && <CornerDownLeft size={14} className="text-white/90" />}
+                    {isSelected && <CornerDownLeft size={14} className="text-[var(--app-accent-text)]/90" />}
                   </div>
                 );
               }
@@ -288,13 +327,18 @@ export default function CommandPalette({
         </div>
 
         {/* Footer Navigation Bar */}
-        <div className="px-4 py-2 bg-[#FAF8F5] border-t border-[#DAD4C6] flex items-center justify-between text-[11px] text-[#8A8375]">
+        <div className="px-4 py-2 bg-[var(--app-surface-2)] border-t border-[var(--app-border)] flex items-center justify-between text-[11px] text-[var(--app-muted)]">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1"><kbd className="font-mono bg-white border border-[#DAD4C6] px-1 rounded">↑</kbd><kbd className="font-mono bg-white border border-[#DAD4C6] px-1 rounded">↓</kbd> navighează</span>
-            <span className="flex items-center gap-1"><kbd className="font-mono bg-white border border-[#DAD4C6] px-1 rounded">↵</kbd> selectează</span>
+            <span className="flex items-center gap-1">
+              <kbd className="font-mono app-kbd px-1 rounded">↑</kbd>
+              <kbd className="font-mono app-kbd px-1 rounded">↓</kbd> navighează
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="font-mono app-kbd px-1 rounded">↵</kbd> selectează
+            </span>
           </div>
           <div>
-            Apasa <kbd className="font-mono bg-white border border-[#DAD4C6] px-1 rounded text-[#23282E] font-bold">Ctrl + K</kbd> oricând
+            Apasă <kbd className="font-mono app-kbd px-1 rounded text-[var(--app-text-strong)] font-bold">Ctrl + K</kbd> oricând
           </div>
         </div>
       </div>
