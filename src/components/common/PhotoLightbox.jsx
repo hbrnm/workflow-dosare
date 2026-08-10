@@ -80,6 +80,7 @@ export default function PhotoLightbox({
     const onKey = (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopPropagation();
         onClose?.();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();

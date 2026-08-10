@@ -1020,8 +1020,20 @@ export default function App() {
           })}
         </div>
 
-        {/* Setări / profil / switcher atelier */}
-        <div className="p-1.5 shrink-0 border-t border-[var(--app-border)]">
+        {/* Setări (1 click) + profil / switcher atelier */}
+        <div className="p-1.5 shrink-0 border-t border-[var(--app-border)] space-y-1">
+          <button
+            type="button"
+            onClick={openSettings}
+            className={`w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all ${
+              setariOpen ? "is-active" : ""
+            }`}
+            title="Setări"
+            aria-label="Setări"
+            aria-pressed={setariOpen}
+          >
+            <Settings size={20} className="shrink-0" />
+          </button>
           <AtelierSwitcher
             memberships={memberships}
             activeId={atelierId}

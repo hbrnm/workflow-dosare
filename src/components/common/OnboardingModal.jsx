@@ -6,6 +6,7 @@ import {
   modalOverlayProps,
   modalPanelClass,
 } from "./modalShellClasses";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 const STEPS = [
   {
@@ -35,6 +36,8 @@ export default function OnboardingModal({
   desktopUi = false,
   roleLabel = null,
 }) {
+  useModalEscape(onDismiss, { enabled: open });
+
   if (!open) return null;
 
   return (

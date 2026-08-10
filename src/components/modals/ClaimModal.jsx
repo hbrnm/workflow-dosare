@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
@@ -40,6 +40,7 @@ import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import PhotoLightbox from "../common/PhotoLightbox";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 function applyClaimStatusChange(prev, newStatusKey) {
   const mappedKey = getStatusDefinition(newStatusKey).key;
@@ -426,6 +427,24 @@ export default function ClaimModal({
     }
     setUnsavedPrompt(true);
   };
+
+  const ignoreClaimEscape = useCallback(
+    () => previewPozaIndex != null || Boolean(cropImageSrc) || Boolean(scanSession),
+    [previewPozaIndex, cropImageSrc, scanSession]
+  );
+  const onClaimEscape = useCallback(() => {
+    if (unsavedPrompt) {
+      setUnsavedPrompt(false);
+      return;
+    }
+    if (!isDirty) {
+      setUnsavedPrompt(false);
+      onClose?.();
+      return;
+    }
+    setUnsavedPrompt(true);
+  }, [unsavedPrompt, isDirty, onClose]);
+  useModalEscape(onClaimEscape, { ignore: ignoreClaimEscape });
 
   const discardAndClose = () => {
     setUnsavedPrompt(false);

@@ -21,6 +21,7 @@ import {
   modalPanelClass,
   modalHeaderClass,
 } from "../common/modalShellClasses";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
 function pickInitialTab(initialTab, counts) {
   const n = normalizeAlertTab(initialTab);
@@ -74,6 +75,9 @@ export default function AlerteModal({
     // Pe mobil: prioritate la cele cu alerte; goalele rămân la final, mai discrete
     return [...categoriesOrdered.withAlerts, ...categoriesOrdered.empty];
   }, [categoriesOrdered]);
+
+  useModalEscape(onClose);
+  const backdropProps = overlayBackdropCloseProps(desktopUi, onClose);
 
   const activeCat = getAlertGroup(activeTab) || ALERT_GROUPS[1];
   const ActiveIcon = activeCat.icon;
@@ -157,6 +161,7 @@ export default function AlerteModal({
     <div
       className={modalOverlayClass(desktopUi)}
       {...modalOverlayProps(desktopUi, themeId)}
+      {...backdropProps}
     >
       <div
         className={modalPanelClass(
@@ -164,6 +169,7 @@ export default function AlerteModal({
           // Fixed height on desktop — switching Blocate/Întârzieri/… only scrolls the list
           "app-alerte-panel app-fixed-shell-modal w-full max-w-5xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] max-h-[100dvh] overflow-hidden"
         )}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {/* Desktop: classic header bar */}
         {desktopUi ? (

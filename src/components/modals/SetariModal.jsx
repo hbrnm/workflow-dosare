@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   X, Settings, User, Building, Database, Bell, Wrench, Download,
   CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock,
@@ -25,6 +25,7 @@ import { normalizeBilling } from "../../constants/billing";
 import { fmtDate } from "../../utils/dateUtils";
 import { supabase } from "../../supabaseClient";
 import { downloadAtelierGdprExport, wipeAtelierDosare } from "../../utils/gdprExport";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
 export default function SetariModal({
   claims = [],
@@ -83,19 +84,13 @@ export default function SetariModal({
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza" | "date"
   const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
 
-  // Esc closes settings; if a confirm dialog is open, cancel that first.
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== "Escape") return;
-      if (pendingDeleteEmail) {
-        setPendingDeleteEmail(null);
-        return;
-      }
-      onClose?.();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, pendingDeleteEmail]);
+  const clearPendingDelete = useCallback(() => setPendingDeleteEmail(null), []);
+  const ignoreSettingsEscape = useCallback(() => Boolean(pendingDeleteEmail), [pendingDeleteEmail]);
+  useModalEscape(onClose, {
+    ignore: ignoreSettingsEscape,
+    onIgnored: clearPendingDelete,
+  });
+  const backdropProps = overlayBackdropCloseProps(desktopUi, onClose);
   const [gdprExporting, setGdprExporting] = useState(false);
   const [wipeSlugConfirm, setWipeSlugConfirm] = useState("");
   const [wipeBusy, setWipeBusy] = useState(false);
@@ -428,10 +423,7 @@ export default function SetariModal({
     <div
       className={modalOverlayClass(desktopUi)}
       {...modalOverlayProps(desktopUi)}
-      onMouseDown={(e) => {
-        // Desktop: click pe overlay închide. Mobil e full-bleed — fără dismiss pe fundal.
-        if (desktopUi && e.target === e.currentTarget) onClose?.();
-      }}
+      {...backdropProps}
     >
       <div
         className={modalPanelClass(
@@ -584,7 +576,8 @@ export default function SetariModal({
                       value={atelierNume}
                       onChange={(e) => setAtelierNume(e.target.value)}
                       disabled={!isAdmin}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60"
+                      title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                       placeholder="ex. AutoService Popescu"
                     />
                   </div>
@@ -595,8 +588,9 @@ export default function SetariModal({
                       value={atelierShort}
                       onChange={(e) => setAtelierShort(e.target.value.slice(0, 4).toUpperCase())}
                       disabled={!isAdmin}
+                      title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
                       maxLength={4}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 uppercase"
+                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 disabled:cursor-not-allowed uppercase"
                       placeholder="WD"
                     />
                   </div>
@@ -608,7 +602,8 @@ export default function SetariModal({
                         value={logoUrl}
                         onChange={(e) => setLogoUrl(e.target.value)}
                         disabled={!isAdmin}
-                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60"
+                        title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
+                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder="https://… sau lasă gol pentru inițiale"
                       />
                       {isAdmin && onUploadBrandingLogo && (
