@@ -345,7 +345,7 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const beneficiar = String(
     plata.beneficiar || options?.atelierNume || "SC AUTO WASH IMPEX SRL"
   ).trim();
-  const banca = String(plata.banca || "PRO CREDIT BANK").trim();
+  const banca = String(plata.banca || "PROCREDIT BANK").trim();
   const cont = String(plata.cont || "RO56 MIRO 0000 1184 0304 0301").trim();
 
   const base = import.meta.env.BASE_URL || "/";
@@ -377,9 +377,20 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const ink = rgb(0, 0, 0);
   const muted = rgb(0.18, 0.18, 0.18);
   const lineGray = rgb(0.35, 0.35, 0.35);
-  const left = 36;
-  const right = width - 36;
+  const left = 34;
+  const right = width - 34;
   const contentW = right - left;
+
+  // Scale tipografic + spațiere: umple pagina până deasupra footerului
+  const bodySize = 11.5;
+  const optSize = 11;
+  const legalSize = 8.8;
+  const settleSize = 10.5;
+  const titleSize = 17;
+  const lineStep = 18;
+  const optStep = 17;
+  const legalStep = 11.5;
+  const annexStep = 16;
 
   const textW = (t, size, f = font) => f.widthOfTextAtSize(t, size);
   const fit = (raw, size, maxW, f = fontBold) => {
@@ -398,9 +409,9 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     page.drawText(content, { x, y, size, font: f, color });
   };
   const dots = (x, y, w) => {
-    const step = 3.2;
+    const step = 3.4;
     for (let px = x; px < x + w - 1; px += step) {
-      page.drawCircle({ x: px, y: y + 0.4, size: 0.45, color: lineGray });
+      page.drawCircle({ x: px, y: y + 0.5, size: 0.55, color: lineGray });
     }
   };
   const drawRich = (parts, x, y, size) => {
@@ -429,123 +440,124 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     return lines;
   };
 
+  const footTop = 78;
+  const signBand = 30;
+  const contentBottom = footTop + signBand;
+
   // —— Header: adresă stânga + logo dreapta ——
-  let y = height - 42;
-  draw("Aleea Alexandru nr. 51, Sector 1, 011822, Bucuresti, Romania.", left, y, 7.5, font, muted);
+  draw("Aleea Alexandru nr. 51, Sector 1, 011822, Bucuresti, Romania.", left, height - 40, 8.5, font, muted);
 
   if (logo) {
-    const logoW = 118;
+    const logoW = 128;
     const logoH = (logo.height / logo.width) * logoW;
     page.drawImage(logo, {
       x: right - logoW,
-      y: height - 28 - logoH,
+      y: height - 26 - logoH,
       width: logoW,
       height: logoH,
     });
   } else {
-    draw("OMNIASIG", right - 95, height - 48, 14, fontBold, rgb(0, 0.525, 0.255));
-    draw("VIENNA INSURANCE GROUP", right - 95, height - 58, 6, font, rgb(0.55, 0.05, 0.08));
+    draw("OMNIASIG", right - 102, height - 46, 15, fontBold, rgb(0, 0.525, 0.255));
+    draw("VIENNA INSURANCE GROUP", right - 102, height - 57, 6.5, font, rgb(0.55, 0.05, 0.08));
   }
 
   // —— Titlu ——
-  y = height - 88;
+  let y = height - 92;
   const title = "CERERE DESPAGUBIRE";
-  const titleSize = 14;
   draw(title, (width - textW(title, titleSize, fontBold)) / 2, y, titleSize, fontBold);
   const tw = textW(title, titleSize, fontBold);
   page.drawLine({
-    start: { x: (width - tw) / 2, y: y - 2 },
-    end: { x: (width + tw) / 2, y: y - 2 },
-    thickness: 0.8,
+    start: { x: (width - tw) / 2, y: y - 2.5 },
+    end: { x: (width + tw) / 2, y: y - 2.5 },
+    thickness: 1,
     color: ink,
   });
 
-  y -= 18;
+  y -= 22;
   const dosarLabel = "cu privire la dosarul nr: ";
-  const dosarX = (width - textW(dosarLabel, 10, font) - 150) / 2;
-  draw(dosarLabel, dosarX, y, 10, font);
-  const dosarValX = dosarX + textW(dosarLabel, 10, font);
-  const dosarVal = fit(claim.numarDosar || "", 10, 148, fontBold);
-  if (dosarVal) draw(dosarVal, dosarValX + 2, y, 10, fontBold);
-  else dots(dosarValX, y, 150);
+  const dosarX = (width - textW(dosarLabel, 11.5, font) - 160) / 2;
+  draw(dosarLabel, dosarX, y, 11.5, font);
+  const dosarValX = dosarX + textW(dosarLabel, 11.5, font);
+  const dosarVal = fit(claim.numarDosar || "", 11.5, 156, fontBold);
+  if (dosarVal) draw(dosarVal, dosarValX + 2, y, 11.5, fontBold);
+  else dots(dosarValX, y, 160);
 
   // —— Corp: Subsemnatul / societate ——
-  y -= 22;
-  const bodySize = 9.5;
+  y -= 26;
   draw("Subsemnatul(a)", left, y, bodySize, font);
-  let cx = left + textW("Subsemnatul(a)", bodySize, font) + 4;
-  const subVal = fit(parties.subsemnatul || "", bodySize, 155, fontBold);
+  let cx = left + textW("Subsemnatul(a)", bodySize, font) + 5;
+  const subVal = fit(parties.subsemnatul || "", bodySize, 150, fontBold);
   if (subVal) draw(subVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, 155);
-  cx += 160;
+  else dots(cx, y, 150);
+  cx += 156;
   draw(", reprezentant al societatii", cx, y, bodySize, font);
-  cx += textW(", reprezentant al societatii", bodySize, font) + 4;
+  cx += textW(", reprezentant al societatii", bodySize, font) + 5;
   const firmVal = fit(parties.reprezentantSocietate || "", bodySize, right - cx - 2, fontBold);
   if (firmVal) draw(firmVal, cx, y, bodySize, fontBold);
   else dots(cx, y, Math.max(40, right - cx));
 
-  y -= 14;
+  y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
-  cx = left + textW("CUI/CNP", bodySize, font) + 4;
-  dots(cx, y, 78);
-  cx += 82;
+  cx = left + textW("CUI/CNP", bodySize, font) + 5;
+  dots(cx, y, 82);
+  cx += 86;
   draw(", domiciliat in", cx, y, bodySize, font);
-  cx += textW(", domiciliat in", bodySize, font) + 4;
-  dots(cx, y, 70);
-  cx += 74;
+  cx += textW(", domiciliat in", bodySize, font) + 5;
+  dots(cx, y, 72);
+  cx += 76;
   draw(", str.", cx, y, bodySize, font);
-  cx += textW(", str.", bodySize, font) + 4;
-  dots(cx, y, 88);
-  cx += 92;
+  cx += textW(", str.", bodySize, font) + 5;
+  dots(cx, y, 86);
+  cx += 90;
   draw(", nr.", cx, y, bodySize, font);
-  cx += textW(", nr.", bodySize, font) + 4;
-  dots(cx, y, 28);
-  cx += 32;
+  cx += textW(", nr.", bodySize, font) + 5;
+  dots(cx, y, 30);
+  cx += 34;
   draw(", ap.", cx, y, bodySize, font);
-  cx += textW(", ap.", bodySize, font) + 4;
+  cx += textW(", ap.", bodySize, font) + 5;
   dots(cx, y, Math.max(24, right - cx));
 
-  y -= 14;
+  y -= lineStep;
   draw("sector", left, y, bodySize, font);
-  cx = left + textW("sector", bodySize, font) + 4;
-  dots(cx, y, 36);
-  cx += 40;
+  cx = left + textW("sector", bodySize, font) + 5;
+  dots(cx, y, 40);
+  cx += 44;
   draw(", tel.", cx, y, bodySize, font);
-  cx += textW(", tel.", bodySize, font) + 4;
-  const telVal = fit(claim.telefonClient || "", bodySize, 72, fontBold);
+  cx += textW(", tel.", bodySize, font) + 5;
+  const telVal = fit(claim.telefonClient || "", bodySize, 80, fontBold);
   if (telVal) draw(telVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, 72);
+  else dots(cx, y, 80);
 
-  y -= 14;
+  y -= lineStep;
   draw("proprietar al autovehiculului cu numarul", left, y, bodySize, font);
-  cx = left + textW("proprietar al autovehiculului cu numarul", bodySize, font) + 4;
-  const plateVal = fit(claim.numarInmatriculare || "", bodySize, 90, fontBold);
+  cx = left + textW("proprietar al autovehiculului cu numarul", bodySize, font) + 5;
+  const plateVal = fit(claim.numarInmatriculare || "", bodySize, right - cx - 2, fontBold);
   if (plateVal) draw(plateVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, 90);
-  cx += 94;
-  draw(", va rog sa aprobati plata despagubirii in suma de", cx, y, bodySize, font);
+  else dots(cx, y, Math.max(60, right - cx));
 
-  y -= 14;
-  dots(left, y, 160);
-  draw("lei, dupa cum urmeaza:", left + 168, y, bodySize, font);
+  y -= lineStep;
+  draw("va rog sa aprobati plata despagubirii in suma de", left, y, bodySize, font);
+  cx = left + textW("va rog sa aprobati plata despagubirii in suma de", bodySize, font) + 5;
+  dots(cx, y, 150);
+  draw("lei, dupa cum urmeaza:", cx + 158, y, bodySize, font);
 
   // —— Opțiuni plată (checkbox) ——
   const checkbox = (x, yy, checked = false) => {
     page.drawRectangle({
       x,
-      y: yy - 1,
-      width: 8,
-      height: 8,
+      y: yy - 1.2,
+      width: 9.5,
+      height: 9.5,
       borderColor: ink,
-      borderWidth: 0.7,
+      borderWidth: 0.85,
     });
     if (checked) {
-      page.drawLine({ start: { x: x + 1.5, y: yy + 2.5 }, end: { x: x + 3.5, y: yy }, thickness: 1, color: ink });
-      page.drawLine({ start: { x: x + 3.5, y: yy }, end: { x: x + 6.5, y: yy + 5 }, thickness: 1, color: ink });
+      page.drawLine({ start: { x: x + 1.8, y: yy + 2.8 }, end: { x: x + 4, y: yy }, thickness: 1.1, color: ink });
+      page.drawLine({ start: { x: x + 4, y: yy }, end: { x: x + 7.5, y: yy + 5.5 }, thickness: 1.1, color: ink });
     }
   };
 
-  y -= 18;
+  y -= 22;
   checkbox(left, y);
   drawRich(
     [
@@ -553,24 +565,24 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
       ["regie proprie", true],
       [", pe baza evaluarii OMNIASIG;", false],
     ],
-    left + 12,
+    left + 14,
     y,
-    9
+    optSize
   );
 
-  y -= 13;
+  y -= optStep;
   checkbox(left, y);
   drawRich(
     [
       ["avans", true],
       [" – pe baza documentelor anexate;", false],
     ],
-    left + 12,
+    left + 14,
     y,
-    9
+    optSize
   );
 
-  y -= 13;
+  y -= optStep;
   checkbox(left, y);
   drawRich(
     [
@@ -578,37 +590,39 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
       ["plata finala", true],
       [", pe baza urmatoarelor documente anexate:", false],
     ],
-    left + 12,
+    left + 14,
     y,
-    9
+    optSize
   );
 
   // linii documente (după plata finală) + suplimentar
-  y -= 13;
-  draw("FACTURA FISCALA NUMARUL _____", left, y, 9.5, fontBold);
-  y -= 12;
-  draw("DEVIZ AUDATEX _____", left, y, 9.5, fontBold);
-  y -= 12;
+  y -= annexStep;
+  draw("FACTURA FISCALA NUMARUL _____", left, y, bodySize, fontBold);
+  y -= annexStep;
+  draw("DEVIZ AUDATEX _____", left, y, bodySize, fontBold);
+  y -= annexStep;
   dots(left, y, contentW);
 
-  y -= 14;
-  draw("Suplimentar, mai anexez:", left, y, 9.5, fontBold);
-  y -= 12;
+  y -= 18;
+  draw("Suplimentar, mai anexez:", left, y, bodySize, fontBold);
+  y -= annexStep;
   dots(left, y, contentW);
-  y -= 12;
+  y -= annexStep;
+  dots(left, y, contentW);
+  y -= annexStep;
   dots(left, y, contentW);
 
   // —— Tabel plată ——
-  y -= 10;
-  draw("Plata se va efectua in favoarea:", left, y, 9.5, fontBold);
-  y -= 6;
+  y -= 16;
+  draw("Plata se va efectua in favoarea:", left, y, bodySize, fontBold);
+  y -= 8;
 
   const tableTop = y;
-  const rowH = 15;
-  const headerH = 13;
+  const rowH = 18;
+  const headerH = 16;
   const rows = 3;
-  const colBen = 150;
-  const colSuma = 70;
+  const colBen = 158;
+  const colSuma = 74;
   const colBanca = contentW - colBen - colSuma;
   const tableH = headerH + rows * rowH;
 
@@ -618,7 +632,7 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     width: contentW,
     height: tableH,
     borderColor: ink,
-    borderWidth: 0.9,
+    borderWidth: 1,
   });
   page.drawRectangle({
     x: left,
@@ -627,18 +641,18 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     height: headerH,
     color: rgb(0.93, 0.93, 0.93),
     borderColor: ink,
-    borderWidth: 0.9,
+    borderWidth: 1,
   });
   page.drawLine({
     start: { x: left + colBen, y: tableTop },
     end: { x: left + colBen, y: tableTop - tableH },
-    thickness: 0.7,
+    thickness: 0.8,
     color: ink,
   });
   page.drawLine({
     start: { x: left + colBen + colBanca, y: tableTop },
     end: { x: left + colBen + colBanca, y: tableTop - tableH },
-    thickness: 0.7,
+    thickness: 0.8,
     color: ink,
   });
   for (let i = 1; i <= rows; i += 1) {
@@ -646,23 +660,23 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     page.drawLine({
       start: { x: left, y: ly },
       end: { x: right, y: ly },
-      thickness: 0.6,
+      thickness: 0.7,
       color: ink,
     });
   }
 
-  const headerY = tableTop - 9.5;
-  draw("BENEFICIAR", left + 8, headerY, 8, fontBold);
-  draw("BANCA & CONT / CASIERIE", left + colBen + 8, headerY, 8, fontBold);
-  draw("SUMA", left + colBen + colBanca + 18, headerY, 8, fontBold);
+  const headerY = tableTop - 11;
+  draw("BENEFICIAR", left + 8, headerY, 9, fontBold);
+  draw("BANCA & CONT / CASIERIE", left + colBen + 8, headerY, 9, fontBold);
+  draw("SUMA", left + colBen + colBanca + 18, headerY, 9, fontBold);
 
-  const r1Y = tableTop - headerH - 10.5;
-  draw(fit(beneficiar, 8, colBen - 14, fontBold), left + 6, r1Y, 8, fontBold);
-  draw(fit(banca, 8.5, colBanca - 14, fontBold), left + colBen + 6, r1Y, 8.5, fontBold);
-  const r2Y = tableTop - headerH - rowH - 10.5;
-  draw(fit(cont, 8.5, colBanca - 14, fontBold), left + colBen + 6, r2Y, 8.5, fontBold);
+  const r1Y = tableTop - headerH - 12;
+  draw(fit(beneficiar, 9.5, colBen - 14, fontBold), left + 6, r1Y, 9.5, fontBold);
+  draw(fit(banca, 10, colBanca - 14, fontBold), left + colBen + 6, r1Y, 10, fontBold);
+  const r2Y = tableTop - headerH - rowH - 12;
+  draw(fit(cont, 10, colBanca - 14, fontBold), left + colBen + 6, r2Y, 10, fontBold);
 
-  y = tableTop - tableH - 12;
+  y = tableTop - tableH - 16;
 
   // —— Declarații legale (text tipizat oficial) ——
   const decls = [
@@ -672,53 +686,73 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     "- In cazul in care actele incheiate de organele de politie, unitatile de pompieri sau alte organe competente sa cerceteze accidentele de autovehicule, sunt anulate, ma oblig sa restitui de indata intreaga despagubire primita.",
   ];
   for (const d of decls) {
-    const lines = wrapLines(d, 7, contentW, font);
+    const lines = wrapLines(d, legalSize, contentW, font);
     for (const line of lines) {
-      draw(line, left, y, 7, font, muted);
-      y -= 8.5;
+      draw(line, left, y, legalSize, font, muted);
+      y -= legalStep;
     }
-    y -= 1.5;
+    y -= 3;
   }
 
-  y -= 2;
-  draw("Suma de (in cifre)", left, y, 8.5, font);
-  dots(left + textW("Suma de (in cifre)", 8.5, font) + 4, y, 90);
-  draw("adica (in litere)", left + 200, y, 8.5, font);
-  dots(left + 200 + textW("adica (in litere)", 8.5, font) + 4, y, right - (left + 200 + textW("adica (in litere)", 8.5, font) + 4));
+  y -= 4;
+  draw("Suma de (in cifre)", left, y, settleSize, font);
+  dots(left + textW("Suma de (in cifre)", settleSize, font) + 5, y, 95);
+  draw("adica (in litere)", left + 210, y, settleSize, font);
+  dots(
+    left + 210 + textW("adica (in litere)", settleSize, font) + 5,
+    y,
+    right - (left + 210 + textW("adica (in litere)", settleSize, font) + 5)
+  );
 
-  y -= 12;
-  draw("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", left, y, 8.5, font);
-  cx = left + textW("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", 8.5, font) + 4;
-  dots(cx, y, Math.max(50, right - cx));
+  y -= 15;
+  draw("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", left, y, settleSize, font);
+  cx = left + textW("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", settleSize, font) + 5;
+  dots(cx, y, Math.max(48, right - cx));
 
-  y -= 12;
-  draw("Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire", left, y, 8.5, font);
-  y -= 11;
-  draw("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", left, y, 8.5, font);
-  cx = left + textW("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", 8.5, font) + 4;
-  dots(cx, y, 70);
-  cx += 74;
-  draw("si fata de (nume sofer vinovat)", cx, y, 8.5, font);
-  y -= 11;
-  dots(left, y, 220);
-  draw("persoana vinovata de producerea accidentului din data de", left + 228, y, 8.5, font);
-  dots(left + 228 + textW("persoana vinovata de producerea accidentului din data de", 8.5, font) + 4, y, 70);
-
+  y -= 15;
+  draw("Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire", left, y, settleSize, font);
   y -= 14;
-  draw("Obiectii:", left, y, 9, fontBold);
-  y -= 11;
-  dots(left, y, contentW);
-  y -= 11;
-  dots(left, y, contentW);
+  draw("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", left, y, settleSize, font);
+  cx = left + textW("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", settleSize, font) + 5;
+  dots(cx, y, 72);
+  cx += 76;
+  draw("si fata de (nume sofer vinovat)", cx, y, settleSize, font);
+  y -= 14;
+  dots(left, y, 210);
+  draw("persoana vinovata de producerea accidentului din data de", left + 218, y, settleSize, font);
+  dots(
+    left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5,
+    y,
+    Math.max(40, right - (left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5))
+  );
+
+  y -= 18;
+  draw("Obiectii:", left, y, bodySize, fontBold);
+
+  // Umple până deasupra benzii de semnătură cu linii de obiețiuni
+  const obiectiiLines = [];
+  let oy = y - 15;
+  while (oy > contentBottom + 18) {
+    obiectiiLines.push(oy);
+    oy -= 15;
+  }
+  // minim 3 linii
+  while (obiectiiLines.length < 3) {
+    const last = obiectiiLines[obiectiiLines.length - 1] || y - 15;
+    obiectiiLines.push(last - 15);
+  }
+  for (const ly of obiectiiLines) {
+    if (ly > contentBottom + 12) dots(left, ly, contentW);
+  }
+
+  // Semnătură lipită deasupra footerului
+  const signY = contentBottom;
+  draw("DATA", left, signY, 11, fontBold);
+  dots(left + 36, signY, 110);
+  draw("SEMNATURA / STAMPILA", left + 260, signY, 11, fontBold);
+  dots(left + 260 + textW("SEMNATURA / STAMPILA", 11, fontBold) + 6, signY, 110);
 
   // —— Footer (date identificare actuale Omniasig) ——
-  const footTop = 72;
-  y = Math.max(footTop + 28, y - 18);
-  draw("DATA", left, y, 9.5, fontBold);
-  dots(left + 32, y, 100);
-  draw("SEMNATURA / STAMPILA", left + 270, y, 9.5, fontBold);
-  dots(left + 270 + textW("SEMNATURA / STAMPILA", 9.5, fontBold) + 6, y, 100);
-
   page.drawLine({
     start: { x: left, y: footTop },
     end: { x: right, y: footTop },
@@ -726,21 +760,21 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     color: ink,
   });
 
-  let fy = footTop - 11;
-  draw("Tel: (+40) 21 405 7420", left, fy, 6.8, font, muted);
-  draw("Cod Unic Inregistrare: 14360018", left + 290, fy, 6.8, font, muted);
-  fy -= 8.5;
-  draw("Fax: (+40) 21 311 4490", left, fy, 6.8, font, muted);
-  draw("Nr. ordine in Registrul Comertului: J40/10454/2001", left + 290, fy, 6.8, font, muted);
-  fy -= 8.5;
-  draw("Email: office@omniasig.ro", left, fy, 6.8, font, muted);
-  draw("Capital social: 506.352.385 lei", left + 290, fy, 6.8, font, muted);
-  fy -= 10;
+  let fy = footTop - 12;
+  draw("Tel: (+40) 21 405 7420", left, fy, 7.2, font, muted);
+  draw("Cod Unic Inregistrare: 14360018", left + 286, fy, 7.2, font, muted);
+  fy -= 9;
+  draw("Fax: (+40) 21 311 4490", left, fy, 7.2, font, muted);
+  draw("Nr. ordine in Registrul Comertului: J40/10454/2001", left + 286, fy, 7.2, font, muted);
+  fy -= 9;
+  draw("Email: office@omniasig.ro", left, fy, 7.2, font, muted);
+  draw("Capital social: 506.352.385 lei", left + 286, fy, 7.2, font, muted);
+  fy -= 11;
   const legal1 =
     "Autorizata de Autoritatea de Supraveghere Financiara - R.A. - 047/10.04.2003; Societate administrata in sistem dualist; www.omniasig.ro";
-  for (const line of wrapLines(legal1, 6, contentW, font)) {
-    draw(line, left, fy, 6, font, muted);
-    fy -= 7.5;
+  for (const line of wrapLines(legal1, 6.5, contentW, font)) {
+    draw(line, left, fy, 6.5, font, muted);
+    fy -= 8;
   }
 
   const pdfBytes = await pdfDoc.save();
