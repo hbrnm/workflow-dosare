@@ -18,6 +18,7 @@ export default function Dashboard({
   pragRidicare = 3,
   onOpenRapoarte,
   onOpenAlerts,
+  onOpenBlocked,
   /** Same stagnate count as Centrul de Alerte (excludes blocate). */
   stageOverdueCount = null,
 }) {
@@ -138,7 +139,13 @@ export default function Dashboard({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Total dosare" value={total} tone="steel" />
         <StatCard label="Active" value={active} tone="amber" />
-        <StatCard label="Blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
+        {onOpenBlocked && blockedCount > 0 ? (
+          <button type="button" onClick={onOpenBlocked} className="text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]">
+            <StatCard label="Blocate" value={blockedCount} sub="Click → inventar" tone="danger" />
+          </button>
+        ) : (
+          <StatCard label="Blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
+        )}
         <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
       </div>
 
@@ -245,7 +252,7 @@ export default function Dashboard({
               {overdueCount} {overdueCount === 1 ? "dosar cu termen depășit" : "dosare cu termen depășit"}
             </span>
             <span className="block app-type-xs text-[var(--app-muted)]">
-              Lista și acțiunile sunt în Centrul de Alerte
+              Aceeași listă ca în Centrul de Alerte (fără dosare blocate)
             </span>
           </span>
           <ChevronRight size={16} className="text-[var(--app-muted)] shrink-0" />
