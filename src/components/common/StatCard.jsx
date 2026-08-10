@@ -1,15 +1,20 @@
 import React from "react";
 
-export default function StatCard({ label, value, sub, tone = "steel" }) {
-  const tones = { steel: "#3B5166", amber: "#C98A2B", green: "#3E6B45", danger: "#B23A2E" };
+const TONE_CLASS = {
+  steel: "text-[var(--app-muted)]",
+  amber: "text-[var(--app-accent)]",
+  green: "text-[var(--app-success)]",
+  danger: "text-[var(--app-danger)]",
+};
 
+export default function StatCard({ label, value, sub, tone = "steel" }) {
   return (
-    <div className="bg-white rounded-lg border border-[#DAD4C6] p-3 flex-1 min-w-[130px]">
-      <div className="text-[11px] text-[#8A8375] font-medium uppercase tracking-wide">{label}</div>
-      <div className="text-[24px] font-bold mt-0.5" style={{ color: tones[tone], fontFamily: "'Space Grotesk', sans-serif" }}>
+    <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-3 flex-1 min-w-[130px]">
+      <div className="text-[11px] text-[var(--app-muted)] font-medium uppercase tracking-wide">{label}</div>
+      <div className={`text-[24px] font-bold mt-0.5 app-display ${TONE_CLASS[tone] || TONE_CLASS.steel}`}>
         {value}
       </div>
-      {sub && <div className="text-[11px] text-[#8A8375] mt-0.5">{sub}</div>}
+      {sub ? <div className="text-[11px] text-[var(--app-muted)] mt-0.5">{sub}</div> : null}
     </div>
   );
 }

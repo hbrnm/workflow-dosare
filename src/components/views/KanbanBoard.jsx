@@ -36,7 +36,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative bg-white rounded-lg border p-2 cursor-pointer transition-all duration-150 hover:shadow-md ${
+        className={`group relative bg-[var(--app-surface)] rounded-lg border p-2 cursor-pointer transition-all duration-150 hover:shadow-md ${
           claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
         }`}
         style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -139,7 +139,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`group relative bg-white rounded-lg border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
+      className={`group relative bg-[var(--app-surface)] rounded-lg border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
         claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -177,7 +177,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           {showStatusPicker && (
             <>
               <div className="fixed inset-0 z-20 cursor-default" onClick={(e) => { e.stopPropagation(); setShowStatusPicker(false); }} />
-              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-lg border border-[var(--app-border)] shadow-lg p-1 text-[11px] space-y-0.5" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-[var(--app-surface)] rounded-lg border border-[var(--app-border)] shadow-lg p-1 text-[11px] space-y-0.5" onClick={(e) => e.stopPropagation()}>
                 <div className="px-2 py-0.5 text-[9.5px] font-bold text-[var(--app-muted)] uppercase border-b border-[var(--app-border-soft)]">Schimbă etapa:</div>
                 {STATUSES.map((s) => (
                   <button
@@ -188,7 +188,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
                       setShowStatusPicker(false);
                     }}
                     className={`w-full flex items-center justify-between px-2 py-0.5 rounded text-left transition-colors ${
-                      claim.status === s.key ? "bg-[var(--app-muted)] text-white font-bold" : "hover:bg-[#F3EFE6] text-[var(--app-text-strong)]"
+                      claim.status === s.key ? "bg-[var(--app-muted)] text-white font-bold" : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]"
                     }`}
                   >
                     <span className="flex items-center gap-1 truncate">
@@ -300,11 +300,11 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
   const marcaModel = first.marcaModel || first.client || "";
 
   return (
-    <div className="border-2 border-[var(--app-muted)]/40 bg-[#F4F6F8] rounded-xl p-1.5 shadow-xs transition-all space-y-1.5">
+    <div className="border-2 border-[var(--app-muted)]/40 bg-[var(--app-surface-2)] rounded-xl p-1.5 shadow-xs transition-all space-y-1.5">
       {/* Header Comasat Interactiv */}
       <div 
         onClick={() => setExpanded(!expanded)} 
-        className="flex items-center justify-between cursor-pointer select-none py-1.5 px-2 rounded-lg bg-white border border-[var(--app-border)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-muted)] transition-colors"
+        className="flex items-center justify-between cursor-pointer select-none py-1.5 px-2 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-muted)] hover:border-[var(--app-muted)] transition-colors"
         title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate dosarele comasate"}
       >
         <div className="flex items-center gap-1.5 min-w-0">
@@ -329,7 +329,7 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
       {!expanded && (
         <div 
           onClick={() => setExpanded(true)}
-          className="text-[11px] text-[var(--app-muted)] bg-white/80 p-2 rounded-lg border border-dashed border-[var(--app-border)] cursor-pointer hover:bg-white transition-colors space-y-1"
+          className="text-[11px] text-[var(--app-muted)] bg-[var(--app-surface)]/80 p-2 rounded-lg border border-dashed border-[var(--app-border)] cursor-pointer hover:bg-[var(--app-surface)] transition-colors space-y-1"
         >
           <div className="flex items-center justify-between text-[10.5px] font-semibold">
             <span className="truncate">Client: {first.client || "—"}</span>
@@ -362,7 +362,7 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
                 onNotify={onNotify}
               />
               {c.status === "piese_comandate" && c.dataComandaPiese && (
-                <div className="text-[10px] text-[var(--app-warning)] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                <div className="text-[10px] text-[var(--app-warning)] font-bold bg-[var(--app-warning-muted)] px-2 py-0.5 rounded border border-[var(--app-warning)]/30 text-center">
                   Comandat la: {c.dataComandaPiese}
                 </div>
               )}
@@ -380,7 +380,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
   return (
     <div className="space-y-3">
       {/* Top Header Bar with view toggle */}
-      <div className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-[var(--app-border)] shadow-2xs">
+      <div className="flex items-center justify-between bg-[var(--app-surface)] px-3 py-2 rounded-lg border border-[var(--app-border)] shadow-2xs">
         <div className="text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-2">
           <span>Flux Vizual Pe Etape ({claims.length} dosare)</span>
         </div>
@@ -412,7 +412,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
           return (
             <div
               key={status.key}
-              className="flex-none w-72 bg-[#F5F2EA] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
+              className="flex-none w-72 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
@@ -477,7 +477,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                             onNotify={onNotify}
                           />
                           {c.status === "piese_comandate" && c.dataComandaPiese && (
-                            <div className="text-[10px] text-[var(--app-warning)] font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-center">
+                            <div className="text-[10px] text-[var(--app-warning)] font-bold bg-[var(--app-warning-muted)] px-2 py-0.5 rounded border border-[var(--app-warning)]/30 text-center">
                               Comandat la: {c.dataComandaPiese}
                             </div>
                           )}
@@ -502,7 +502,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                   });
                 })()}
                 {list.length === 0 && (
-                  <div className="text-[11.5px] text-[var(--app-muted)] italic p-4 text-center border border-dashed border-[var(--app-border)] rounded-lg bg-white/50">
+                  <div className="text-[11.5px] text-[var(--app-muted)] italic p-4 text-center border border-dashed border-[var(--app-border)] rounded-lg bg-[var(--app-surface)]/50">
                     Niciun dosar în această etapă
                   </div>
                 )}
