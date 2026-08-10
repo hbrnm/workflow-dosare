@@ -4,6 +4,8 @@ import {
   parseEstimateText,
   applyEstimateValuesToClaim,
   countExtractedFields,
+  countExtractedOperations,
+  extractEstimateLineItems,
 } from "../audatexParse";
 
 const SAMPLE_DAT_RO = `
@@ -28,6 +30,30 @@ Cost Reparatie brutto 17.031,07
 Toate valorile in RON
 `;
 
+const SAMPLE_WITH_LINES = `
+Lista Piese de Inlocuit
+Pos. Cod OE Descriere Cant. Pret Total
+1 5G0821105A Aripa fata stanga 1 1.850,00 1.850,00
+2 5G0853655 Far stanga 1 2.100,00 2.100,00
+3 5G0807221D Bara fata 1 890,00 890,00
+Total Piese 4.840,00
+
+Manopera
+Pos. Descriere Ore Pret Total
+1 Demontare/montare aripa fata stanga 1,20 150,00 180,00
+2 Demontare/montare far stanga 0,40 150,00 60,00
+3 Indreptare bara fata 2,00 150,00 300,00
+Total Manopere 540,00
+
+Vopsitorie
+Pos. Descriere
+1 Aripa fata stanga - lacare noua
+2 Bara fata - lacare noua
+Total Vopsitorie
+Total Manopera 400,00 Total Material 600,00 Total Vopsitorie 1.000,00
+Cost Reparatie netto 6.380,00
+`;
+
 describe("audatexParse", () => {
   it("parseRoMoney handles Romanian thousands", () => {
     expect(parseRoMoney("8.954,35")).toBeCloseTo(8954.35, 2);
@@ -45,6 +71,38 @@ describe("audatexParse", () => {
     expect(confidence).toBe("high");
     expect(format).toMatch(/dat|unknown|audatex/);
     expect(countExtractedFields(values)).toBeGreaterThanOrEqual(4);
+  });
+
+  it("extracts parts and labour into claim operations", () => {
+    const { values, lineItems } = parseEstimateText(SAMPLE_WITH_LINES);
+    expect(values.valoarePieseAudatex).toBeCloseTo(4840, 2);
+    expect(countExtractedOperations(lineItems)).toBeGreaterThanOrEqual(3);
+
+    const names = lineItems.operations.map((o) => o.piesa);
+    expect(names.some((n) => /ARIPA/.test(n))).toBe(true);
+    expect(names.some((n) => /BARA/.test(n))).toBe(true);
+
+    const aripa = lineItems.operations.find((o) => /ARIPA/.test(o.piesa));
+    expect(aripa.inl).toBe(true);
+    expect(aripa.rev || aripa.uni).toBe(true);
+
+    const claim = applyEstimateValuesToClaim(
+      { financiar: {}, manopera: {}, operatiuni: [] },
+      values,
+      { operations: lineItems.operations, applyOperations: true, replaceOperations: true }
+    );
+    expect(claim.operatiuni.length).toBeGreaterThanOrEqual(3);
+    expect(claim.ceEsteDeReparat).toMatch(/ARIPA/i);
+    expect(claim.valoarePieseAudatex).toBeCloseTo(4840, 2);
+  });
+
+  it("extractEstimateLineItems maps INL / UNI / REV flags", () => {
+    const items = extractEstimateLineItems(SAMPLE_WITH_LINES);
+    expect(items.parts.length).toBe(3);
+    expect(items.labour.length).toBeGreaterThanOrEqual(2);
+    expect(items.paint.length).toBeGreaterThanOrEqual(1);
+    expect(items.operations.some((o) => o.inl)).toBe(true);
+    expect(items.operations.some((o) => o.uni || o.rev || o.rep)).toBe(true);
   });
 
   it("applyEstimateValuesToClaim syncs financiar + manopera", () => {

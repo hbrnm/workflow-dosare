@@ -4,6 +4,7 @@ import {
   AUDATEX_IMPORT_FIELDS,
   applyEstimateValuesToClaim,
   countExtractedFields,
+  countExtractedOperations,
 } from "../../utils/audatexParse";
 import { parseEstimateFile } from "../../utils/audatexImportFile";
 
@@ -12,14 +13,23 @@ function formatRon(n) {
   return Number(n).toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function flagChips(op) {
+  const chips = [];
+  if (op.inl) chips.push("INL");
+  if (op.rev) chips.push("REV");
+  if (op.rep) chips.push("REP");
+  if (op.uni) chips.push("UNI");
+  return chips;
+}
+
 /**
- * Upload Audatex/DAT estimate → preview extracted costs → apply onto claim form.
- * @param {{ claim: object, setClaim: Function, showNotice?: Function, compact?: boolean }} props
+ * Upload Audatex/DAT estimate → preview extracted costs + lines → apply onto claim.
  */
 export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [applyOps, setApplyOps] = useState(true);
 
   const onPick = async (fileList) => {
     const file = Array.from(fileList || [])[0];
@@ -29,17 +39,19 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
     try {
       const result = await parseEstimateFile(file);
       const n = countExtractedFields(result.values);
-      if (n === 0) {
+      const ops = countExtractedOperations(result.lineItems);
+      if (n === 0 && ops === 0) {
         showNotice?.(
-          "Nu am putut extrage sume din fișier. Verifică că e un export Audatex/DAT (PDF/XML/CSV) cu recapitulare.",
+          "Nu am putut extrage sume sau linii din fișier. Verifică că e un export Audatex/DAT (PDF/XML/CSV) cu listă + recapitulare.",
           "error"
         );
         setPreview({ ...result, fileName: file.name, empty: true });
         return;
       }
       setPreview({ ...result, fileName: file.name, empty: false });
+      setApplyOps(ops > 0);
       showNotice?.(
-        `Extrase ${n} valori din ${file.name} (${result.format || "deviz"}). Verifică și aplică.`,
+        `Extrase ${n} sume` + (ops ? ` + ${ops} linii` : "") + ` din ${file.name}.`,
         "success"
       );
     } catch (err) {
@@ -51,13 +63,25 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
   };
 
   const apply = () => {
-    if (!preview?.values || preview.empty) return;
-    setClaim((c) => applyEstimateValuesToClaim(c || claim, preview.values));
-    showNotice?.("Valorile din deviz au fost aplicate pe dosar.", "success");
+    if (!preview || preview.empty) return;
+    const ops = preview.lineItems?.operations || [];
+    setClaim((c) =>
+      applyEstimateValuesToClaim(c || claim, preview.values || {}, {
+        operations: ops,
+        applyOperations: applyOps && ops.length > 0,
+        replaceOperations: true,
+      })
+    );
+    const msg =
+      applyOps && ops.length
+        ? `Aplicat: sume + ${ops.length} linii pe dosar.`
+        : "Valorile din deviz au fost aplicate pe dosar.";
+    showNotice?.(msg, "success");
     setPreview(null);
   };
 
   const dismiss = () => setPreview(null);
+  const ops = preview?.lineItems?.operations || [];
 
   return (
     <div
@@ -73,7 +97,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
           </div>
           {!compact && (
             <p className="mt-0.5 text-[11px] text-[var(--app-muted)]">
-              PDF / XML / CSV / Excel Audatex sau DAT — extrage piese, manoperă, materiale vopsitorie.
+              PDF / XML / CSV / Excel — extrage sume + lista de piese / manoperă (INL, REV, REP, UNI).
             </p>
           )}
         </div>
@@ -102,7 +126,8 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
               <div className="truncate font-semibold text-[var(--app-text)]">{preview.fileName}</div>
               <div className="text-[var(--app-muted)]">
                 Format: {preview.format || "?"} · încredere: {preview.confidence || "?"}
-                {preview.empty ? " · fără sume" : ""}
+                {preview.empty ? " · fără date" : ""}
+                {!preview.empty && ops.length ? ` · ${ops.length} linii` : ""}
               </div>
             </div>
             <button type="button" className="shrink-0 p-1 text-[var(--app-muted)]" onClick={dismiss} aria-label="Închide">
@@ -130,6 +155,33 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {!preview.empty && ops.length > 0 && (
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 text-[11px] font-semibold text-[var(--app-text)]">
+                <input
+                  type="checkbox"
+                  checked={applyOps}
+                  onChange={(e) => setApplyOps(e.target.checked)}
+                  className="rounded border-[var(--app-border)]"
+                />
+                Aplică lista pe dosar ({ops.length} linii — înlocuiește operațiunile actuale)
+              </label>
+              <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] p-2">
+                {ops.slice(0, 40).map((op) => (
+                  <li key={op.id || op.piesa} className="flex items-start justify-between gap-2 text-[11px]">
+                    <span className="min-w-0 truncate font-medium text-[var(--app-text)]">{op.piesa}</span>
+                    <span className="shrink-0 text-[9px] font-bold text-[var(--app-muted)]">
+                      {flagChips(op).join(" · ") || "—"}
+                    </span>
+                  </li>
+                ))}
+                {ops.length > 40 && (
+                  <li className="text-[10px] text-[var(--app-muted)]">… și încă {ops.length - 40}</li>
+                )}
+              </ul>
             </div>
           )}
 
