@@ -1,8 +1,9 @@
 /**
  * Logică tipizate „Cerere despăgubire” (Omniasig).
  *
- * - Subsemnatul = ÎNTOTDEAUNA delegatul când câmpul proprietar (client) ≠ delegat
- * - „reprezentant al societății” = clientul când acesta e firmă; altfel gol (de mână)
+ * - Subsemnatul = delegatul când e diferit de proprietar; altfel persoana-proprietar
+ * - „reprezentant al societății” = proprietarul (client) când e firmă SAU când
+ *   există delegat distinct (cine e reprezentat pe cerere)
  * - Sume / date / bife rămân goale (de mână)
  */
 
@@ -77,10 +78,14 @@ export function resolveCerereDespagubireParties(claim) {
   }
   // Firmă fără delegat distinct: Subsemnatul rămâne gol (de mână)
 
+  // Proprietarul apare la „reprezentant al societății” pentru firmă
+  // sau când un delegat semnează în numele lui.
+  const reprezentantSocietate =
+    proprietar && (asCompanyOwner || hasSeparateDelegat) ? proprietar : "";
+
   return {
     subsemnatul,
-    // Firmă-proprietar → completat la „reprezentant al societății”
-    reprezentantSocietate: asCompanyOwner ? proprietar : "",
+    reprezentantSocietate,
     asCompanyOwner,
     hasSeparateDelegat,
     proprietar,

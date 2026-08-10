@@ -61,14 +61,14 @@ describe("resolveCerereDespagubireParties", () => {
     expect(r.reprezentantSocietate).toBe("Beta Transport SA");
   });
 
-  it("person owner + other delegat → Subsemnatul = delegat, societate goala", () => {
+  it("person owner + other delegat → Subsemnatul = delegat, reprezentant = proprietar", () => {
     const r = resolveCerereDespagubireParties({
       client: "Popescu Ion",
       delegat: "Ionescu Maria",
     });
     expect(r.asCompanyOwner).toBe(false);
     expect(r.subsemnatul).toBe("Ionescu Maria");
-    expect(r.reprezentantSocietate).toBe("");
+    expect(r.reprezentantSocietate).toBe("Popescu Ion");
   });
 
   it("always uses delegat for Subsemnatul when proprietar differs (uppercase / diacritics)", () => {

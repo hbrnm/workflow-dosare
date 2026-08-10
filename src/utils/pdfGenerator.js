@@ -383,6 +383,7 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
 
   // Scale tipografic + spațiere: umple pagina până deasupra footerului
   const bodySize = 11.5;
+  const partySize = 9.8; // Subsemnatul / reprezentant + valori complete (tel, nr. auto, anexe)
   const optSize = 11;
   const legalSize = 8.8;
   const settleSize = 10.5;
@@ -482,19 +483,32 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   if (dosarVal) draw(dosarVal, dosarValX + 2, y, 11.5, fontBold);
   else dots(dosarValX, y, 160);
 
-  // —— Corp: Subsemnatul / societate ——
+  // —— Corp: Subsemnatul + reprezentant pe o singură linie (text puțin mai mic) ——
   y -= 26;
-  draw("Subsemnatul(a)", left, y, bodySize, font);
-  let cx = left + textW("Subsemnatul(a)", bodySize, font) + 5;
-  const subVal = fit(parties.subsemnatul || "", bodySize, 150, fontBold);
-  if (subVal) draw(subVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, 150);
-  cx += 156;
-  draw(", reprezentant al societatii", cx, y, bodySize, font);
-  cx += textW(", reprezentant al societatii", bodySize, font) + 5;
-  const firmVal = fit(parties.reprezentantSocietate || "", bodySize, right - cx - 2, fontBold);
-  if (firmVal) draw(firmVal, cx, y, bodySize, fontBold);
-  else dots(cx, y, Math.max(40, right - cx));
+  const subLabel = "Subsemnatul(a)";
+  const firmLabel = ", reprezentant al societatii";
+  let cx = left;
+  draw(subLabel, cx, y, partySize, font);
+  cx += textW(subLabel, partySize, font) + 4;
+
+  const afterSubMin = cx + 70;
+  const firmLabelW = textW(firmLabel, partySize, font) + 4;
+  const subVal = fit(parties.subsemnatul || "", partySize, 155, fontBold);
+  if (subVal) {
+    draw(subVal, cx, y, partySize, fontBold);
+    cx += textW(subVal, partySize, fontBold) + 3;
+  } else {
+    dots(cx, y, 110);
+    cx += 110;
+  }
+  cx = Math.max(cx, afterSubMin);
+
+  draw(firmLabel, cx, y, partySize, font);
+  cx += firmLabelW;
+  const firmMaxW = Math.max(60, right - cx - 2);
+  const firmVal = fit(parties.reprezentantSocietate || "", partySize, firmMaxW, fontBold);
+  if (firmVal) draw(firmVal, cx, y, partySize, fontBold);
+  else dots(cx, y, firmMaxW);
 
   y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
@@ -524,15 +538,15 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   cx += 44;
   draw(", tel.", cx, y, bodySize, font);
   cx += textW(", tel.", bodySize, font) + 5;
-  const telVal = fit(claim.telefonClient || "", bodySize, 80, fontBold);
-  if (telVal) draw(telVal, cx, y, bodySize, fontBold);
+  const telVal = fit(claim.telefonClient || "", partySize, 80, fontBold);
+  if (telVal) draw(telVal, cx, y, partySize, fontBold);
   else dots(cx, y, 80);
 
   y -= lineStep;
   draw("proprietar al autovehiculului cu numarul", left, y, bodySize, font);
   cx = left + textW("proprietar al autovehiculului cu numarul", bodySize, font) + 5;
-  const plateVal = fit(claim.numarInmatriculare || "", bodySize, right - cx - 2, fontBold);
-  if (plateVal) draw(plateVal, cx, y, bodySize, fontBold);
+  const plateVal = fit(claim.numarInmatriculare || "", partySize, right - cx - 2, fontBold);
+  if (plateVal) draw(plateVal, cx, y, partySize, fontBold);
   else dots(cx, y, Math.max(60, right - cx));
 
   y -= lineStep;
@@ -597,9 +611,9 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
 
   // linii documente (după plata finală) + suplimentar
   y -= annexStep;
-  draw("FACTURA FISCALA NUMARUL _____", left, y, bodySize, fontBold);
+  draw("FACTURA FISCALA NUMARUL _____", left, y, partySize, fontBold);
   y -= annexStep;
-  draw("DEVIZ AUDATEX _____", left, y, bodySize, fontBold);
+  draw("DEVIZ AUDATEX _____", left, y, partySize, fontBold);
   y -= annexStep;
   dots(left, y, contentW);
 
