@@ -4,7 +4,7 @@ import {
   BarChart3, ExternalLink, ChevronRight, User, Package, ClipboardCheck,
   BadgeCheck, Wrench,
 } from "lucide-react";
-import { todayISO, telLink, fmtDate, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
+import { todayISO, telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
 import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
 import { isPendingArrivalToday } from "../../utils/scheduleStatusEffects";
 import {
@@ -209,11 +209,7 @@ export default function BriefZilnic({
   const renderStageClaimRow = (c) => {
     const phone = c.telefonClient || "";
     const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
-    const programareLabel = c.dataProgramare
-      ? (stageFocus === "programat"
-        ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
-        : fmtDate(String(c.dataProgramare).slice(0, 10)))
-      : "";
+    const programareLabel = formatProgramareDate(c.dataProgramare);
     const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
     const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
     const RowIcon = focusMeta?.Icon || Wrench;
@@ -224,10 +220,7 @@ export default function BriefZilnic({
     const showSchedule = stageFocus === "piese" && editable && !c.dataProgramare;
     const showStartRepair = stageFocus === "programat" && editable;
     const isScheduling = schedulingId === c.id;
-    const subline = [
-      stageFocus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
-      noteText,
-    ].filter(Boolean).join(" · ");
+    const subline = noteText || "";
 
     return (
       <li key={c.id} className="space-y-1">
@@ -269,6 +262,11 @@ export default function BriefZilnic({
                 </span>
               ) : null}
             </div>
+            {programareLabel ? (
+              <p className="app-brief-flow-date" title={`Programare ${programareLabel}`}>
+                {programareLabel}
+              </p>
+            ) : null}
             {subline ? (
               <p className="app-brief-flow-sub" title={subline}>{subline}</p>
             ) : null}

@@ -186,6 +186,17 @@ export function formatProgramareShort(iso) {
   return time && /^\d{2}:\d{2}$/.test(time) ? `${d}/${m} ${time}` : `${d}/${m}`;
 }
 
+/** Programare lizibilă pe listă Brief/Dosare: „15/08/2026” sau „15/08/2026 09:00”. */
+export function formatProgramareDate(iso) {
+  if (!iso) return "";
+  const raw = String(iso);
+  const day = raw.slice(0, 10);
+  const dateLabel = fmtDate(day);
+  if (!dateLabel || dateLabel === "—") return "";
+  const time = raw.slice(11, 16);
+  return time && /^\d{2}:\d{2}$/.test(time) ? `${dateLabel} ${time}` : dateLabel;
+}
+
 export function fmtProgramare(iso) {
   if (!iso) return "—";
   return fmtDateTime(iso);
