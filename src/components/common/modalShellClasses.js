@@ -1,4 +1,12 @@
-/** Clase shell modale — desktop minimalist vs mobil tematic. */
+/** Clase shell modale — desktop minimalist vs mobil tematic.
+ *
+ * Desktop z-index (un singur „front” predictibil):
+ * - base overlays (Setări / Alerte / QuickCreate): z-50
+ * - claim „front” (deschis din alerte): z-60
+ * - account menu portal: z-80
+ * - command palette: z-100
+ * - confirm nested: ~10050
+ */
 
 /**
  * @param {boolean} desktopUi

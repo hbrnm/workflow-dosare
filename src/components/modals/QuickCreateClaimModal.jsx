@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { X, Plus, FileText, Phone, Car, Building2, Check, User } from "lucide-react";
 import { INSURERS } from "../../constants/config";
 import { emptyClaim, getMostFrequentInsurer } from "../../utils/claimUtils";
@@ -9,6 +9,7 @@ import {
   modalHeaderClass,
 } from "../common/modalShellClasses";
 import AppButton from "../common/AppButton";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
 const fieldClass = (desktopUi) =>
   desktopUi
@@ -39,6 +40,10 @@ export default function QuickCreateClaimModal({
   const [asigurator, setAsigurator] = useState(defaultInsurer);
   const [customAsigurator, setCustomAsigurator] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleClose = useCallback(() => onClose?.(), [onClose]);
+  useModalEscape(handleClose, { enabled: isOpen });
+  const backdropProps = overlayBackdropCloseProps(desktopUi && isOpen, handleClose);
 
   if (!isOpen) return null;
 
@@ -95,8 +100,12 @@ export default function QuickCreateClaimModal({
     <div
       className={modalOverlayClass(desktopUi, { dense: true })}
       {...modalOverlayProps(desktopUi, themeId)}
+      {...backdropProps}
     >
-      <div className={modalPanelClass(desktopUi, "w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150")}>
+      <div
+        className={modalPanelClass(desktopUi, "w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150")}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
 
         <div className={modalHeaderClass(desktopUi, "px-4 py-3.5 flex items-center justify-between shrink-0")}>
           <div className="flex items-center gap-2.5 min-w-0">

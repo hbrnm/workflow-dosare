@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import AppButton from "./AppButton";
 import {
@@ -6,6 +6,7 @@ import {
   modalOverlayProps,
   modalPanelClass,
 } from "./modalShellClasses";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 /** Shared destructive / confirm dialog. */
 export default function ConfirmDialog({
@@ -20,6 +21,8 @@ export default function ConfirmDialog({
   onCancel,
   desktopUi = false,
 }) {
+  useModalEscape(onCancel, { enabled: open });
+
   if (!open) return null;
 
   return (
