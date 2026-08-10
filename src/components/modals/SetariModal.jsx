@@ -78,9 +78,24 @@ export default function SetariModal({
   useEffect(() => {
     setSeatDraft(billingView.seatLimit);
   }, [billingView.seatLimit]);
+
   const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
   const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza" | "date"
   const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
+
+  // Esc closes settings; if a confirm dialog is open, cancel that first.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (pendingDeleteEmail) {
+        setPendingDeleteEmail(null);
+        return;
+      }
+      onClose?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose, pendingDeleteEmail]);
   const [gdprExporting, setGdprExporting] = useState(false);
   const [wipeSlugConfirm, setWipeSlugConfirm] = useState("");
   const [wipeBusy, setWipeBusy] = useState(false);
@@ -413,6 +428,10 @@ export default function SetariModal({
     <div
       className={modalOverlayClass(desktopUi)}
       {...modalOverlayProps(desktopUi)}
+      onMouseDown={(e) => {
+        // Desktop: click pe overlay închide. Mobil e full-bleed — fără dismiss pe fundal.
+        if (desktopUi && e.target === e.currentTarget) onClose?.();
+      }}
     >
       <div
         className={modalPanelClass(
@@ -420,6 +439,7 @@ export default function SetariModal({
           // Fixed height — Parametri/Asigurători/… tabs don't resize the shell
           "app-fixed-shell-modal w-full max-w-4xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] overflow-hidden bg-[var(--app-surface)]"
         )}
+        onMouseDown={(e) => e.stopPropagation()}
       >
 
         {/* Header — doar desktop; pe mobil rămâne bara de taburi rotunjită */}
@@ -441,7 +461,12 @@ export default function SetariModal({
                 <p className="text-[11px] text-[var(--app-muted)]">Conectat ca: <span className="font-semibold text-[var(--app-text)]">{userEmail || "Neautentificat"}</span></p>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+              aria-label="Închide setările"
+            >
               <X size={20} />
             </button>
           </div>
@@ -470,14 +495,16 @@ export default function SetariModal({
                 <Icon size={14} /> {label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={onClose}
-              className="ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
-              aria-label="Închide setările"
-            >
-              <X size={18} />
-            </button>
+            {!desktopUi ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
+                aria-label="Închide setările"
+              >
+                <X size={18} />
+              </button>
+            ) : null}
           </div>
 
           {settingsSection === "atelier" ? (

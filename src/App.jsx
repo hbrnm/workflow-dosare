@@ -1030,9 +1030,7 @@ export default function App() {
               const ok = await switchAtelier(id);
               if (ok) showNotice("Atelier schimbat.", "success");
             }}
-            onOpenSettings={() => {
-              window.setTimeout(() => openSettings(), 50);
-            }}
+            onOpenSettings={openSettings}
             onLogout={handleLogout}
           />
         </div>
@@ -1098,14 +1096,26 @@ export default function App() {
             )}
           </div>
 
-          {/* Search bar → same intelligent Command Palette as Ctrl+K */}
-          <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <div className="relative app-search-lg">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
+          {/* Search — honest launcher (same as Ctrl+K); icon below lg */}
+          <div className="flex items-center absolute left-1/2 -translate-x-1/2">
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="lg:hidden p-2 rounded-lg app-nav-btn text-[var(--app-muted)] hover:text-[var(--app-text)]"
+              title="Caută sau comandă (Ctrl+K)"
+              aria-label="Caută sau comandă"
+            >
+              <Search size={18} />
+            </button>
+            <div className="hidden lg:block relative app-search-lg">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
               <input
                 type="text"
                 value={search}
                 readOnly
+                tabIndex={0}
+                role="button"
+                aria-label="Caută sau comandă"
                 onFocus={() => setIsCommandPaletteOpen(true)}
                 onClick={() => setIsCommandPaletteOpen(true)}
                 onKeyDown={(e) => {
@@ -1116,9 +1126,9 @@ export default function App() {
                     setIsCommandPaletteOpen(true);
                   }
                 }}
-                placeholder="Căutare inteligentă — dosar, client, auto, tab-uri…"
+                placeholder="Caută sau comandă…"
                 className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium cursor-pointer"
-                title="Deschide căutarea inteligentă (același lucru ca Ctrl+K)"
+                title="Caută sau comandă (Ctrl+K)"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {search && (

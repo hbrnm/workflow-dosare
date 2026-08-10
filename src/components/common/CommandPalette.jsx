@@ -117,6 +117,8 @@ export default function CommandPalette({
         executeItem(results[selectedIndex]);
       }
     } else if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
       onClose();
     }
   };
