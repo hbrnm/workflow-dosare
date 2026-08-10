@@ -461,30 +461,60 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   });
 
   // Tabel plată — beneficiar + bancă pe rândul 0, IBAN pe rândul 1
-  // Col BENEFICIAR 31.3–197.3 | BANCA 198.8–471.9
-  // rând0 334.2–345.8 | rând1 346.2–357.8
-  // Padding stânga celulă ≈ 5.7pt (ca la AUTO WASH: x 37 în col. beneficiar)
+  // Col BENEFICIAR 31.3–197.3 | BANCA 198.8–471.9 | SUMA 473.4–571.0
+  // Fără wipe pe tabel (tăia liniile). Redesenez segmentele grilei ca în tipizat.
   const payPadX = 5.7;
-  const beneficiarX = 31.3 + payPadX; // ≈ 37.0
-  const bancaX = 198.8 + payPadX; // ≈ 204.5 — același inset ca AUTO WASH
+  const beneficiarX = 31.3 + payPadX;
+  const bancaX = 198.8 + payPadX;
   fill(beneficiar, beneficiarX, 343.2, {
     size: 8.5,
     maxW: 154,
-    wipe: [32.5, 334.7, 196.0, 345.3],
-    padY: 0.1,
   });
   fill(banca, bancaX, 343.2, {
     size: 8.5,
     maxW: 255,
-    wipe: [201.0, 334.7, 470.0, 345.3],
-    padY: 0.1,
   });
-  fill(cont, bancaX, 355.2, {
+  fill(cont, bancaX, 354.8, {
     size: 8.5,
     maxW: 255,
-    wipe: [201.0, 346.7, 470.0, 357.3],
-    padY: 0.1,
   });
+
+  // Segmente orizontale pe coloane (ca în PDF-ul oficial — nu continue prin dublura verticală)
+  const hSegs = [
+    [31.32, 197.33],
+    [198.77, 471.94],
+    [473.38, 570.96],
+  ];
+  const hRows = [333.77, 334.25, 345.77, 357.77, 369.77, 381.89, 382.85];
+  for (const yTop of hRows) {
+    for (const [x0, x1] of hSegs) {
+      page.drawLine({
+        start: { x: x0, y: height - yTop },
+        end: { x: x1, y: height - yTop },
+        thickness: 0.48,
+        color: ink,
+      });
+    }
+  }
+  // Verticale duble pe zona de date
+  const vPairs = [
+    [29.88, 30.36],
+    [30.84, 31.32],
+    [197.33, 197.81],
+    [198.29, 198.77],
+    [471.94, 472.42],
+    [472.9, 473.38],
+    [570.96, 571.44],
+    [571.92, 572.4],
+  ];
+  for (const [x0] of vPairs) {
+    page.drawLine({
+      start: { x: x0, y: height - 321.41 },
+      end: { x: x0, y: height - 383.33 },
+      thickness: 0.48,
+      color: ink,
+    });
+  }
 
   const pdfBytes = await pdfDoc.save();
   const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
