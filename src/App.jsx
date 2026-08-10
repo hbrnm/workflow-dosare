@@ -1030,9 +1030,7 @@ export default function App() {
               const ok = await switchAtelier(id);
               if (ok) showNotice("Atelier schimbat.", "success");
             }}
-            onOpenSettings={() => {
-              window.setTimeout(() => openSettings(), 50);
-            }}
+            onOpenSettings={openSettings}
             onLogout={handleLogout}
           />
         </div>
