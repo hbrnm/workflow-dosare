@@ -29,7 +29,6 @@ const ALERT_TABS = [
 
 /** Tipuri de alertă cu accent roșu (parity cu Brief mobil Atenție). */
 const ATTENTION_DANGER_TYPES = new Set([
-  "blocate",
   "stagnate",
   "livrare_piese",
   "restante",
@@ -85,6 +84,7 @@ export default function BriefZilnic({
   pragInactivitate = 7,
   alertBuckets = null,
   onSelectStatusFilter,
+  onOpenBlocked = null,
   onNotify,
 }) {
   const todayStr = todayISO();
@@ -105,6 +105,7 @@ export default function BriefZilnic({
   );
 
   const { counts, totalAlertsCount: totalActiuniUrgente } = buckets;
+  const blockedCount = counts.blocate || 0;
 
   const programariAzi = useMemo(() =>
     claims.filter((c) => isPendingArrivalToday(c, todayStr))
@@ -384,7 +385,26 @@ export default function BriefZilnic({
         </div>
       </div>
 
-      {/* 2. ALERTE */}
+      {/* 2. BLOCATE (inventar) + ALERTE */}
+      {blockedCount > 0 && onOpenBlocked ? (
+        <button
+          type="button"
+          onClick={onOpenBlocked}
+          className="app-brief-panel rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 shrink-0 text-left border border-[#4A5568]/25 hover:border-[#4A5568]/50 transition-colors"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <ShieldAlert size={16} className="text-[#4A5568] shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold app-type-sm text-[var(--app-text-strong)]">Dosare blocate</p>
+              <p className="app-type-xs text-[var(--app-muted)]">Inventar separat — nu apar în alerte</p>
+            </div>
+          </div>
+          <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#4A5568] text-white shrink-0">
+            {blockedCount}
+          </span>
+        </button>
+      ) : null}
+
       <div className="app-brief-panel rounded-xl p-3 space-y-2 shrink-0">
         <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2">
           <div className="flex items-center gap-2">

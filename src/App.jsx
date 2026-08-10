@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
 import {
   Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText
+  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText, Ban
 } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { STATUSES, INSURERS } from "./constants/config";
@@ -369,7 +369,15 @@ export default function App() {
   const {
     buckets: alertBuckets,
     totalAlertsCount,
+    blockedCount,
   } = useAlerts(userClaims, pragRidicare, pragInactivitate);
+
+  const openBlockedClaims = useCallback(() => {
+    setOnlyBlocked(true);
+    setFilterStatus("toate");
+    setDosareSubView("list");
+    setView("dosare");
+  }, [setOnlyBlocked, setFilterStatus]);
 
   const {
     modalClaim,
@@ -798,6 +806,7 @@ export default function App() {
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
             totalAlertsCount={totalAlertsCount}
+            blockedCount={blockedCount}
             branding={branding}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
@@ -1163,6 +1172,18 @@ export default function App() {
               <span>{totalAlertsCount} Alerte</span>
             </AppButton>
 
+            {blockedCount > 0 ? (
+              <AppButton
+                variant="secondary"
+                onClick={openBlockedClaims}
+                className="app-header-action-btn"
+                title="Dosare blocate — inventar separat de alerte"
+              >
+                <Ban size={14} />
+                <span>{blockedCount} Blocate</span>
+              </AppButton>
+            ) : null}
+
           </div>
         </header>
 
@@ -1263,9 +1284,12 @@ export default function App() {
                   pragInactivitate={pragInactivitate}
                   alertBuckets={alertBuckets}
                   onNotify={showNotice}
+                  onOpenBlocked={openBlockedClaims}
                   onSelectStatusFilter={(statusKey) => {
                     setFilterStatus(statusKey);
+                    setOnlyBlocked(false);
                     setDosareSubView("list");
+                    setView("dosare");
                   }}
                 />
               ) : dosareSubView === "list" ? (

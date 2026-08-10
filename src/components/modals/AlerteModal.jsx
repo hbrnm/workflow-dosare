@@ -275,17 +275,12 @@ export default function AlerteModal({
                       "inactivitate",
                       "accept_plata",
                       "neridicate",
-                      "blocate",
                       "masini_schimb",
                       "livrare_piese",
                       "piese",
                       "restante",
                     ].includes(item.type);
                     const showFactureaza = item.type === "accept_plata";
-                    const blockReason =
-                      item.type === "blocate"
-                        ? String(item.reason || c.motivBlocare || "").trim()
-                        : "";
                     const noteText =
                       item.noteSnippet || getLatestClaimNoteText(c);
 
@@ -329,12 +324,6 @@ export default function AlerteModal({
                                 {stShort}
                               </span>
                             </div>
-                            {blockReason ? (
-                              <p className="app-alerte-reason" title={blockReason}>
-                                <span className="app-alerte-meta-label">Motiv</span>
-                                {blockReason}
-                              </p>
-                            ) : null}
                             {noteText ? (
                               <p className="app-alerte-note" title={noteText}>
                                 <span className="app-alerte-meta-label">Notă</span>

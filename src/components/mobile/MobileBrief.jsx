@@ -39,7 +39,7 @@ const FOCUS_KEYS = new Set([
   "atentie",
 ]);
 
-/** Filtre Atenție: stadii unde există alerte active (+ Blocate). */
+/** Filtre Atenție: stadii unde există alerte active. */
 const ATTENTION_STAGE_FILTERS = [
   { key: "toate", label: "Toate", statusKey: null },
   { key: "air", label: "AIR", statusKey: "deschidere" },
@@ -48,7 +48,6 @@ const ATTENTION_STAGE_FILTERS = [
   { key: "lucru", label: "Repar.", statusKey: "in_lucru" },
   { key: "accept", label: "AP", statusKey: "accept_plata" },
   { key: "facturat", label: "Fact.", statusKey: "facturat" },
-  { key: "blocate", label: "Blocate", statusKey: null, blockedOnly: true },
 ];
 
 /** Brief stage tiles — pipeline + Atenție (probleme). */
@@ -103,9 +102,9 @@ const STAGE_FOCUS = {
   },
   atentie: {
     title: "Atenție",
-    hint: "Probleme, blocaje, întârzieri și alte alerte.",
+    hint: "Întârzieri, piese, predare și plăți care cer reacție.",
     emptyTitle: "Nimic care necesită atenție",
-    emptyHint: "Blocate, întârzieri și alte alerte apar aici.",
+    emptyHint: "Alertele operaționale apar aici.",
     statusKey: null,
     Icon: Ban,
   },
@@ -129,9 +128,6 @@ function filterAlertsByStage(items, filterKey) {
   if (!filterKey || filterKey === "toate") return list;
   const def = ATTENTION_STAGE_FILTERS.find((f) => f.key === filterKey);
   if (!def) return list;
-  if (def.blockedOnly) {
-    return list.filter((item) => item?.type === "blocate" || item?.claim?.blocat);
-  }
   if (def.statusKey) {
     return list.filter((item) => claimStatusKey(item?.claim) === def.statusKey);
   }
@@ -187,6 +183,7 @@ export default function MobileBrief({
   onGoTab,
   onGoCapture,
   onOpenAlerts,
+  onOpenBlocked = null,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
@@ -221,6 +218,7 @@ export default function MobileBrief({
   );
 
   const { counts, totalAlertsCount, items } = buckets;
+  const blockedCount = counts.blocate || 0;
 
   const alertsList = useMemo(
     () => filterAlertItems(items, activeAlertTab),
@@ -304,7 +302,6 @@ export default function MobileBrief({
 
   const canAck = (type) =>
     [
-      "blocate",
       "neridicate",
       "accept_plata",
       "masini_schimb",
@@ -831,12 +828,33 @@ export default function MobileBrief({
               {totalAlertsCount > 0
                 ? attentionFilter !== "toate" && focus === "atentie"
                   ? `Filtru activ: ${attentionFilterMeta.label}`
-                  : "Probleme, blocaje și întârzieri"
+                  : "Întârzieri, piese, predare, plăți"
                 : "Nicio alertă activă"}
             </span>
           </span>
           <span className="m-brief-attention-count">{totalAlertsCount}</span>
         </button>
+
+        {blockedCount > 0 && onOpenBlocked ? (
+          <button
+            type="button"
+            className="m-brief-attention m-press has-items"
+            onClick={() => {
+              softHaptic(8);
+              onOpenBlocked();
+            }}
+            title="Dosare blocate — inventar separat de alerte"
+          >
+            <span className="m-brief-attention-icon">
+              <AlertTriangle size={14} strokeWidth={2.4} />
+            </span>
+            <span className="m-brief-attention-copy">
+              <span className="m-brief-attention-title">Blocate</span>
+              <span className="m-brief-attention-hint">Inventar — nu apar în alerte</span>
+            </span>
+            <span className="m-brief-attention-count">{blockedCount}</span>
+          </button>
+        ) : null}
 
         <section
           ref={boardRef}

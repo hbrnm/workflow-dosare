@@ -83,19 +83,9 @@ export const ALERT_TYPE_META = {
 
 /**
  * Grupuri UI — Brief, mobil, Centru Alerte.
- * 5 filtre scurte în loc de 9 denumiri lungi.
+ * Blocate nu mai e grup de alertă (e inventar separat).
  */
 export const ALERT_GROUPS = [
-  {
-    key: "blocate",
-    label: "Blocate",
-    hint: "Dosare blocate / litigiu",
-    icon: AlertOctagon,
-    hex: "#4A5568",
-    types: ["blocate"],
-    chipActive: "bg-[#4A5568] text-white border-[#4A5568] ring-[#4A5568]/40",
-    chipIdle: "text-[#4A5568]",
-  },
   {
     key: "intarzieri",
     label: "Întârzieri",
@@ -169,7 +159,6 @@ export const ALERT_TAB_TO_GROUP = {
   masini_schimb: "predare",
   restante: "plati",
   plati: "plati",
-  blocate: "blocate",
   intarzieri: "intarzieri",
   predare: "predare",
 };
