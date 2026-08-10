@@ -180,28 +180,28 @@ export default function DatePickerInput({
           disabled ? "opacity-50 cursor-not-allowed pointer-events-none" : ""
         }`}
       >
-        <span className={`truncate ${value ? "text-[#23282E] font-medium" : "text-[#8A8375]"}`}>
+        <span className={`truncate ${value ? "text-[var(--app-text-strong)] font-medium" : "text-[var(--app-muted)]"}`}>
           {value ? formattedDisplay : defaultPlaceholder}
         </span>
         <div className="flex items-center gap-1 shrink-0 ml-1">
           {value && !disabled && (
             <X
               size={13}
-              className="text-[#8A8375] hover:text-[#B23A2E] cursor-pointer"
+              className="text-[var(--app-muted)] hover:text-[var(--app-danger)] cursor-pointer"
               onClick={handleClear}
             />
           )}
-          <Calendar size={14} className="text-[#6B6558]" />
+          <Calendar size={14} className="text-[var(--app-muted)]" />
         </div>
       </div>
 
       {open && !disabled && (
-        <div className={`absolute ${popDirection === "up" ? "bottom-full mb-1" : "top-full mt-1"} left-0 z-50 bg-white border border-[#DAD4C6] shadow-2xl rounded-lg p-3 w-[290px] text-[#23282E] text-[12px]`}>
-          <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[#EFEAE1]">
+        <div className={`absolute ${popDirection === "up" ? "bottom-full mb-1" : "top-full mt-1"} left-0 z-50 bg-[var(--app-surface)] border border-[var(--app-border)] shadow-2xl rounded-lg p-3 w-[290px] text-[var(--app-text-strong)] text-[12px]`}>
+          <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-[var(--app-border)]">
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1 rounded hover:bg-[#EFEAE1] text-[#6B6558]"
+              className="p-1 rounded hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
             >
               <ChevronLeft size={16} />
             </button>
@@ -211,13 +211,13 @@ export default function DatePickerInput({
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1 rounded hover:bg-[#EFEAE1] text-[#6B6558]"
+              className="p-1 rounded hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 text-center font-semibold text-[#8A8375] text-[10.5px] mb-1">
+          <div className="grid grid-cols-7 text-center font-semibold text-[var(--app-muted)] text-[10.5px] mb-1">
             <span>Lu</span><span>Ma</span><span>Mi</span><span>Jo</span><span>Vi</span><span>Sâ</span><span>Du</span>
           </div>
 
@@ -236,12 +236,12 @@ export default function DatePickerInput({
                   onClick={() => handleSelectDay(item.year, item.month, item.day)}
                   className={`h-7 w-7 rounded-md flex items-center justify-center text-[11.5px] font-medium transition-colors mx-auto ${
                     isSelected
-                      ? "bg-[#3B5166] text-white font-bold"
+                      ? "bg-[var(--app-muted)] text-white font-bold"
                       : isToday
-                      ? "border border-[#C98A2B] text-[#C98A2B] font-bold"
+                      ? "border border-[var(--app-accent)] text-[var(--app-accent)] font-bold"
                       : item.currentMonth
-                      ? "hover:bg-[#EFEAE1] text-[#23282E]"
-                      : "text-[#C2BCB0] hover:bg-[#F5F2EA]"
+                      ? "hover:bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]"
+                      : "text-[var(--app-muted)] hover:bg-[var(--app-surface-2)]"
                   }`}
                 >
                   {item.day}
@@ -251,13 +251,13 @@ export default function DatePickerInput({
           </div>
 
           {withTime && (
-            <div className="mt-3 pt-2.5 border-t border-[#EFEAE1]">
-              <div className="text-[11px] font-bold text-[#6B6558] mb-1.5 flex items-center gap-1">
+            <div className="mt-3 pt-2.5 border-t border-[var(--app-border)]">
+              <div className="text-[11px] font-bold text-[var(--app-muted)] mb-1.5 flex items-center gap-1">
                 <Clock size={12} /> Ora (HH:mm)
               </div>
               <div className="flex items-center gap-1.5 mb-2">
                 <select
-                  className="border border-[#DAD4C6] rounded px-1.5 py-1 text-[11.5px] bg-[#FAF8F5] focus:bg-white font-mono flex-1"
+                  className="border border-[var(--app-border)] rounded px-1.5 py-1 text-[11.5px] bg-[var(--app-surface-2)] focus:bg-[var(--app-surface)] font-mono flex-1 text-[var(--app-text-strong)]"
                   value={selectedTime.split(":")[0] || "08"}
                   onChange={(e) => {
                     const mins = selectedTime.split(":")[1] || "00";
@@ -269,9 +269,9 @@ export default function DatePickerInput({
                     return <option key={hh} value={hh}>{hh}:00h</option>;
                   })}
                 </select>
-                <span className="font-bold text-[#8A8375]">:</span>
+                <span className="font-bold text-[var(--app-muted)]">:</span>
                 <select
-                  className="border border-[#DAD4C6] rounded px-1.5 py-1 text-[11.5px] bg-[#FAF8F5] focus:bg-white font-mono flex-1"
+                  className="border border-[var(--app-border)] rounded px-1.5 py-1 text-[11.5px] bg-[var(--app-surface-2)] focus:bg-[var(--app-surface)] font-mono flex-1 text-[var(--app-text-strong)]"
                   value={["00", "30"].includes(selectedTime.split(":")[1]) ? selectedTime.split(":")[1] : "00"}
                   onChange={(e) => {
                     const hrs = selectedTime.split(":")[0] || "08";
@@ -292,8 +292,8 @@ export default function DatePickerInput({
                     onClick={() => handleSelectTime(t)}
                     className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
                       selectedTime === t
-                        ? "bg-[#3B5166] text-white border-[#3B5166]"
-                        : "bg-[#F5F2EA] text-[#3B5166] border-[#DAD4C6] hover:bg-[#EFEAE1]"
+                        ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]"
+                        : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"
                     }`}
                   >
                     {t}
@@ -303,11 +303,11 @@ export default function DatePickerInput({
             </div>
           )}
 
-          <div className="mt-3 pt-2 border-t border-[#EFEAE1] flex items-center justify-between">
+          <div className="mt-3 pt-2 border-t border-[var(--app-border)] flex items-center justify-between">
             <button
               type="button"
               onClick={handleClear}
-              className="text-[11px] text-[#B23A2E] hover:underline font-semibold"
+              className="text-[11px] text-[var(--app-danger)] hover:underline font-semibold"
             >
               Șterge
             </button>
@@ -315,14 +315,14 @@ export default function DatePickerInput({
               <button
                 type="button"
                 onClick={handleToday}
-                className="text-[11px] text-[#3B5166] hover:underline font-semibold"
+                className="text-[11px] text-[var(--app-muted)] hover:underline font-semibold"
               >
                 {withTime ? "Acum" : "Azi"}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="px-2 py-0.5 bg-[#3B5166] text-white rounded text-[11px] font-semibold hover:bg-[#2C4160]"
+                className="px-2 py-0.5 bg-[var(--app-muted)] text-white rounded text-[11px] font-semibold hover:opacity-90"
               >
                 Gata
               </button>

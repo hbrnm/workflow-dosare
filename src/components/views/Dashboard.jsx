@@ -82,23 +82,43 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {funnel.steps.map((step, idx) => (
-            <div
-              key={step.id}
-              className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2.5"
-            >
-              <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
-                {idx + 1}. {step.label}
+          {funnel.steps.map((step, idx) => {
+            const alerteClickable = step.id === "alerte" && typeof onOpenAlerts === "function";
+            const className = `rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2.5 text-left w-full${
+              alerteClickable ? " hover:bg-[var(--app-surface-muted)] transition-colors cursor-pointer" : ""
+            }`;
+            const body = (
+              <>
+                <div className="text-[10px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
+                  {idx + 1}. {step.label}
+                </div>
+                <div className="text-[22px] font-semibold text-[var(--app-text-strong)] leading-tight mt-0.5">
+                  {step.count}
+                </div>
+                <div className="text-[10px] text-[var(--app-muted)] mt-0.5">
+                  {step.hint}
+                  {step.rateFromPrev != null ? ` · ${step.rateFromPrev}% din create` : null}
+                </div>
+              </>
+            );
+            if (alerteClickable) {
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => onOpenAlerts("toate")}
+                  className={className}
+                >
+                  {body}
+                </button>
+              );
+            }
+            return (
+              <div key={step.id} className={className}>
+                {body}
               </div>
-              <div className="text-[22px] font-semibold text-[var(--app-text-strong)] leading-tight mt-0.5">
-                {step.count}
-              </div>
-              <div className="text-[10px] text-[var(--app-muted)] mt-0.5">
-                {step.hint}
-                {step.rateFromPrev != null ? ` · ${step.rateFromPrev}% din create` : null}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

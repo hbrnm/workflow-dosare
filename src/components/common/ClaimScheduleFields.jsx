@@ -34,14 +34,14 @@ export default function ClaimScheduleFields({
           disabled={readOnly}
           value={dateValue}
           onChange={(e) => updateSchedule(e.target.value, timeValue)}
-          className="text-[12px] font-mono font-bold p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#2E5C8A] disabled:opacity-60"
+          className="text-[12px] font-mono font-bold p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text-strong)] focus:border-[#2E5C8A] disabled:opacity-60"
         />
         <input
           type="time"
           disabled={readOnly}
           value={timeValue}
           onChange={(e) => updateSchedule(dateValue, e.target.value)}
-          className="text-[12px] font-mono font-bold p-1.5 border border-[#DAD4C6] rounded-lg bg-white text-[#23282E] focus:border-[#2E5C8A] disabled:opacity-60"
+          className="text-[12px] font-mono font-bold p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text-strong)] focus:border-[#2E5C8A] disabled:opacity-60"
         />
         {dataProgramare && (
           <span className="text-[10.5px] font-semibold text-[#5B6572]">

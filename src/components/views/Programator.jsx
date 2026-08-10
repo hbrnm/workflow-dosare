@@ -583,7 +583,7 @@ export default function Programator({
           </div>
 
           {/* Slots List (Scrollable) */}
-          <div className="flex-1 overflow-y-auto min-h-0 pr-1 divide-y divide-[#EFEAE1]/60 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto min-h-0 pr-1 divide-y divide-[var(--app-border)]/60 scrollbar-thin">
             {SLOTURI_ORARE.map(slot => {
               const items = activeDayClaims.filter(c => getSlotForIso(c.dataProgramare) === slot);
               const hasItems = items.length > 0;
