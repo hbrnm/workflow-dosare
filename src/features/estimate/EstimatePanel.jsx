@@ -16,6 +16,7 @@ import {
 } from "../../constants/config";
 import { uploadStorageItem } from "../../utils/claimUtils";
 import { supabase } from "../../supabaseClient";
+import AudatexImportCard from "../../components/common/AudatexImportCard";
 
 /**
  * Tab Deviz & piese — linii INL/REV/REP/UNI + import fișiere Audatex/DAT/PDF.
@@ -213,8 +214,13 @@ export default function EstimatePanel({ claim, setClaim, fullEdit, showNotice })
           <Paperclip size={14} /> Import / stocare deviz extern
         </h3>
         <p className="mb-3 text-xs text-[var(--v2-muted)]">
-          Încarcă export Audatex / DAT / PDF generat extern — fără integrare API.
+          Încarcă export Audatex / DAT / PDF — extrage automat cheltuielile sau doar stochează fișierul.
         </p>
+        {fullEdit && (
+          <div className="mb-3">
+            <AudatexImportCard claim={claim} setClaim={setClaim} showNotice={showNotice} compact />
+          </div>
+        )}
         {fullEdit && (
           <div className="flex flex-wrap gap-2">
             {DEVIZ_FILE_TYPES.map((t) => (

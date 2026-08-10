@@ -39,6 +39,7 @@ import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import PhotoLightbox from "../common/PhotoLightbox";
+import AudatexImportCard from "../common/AudatexImportCard";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 import { useModalEscape } from "../../hooks/useModalEscape";
 
@@ -1702,6 +1703,8 @@ export default function ClaimModal({
               {/* ========================================================================= */}
               {activeTab === "financial" && (
                 <div className="space-y-3">
+                  <AudatexImportCard claim={form} setClaim={setForm} showNotice={onNotify} />
+
                   {/* Secțiunea 1: Valori Deviz Audatex, Accept Plată & Franșiză */}
                   <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
@@ -1794,6 +1797,16 @@ export default function ClaimModal({
                               className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
                               value={manoperaVopsitorie || 0}
                               onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Materiale Vopsitorie</label>
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
+                              value={parseNumber(financial.materialeVopsitorie, 0) || 0}
+                              onChange={(e) => setFinancial("materialeVopsitorie", Number(e.target.value) || 0)}
                             />
                           </div>
                         </div>
