@@ -150,13 +150,18 @@ export default function MobileClaimsList({
   onNotify,
   highlightClaimIds = null,
   onBackToBrief = null,
+  statusFilter: statusFilterProp = null,
   initialStatusFilter = "toate",
+  onStatusFilterChange = null,
 }) {
-  const [statusFilter, setStatusFilter] = useState(initialStatusFilter || "toate");
+  const [internalFilter, setInternalFilter] = useState(initialStatusFilter || "toate");
+  const controlled = statusFilterProp != null;
+  const statusFilter = controlled ? statusFilterProp : internalFilter;
 
-  React.useEffect(() => {
-    if (initialStatusFilter) setStatusFilter(initialStatusFilter);
-  }, [initialStatusFilter]);
+  const setStatusFilter = (id) => {
+    if (!controlled) setInternalFilter(id);
+    onStatusFilterChange?.(id);
+  };
 
   const filtered = useMemo(() => {
     return claims.filter((c) => {
@@ -243,10 +248,21 @@ export default function MobileClaimsList({
                 ← Brief
               </button>
             ) : null}
-            <h1 className="m-ui-title">Toate dosarele</h1>
+            <h1 className="m-ui-title">
+              {statusFilter === "blocate" ? "Dosare blocate" : "Toate dosarele"}
+            </h1>
           </div>
           <span className="m-ui-count">{filtered.length}</span>
         </div>
+        {statusFilter === "blocate" ? (
+          <button
+            type="button"
+            className="m-ui-back m-press mt-2"
+            onClick={() => setStatusFilter("toate")}
+          >
+            ← Arată toate dosarele
+          </button>
+        ) : null}
       </header>
 
       <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtre dosare">

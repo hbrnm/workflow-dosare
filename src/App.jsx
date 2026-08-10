@@ -1050,7 +1050,10 @@ export default function App() {
               <div className="flex items-center app-segment-track border p-0.5 rounded-full font-medium text-[11px] shrink-0">
                 <button
                   type="button"
-                  onClick={() => setDosareSubView("flux")}
+                  onClick={() => {
+                    setOnlyBlocked(false);
+                    setDosareSubView("flux");
+                  }}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
                     dosareSubView === "flux"
                       ? "app-segment-active"
@@ -1293,26 +1296,47 @@ export default function App() {
                   }}
                 />
               ) : dosareSubView === "list" ? (
-                <ClaimTable
-                  claims={filteredClaims}
-                  onOpen={openExisting}
-                  onDelete={handleDelete}
-                  canEditFn={canEdit}
-                  highlightClaimIds={highlightClaimIds}
-                  onNotify={showNotice}
-                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
-                  onScheduleFromPiese={async (claim, iso) => {
-                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
-                    if (ok !== false) {
-                      showNotice(
-                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
-                        "success"
-                      );
-                    }
-                    return ok;
-                  }}
-                  onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
-                />
+                <div className="space-y-3 flex flex-col flex-1 min-h-0">
+                  {onlyBlocked ? (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#4A5568]/30 bg-[var(--app-surface)] px-3 py-2.5 shrink-0">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-[var(--app-text-strong)]">
+                          Filtru: doar dosare blocate
+                        </p>
+                        <p className="text-[11px] text-[var(--app-muted)]">
+                          {filteredClaims.length} {filteredClaims.length === 1 ? "dosar" : "dosare"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOnlyBlocked(false)}
+                        className="shrink-0 rounded-lg border border-[var(--app-border)] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]"
+                      >
+                        Arată toate
+                      </button>
+                    </div>
+                  ) : null}
+                  <ClaimTable
+                    claims={filteredClaims}
+                    onOpen={openExisting}
+                    onDelete={handleDelete}
+                    canEditFn={canEdit}
+                    highlightClaimIds={highlightClaimIds}
+                    onNotify={showNotice}
+                    onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
+                    onScheduleFromPiese={async (claim, iso) => {
+                      const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
+                      if (ok !== false) {
+                        showNotice(
+                          `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                          "success"
+                        );
+                      }
+                      return ok;
+                    }}
+                    onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                  />
+                </div>
               ) : (
                 <TablouPeFaze
                   claims={filteredClaims}
