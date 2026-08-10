@@ -383,6 +383,7 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
 
   // Scale tipografic + spațiere: umple pagina până deasupra footerului
   const bodySize = 11.5;
+  const partySize = 9.8; // Subsemnatul / reprezentant + valori complete (tel, nr. auto, anexe)
   const optSize = 11;
   const legalSize = 8.8;
   const settleSize = 10.5;
@@ -484,7 +485,6 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
 
   // —— Corp: Subsemnatul + reprezentant pe o singură linie (text puțin mai mic) ——
   y -= 26;
-  const partySize = 9.8;
   const subLabel = "Subsemnatul(a)";
   const firmLabel = ", reprezentant al societatii";
   let cx = left;
@@ -538,15 +538,15 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   cx += 44;
   draw(", tel.", cx, y, bodySize, font);
   cx += textW(", tel.", bodySize, font) + 5;
-  const telVal = fit(claim.telefonClient || "", bodySize, 80, fontBold);
-  if (telVal) draw(telVal, cx, y, bodySize, fontBold);
+  const telVal = fit(claim.telefonClient || "", partySize, 80, fontBold);
+  if (telVal) draw(telVal, cx, y, partySize, fontBold);
   else dots(cx, y, 80);
 
   y -= lineStep;
   draw("proprietar al autovehiculului cu numarul", left, y, bodySize, font);
   cx = left + textW("proprietar al autovehiculului cu numarul", bodySize, font) + 5;
-  const plateVal = fit(claim.numarInmatriculare || "", bodySize, right - cx - 2, fontBold);
-  if (plateVal) draw(plateVal, cx, y, bodySize, fontBold);
+  const plateVal = fit(claim.numarInmatriculare || "", partySize, right - cx - 2, fontBold);
+  if (plateVal) draw(plateVal, cx, y, partySize, fontBold);
   else dots(cx, y, Math.max(60, right - cx));
 
   y -= lineStep;
@@ -611,9 +611,9 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
 
   // linii documente (după plata finală) + suplimentar
   y -= annexStep;
-  draw("FACTURA FISCALA NUMARUL _____", left, y, bodySize, fontBold);
+  draw("FACTURA FISCALA NUMARUL _____", left, y, partySize, fontBold);
   y -= annexStep;
-  draw("DEVIZ AUDATEX _____", left, y, bodySize, fontBold);
+  draw("DEVIZ AUDATEX _____", left, y, partySize, fontBold);
   y -= annexStep;
   dots(left, y, contentW);
 
