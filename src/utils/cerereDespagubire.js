@@ -7,12 +7,15 @@
  * - Sume / date / bife rămân goale (de mână)
  */
 
-/** Destinație plată din formularul tipizat Omniasig (atelier). */
-export const OMNIASIG_CERERE_PLATA = {
+/** Destinație plată din formularul tipizat (atelier). */
+export const CERERE_ATELIER_PLATA = {
   beneficiar: "SC AUTO WASH IMPEX SRL",
   banca: "PROCREDIT BANK",
   cont: "RO56 MIRO 0000 1184 0304 0301",
 };
+
+/** @deprecated folosește CERERE_ATELIER_PLATA */
+export const OMNIASIG_CERERE_PLATA = CERERE_ATELIER_PLATA;
 
 function stripDiacriticsLoose(str) {
   return String(str || "")
@@ -107,9 +110,19 @@ export function isAsiromAsigurator(asigurator) {
   return normAsigurator(asigurator).includes("asirom");
 }
 
+export function isGroupamaAsigurator(asigurator) {
+  return normAsigurator(asigurator).includes("groupama");
+}
+
+export function isGraweAsigurator(asigurator) {
+  return normAsigurator(asigurator).includes("grawe");
+}
+
 /** Tip tipizat disponibil pentru asigurătorul dosarului. */
 export function resolveCerereDespagubireKind(asigurator) {
   if (isOmniasigAsigurator(asigurator)) return "omniasig";
   if (isAsiromAsigurator(asigurator)) return "asirom";
+  if (isGroupamaAsigurator(asigurator)) return "groupama";
+  if (isGraweAsigurator(asigurator)) return "grawe";
   return null;
 }

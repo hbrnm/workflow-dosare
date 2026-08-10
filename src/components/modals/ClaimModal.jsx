@@ -19,8 +19,10 @@ import {
   generateazaFisaIntrareService,
   generateazaCerereDespagubireOmniasig,
   generateazaCerereDespagubireAsirom,
+  generateazaCerereDespagubireGroupama,
+  generateazaCerereDespagubireGrawe,
 } from "../../utils/pdfGenerator";
-import { resolveCerereDespagubireKind, OMNIASIG_CERERE_PLATA } from "../../utils/cerereDespagubire";
+import { resolveCerereDespagubireKind, CERERE_ATELIER_PLATA } from "../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
@@ -976,11 +978,11 @@ export default function ClaimModal({
                             setPdfMenuOpen(false);
                             const branding = loadCachedBranding();
                             await generateazaCerereDespagubireOmniasig(form, {
-                              atelierNume: branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar,
+                              atelierNume: branding?.atelierNume || CERERE_ATELIER_PLATA.beneficiar,
                               plata: {
-                                beneficiar: OMNIASIG_CERERE_PLATA.beneficiar,
-                                banca: OMNIASIG_CERERE_PLATA.banca,
-                                cont: OMNIASIG_CERERE_PLATA.cont,
+                                beneficiar: CERERE_ATELIER_PLATA.beneficiar,
+                                banca: CERERE_ATELIER_PLATA.banca,
+                                cont: CERERE_ATELIER_PLATA.cont,
                               },
                             });
                           }}
@@ -999,10 +1001,68 @@ export default function ClaimModal({
                           }`}
                           onClick={async () => {
                             setPdfMenuOpen(false);
-                            await generateazaCerereDespagubireAsirom(form);
+                            const branding = loadCachedBranding();
+                            await generateazaCerereDespagubireAsirom(form, {
+                              atelierNume: branding?.atelierNume || CERERE_ATELIER_PLATA.beneficiar,
+                              plata: {
+                                beneficiar: CERERE_ATELIER_PLATA.beneficiar,
+                                banca: CERERE_ATELIER_PLATA.banca,
+                                cont: CERERE_ATELIER_PLATA.cont,
+                              },
+                            });
                           }}
                         >
                           <FileText size={13} /> Cerere Asirom
+                        </button>
+                      ) : null}
+                      {resolveCerereDespagubireKind(form.asigurator) === "groupama" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            const branding = loadCachedBranding();
+                            await generateazaCerereDespagubireGroupama(form, {
+                              atelierNume: branding?.atelierNume || CERERE_ATELIER_PLATA.beneficiar,
+                              plata: {
+                                beneficiar: CERERE_ATELIER_PLATA.beneficiar,
+                                banca: CERERE_ATELIER_PLATA.banca,
+                                cont: CERERE_ATELIER_PLATA.cont,
+                              },
+                            });
+                          }}
+                        >
+                          <FileText size={13} /> Cerere Groupama
+                        </button>
+                      ) : null}
+                      {resolveCerereDespagubireKind(form.asigurator) === "grawe" ? (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                            desktopUi
+                              ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                              : "text-white hover:bg-white/10"
+                          }`}
+                          onClick={async () => {
+                            setPdfMenuOpen(false);
+                            const branding = loadCachedBranding();
+                            await generateazaCerereDespagubireGrawe(form, {
+                              atelierNume: branding?.atelierNume || CERERE_ATELIER_PLATA.beneficiar,
+                              plata: {
+                                beneficiar: CERERE_ATELIER_PLATA.beneficiar,
+                                banca: CERERE_ATELIER_PLATA.banca,
+                                cont: CERERE_ATELIER_PLATA.cont,
+                              },
+                            });
+                          }}
+                        >
+                          <FileText size={13} /> Cerere Grawe
                         </button>
                       ) : null}
                       {form.masinaSchimb ? (

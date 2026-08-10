@@ -3,6 +3,8 @@ import {
   resolveCerereDespagubireParties,
   isOmniasigAsigurator,
   isAsiromAsigurator,
+  isGroupamaAsigurator,
+  isGraweAsigurator,
   isCompanyClientName,
   resolveCerereDespagubireKind,
 } from "../cerereDespagubire";
@@ -99,11 +101,15 @@ describe("resolveCerereDespagubireParties", () => {
 });
 
 describe("asigurator → tip cerere", () => {
-  it("matches Omniasig / Asirom", () => {
+  it("matches Omniasig / Asirom / Groupama / Grawe", () => {
     expect(isOmniasigAsigurator("Omniasig VIG")).toBe(true);
     expect(isAsiromAsigurator("Asirom VIG")).toBe(true);
+    expect(isGroupamaAsigurator("Groupama Asigurări")).toBe(true);
+    expect(isGraweAsigurator("Grawe România")).toBe(true);
     expect(resolveCerereDespagubireKind("Omniasig VIG")).toBe("omniasig");
     expect(resolveCerereDespagubireKind("Asirom VIG")).toBe("asirom");
+    expect(resolveCerereDespagubireKind("Groupama Asigurări")).toBe("groupama");
+    expect(resolveCerereDespagubireKind("Grawe România")).toBe("grawe");
     expect(resolveCerereDespagubireKind("Allianz-Țiriac")).toBe(null);
   });
 });

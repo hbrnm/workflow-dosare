@@ -804,189 +804,341 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   URL.revokeObjectURL(url);
 }
 
-export async function generateazaCerereDespagubireAsirom(claim) {
-  const doc = await createPdf();
-  const parties = resolveCerereDespagubireParties(claim);
-  const pageW = doc.internal.pageSize.getWidth();
-  let y = 14;
+export async function generateazaCerereDespagubireAsirom(claim, options = null) {
+  const {
+    createTipizatDoc,
+    attachClaimContext,
+    drawPartiesLine,
+    drawPaymentTable,
+    sd,
+  } = await import("./cerereTipizatShared");
 
-  const write = (text, x, yy, opts = {}) => {
-    doc.text(sd(text), x, yy, opts);
-  };
+  const ctx = attachClaimContext(await createTipizatDoc(), claim, options);
+  const {
+    page,
+    width,
+    height,
+    left,
+    right,
+    contentW,
+    ink,
+    muted,
+    rgb,
+    font,
+    fontBold,
+    draw,
+    dots,
+    checkbox,
+    wrapLines,
+    textW,
+    fit,
+    parties,
+    download,
+  } = ctx;
 
   const tip = String(claim.tipAsigurare || "").toUpperCase();
   const isRca = tip.includes("RCA");
   const isCasco = tip.includes("CASCO");
-  const mark = (on) => (on ? "[X]" : "[ ]");
+  const partySize = 9.8;
+  const bodySize = 10.5;
 
-  doc.setFontSize(8);
-  doc.setTextColor(80);
-  write("ASIROM Vienna Insurance Group", 14, y);
-  y += 4;
-  write("www.asirom.ro · Call Center 021 9146", 14, y);
-  y += 8;
-  doc.setTextColor(0);
+  // Header
+  draw("ASIROM Vienna Insurance Group S.A.", left, height - 40, 11, fontBold, rgb(0.0, 0.22, 0.45));
+  draw("www.asirom.ro  ·  Call Center 021 9146", left, height - 52, 8, font, muted);
+  draw("CERERE", (width - textW("CERERE", 16, fontBold)) / 2, height - 78, 16, fontBold);
+  const subTitle = "de plata a drepturilor din asigurare la asigurarile generale";
+  draw(subTitle, (width - textW(subTitle, 10, font)) / 2, height - 92, 10, font);
 
-  doc.setFontSize(14);
-  doc.setFont(undefined, "bold");
-  write("CERERE", pageW / 2, y, { align: "center" });
-  y += 6;
-  doc.setFontSize(10);
-  write("de plata a drepturilor din asigurare la asigurarile generale", pageW / 2, y, { align: "center" });
-  y += 9;
+  // Antet box
+  let y = height - 108;
+  page.drawRectangle({
+    x: left,
+    y: y - 48,
+    width: contentW,
+    height: 48,
+    color: rgb(0.95, 0.95, 0.97),
+    borderColor: ink,
+    borderWidth: 0.8,
+  });
+  let rowY = y - 14;
+  draw("Nr. dosar:", left + 8, rowY, 9.5, fontBold);
+  draw(fit(claim.numarDosar || "", 9.5, 100, fontBold) || "……………", left + 58, rowY, 9.5, fontBold);
+  draw("Polita tip:", left + 220, rowY, 9.5, fontBold);
+  checkbox(left + 270, rowY);
+  draw(isRca ? "X" : "", left + 272, rowY, 8, fontBold);
+  draw("RCA", left + 282, rowY, 9, font);
+  checkbox(left + 320, rowY);
+  draw(isCasco ? "X" : "", left + 322, rowY, 8, fontBold);
+  draw("Casco", left + 332, rowY, 9, font);
+  checkbox(left + 380, rowY);
+  draw(!isRca && !isCasco ? "X" : "", left + 382, rowY, 8, fontBold);
+  draw("Non Auto", left + 392, rowY, 9, font);
 
-  // Tabel antet
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8.5);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(14, y, 182, 22, "F");
-  doc.setDrawColor(180);
-  doc.rect(14, y, 182, 22, "S");
+  rowY -= 15;
+  const bun = [claim.numarInmatriculare, claim.marcaModel].filter(Boolean).join(" · ");
+  draw("Bunul avariat:", left + 8, rowY, 9.5, fontBold);
+  draw(fit(bun, 9.5, 200, fontBold) || "……………………", left + 78, rowY, partySize, fontBold);
+  draw("Data eveniment:", left + 320, rowY, 9.5, fontBold);
+  dots(left + 400, rowY, 90);
 
-  let rowY = y + 5;
-  doc.setFont(undefined, "bold");
-  write("Nr. dosar:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(claim.numarDosar || "……………", 36, rowY);
+  rowY -= 15;
+  draw("Asigurat/Pagubit:", left + 8, rowY, 9.5, fontBold);
+  draw(fit(parties.proprietar || "", 9.5, 280, fontBold) || "……………………", left + 95, rowY, partySize, fontBold);
 
-  doc.setFont(undefined, "bold");
-  write("Polita tip:", 90, rowY);
-  doc.setFont(undefined, "normal");
-  write(`${mark(isRca)} RCA   ${mark(isCasco)} Casco   ${mark(!isRca && !isCasco)} Non Auto`, 110, rowY);
-  rowY += 6;
-
-  const bun = [claim.numarInmatriculare, claim.marcaModel].filter(Boolean).join(" · ") || "……………………";
-  doc.setFont(undefined, "bold");
-  write("Bunul avariat:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(bun, 42, rowY);
-  rowY += 6;
-
-  doc.setFont(undefined, "bold");
-  write("Asigurat/Pagubit:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(parties.proprietar || "……………………", 48, rowY);
-  doc.setFont(undefined, "bold");
-  write("Data eveniment:", 120, rowY);
-  doc.setFont(undefined, "normal");
-  write("____________", 152, rowY);
-
-  y += 26;
+  y = y - 62;
+  y = drawPartiesLine(ctx, y, partySize);
+  y -= 16;
 
   const calitate = parties.asCompanyOwner || parties.hasSeparateDelegat
-    ? "Reprezentant al beneficiarului"
-    : "Asigurat/Pagubit";
-  const sub = parties.subsemnatul || "…………………………………………";
-  const firmNote = parties.reprezentantSocietate
-    ? ` (reprezentant al societatii ${parties.reprezentantSocietate})`
-    : "";
+    ? "reprezentant al beneficiarului"
+    : "asigurat/pagubit";
+  draw(`in calitate de ${calitate}, solicit plata despagubirii in valoare de`, left, y, bodySize, font);
+  dots(left + textW(`in calitate de ${calitate}, solicit plata despagubirii in valoare de`, bodySize, font) + 4, y, 70);
+  draw("(lei):", left + textW(`in calitate de ${calitate}, solicit plata despagubirii in valoare de`, bodySize, font) + 78, y, bodySize, font);
 
-  doc.setFontSize(9);
-  const intro = `Subsemnatul(a) ${sub}${firmNote}, CNP ____________________, domiciliat in localitatea ____________________, adresa completa ______________________________________________, nr. telefon ${claim.telefonClient || "______________"}, email ____________________, cu actul de identitate seria ____, nr. ____________, in calitate de ${calitate}, solicit plata despagubirii in valoare de ____________________ (lei):`;
-  const introLines = doc.splitTextToSize(sd(intro), 182);
-  doc.text(introLines, 14, y);
-  y += introLines.length * 4.2 + 4;
+  y -= 18;
+  checkbox(left, y);
+  draw("conform Evaluare ASIROM, fara documente justificative;", left + 14, y, 9.5, font);
+  y -= 15;
+  checkbox(left, y);
+  draw("conform documente justificative anexate:", left + 14, y, 9.5, font);
+  y -= 14;
+  draw("In original:", left, y, 9.5, font);
+  draw("FACTURA FISCALA NUMARUL _____", left + 58, y, partySize, fontBold);
+  y -= 14;
+  draw("In fotocopie:", left, y, 9.5, font);
+  draw("DEVIZ AUDATEX _____", left + 62, y, partySize, fontBold);
 
-  doc.rect(14, y - 2.2, 3, 3);
-  write("conform evaluare ASIROM (fara documente justificative);", 20, y);
-  y += 5.5;
-  doc.rect(14, y - 2.2, 3, 3);
-  write("conform documente justificative anexate, astfel:", 20, y);
-  y += 5.5;
-  write("In original: .......................................................................................................................", 14, y);
-  y += 5;
-  write("In fotocopie: .....................................................................................................................", 14, y);
-  y += 8;
+  y -= 18;
+  draw("Despagubirea cuvenita sunt de acord sa fie platita:", left, y, 10, fontBold);
+  y -= 15;
+  checkbox(left, y);
+  draw("prin casieriile BCR", left + 14, y, 9.5, font);
+  y -= 14;
+  checkbox(left, y);
+  draw("prin casieriile ASIROM", left + 14, y, 9.5, font);
+  y -= 14;
+  checkbox(left, y);
+  draw("prin cont bancar (detalii mai jos)", left + 14, y, 9.5, font);
 
-  doc.setFont(undefined, "bold");
-  write("Despagubirea cuvenita sunt de acord sa fie platita:", 14, y);
-  y += 6;
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8.5);
-  write("[ ] prin casieriile BCR, suma _____________ lei, beneficiar _________________________________", 14, y);
-  y += 5;
-  write("[ ] prin cont bancar, suma _____________ lei, IBAN _________________________________________", 14, y);
-  y += 5;
-  write("    banca _______________________________, titular _________________________________________", 14, y);
-  y += 8;
+  y -= 16;
+  y = drawPaymentTable(ctx, y) - 14;
 
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
-  write("Declar, pe propria raspundere, urmatoarele:", 14, y);
-  y += 4.5;
-  doc.setFont(undefined, "normal");
+  draw("Declar, pe propria raspundere, urmatoarele:", left, y, 10, fontBold);
+  y -= 13;
   const decls = [
-    "Am avizat acest eveniment si la Asiguratorul: .............................., iar suma stabilita de acesta este ……….. / Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurare.",
+    "Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurare.",
     "Nu mai posed aceeasi forma de asigurare pentru bunul respectiv incheiata si la alta societate de asigurare.",
     "Ma oblig sa restitui de indata, partial sau total, societatii de asigurare suma de bani primita cu titlu de despagubire, in functie de o eventuala hotarare a instantei ori in cazul anularii actelor organelor competente.",
-    "Declar ca, prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nicio pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata de producerea evenimentului.",
+    "Declar ca, prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nicio pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata.",
   ];
   for (const d of decls) {
-    const lines = doc.splitTextToSize(sd(d), 182);
-    doc.text(lines, 14, y);
-    y += lines.length * 3.5 + 1.2;
+    for (const line of wrapLines(d, 8.2, contentW, font)) {
+      draw(line, left, y, 8.2, font, muted);
+      y -= 10;
+    }
+    y -= 2;
   }
-  y += 3;
 
-  doc.setFontSize(9);
-  write("Doresc sa primesc informare dupa realizarea platii pe email: _______________________________", 14, y);
-  y += 5;
-  write("Observatii: ...........................................................................................................................", 14, y);
-  y += 5;
-  write("Localitate: _______________________________", 14, y);
-  y += 10;
+  y -= 4;
+  draw("Observatii:", left, y, 9.5, fontBold);
+  y -= 13;
+  dots(left, y, contentW);
+  y -= 13;
+  dots(left, y, contentW);
 
-  doc.setFont(undefined, "bold");
-  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
-  write("Data completarii: __________", 130, y);
-  y += 5;
-  doc.setFont(undefined, "normal");
-  write(`(nume/prenume in clar): ${sd(sub)}`, 14, y);
-  y += 8;
-  write("Semnatura (stampila daca este cazul): _______________________________", 14, y);
+  const footTop = 70;
+  const signY = Math.max(footTop + 28, y - 22);
+  draw("DATA", left, signY, 10.5, fontBold);
+  dots(left + 34, signY, 100);
+  draw("SEMNATURA / STAMPILA", left + 260, signY, 10.5, fontBold);
+  dots(left + 260 + textW("SEMNATURA / STAMPILA", 10.5, fontBold) + 6, signY, 100);
+  if (parties.subsemnatul) {
+    draw(sd(parties.subsemnatul), left + 260, signY + 14, partySize, fontBold, muted);
+  }
 
-  // Pagina 2 — consimțământ GDPR (compact)
-  doc.addPage();
-  y = 16;
-  doc.setFontSize(11);
-  doc.setFont(undefined, "bold");
-  write("DECLARATIE SI CONSIMTAMANT PRIVIND PRELUCRAREA DATELOR CU CARACTER PERSONAL", pageW / 2, y, {
-    align: "center",
+  page.drawLine({
+    start: { x: left, y: footTop },
+    end: { x: right, y: footTop },
+    thickness: 1.4,
+    color: ink,
   });
-  y += 10;
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  const gdprIntro = `Subsemnatul(a) ${sub}, domiciliat(a) in ____________________ si cu CNP _______________, declar ca am citit si am inteles continutul Notei de informare cu privire la prelucrarea de catre ASIROM a datelor cu caracter personal (disponibila pe site-ul ASIROM) si ca imi exprim consimtamantul pentru urmatoarele:`;
-  const gdprLines = doc.splitTextToSize(sd(gdprIntro), 182);
-  doc.text(gdprLines, 14, y);
-  y += gdprLines.length * 4.2 + 6;
+  draw("ASIROM Vienna Insurance Group S.A.  ·  Call Center 021 9146  ·  www.asirom.ro", left, footTop - 14, 7, font, muted);
+  draw("Autorizata de ASF  ·  Societate administrata in sistem dualist", left, footTop - 26, 6.5, font, muted);
 
-  doc.setFontSize(8.5);
-  write("[ ] Sunt de acord   [ ] Nu sunt de acord — utilizarea datelor mele pentru oferte / promotii ASIROM.", 14, y);
-  y += 8;
+  await download(claim, "cerere-despagubire-asirom");
+}
 
-  const gdprBody = [
-    "Pentru derularea contractului de asigurare ASIROM are acordul meu expres sa contacteze medici / institutii medicale si sa obtina date privind starea mea de sanatate, in masura in care sunt necesare pentru solutionarea dosarului de dauna.",
-    "Sunt de acord ca aceste date sa fie transmise catre ASIROM si reasiguratori / spitale / medici doar in scopul determinarii cuantumului despagubirii.",
-    "Fara acces la datele necesare, ASIROM poate fi in imposibilitatea obiectiva de a solutiona pretentiile de despagubire.",
-  ];
-  for (const g of gdprBody) {
-    const lines = doc.splitTextToSize(sd(g), 182);
-    doc.text(lines, 14, y);
-    y += lines.length * 3.6 + 2;
+async function generateazaCerereDespagubireGeneric(claim, options, brand) {
+  const {
+    createTipizatDoc,
+    attachClaimContext,
+    drawPartiesLine,
+    drawPaymentTable,
+  } = await import("./cerereTipizatShared");
+
+  const ctx = attachClaimContext(await createTipizatDoc(), claim, options);
+  const {
+    page,
+    width,
+    height,
+    left,
+    right,
+    contentW,
+    ink,
+    muted,
+    rgb,
+    font,
+    fontBold,
+    draw,
+    dots,
+    checkbox,
+    wrapLines,
+    textW,
+    fit,
+    download,
+  } = ctx;
+
+  const partySize = 9.8;
+  const bodySize = 10.5;
+  const brandColor = rgb(...brand.color);
+
+  draw(brand.name, left, height - 40, 12, fontBold, brandColor);
+  draw(brand.tagline, left, height - 53, 8, font, muted);
+  if (brand.right) {
+    draw(brand.right, right - textW(brand.right, 8, font), height - 40, 8, font, muted);
   }
-  y += 6;
-  write("[ ] Sunt de acord   [ ] Nu sunt de acord — prelucrare date privind sanatatea pentru dosarul de dauna.", 14, y);
-  y += 14;
 
-  doc.setFontSize(9);
-  doc.setFont(undefined, "bold");
-  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
-  write("Data: __________", 130, y);
-  y += 6;
-  doc.setFont(undefined, "normal");
-  write(`(nume/prenume, semnatura): ${sd(sub)} _______________________________`, 14, y);
+  const title = "CERERE DESPAGUBIRE";
+  draw(title, (width - textW(title, 16, fontBold)) / 2, height - 82, 16, fontBold);
+  page.drawLine({
+    start: { x: (width - textW(title, 16, fontBold)) / 2, y: height - 85 },
+    end: { x: (width + textW(title, 16, fontBold)) / 2, y: height - 85 },
+    thickness: 0.9,
+    color: ink,
+  });
 
-  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
-  doc.save(`cerere-despagubire-asirom-${token}.pdf`);
+  let y = height - 104;
+  const dosarLabel = "cu privire la dosarul nr: ";
+  const dosarX = (width - textW(dosarLabel, 11, font) - 150) / 2;
+  draw(dosarLabel, dosarX, y, 11, font);
+  const dVal = fit(claim.numarDosar || "", 11, 148, fontBold);
+  if (dVal) draw(dVal, dosarX + textW(dosarLabel, 11, font) + 2, y, 11, fontBold);
+  else dots(dosarX + textW(dosarLabel, 11, font), y, 150);
+
+  y -= 24;
+  y = drawPartiesLine(ctx, y, partySize);
+
+  y -= 16;
+  draw("tel.", left, y, bodySize, font);
+  let cx = left + textW("tel.", bodySize, font) + 5;
+  const telVal = fit(claim.telefonClient || "", partySize, 90, fontBold);
+  if (telVal) draw(telVal, cx, y, partySize, fontBold);
+  else dots(cx, y, 90);
+  cx += 100;
+  draw(", nr. auto", cx, y, bodySize, font);
+  cx += textW(", nr. auto", bodySize, font) + 5;
+  const plateVal = fit(claim.numarInmatriculare || "", partySize, 100, fontBold);
+  if (plateVal) draw(plateVal, cx, y, partySize, fontBold);
+  else dots(cx, y, 100);
+  cx += 110;
+  draw(", tip", cx, y, bodySize, font);
+  cx += textW(", tip", bodySize, font) + 5;
+  draw(fit(claim.tipAsigurare || "", partySize, 80, fontBold) || "______", cx, y, partySize, fontBold);
+
+  y -= 18;
+  draw("solicit plata despagubirii in suma de", left, y, bodySize, font);
+  dots(left + textW("solicit plata despagubirii in suma de", bodySize, font) + 4, y, 120);
+  draw("lei, dupa cum urmeaza:", left + textW("solicit plata despagubirii in suma de", bodySize, font) + 130, y, bodySize, font);
+
+  y -= 18;
+  checkbox(left, y);
+  draw("avans – pe baza documentelor anexate;", left + 14, y, 9.8, font);
+  y -= 15;
+  checkbox(left, y);
+  draw("plata finala dupa efectuarea reparatiilor – pe baza documentelor anexate;", left + 14, y, 9.8, font);
+
+  y -= 16;
+  draw("FACTURA FISCALA NUMARUL _____", left, y, partySize, fontBold);
+  y -= 14;
+  draw("DEVIZ AUDATEX _____", left, y, partySize, fontBold);
+  y -= 14;
+  dots(left, y, contentW);
+
+  y -= 16;
+  draw("Suplimentar, mai anexez:", left, y, 10, fontBold);
+  y -= 14;
+  dots(left, y, contentW);
+  y -= 14;
+  dots(left, y, contentW);
+
+  y -= 16;
+  y = drawPaymentTable(ctx, y) - 14;
+
+  for (const d of brand.decls) {
+    for (const line of wrapLines(d, 8.2, contentW, font)) {
+      draw(line, left, y, 8.2, font, muted);
+      y -= 10;
+    }
+    y -= 2;
+  }
+
+  y -= 4;
+  draw("Obiectii:", left, y, 10, fontBold);
+  y -= 13;
+  dots(left, y, contentW);
+  y -= 13;
+  dots(left, y, contentW);
+
+  const footTop = 72;
+  const signY = Math.max(footTop + 28, y - 20);
+  draw("DATA", left, signY, 10.5, fontBold);
+  dots(left + 34, signY, 100);
+  draw("SEMNATURA / STAMPILA", left + 260, signY, 10.5, fontBold);
+  dots(left + 260 + textW("SEMNATURA / STAMPILA", 10.5, fontBold) + 6, signY, 100);
+
+  page.drawLine({
+    start: { x: left, y: footTop },
+    end: { x: right, y: footTop },
+    thickness: 1.4,
+    color: ink,
+  });
+  draw(brand.footer, left, footTop - 14, 7, font, muted);
+  if (brand.footer2) draw(brand.footer2, left, footTop - 26, 6.5, font, muted);
+
+  await download(claim, brand.filePrefix);
+}
+
+export async function generateazaCerereDespagubireGroupama(claim, options = null) {
+  return generateazaCerereDespagubireGeneric(claim, options, {
+    name: "GROUPAMA Asigurari",
+    tagline: "AloGroupama 0374 110 110  ·  www.groupama.ro",
+    right: "Daune auto",
+    color: [0.0, 0.48, 0.22],
+    filePrefix: "cerere-despagubire-groupama",
+    footer: "Groupama Asigurari S.A.  ·  AloGroupama 0374 110 110  ·  www.groupama.ro",
+    footer2: "Autorizata de Autoritatea de Supraveghere Financiara",
+    decls: [
+      "- Declar pe propria raspundere ca datele din prezenta cerere si documentele anexate sunt reale si complete.",
+      "- Ma oblig sa restitui Groupama sumele primite cu titlu de despagubire daca ulterior se constata ca nu eram indreptatit(a) sa le primesc.",
+      "- Declar ca, prin primirea sumei, sunt integral despagubit(a) de Groupama pentru dauna mentionata si nu mai am nicio pretentie fata de asigurator si persoana vinovata.",
+    ],
+  });
+}
+
+export async function generateazaCerereDespagubireGrawe(claim, options = null) {
+  return generateazaCerereDespagubireGeneric(claim, options, {
+    name: "GRAWE Romania",
+    tagline: "www.grawe.ro  ·  Call Center Grawe",
+    right: "Cerere dauna",
+    color: [0.05, 0.25, 0.55],
+    filePrefix: "cerere-despagubire-grawe",
+    footer: "GRAWE Romania Asigurare S.A.  ·  www.grawe.ro",
+    footer2: "Autorizata de Autoritatea de Supraveghere Financiara",
+    decls: [
+      "- Declar pe propria raspundere ca datele din prezenta cerere si documentele anexate sunt reale si complete.",
+      "- Ma oblig sa restitui GRAWE sumele primite cu titlu de despagubire daca ulterior se constata ca nu eram indreptatit(a) sa le primesc.",
+      "- Declar ca, prin primirea sumei, sunt integral despagubit(a) de GRAWE pentru dauna mentionata si nu mai am nicio pretentie fata de asigurator si persoana vinovata.",
+    ],
+  });
 }
