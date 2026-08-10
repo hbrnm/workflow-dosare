@@ -1,7 +1,7 @@
 /**
  * Logică tipizate „Cerere despăgubire” (Omniasig).
  *
- * - Subsemnatul = delegatul când e diferit de proprietar (client); altfel = client (persoană)
+ * - Subsemnatul = ÎNTOTDEAUNA delegatul când câmpul proprietar (client) ≠ delegat
  * - „reprezentant al societății” = clientul când acesta e firmă; altfel gol (de mână)
  * - Sume / date / bife rămân goale (de mână)
  */
@@ -13,8 +13,16 @@ export const OMNIASIG_CERERE_PLATA = {
   cont: "RO56 MIRO 0000 1184 0304 0301",
 };
 
+function stripDiacriticsLoose(str) {
+  return String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ș|ş/gi, "s")
+    .replace(/ț|ţ/gi, "t");
+}
+
 function normName(value) {
-  return String(value || "")
+  return stripDiacriticsLoose(value)
     .trim()
     .replace(/\s+/g, " ")
     .toLowerCase();
@@ -39,7 +47,7 @@ export function isCompanyClientName(name) {
 }
 
 /**
- * @param {{ client?: string, delegat?: string }} claim
+ * @param {{ client?: string, proprietar?: string, delegat?: string }} claim
  * @returns {{
  *   subsemnatul: string,
  *   reprezentantSocietate: string,
@@ -49,18 +57,25 @@ export function isCompanyClientName(name) {
  * }}
  */
 export function resolveCerereDespagubireParties(claim) {
-  const proprietar = String(claim?.client || "").trim();
+  // UI: „Nume proprietar auto” → claim.client (alias proprietar acceptat)
+  const proprietar = String(claim?.proprietar || claim?.client || "").trim();
   const delegat = String(claim?.delegat || "").trim();
   const asCompanyOwner = isCompanyClientName(proprietar);
-  const hasSeparateDelegat = Boolean(delegat && normName(delegat) !== normName(proprietar));
 
+  // Proprietar ≠ delegat (inclusiv când proprietarul lipsește dar există delegat)
+  const hasSeparateDelegat = Boolean(
+    delegat && (!proprietar || normName(delegat) !== normName(proprietar))
+  );
+
+  // Subsemnatul = întotdeauna delegatul când proprietarul e altcineva
   let subsemnatul = "";
   if (hasSeparateDelegat) {
     subsemnatul = delegat;
   } else if (!asCompanyOwner) {
-    subsemnatul = proprietar;
+    // Aceeași persoană (sau fără delegat): semnează proprietarul-persoană
+    subsemnatul = proprietar || delegat;
   }
-  // Firmă fără delegat: Subsemnatul rămâne gol (de mână)
+  // Firmă fără delegat distinct: Subsemnatul rămâne gol (de mână)
 
   return {
     subsemnatul,
