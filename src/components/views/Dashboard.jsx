@@ -146,7 +146,17 @@ export default function Dashboard({
         ) : (
           <StatCard label="Blocate" value={blockedCount} tone={blockedCount ? "danger" : "green"} />
         )}
-        <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
+        {onOpenAlerts && gataNeridicateCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => onOpenAlerts("neridicate")}
+            className="text-left rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)]"
+          >
+            <StatCard label="Gata, neridicate" value={gataNeridicateCount} sub="Click → Alerte" tone="danger" />
+          </button>
+        ) : (
+          <StatCard label="Gata, neridicate" value={gataNeridicateCount} tone={gataNeridicateCount ? "danger" : "green"} />
+        )}
       </div>
 
       {!showSecondaryKpis ? (
