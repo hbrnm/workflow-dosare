@@ -539,4 +539,22 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* Overlays / toasts may sit outside .app-shell (e.g. mobile root siblings). */
+  .animate-in {
+    animation: none !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .undo-toast-undo,
+  .undo-toast-undo:hover,
+  .undo-toast-undo:active {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .undo-toast-progress {
+    transition: none !important;
+  }
 }

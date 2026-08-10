@@ -32,12 +32,18 @@ export default function Notification({ notice, onClose, stacked = false }) {
   );
 
   if (stacked) {
-    return <div className={`${baseClasses} w-80`}>{body}</div>;
+    return (
+      <div className={`${baseClasses} w-80`} role="status" aria-live="polite">
+        {body}
+      </div>
+    );
   }
 
   return (
     <div
       className={`fixed top-3 left-3 right-3 sm:top-auto sm:left-auto sm:right-4 sm:bottom-4 z-[100001] animate-in fade-in slide-in-from-top-2 sm:slide-in-from-bottom-2 ${baseClasses}`}
+      role="status"
+      aria-live="polite"
     >
       {body}
     </div>
