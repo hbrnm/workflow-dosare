@@ -332,13 +332,15 @@ export async function generateazaFisaIntrareService(claim) {
 /**
  * Cerere despăgubire Omniasig — exact pe PDF-ul oficial tipizat
  * (`public/forms/Cerere-Despagubire-Omniasig.pdf`), cu valori completate
- * peste zonele de linie (șterse înainte, ca să nu se suprapună).
+ * pe baseline-urile măsurate ale liniilor goale (underscore/puncte șterse
+ * înainte, ca să nu se suprapună pe text).
  *
  * @param {object} claim
  * @param {{ atelierNume?: string, plata?: { beneficiar?: string, banca?: string, cont?: string } } | null} [options]
  */
 export async function generateazaCerereDespagubireOmniasig(claim, options = null) {
   const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  const fontkit = (await import("@pdf-lib/fontkit")).default;
   const parties = resolveCerereDespagubireParties(claim);
   const plata = options?.plata || {};
   const beneficiar = String(
@@ -347,28 +349,52 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const banca = String(plata.banca || "PRO CREDIT BANK").trim();
   const cont = String(plata.cont || "RO56 MIRO 0000 1184 0304 0301").trim();
 
-  const templateUrl = `${import.meta.env.BASE_URL || "/"}forms/Cerere-Despagubire-Omniasig.pdf`;
+  const base = import.meta.env.BASE_URL || "/";
+  const templateUrl = `${base}forms/Cerere-Despagubire-Omniasig.pdf`;
   const res = await fetch(templateUrl);
   if (!res.ok) {
     throw new Error(`Nu pot încărca formularul Omniasig (${res.status}).`);
   }
   const pdfDoc = await PDFDocument.load(await res.arrayBuffer());
-  const page = pdfDoc.getPages()[0];
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const { height } = page.getSize();
+  pdfDoc.registerFontkit(fontkit);
 
+  // Liberation Serif ≈ Times New Roman — se aliniază pe tipizatul serif.
+  let fontBold;
+  try {
+    const fontRes = await fetch(`${base}fonts/LiberationSerif-Bold.ttf`);
+    if (!fontRes.ok) throw new Error(`font ${fontRes.status}`);
+    fontBold = await pdfDoc.embedFont(await fontRes.arrayBuffer(), { subset: true });
+  } catch {
+    fontBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  }
+
+  const page = pdfDoc.getPages()[0];
+  const { height } = page.getSize();
   const ink = rgb(0, 0, 0);
   const white = rgb(1, 1, 1);
 
-  /** Șterge o zonă de pe formular (linii/puncte) apoi scrie textul. */
-  const fill = (text, x, yTop, opts = {}) => {
+  /**
+   * Coordonate măsurate pe PDF-ul oficial (origine sus-stânga, y în jos).
+   * baseline = origin.y din tipizat; wipe = bbox-ul underscore/punctelor.
+   */
+  const wipeBox = (x0, y0, x1, y1, padX = 0.25, padY = 0.25) => {
+    const top = y0 - padY;
+    const bottom = y1 + padY;
+    page.drawRectangle({
+      x: x0 - padX,
+      y: height - bottom,
+      width: x1 - x0 + padX * 2,
+      height: bottom - top,
+      color: white,
+      borderWidth: 0,
+    });
+  };
+
+  const fill = (text, x, baselineTop, opts = {}) => {
     const raw = sd(text);
     if (!raw || raw === "—") return;
-    const size = opts.size || 10;
+    const size = opts.size || 9.5;
     const maxW = opts.maxW || 0;
-    const wipeH = opts.wipeH || 11;
-    const wipePad = opts.wipePad ?? 1.5;
     let content = raw;
     if (maxW > 0) {
       while (content.length > 3 && fontBold.widthOfTextAtSize(content, size) > maxW) {
@@ -376,51 +402,85 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
       }
       if (content !== raw) content = `${content.slice(0, -1)}.`;
     }
-    const textW = fontBold.widthOfTextAtSize(content, size);
-    const wipeW = Math.max(textW + 6, opts.wipeW || textW + 6);
-    // yTop = baseline din coordonate „de sus” (ca în PDF-ul Omniasig)
-    // Acoperă linia/punctele de sub text (extindem sub baseline).
-    page.drawRectangle({
-      x: x - wipePad,
-      y: height - yTop - 5,
-      width: wipeW + wipePad * 2,
-      height: wipeH + 3,
-      color: white,
-      borderWidth: 0,
-    });
+    if (opts.wipe) {
+      const [x0, y0, x1, y1] = opts.wipe;
+      wipeBox(x0, y0, x1, y1, opts.padX, opts.padY);
+    }
     page.drawText(content, {
       x,
-      y: height - yTop,
+      y: height - baselineTop,
       size,
       font: fontBold,
       color: ink,
     });
   };
 
-  // Nr. dosar — pe linia de puncte după „cu privire la dosarul nr:”
-  fill(claim.numarDosar || "", 210, 70, { size: 10, wipeW: 165, wipeH: 12 });
+  // Nr. dosar — pe puncte după „dosarul nr:” (baseline tipizat 70.32)
+  fill(claim.numarDosar || "", 218.0, 70.32, {
+    size: 10,
+    maxW: 138,
+    wipe: [216.7, 61.5, 360.0, 72.4],
+  });
 
-  // Subsemnatul(a) ________
-  fill(parties.subsemnatul || "", 120, 105, { size: 9.5, wipeW: 155, maxW: 150, wipeH: 12 });
+  // Subsemnatul(a) ________ (underscore 120.07–279.75, baseline 105.74)
+  fill(parties.subsemnatul || "", 122.5, 105.74, {
+    size: 9.5,
+    maxW: 152,
+    wipe: [120.1, 96.4, 279.5, 107.9],
+  });
 
-  // reprezentant al societății ________
-  fill(parties.reprezentantSocietate || "", 382, 105, { size: 8.5, wipeW: 175, maxW: 170, wipeH: 12 });
+  // reprezentant al societății ________ (underscore 393.07–563.69)
+  fill(parties.reprezentantSocietate || "", 395.5, 105.74, {
+    size: 9,
+    maxW: 162,
+    wipe: [393.1, 96.4, 563.5, 107.9],
+  });
 
-  // tel. ________
-  fill(claim.telefonClient || "", 512, 128.5, { size: 9, wipeW: 58, maxW: 55, wipeH: 11 });
+  // tel. ________ (underscore 508.30–564.12, baseline 129.5)
+  fill(claim.telefonClient || "", 511.0, 129.5, {
+    size: 9,
+    maxW: 50,
+    wipe: [508.3, 120.2, 564.0, 131.6],
+  });
 
-  // nr. auto ________
-  fill(claim.numarInmatriculare || "", 214, 152, { size: 10, wipeW: 100, maxW: 95, wipeH: 12 });
+  // nr. auto ________ (underscore 212.25–286.40, baseline 153.26)
+  fill(claim.numarInmatriculare || "", 214.0, 153.26, {
+    size: 10,
+    maxW: 68,
+    wipe: [212.3, 143.9, 286.2, 155.4],
+  });
 
-  // Suplimentar, mai anexez — etichete pe liniile punctate
-  fill("FACTURA FISCALA NUMARUL _____", 36, 280, { size: 9, wipeW: 260, wipeH: 11 });
-  fill("DEVIZ AUDATEX _____", 36, 291.5, { size: 9, wipeW: 200, wipeH: 11 });
+  // Suplimentar, mai anexez — pe liniile punctate (baseline 280.49 / 292.01)
+  fill("FACTURA FISCALA NUMARUL _____", 36.0, 280.49, {
+    size: 9.5,
+    wipe: [36.0, 271.7, 568.0, 282.5],
+  });
+  fill("DEVIZ AUDATEX _____", 36.0, 292.01, {
+    size: 9.5,
+    wipe: [36.0, 283.2, 558.5, 294.1],
+  });
 
-  // Tabel plată (celulele goale sub header)
-  // Col BENEFICIAR ~31–197, BANCA ~199–472
-  fill(banca, 205, 348, { size: 8, wipeW: 250, maxW: 248, wipeH: 11 });
-  fill(beneficiar, 36, 360, { size: 8, wipeW: 155, maxW: 150, wipeH: 11 });
-  fill(cont, 205, 360, { size: 7.5, wipeW: 250, maxW: 248, wipeH: 11 });
+  // Tabel plată — beneficiar + bancă pe rândul 0, IBAN pe rândul 1
+  // Col BENEFICIAR 31.3–197.3 | BANCA 198.8–471.9
+  // rând0 334.2–345.8 | rând1 346.2–357.8
+  fill(beneficiar, 37.0, 343.2, {
+    size: 8,
+    maxW: 154,
+    wipe: [32.5, 334.7, 196.0, 345.3],
+    padY: 0.1,
+  });
+  fill(banca, 207.0, 343.2, {
+    size: 8.5,
+    maxW: 255,
+    wipe: [201.0, 334.7, 470.0, 345.3],
+    padY: 0.1,
+  });
+  fill(cont, 207.0, 355.2, {
+    size: 7.5,
+    maxW: 255,
+    wipe: [201.0, 346.7, 470.0, 357.3],
+    padY: 0.1,
+  });
 
   const pdfBytes = await pdfDoc.save();
   const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
@@ -435,11 +495,6 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   URL.revokeObjectURL(url);
 }
 
-/**
- * Cerere despăgubire tipizată Asirom (după formularul public „Cerere de plată… asigurări generale”).
- * Auto: nr. dosar, tip poliță, bun avariat, asigurat, subsemnatul/delegat.
- * Sume, IBAN, CNP, bife plată: goale (de mână).
- */
 export async function generateazaCerereDespagubireAsirom(claim) {
   const doc = await createPdf();
   const parties = resolveCerereDespagubireParties(claim);
