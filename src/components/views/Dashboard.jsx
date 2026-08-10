@@ -12,7 +12,15 @@ import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
 
-export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte, onOpenAlerts }) {
+export default function Dashboard({
+  claims,
+  onOpen,
+  pragRidicare = 3,
+  onOpenRapoarte,
+  onOpenAlerts,
+  /** Same stagnate count as Centrul de Alerte (excludes blocate). */
+  stageOverdueCount = null,
+}) {
   const funnel = useMemo(() => buildAtelierFunnel(claims, { pragRidicare }), [claims, pragRidicare]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSecondaryKpis, setShowSecondaryKpis] = useState(false);
@@ -22,7 +30,11 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
   const gataNeridicateCount = claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length;
-  const overdueCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
+  // Same rule as buildAlertBuckets: blocate = inventar, not „termen depășit”
+  const overdueCount = useMemo(() => {
+    if (typeof stageOverdueCount === "number") return stageOverdueCount;
+    return claims.filter((c) => !c?.blocat && isStageOverdue(c)).length;
+  }, [claims, stageOverdueCount]);
 
   const masiniSchimbActive = useMemo(() => {
     return claims.filter((c) => c.masinaSchimb && c.masinaSchimb.trim() && c.status !== "facturat")
@@ -213,7 +225,7 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
               {overdueCount} {overdueCount === 1 ? "dosar cu termen depășit" : "dosare cu termen depășit"}
             </span>
             <span className="block app-type-xs text-[var(--app-muted)]">
-              Lista și acțiunile sunt în Centrul de Alerte
+              Aceeași listă ca în Centrul de Alerte (fără dosare blocate)
             </span>
           </span>
           <ChevronRight size={16} className="text-[var(--app-muted)] shrink-0" />

@@ -1379,6 +1379,7 @@ export default function App() {
                 pragRidicare={pragRidicare}
                 onOpenRapoarte={() => setView("rapoarte")}
                 onOpenAlerts={openAlerts}
+                stageOverdueCount={alertBuckets.counts.stagnate}
               />
             ) : view === "programator" ? (
               <Programator
