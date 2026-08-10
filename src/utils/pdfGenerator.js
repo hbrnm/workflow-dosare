@@ -482,32 +482,35 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   if (dosarVal) draw(dosarVal, dosarValX + 2, y, 11.5, fontBold);
   else dots(dosarValX, y, 160);
 
-  // —— Corp: Subsemnatul / societate (linii separate, lățime maximă) ——
+  // —— Corp: Subsemnatul + reprezentant pe o singură linie (text puțin mai mic) ——
   y -= 26;
-  draw("Subsemnatul(a)", left, y, bodySize, font);
-  {
-    const labelW = textW("Subsemnatul(a)", bodySize, font) + 5;
-    const fieldX = left + labelW;
-    const fieldW = Math.max(80, right - fieldX);
-    const subVal = fit(parties.subsemnatul || "", bodySize, fieldW - 4, fontBold);
-    if (subVal) draw(subVal, fieldX, y, bodySize, fontBold);
-    else dots(fieldX, y, fieldW);
-  }
+  const partySize = 9.8;
+  const subLabel = "Subsemnatul(a)";
+  const firmLabel = ", reprezentant al societatii";
+  let cx = left;
+  draw(subLabel, cx, y, partySize, font);
+  cx += textW(subLabel, partySize, font) + 4;
 
-  y -= lineStep;
-  draw("reprezentant al societatii", left, y, bodySize, font);
-  {
-    const labelW = textW("reprezentant al societatii", bodySize, font) + 5;
-    const fieldX = left + labelW;
-    const fieldW = Math.max(80, right - fieldX);
-    const firmVal = fit(parties.reprezentantSocietate || "", bodySize, fieldW - 4, fontBold);
-    if (firmVal) draw(firmVal, fieldX, y, bodySize, fontBold);
-    else dots(fieldX, y, fieldW);
-  }
+  const firmLabelW = textW(firmLabel, partySize, font) + 4;
+  const valuesBudget = Math.max(120, right - cx - firmLabelW);
+  // ~45% pentru nume, restul pentru societate
+  const subFieldW = Math.min(150, Math.floor(valuesBudget * 0.42));
+  const firmFieldW = valuesBudget - subFieldW;
+
+  const subVal = fit(parties.subsemnatul || "", partySize, subFieldW - 3, fontBold);
+  if (subVal) draw(subVal, cx, y, partySize, fontBold);
+  else dots(cx, y, subFieldW);
+  cx += subFieldW;
+
+  draw(firmLabel, cx, y, partySize, font);
+  cx += firmLabelW;
+  const firmVal = fit(parties.reprezentantSocietate || "", partySize, firmFieldW - 2, fontBold);
+  if (firmVal) draw(firmVal, cx, y, partySize, fontBold);
+  else dots(cx, y, Math.max(40, right - cx));
 
   y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
-  let cx = left + textW("CUI/CNP", bodySize, font) + 5;
+  cx = left + textW("CUI/CNP", bodySize, font) + 5;
   dots(cx, y, 82);
   cx += 86;
   draw(", domiciliat in", cx, y, bodySize, font);
