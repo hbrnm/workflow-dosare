@@ -463,20 +463,24 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   // Tabel plată — beneficiar + bancă pe rândul 0, IBAN pe rândul 1
   // Col BENEFICIAR 31.3–197.3 | BANCA 198.8–471.9
   // rând0 334.2–345.8 | rând1 346.2–357.8
-  fill(beneficiar, 37.0, 343.2, {
-    size: 8,
+  // Padding stânga celulă ≈ 5.7pt (ca la AUTO WASH: x 37 în col. beneficiar)
+  const payPadX = 5.7;
+  const beneficiarX = 31.3 + payPadX; // ≈ 37.0
+  const bancaX = 198.8 + payPadX; // ≈ 204.5 — același inset ca AUTO WASH
+  fill(beneficiar, beneficiarX, 343.2, {
+    size: 8.5,
     maxW: 154,
     wipe: [32.5, 334.7, 196.0, 345.3],
     padY: 0.1,
   });
-  fill(banca, 207.0, 343.2, {
+  fill(banca, bancaX, 343.2, {
     size: 8.5,
     maxW: 255,
     wipe: [201.0, 334.7, 470.0, 345.3],
     padY: 0.1,
   });
-  fill(cont, 207.0, 355.2, {
-    size: 7.5,
+  fill(cont, bancaX, 355.2, {
+    size: 8.5,
     maxW: 255,
     wipe: [201.0, 346.7, 470.0, 357.3],
     padY: 0.1,
