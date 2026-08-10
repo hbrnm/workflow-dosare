@@ -20,7 +20,7 @@ import {
   generateazaCerereDespagubireOmniasig,
   generateazaCerereDespagubireAsirom,
 } from "../../utils/pdfGenerator";
-import { resolveCerereDespagubireKind } from "../../utils/cerereDespagubire";
+import { resolveCerereDespagubireKind, OMNIASIG_CERERE_PLATA } from "../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../constants/branding";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
@@ -974,7 +974,15 @@ export default function ClaimModal({
                           }`}
                           onClick={async () => {
                             setPdfMenuOpen(false);
-                            await generateazaCerereDespagubireOmniasig(form);
+                            const branding = loadCachedBranding();
+                            await generateazaCerereDespagubireOmniasig(form, {
+                              atelierNume: branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar,
+                              plata: {
+                                beneficiar: OMNIASIG_CERERE_PLATA.beneficiar,
+                                banca: OMNIASIG_CERERE_PLATA.banca,
+                                cont: OMNIASIG_CERERE_PLATA.cont,
+                              },
+                            });
                           }}
                         >
                           <FileText size={13} /> Cerere Omniasig

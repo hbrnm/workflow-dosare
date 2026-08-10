@@ -70,6 +70,32 @@ describe("resolveCerereDespagubireParties", () => {
     expect(r.subsemnatul).toBe("Ionescu Maria");
     expect(r.reprezentantSocietate).toBe("");
   });
+
+  it("always uses delegat for Subsemnatul when proprietar differs (uppercase / diacritics)", () => {
+    const r = resolveCerereDespagubireParties({
+      client: "POPESCU ION",
+      delegat: "IONESCU MARIA",
+    });
+    expect(r.hasSeparateDelegat).toBe(true);
+    expect(r.subsemnatul).toBe("IONESCU MARIA");
+
+    const r2 = resolveCerereDespagubireParties({
+      client: "Ștefan Popescu",
+      delegat: "Stefan Popescu",
+    });
+    expect(r2.hasSeparateDelegat).toBe(false);
+    expect(r2.subsemnatul).toBe("Ștefan Popescu");
+  });
+
+  it("accepts proprietar alias instead of client", () => {
+    const r = resolveCerereDespagubireParties({
+      proprietar: "SC Auto SRL",
+      delegat: "Delegat Unu",
+    });
+    expect(r.proprietar).toBe("SC Auto SRL");
+    expect(r.subsemnatul).toBe("Delegat Unu");
+    expect(r.reprezentantSocietate).toBe("SC Auto SRL");
+  });
 });
 
 describe("asigurator → tip cerere", () => {
