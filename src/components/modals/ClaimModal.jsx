@@ -1277,16 +1277,16 @@ export default function ClaimModal({
                                   }}
                                 />
                                 <div className="flex items-center gap-0.5 shrink-0">
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Înlocuire">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Înlocuire">
                                     <input type="checkbox" checked={!!op.inl} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], inl: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> INL
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Revopsire">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Revopsire">
                                     <input type="checkbox" checked={!!op.rev} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rev: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REV
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[var(--app-success)] text-white border-[var(--app-success)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Reparație">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[var(--app-success)] text-white border-[var(--app-success)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Reparație">
                                     <input type="checkbox" checked={!!op.rep} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rep: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REP
                                   </label>
-                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[var(--app-text)] text-white border-[var(--app-text)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-100"}`} title="Demontare / Montare">
+                                  <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[var(--app-text)] text-white border-[var(--app-text)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Demontare / Montare">
                                     <input type="checkbox" checked={!!op.uni} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], uni: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> UNI
                                   </label>
                                   <button type="button" onClick={() => { const newList = form.operatiuni.filter((_, i) => i !== idx); set("operatiuni", newList); set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", ")); }} className="p-1 text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors ml-0.5" title="Șterge linia">
@@ -1389,7 +1389,7 @@ export default function ClaimModal({
                           {form.telefonClient && (
                             <>
                               <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
-                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[#D3E8D5] text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
+                              <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
                             </>
                           )}
                         </div>
@@ -1416,7 +1416,7 @@ export default function ClaimModal({
                               title={`${s.num}. ${s.label}`}
                               className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
                               style={{
-                                backgroundColor: isDone || isCurrent ? phaseColor : "#D1CDC0",
+                                backgroundColor: isDone || isCurrent ? phaseColor : "var(--app-border)",
                                 opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3,
                               }}
                             />

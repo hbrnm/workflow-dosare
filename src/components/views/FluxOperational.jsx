@@ -74,7 +74,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
+      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
         claim.blocat || overdue ? "is-alert" : ""
       } ${isSearchHighlight ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
+import { useModalEscape } from "../../hooks/useModalEscape";
 import "../../styles/liveCamera.css";
 
 export default function LiveStreamCameraModal({ initialCategorie = "receptie", onSavePhoto, onClose }) {
@@ -13,6 +14,8 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
   const thumbUrlRef = useRef(null);
   const aliveRef = useRef(true);
   const flashTimerRef = useRef(null);
+
+  useModalEscape(onClose);
 
   useEffect(() => {
     setCategorie(initialCategorie);

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X, Zap, ZapOff, Check, Trash2, RotateCcw, FileText, Camera } from "lucide-react";
 import DocumentCropModal from "./DocumentCropModal";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 /**
  * Scanner documente — flux tip aplicație pro, fără overlay live (slab pe PWA):
@@ -21,6 +22,8 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const capturingRef = useRef(false);
+
+  useModalEscape(onClose, { enabled: !pendingCrop });
 
   useEffect(() => {
     let cancelled = false;
@@ -165,6 +168,7 @@ export default function LiveDocumentScanner({ onComplete, onClose, initialPages 
               onClick={onClose}
               className="p-2 rounded-full bg-white/10 hover:bg-white/20"
               title="Închide"
+              aria-label="Închide"
             >
               <X size={20} />
             </button>

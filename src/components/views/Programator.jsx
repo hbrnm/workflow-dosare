@@ -351,16 +351,18 @@ export default function Programator({
           {/* Calendar controls */}
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={prevWeek}
               className="app-prog-nav-btn p-1.5 rounded transition-colors"
               title="Săptămâna anterioară"
+              aria-label="Săptămâna anterioară"
             >
               <ChevronLeft size={15} />
             </button>
-            <button onClick={handleSetToday} className="app-prog-nav-today px-3 py-1 rounded font-semibold text-[11.5px] transition-colors">
+            <button type="button" onClick={handleSetToday} className="app-prog-nav-today px-3 py-1 rounded font-semibold text-[11.5px] transition-colors">
               Mergi la azi
             </button>
-            <button onClick={nextWeek} className="app-prog-nav-btn p-1.5 rounded transition-colors" title="Săptămâna următoare">
+            <button type="button" onClick={nextWeek} className="app-prog-nav-btn p-1.5 rounded transition-colors" title="Săptămâna următoare" aria-label="Săptămâna următoare">
               <ChevronRight size={15} />
             </button>
             <span className="app-prog-range font-bold text-[12.5px] ml-1 px-2 py-1 rounded">

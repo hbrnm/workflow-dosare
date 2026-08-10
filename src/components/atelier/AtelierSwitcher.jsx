@@ -174,7 +174,7 @@ export default function AtelierSwitcher({
         aria-label={active ? `Atelier ${active.nume}` : "Meniu cont"}
       >
         {active?.logoUrl ? (
-          <img src={active.logoUrl} alt="" className="w-7 h-7 rounded-md object-contain bg-white" />
+          <img src={active.logoUrl} alt="" className="w-7 h-7 rounded-md object-contain bg-[var(--app-surface)]" />
         ) : (
           <div className="w-7 h-7 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">
             {mark}

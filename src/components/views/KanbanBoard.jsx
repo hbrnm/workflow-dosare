@@ -100,16 +100,20 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         >
           <div className="flex items-center gap-0.5">
             <button
+              type="button"
               disabled={!canEdit || !hasKnownStatus || idx === 0}
               onClick={() => onMove(claim, -1)}
               className="p-0.5 rounded hover:bg-[var(--app-border-soft)] disabled:opacity-25 text-[var(--app-muted)]"
               title="Mută înapoi"
+              aria-label="Mută înapoi"
             >
               <ChevronLeft size={13} />
             </button>
             <button
+              type="button"
               onClick={() => onDuplicate(claim)}
               title="Duplică dosarul"
+              aria-label="Duplică dosarul"
               className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] hover:text-[var(--app-muted)]"
             >
               <Copy size={11} />
@@ -119,10 +123,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             {stageMeta}
           </span>
           <button
+            type="button"
             disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
             onClick={() => onMove(claim, 1)}
             className="p-0.5 rounded hover:bg-[var(--app-border-soft)] disabled:opacity-25 text-[var(--app-muted)]"
             title="Mută înainte"
+            aria-label="Mută înainte"
           >
             <ChevronRight size={13} />
           </button>
@@ -259,16 +265,20 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       >
         <div className="flex items-center gap-0.5">
           <button
+            type="button"
             disabled={!canEdit || !hasKnownStatus || idx === 0}
             onClick={() => onMove(claim, -1)}
             className="p-0.5 rounded hover:bg-[var(--app-border-soft)] disabled:opacity-25 text-[var(--app-muted)]"
             title="Mută înapoi"
+            aria-label="Mută înapoi"
           >
             <ChevronLeft size={13} />
           </button>
           <button
+            type="button"
             onClick={() => onDuplicate(claim)}
             title="Duplică dosarul"
+            aria-label="Duplică dosarul"
             className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] hover:text-[var(--app-muted)]"
           >
             <Copy size={11} />
@@ -280,10 +290,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         </span>
 
         <button
+          type="button"
           disabled={!canEdit || !hasKnownStatus || idx === STATUSES.length - 1}
           onClick={() => onMove(claim, 1)}
           className="p-0.5 rounded hover:bg-[var(--app-border-soft)] disabled:opacity-25 text-[var(--app-muted)]"
           title="Mută înainte"
+          aria-label="Mută înainte"
         >
           <ChevronRight size={13} />
         </button>

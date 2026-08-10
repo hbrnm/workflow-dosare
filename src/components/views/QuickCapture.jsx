@@ -241,7 +241,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[var(--app-chrome)] text-white shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             {step === "capture" ? (
-              <button onClick={backToPick} className="p-1 -ml-1 rounded-md hover:bg-white/10 shrink-0" title="Schimbă dosarul">
+              <button type="button" onClick={backToPick} className="p-1 -ml-1 rounded-md hover:bg-white/10 shrink-0" title="Schimbă dosarul" aria-label="Schimbă dosarul">
                 <ChevronLeft size={20} />
               </button>
             ) : (
@@ -256,7 +256,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 shrink-0">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 shrink-0" title="Închide" aria-label="Închide">
             <X size={20} />
           </button>
         </div>

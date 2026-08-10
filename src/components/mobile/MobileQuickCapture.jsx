@@ -619,6 +619,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeletePhoto(e, idx)}
                         className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
                         title="Șterge fotografia"
+                        aria-label="Șterge fotografia"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -672,6 +673,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeleteDocument(e, idx)}
                         className="p-1 bg-[#B23A2E]/10 hover:bg-[#B23A2E] text-[#B23A2E] hover:text-white rounded-lg transition-colors"
                         title="Șterge documentul"
+                        aria-label="Șterge documentul"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -723,6 +725,7 @@ export default function MobileQuickCapture({
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
                       className="absolute top-2 right-2 bg-[#B23A2E] text-white p-1.5 rounded-lg shadow-md"
                       title="Șterge pagina"
+                      aria-label="Șterge pagina"
                     >
                       <Trash2 size={15} />
                     </button>

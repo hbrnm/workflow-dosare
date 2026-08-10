@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { CalendarClock, X, AlertTriangle } from "lucide-react";
 import { todayISO } from "../../utils/dateUtils";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 /**
  * Popup când programarea nu s-a onorat: anulare sau reprogramare.
@@ -14,6 +15,8 @@ export default function ProgramareNeonorataModal({ claim, onClose, onCancel, onR
     claim?.dataProgramare ? (String(claim.dataProgramare).slice(11, 16) || "09:00") : "09:00"
   );
   const [saving, setSaving] = useState(false);
+
+  useModalEscape(onClose, { enabled: Boolean(claim) });
 
   if (!claim) return null;
 
@@ -51,7 +54,12 @@ export default function ProgramareNeonorataModal({ claim, onClose, onCancel, onR
             <AlertTriangle size={18} />
             <span className="font-extrabold text-[13px]">Programare neonorată</span>
           </div>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Închide"
+            className="p-1 rounded hover:bg-[var(--app-surface-muted)] text-[var(--app-muted)]"
+          >
             <X size={18} />
           </button>
         </div>

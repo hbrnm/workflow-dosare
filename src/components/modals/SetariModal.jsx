@@ -1160,8 +1160,8 @@ export default function SetariModal({
                                   onClick={() => onToggleAdminRole(u.email)}
                                   className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
                                     isUserAdmin
-                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-gray-200"
-                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[#F3D9A8]"
+                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"
+                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[var(--app-accent)]/15"
                                   }`}
                                   title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
                                 >
