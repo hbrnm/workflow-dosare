@@ -9,7 +9,7 @@
 /** Destinație plată din formularul tipizat Omniasig (atelier). */
 export const OMNIASIG_CERERE_PLATA = {
   beneficiar: "SC AUTO WASH IMPEX SRL",
-  banca: "PRO CREDIT BANK",
+  banca: "PROCREDIT BANK",
   cont: "RO56 MIRO 0000 1184 0304 0301",
 };
 
