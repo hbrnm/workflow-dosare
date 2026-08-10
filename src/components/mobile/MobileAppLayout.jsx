@@ -399,7 +399,8 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             highlightClaimIds={highlightClaimIds}
             onBackToBrief={() => handleTabChange("brief")}
-            initialStatusFilter={dosareStatusFilter}
+            statusFilter={dosareStatusFilter}
+            onStatusFilterChange={setDosareStatusFilter}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari
