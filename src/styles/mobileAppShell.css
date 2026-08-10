@@ -1721,12 +1721,16 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .mobile-shell.app-shell .m-brief-claim-date {
+  display: block;
+  margin: 0.05rem 0 0;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: var(--m-type-micro, 0.72rem);
+  font-size: var(--m-type-meta, 0.75rem);
   font-weight: 800;
-  color: var(--app-text-strong);
+  color: var(--app-accent);
   letter-spacing: 0.01em;
   white-space: nowrap;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .mobile-shell.app-shell .m-brief-claim-days {

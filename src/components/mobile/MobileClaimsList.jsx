@@ -11,7 +11,7 @@ import {
 } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
-import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
+import { telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
 import { getLatestClaimNoteText } from "../../utils/alertUtils";
@@ -49,13 +49,8 @@ function CompactClaimCard({
   const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
   const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
   const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
-  const programareLabel =
-    c.status === "programat" && c.dataProgramare
-      ? formatProgramareShort(c.dataProgramare)
-      : "";
-  const subline = [programareLabel ? `Programare ${programareLabel}` : "", noteText || c.client || ""]
-    .filter(Boolean)
-    .join(" · ");
+  const programareLabel = formatProgramareDate(c.dataProgramare);
+  const subline = noteText || c.client || "";
   const showPieseRow = isPieseComandateStatus(c.status);
   const canEdit = !canEditFn || canEditFn(c);
 
@@ -101,6 +96,11 @@ function CompactClaimCard({
             </span>
           ) : null}
         </div>
+        {programareLabel ? (
+          <p className="m-brief-claim-date" title={`Programare ${programareLabel}`}>
+            {programareLabel}
+          </p>
+        ) : null}
         {showPieseRow ? (
           <MobilePieseSositeRow
             claim={c}

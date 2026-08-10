@@ -883,6 +883,19 @@
   white-space: nowrap;
 }
 
+.app-shell .app-brief-flow-date {
+  display: block;
+  margin: 0.05rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--app-accent);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
 .app-shell .app-brief-flow-sub {
   margin: 0;
   font-size: 0.7rem;

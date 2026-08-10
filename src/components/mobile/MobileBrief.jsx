@@ -4,7 +4,7 @@ import {
   List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink, fmtDate, formatProgramareShort, todayISO, getSinceMeta } from "../../utils/dateUtils";
+import { telLink, formatProgramareDate, todayISO, getSinceMeta } from "../../utils/dateUtils";
 import {
   buildAlertBuckets,
   filterAlertItems,
@@ -597,16 +597,12 @@ export default function MobileBrief({
   const renderClaimRow = (c) => {
     const phone = c.telefonClient || "";
     const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
-    const programareLabel = c.dataProgramare
-      ? (focus === "programat"
-        ? formatProgramareShort(c.dataProgramare) || fmtDate(String(c.dataProgramare).slice(0, 10))
-        : fmtDate(String(c.dataProgramare).slice(0, 10)))
-      : "";
+    const programareLabel = formatProgramareDate(c.dataProgramare);
     const stageSince = getStageSinceMeta(c);
     const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
     const statusTitle = [
       stageSince.title,
-      focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
+      programareLabel ? `Programare ${programareLabel}` : "",
     ].filter(Boolean).join(" · ");
     const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
     const stageAccent = getStageAccent(c.status);
@@ -621,10 +617,7 @@ export default function MobileBrief({
       Boolean(onGoCapture || onGoTab) && (focus === "programat" || focus === "lucru");
     const isExiting = exitingIds.has(c.id);
     const isFlash = flashIds.has(c.id);
-    const subline = [
-      focus === "programat" && programareLabel ? `Programare ${programareLabel}` : "",
-      noteText,
-    ].filter(Boolean).join(" · ");
+    const subline = noteText || "";
 
     return (
       <li key={c.id}>
@@ -668,6 +661,11 @@ export default function MobileBrief({
                 </span>
               ) : null}
             </div>
+            {programareLabel ? (
+              <p className="m-brief-claim-date" title={`Programare ${programareLabel}`}>
+                {programareLabel}
+              </p>
+            ) : null}
             {subline ? (
               <p className="m-brief-alerte-why is-muted" title={subline}>
                 {subline}
