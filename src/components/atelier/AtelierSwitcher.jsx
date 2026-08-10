@@ -94,11 +94,6 @@ export default function AtelierSwitcher({
                 <div className="text-[13px] font-semibold text-[var(--app-text-strong)] truncate">
                   {active.nume}
                 </div>
-                {active.slug ? (
-                  <div className="text-[10px] font-mono text-[var(--app-muted)] truncate">
-                    ?atelier={active.slug}
-                  </div>
-                ) : null}
               </div>
             ) : null}
 
