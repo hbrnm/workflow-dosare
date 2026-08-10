@@ -1378,6 +1378,7 @@ export default function App() {
                 onOpen={openExisting}
                 pragRidicare={pragRidicare}
                 onOpenRapoarte={() => setView("rapoarte")}
+                onOpenAlerts={openAlerts}
               />
             ) : view === "programator" ? (
               <Programator

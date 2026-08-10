@@ -1,18 +1,18 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter, ChevronRight } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
 } from "recharts";
-import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition, getClaimAlertDays } from "../../constants/config";
+import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition } from "../../constants/config";
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
+import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import { buildAtelierFunnel } from "../../utils/atelierFunnel";
 import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
 
-export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte }) {
+export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapoarte, onOpenAlerts }) {
   const funnel = useMemo(() => buildAtelierFunnel(claims, { pragRidicare }), [claims, pragRidicare]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSecondaryKpis, setShowSecondaryKpis] = useState(false);
@@ -22,10 +22,7 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
   const active = claims.filter((c) => c.status !== "facturat").length;
   const blockedCount = claims.filter((c) => c.blocat).length;
   const gataNeridicateCount = claims.filter((c) => isReadyForPickupOverdue(c, pragRidicare)).length;
-
-  const overdueList = claims.filter(isStageOverdue)
-    .map((c) => ({ ...c, zileIntarziere: getDaysInStage(c) - getClaimAlertDays(c) }))
-    .sort((a, b) => b.zileIntarziere - a.zileIntarziere);
+  const overdueCount = useMemo(() => claims.filter(isStageOverdue).length, [claims]);
 
   const masiniSchimbActive = useMemo(() => {
     return claims.filter((c) => c.masinaSchimb && c.masinaSchimb.trim() && c.status !== "facturat")
@@ -203,32 +200,25 @@ export default function Dashboard({ claims, onOpen, pragRidicare = 3, onOpenRapo
         </div>
       )}
 
-      <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] overflow-hidden">
-        <div className="bg-[var(--app-danger)] text-[var(--app-danger-text)] px-3 py-2 app-type-sm font-semibold flex items-center gap-1.5">
-          <AlertTriangle size={14} /> Dosare cu termen depășit ({overdueList.length})
-        </div>
-        {overdueList.length === 0 ? (
-          <div className="app-empty border-0 rounded-none">Niciun dosar depășit — totul e sub control.</div>
-        ) : (
-          <div className="divide-y divide-[var(--app-border-soft)] max-h-64 overflow-y-auto">
-            {overdueList.map((c) => {
-              const s = getStatusDefinition(c.status);
-              return (
-                <div key={c.id} onClick={() => onOpen(c)} className="px-3 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 cursor-pointer hover:bg-[var(--app-surface-2)]">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono font-semibold app-type-sm">{c.numarDosar || "—"}</span>
-                      <span className="app-type-xs text-[var(--app-muted)]">{c.client}</span>
-                    </div>
-                    <div className="app-type-xs text-[var(--app-muted)] mt-0.5">{String(s.num).padStart(2, "0")}. {s.label}</div>
-                  </div>
-                  <span className="app-type-xs font-semibold px-2 py-0.5 rounded bg-[var(--app-danger)] text-[var(--app-danger-text)] self-start sm:self-auto shrink-0">+{c.zileIntarziere}z restante</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Termen depășit lives in Centrul de Alerte / Brief — stats only link out */}
+      {onOpenAlerts && overdueCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => onOpenAlerts("depasite")}
+          className="w-full rounded-lg border border-[var(--app-danger)]/40 bg-[var(--app-danger)]/10 px-3 py-2.5 flex items-center gap-2 text-left hover:bg-[var(--app-danger)]/15 transition-colors"
+        >
+          <AlertTriangle size={15} className="text-[var(--app-danger)] shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="app-type-sm font-semibold text-[var(--app-text-strong)]">
+              {overdueCount} {overdueCount === 1 ? "dosar cu termen depășit" : "dosare cu termen depășit"}
+            </span>
+            <span className="block app-type-xs text-[var(--app-muted)]">
+              Lista și acțiunile sunt în Centrul de Alerte
+            </span>
+          </span>
+          <ChevronRight size={16} className="text-[var(--app-muted)] shrink-0" />
+        </button>
+      ) : null}
 
       {showExportModal && (
         <ExportExcelModal
