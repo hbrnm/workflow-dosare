@@ -3,7 +3,7 @@ import {
   FileText, FileDown, Copy, X, ShieldCheck, History, Loader2, Car, Phone, MessageCircle,
   Clock, AlertOctagon, Wrench, Paintbrush, ImageIcon, Upload, Trash2, Save, MessageSquare, Plus,
   FolderOpen, CheckCircle2, CalendarClock, Wallet, Tag, AlertCircle, Sparkles, User as UserIcon,
-  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer, ClipboardList, Package
+  CheckSquare, Square, Download, Calendar, Eye, Layers, Printer, ClipboardList, Package, BarChart3
 } from "lucide-react";
 import {
   STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus,
@@ -43,6 +43,7 @@ import AudatexImportCard from "../common/AudatexImportCard";
 import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
 import { loadCachedManoperaTarife } from "../../constants/manoperaTarife";
 import { computeServiceLaborCosts, applyLaborCostsToClaim, hasConfiguredLaborRates } from "../../utils/manoperaCost";
+import { buildServiceCostBreakdown } from "../../utils/serviceCostBreakdown";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 import { useModalEscape } from "../../hooks/useModalEscape";
 
@@ -484,6 +485,28 @@ export default function ClaimModal({
     costMasinaSchimb;
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
+
+  const serviceCostBreakdown = useMemo(
+    () =>
+      buildServiceCostBreakdown({
+        piese: pretPieseService,
+        manoperaTinichigerie: costManoperaTinichigerieService,
+        manoperaVopsitorie: costManoperaVopsitorieService,
+        materialeVopsitorie: costMaterialeVopsitorieService,
+        consumabileTinichigerie: costConsumabileTinichigerieService,
+        diverse: cheltuieliDiverseService,
+        masinaSchimb: costMasinaSchimb,
+      }),
+    [
+      pretPieseService,
+      costManoperaTinichigerieService,
+      costManoperaVopsitorieService,
+      costMaterialeVopsitorieService,
+      costConsumabileTinichigerieService,
+      cheltuieliDiverseService,
+      costMasinaSchimb,
+    ]
+  );
 
   const toggleGata = (checked) => setForm((f) => ({
     ...f,
@@ -2166,6 +2189,47 @@ export default function ClaimModal({
                             {parseFloat(marjaProfitProc) >= 25 ? "Excelent" : parseFloat(marjaProfitProc) >= 15 ? "Acceptabil" : parseFloat(marjaProfitProc) >= 0 ? "Slab" : "Pierdere"}
                           </div>
                         </div>
+                      </div>
+
+                      {/* Structură costuri service */}
+                      <div className="mt-2.5 p-2.5 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
+                        <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-2 flex items-center gap-1">
+                          <BarChart3 size={12} /> Structură costuri service
+                          {serviceCostBreakdown.total > 0 && (
+                            <span className="ml-auto font-mono font-normal normal-case text-[10px] text-[var(--app-text-strong)]">
+                              {serviceCostBreakdown.total.toLocaleString("ro-RO")} lei
+                            </span>
+                          )}
+                        </div>
+
+                        {serviceCostBreakdown.rows.length === 0 ? (
+                          <p className="text-[10px] text-[var(--app-muted)]">Completează costurile reale pentru a vedea distribuția.</p>
+                        ) : (
+                          <>
+                            <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--app-surface-2)] border border-[var(--app-border)] mb-2.5">
+                              {serviceCostBreakdown.rows.map((row) => (
+                                <div
+                                  key={row.key}
+                                  className={`${row.barClass} h-full min-w-[2px] transition-all`}
+                                  style={{ width: `${row.pct}%` }}
+                                  title={`${row.label}: ${row.amount.toLocaleString("ro-RO")} lei (${row.pct}%)`}
+                                />
+                              ))}
+                            </div>
+                            <div className="space-y-1.5">
+                              {serviceCostBreakdown.rows.map((row) => (
+                                <div key={row.key} className="flex items-center gap-2 text-[10.5px]">
+                                  <span className={`w-2 h-2 rounded-full shrink-0 ${row.barClass}`} />
+                                  <span className="flex-1 min-w-0 truncate text-[var(--app-muted)]">{row.label}</span>
+                                  <span className="font-mono font-bold text-[var(--app-text-strong)] shrink-0">
+                                    {row.amount.toLocaleString("ro-RO")} lei
+                                  </span>
+                                  <span className="font-mono text-[var(--app-muted)] w-10 text-right shrink-0">{row.pct}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Marjă piese */}
