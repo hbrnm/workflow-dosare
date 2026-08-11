@@ -175,6 +175,17 @@ function extractDescription(line) {
   return raw.slice(0, 120);
 }
 
+function looksLikePartRow(line) {
+  const text = String(line || "").trim();
+  if (!text) return false;
+  if (SECTION_STOP.test(text) || SECTION_TITLE.test(text) || HEADER_NOISE.test(text)) return false;
+  if (/^Total\b/i.test(text)) return false;
+  const hasMoney = /-?\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})|-?\d+(?:,\d{1,2})/.test(text);
+  const hasCode = /\b[A-Z0-9./-]{5,}\b/.test(text);
+  const hasWords = (text.match(/[A-Za-zăâîșțĂÂÎȘȚ]/g) || []).length >= 4;
+  return hasMoney && hasCode && hasWords;
+}
+
 function labourFlagsFromText(desc) {
   const t = normalizePartName(desc);
   const flags = { inl: false, rev: false, rep: false, uni: false };
@@ -255,8 +266,8 @@ export function extractEstimateLineItems(text) {
   for (const line of partsLines) {
     if (SECTION_STOP.test(line) || SECTION_TITLE.test(line) || HEADER_NOISE.test(line)) continue;
     if (/^Total\b/i.test(line)) continue;
-    // Prefer numbered rows (DAT/Audatex); allow pipe-separated exports
-    if (!/^\d{1,3}[.)]?\s+/.test(line) && !/\|/.test(line)) continue;
+    // Prefer numbered rows, but also accept coded rows from exports without index column.
+    if (!/^\d{1,3}[.)]?\s+/.test(line) && !/\|/.test(line) && !looksLikePartRow(line)) continue;
     const desc = extractDescription(line);
     if (!desc) continue;
     if (/^(caroserie|mecanica|material|manopera|vopsitorie|piese)\b/i.test(desc)) continue;

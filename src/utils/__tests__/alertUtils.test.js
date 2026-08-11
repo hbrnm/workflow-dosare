@@ -40,7 +40,7 @@ describe('alertUtils', () => {
 
   it('isStageOverdue should detect overdue stage based on dataSchimbareStatus', () => {
     // programat default alertDays = 3; frozen termenAlertaZile pe dosar e ignorat
-    const claim = { status: 'programat', dataSchimbareStatus: isoDaysAgo(4), termenAlertaZile: 99 };
+    const claim = { status: 'programat', dataSchimbareStatus: isoDaysAgo(6), termenAlertaZile: 99 };
     expect(isStageOverdue(claim)).toBe(true);
     const claim2 = { status: 'facturat', dataSchimbareStatus: isoDaysAgo(10) };
     expect(isStageOverdue(claim2)).toBe(false);
@@ -66,7 +66,7 @@ describe('alertUtils', () => {
     expect(isStageOverdue({
       status: 'programat',
       dataSchimbareStatus: isoDaysAgo(20),
-      dataProgramare: isoDaysAgo(4),
+      dataProgramare: isoDaysAgo(6),
     })).toBe(true);
     expect(isStageOverdue({
       status: 'programat',
@@ -76,7 +76,7 @@ describe('alertUtils', () => {
     expect(getDaysInStage({
       status: 'programat',
       dataSchimbareStatus: isoDaysAgo(20),
-      dataProgramare: isoDaysAgo(4),
+      dataProgramare: isoDaysAgo(6),
     })).toBe(4);
   });
 
@@ -192,7 +192,7 @@ describe('alertUtils', () => {
         id: '4',
         gataDeRidicare: true,
         ridicata: false,
-        dataGataRidicare: isoDaysAgo(4),
+        dataGataRidicare: isoDaysAgo(6),
         status: 'gata_de_ridicare',
       },
       {

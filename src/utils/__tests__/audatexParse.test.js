@@ -54,6 +54,13 @@ Total Manopera 400,00 Total Material 600,00 Total Vopsitorie 1.000,00
 Cost Reparatie netto 6.380,00
 `;
 
+const SAMPLE_PARTS_WITHOUT_INDEX = `
+Lista Piese de schimb
+5G0821105A Aripa fata stanga 1 1.850,00 1.850,00
+5G0853655 Far stanga 1 2.100,00 2.100,00
+Total Piese 3.950,00
+`;
+
 describe("audatexParse", () => {
   it("parseRoMoney handles Romanian thousands", () => {
     expect(parseRoMoney("8.954,35")).toBeCloseTo(8954.35, 2);
@@ -103,6 +110,13 @@ describe("audatexParse", () => {
     expect(items.paint.length).toBeGreaterThanOrEqual(1);
     expect(items.operations.some((o) => o.inl)).toBe(true);
     expect(items.operations.some((o) => o.uni || o.rev || o.rep)).toBe(true);
+  });
+
+  it("extracts parts rows even when export has no position index", () => {
+    const items = extractEstimateLineItems(SAMPLE_PARTS_WITHOUT_INDEX);
+    expect(items.parts.length).toBeGreaterThanOrEqual(2);
+    expect(items.operations.some((o) => /ARIPA/.test(o.piesa))).toBe(true);
+    expect(items.operations.some((o) => /FAR/.test(o.piesa))).toBe(true);
   });
 
   it("applyEstimateValuesToClaim syncs financiar + manopera", () => {

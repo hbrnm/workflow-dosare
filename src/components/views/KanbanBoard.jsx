@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
-import { daysBetween, telLink, formatProgramareShort } from "../../utils/dateUtils";
+import { daysBetween, telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
@@ -26,6 +26,9 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       ? formatProgramareShort(claim.dataProgramare)
       : "";
   const stageMeta = scheduleLabel || `${days}z în etapă`;
+  const stageSince = getSinceMeta(claim.dataSchimbareStatus || claim.dataDeschiderii || null);
+  const stageSinceLabel = stageSince.dateTimeLabel ? `În etapă din ${stageSince.dateTimeLabel}` : "";
+  const blockedReason = String(claim.motivBlocare || claim.motivBlocat || "").trim();
 
   if (compact) {
     return (
@@ -77,6 +80,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             <span className="truncate max-w-[90px]">{claim.marcaModel || claim.asigurator}</span>
           </div>
 
+          {stageSinceLabel ? (
+            <p className="text-[10px] text-[var(--app-muted)] truncate" title={stageSinceLabel}>
+              {stageSinceLabel}
+            </p>
+          ) : null}
+
           {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata)) && (
             <div className="flex items-center gap-1 flex-wrap text-[9.5px]">
               {claim.blocat && <Pill tone="danger">blocat</Pill>}
@@ -92,6 +101,11 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
               )}
             </div>
           )}
+          {claim.blocat && blockedReason ? (
+            <p className="text-[10px] text-[var(--app-danger)] font-semibold truncate" title={`Motiv blocare: ${blockedReason}`}>
+              Motiv blocare: {blockedReason}
+            </p>
+          ) : null}
         </div>
 
         <div
@@ -235,6 +249,12 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </span>
         </div>
 
+        {stageSinceLabel ? (
+          <p className="text-[10px] text-[var(--app-muted)] truncate" title={stageSinceLabel}>
+            {stageSinceLabel}
+          </p>
+        ) : null}
+
         {/* Active Badges */}
         {(claim.blocat || claim.masinaSchimb || (claim.gataDeRidicare && !claim.ridicata) || claim.adusaFizic) && (
           <div className="flex items-center gap-1 flex-wrap text-[9.5px] pt-0.5">
@@ -256,6 +276,11 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             )}
           </div>
         )}
+        {claim.blocat && blockedReason ? (
+          <p className="text-[10px] text-[var(--app-danger)] font-semibold truncate" title={`Motiv blocare: ${blockedReason}`}>
+            Motiv blocare: {blockedReason}
+          </p>
+        ) : null}
       </div>
 
       {/* Card Footer */}

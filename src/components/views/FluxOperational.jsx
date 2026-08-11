@@ -3,7 +3,7 @@ import {
   Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
-import { daysBetween, telLink, formatProgramareShort } from "../../utils/dateUtils";
+import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline, getDaysInStage } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
@@ -53,9 +53,12 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
     claim.status === "programat" && claim.dataProgramare
       ? formatProgramareShort(claim.dataProgramare)
       : "";
+  const stageSince = getSinceMeta(claim.dataSchimbareStatus || claim.dataDeschiderii || null);
+  const stageSinceLabel = stageSince.dateTimeLabel ? `În etapă din ${stageSince.dateTimeLabel}` : "";
+  const blockedReason = String(claim.motivBlocare || claim.motivBlocat || "").trim();
   const ageTitle = scheduleLabel
     ? `Programat ${scheduleLabel}${overdue ? ` · +${days}z peste dată` : ""}`
-    : `${days} zile în stadiu · prag ${alertThreshold} zile`;
+    : `${days} zile în stadiu · prag ${alertThreshold} zile${stageSinceLabel ? ` · ${stageSinceLabel}` : ""}`;
 
   return (
     <div
@@ -103,6 +106,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={claim.client || claim.marcaModel}>
             {claim.client || claim.marcaModel || "—"}
           </p>
+          {stageSinceLabel ? (
+            <p className="text-[10px] text-[var(--app-muted)] truncate leading-4" title={stageSinceLabel}>
+              {stageSinceLabel}
+            </p>
+          ) : null}
         </div>
         <span
           className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
@@ -138,6 +146,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           {alertLine}
         </p>
       )}
+      {claim.blocat && blockedReason ? (
+        <p className="mt-1 text-[10px] font-semibold text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+          Motiv blocare: {blockedReason}
+        </p>
+      ) : null}
 
       {/* Piese comandate — bloc funcțional compact */}
       {isPieseComandateStatus(claim.status) && (

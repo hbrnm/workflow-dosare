@@ -1,4 +1,4 @@
-import { daysBetween, todayISO } from "./dateUtils";
+import { businessDaysSince, todayISO } from "./dateUtils";
 import { getStatusDefinition, getClaimAlertDays, isPieseComandateStatus } from "../constants/config";
 import { isPaymentOverdue, getDaysPaymentOverdue, getSettlementAmount, getEffectivePaymentDue } from "./settlementUtils";
 import { resolveAlertGroupKey, getAlertTypesForTab } from "../constants/alertCategories";
@@ -50,7 +50,7 @@ export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
     claim.gataDeRidicare &&
     !claim.ridicata &&
     claim.dataGataRidicare &&
-    daysBetween(claim.dataGataRidicare) >= pickupThresholdDays
+    businessDaysSince(claim.dataGataRidicare) >= pickupThresholdDays
   );
 }
 
@@ -67,12 +67,12 @@ export function isStageOverdue(claim) {
 
   const threshold = getClaimAlertDays(claim);
   const anchor = getStageAlertAnchor(claim);
-  return Boolean(anchor && daysBetween(anchor) >= threshold);
+  return Boolean(anchor && businessDaysSince(anchor) >= threshold);
 }
 
 export function getDaysInStage(claim) {
   const anchor = getStageAlertAnchor(claim);
-  return anchor ? daysBetween(anchor) : 0;
+  return anchor ? businessDaysSince(anchor) : 0;
 }
 
 // Dosare pe Accept plată (după reparație) — așteaptă decontare / facturare
@@ -91,12 +91,12 @@ export function isInactiveClaim(claim, inactivityThresholdDays = 7) {
   if (claim?.ridicata && key === "accept_plata") return false;
   if (claim?.alerteAck) return false;
   const lastUpdate = claim.dataUltimeiActualizari || claim.dataSchimbareStatus || claim.dataDeschiderii;
-  return daysBetween(lastUpdate) >= inactivityThresholdDays;
+  return businessDaysSince(lastUpdate) >= inactivityThresholdDays;
 }
 
 export function getDaysSinceLastActivity(claim) {
   const lastUpdate = claim?.dataUltimeiActualizari || claim?.dataSchimbareStatus || claim?.dataDeschiderii;
-  return lastUpdate ? daysBetween(lastUpdate) : 0;
+  return lastUpdate ? businessDaysSince(lastUpdate) : 0;
 }
 
 /** Dosar blocat / litigiu (stare inventar, nu alertă de reacție). */
@@ -123,12 +123,12 @@ export function isLoanerOverdue(claim) {
   if (claim.status === "facturat") return false;
   const zileChirie = Number(claim.zileChirieAudatex) || 0;
   if (zileChirie <= 0) return false;
-  const zile = daysBetween(claim.dataDariiLaSchimb || claim.dataProgramare);
+  const zile = businessDaysSince(claim.dataDariiLaSchimb || claim.dataProgramare);
   return zile > zileChirie;
 }
 
 export function getLoanerDaysUsed(claim) {
-  return daysBetween(claim?.dataDariiLaSchimb || claim?.dataProgramare);
+  return businessDaysSince(claim?.dataDariiLaSchimb || claim?.dataProgramare);
 }
 
 /** Piese sosite / status vechi piese_sosite, fără dată de programare. */
@@ -153,7 +153,7 @@ export function isDeliveryDeadlineOverdue(claim) {
 export function getDaysPastDeliveryDeadline(claim) {
   const termen = deliveryDateOnly(claim);
   if (!termen) return 0;
-  return daysBetween(`${termen}T12:00:00.000Z`);
+  return businessDaysSince(`${termen}T12:00:00.000Z`);
 }
 
 /** Piese comandate fără confirmare: termen livrare depășit sau fallback zile în stadiu. */
@@ -162,12 +162,12 @@ export function isPartsOrderOverdue(claim, pieseAlertDays = 4) {
   if (!isPieseComandateStatus(claim?.status) || claim?.pieseSosite) return false;
   if (isDeliveryDeadlineOverdue(claim)) return true;
   if (deliveryDateOnly(claim)) return false;
-  return daysBetween(claim.dataSchimbareStatus) > pieseAlertDays;
+  return businessDaysSince(claim.dataSchimbareStatus) > pieseAlertDays;
 }
 
 function sortByDaysDesc(claims, dateField) {
   return [...claims].sort(
-    (a, b) => daysBetween(b[dateField]) - daysBetween(a[dateField])
+    (a, b) => businessDaysSince(b[dateField]) - businessDaysSince(a[dateField])
   );
 }
 
@@ -184,7 +184,7 @@ export function getAlertMetric(item) {
       return { value: getDaysPastDeliveryDeadline(c), unit: "zile", hint: "peste termen" };
     case "neridicate":
       return {
-        value: c.dataGataRidicare ? daysBetween(c.dataGataRidicare) : 0,
+        value: c.dataGataRidicare ? businessDaysSince(c.dataGataRidicare) : 0,
         unit: "zile",
         hint: "gata de ridicare",
       };
@@ -317,7 +317,7 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   });
 
   neridicate.forEach((c) => {
-    const zile = daysBetween(c.dataGataRidicare);
+    const zile = businessDaysSince(c.dataGataRidicare);
     items.push({
       id: `neridicate-${c.id}`,
       claim: c,
