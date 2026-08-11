@@ -80,6 +80,42 @@ export function calendarDaysBetween(fromDay, toDay = todayISO()) {
   return Math.max(0, Math.round((b - a) / 86400000));
 }
 
+export function isWeekendDay(dayKey) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dayKey || ""))) return false;
+  const [y, m, d] = String(dayKey).split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/** Business (Mon-Fri) day difference between two local day keys, inclusive start-exclusive end. */
+export function businessDaysBetween(fromDay, toDay = todayISO()) {
+  if (
+    !fromDay ||
+    !toDay ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(fromDay) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(toDay)
+  ) {
+    return 0;
+  }
+  if (fromDay >= toDay) return 0;
+  const [fy, fm, fd] = fromDay.split("-").map(Number);
+  const [ty, tm, td] = toDay.split("-").map(Number);
+  const start = Date.UTC(fy, fm - 1, fd);
+  const end = Date.UTC(ty, tm - 1, td);
+  let count = 0;
+  for (let ts = start; ts < end; ts += 86400000) {
+    const weekday = new Date(ts).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) count += 1;
+  }
+  return count;
+}
+
+export function businessDaysSince(iso, toDay = todayISO()) {
+  const fromDay = toLocalDateKey(iso);
+  if (!fromDay) return 0;
+  return businessDaysBetween(fromDay, toDay);
+}
+
 export function formatDaysLabel(days) {
   if (!Number.isFinite(days) || days < 0) return "—";
   if (days === 0) return "azi";

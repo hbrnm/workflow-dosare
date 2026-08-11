@@ -1,4 +1,5 @@
 import { isReadyForPickupOverdue, isStageOverdue } from "./alertUtils";
+import { countUniqueVehicles } from "./plateSchedule";
 
 /**
  * Product funnel from loaded claims (no external analytics).
@@ -12,7 +13,7 @@ export function buildAtelierFunnel(claims = [], opts = {}) {
   const pragRidicare = opts.pragRidicare ?? 3;
 
   const created = list.length;
-  const withProgramare = list.filter((c) => !!c?.dataProgramare).length;
+  const withProgramare = countUniqueVehicles(list.filter((c) => !!c?.dataProgramare));
   const withAlert = list.filter((c) => {
     if (c?.blocat) return true;
     if (isStageOverdue(c)) return true;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel, isPieseComandateStatus } from "../../constants/config";
-import { daysBetween, fmtDate, telLink } from "../../utils/dateUtils";
+import { fmtDate, telLink, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import ExportFormatMenu from "../common/ExportFormatMenu";
@@ -124,6 +124,8 @@ export default function ClaimTable({
     const days = getDaysInStage(c);
     const overdue = isStageOverdue(c);
     const phone = c.telefonClient || "";
+    const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
+    const blockedReason = String(c.motivBlocare || c.motivBlocat || "").trim();
 
     return (
       <tr
@@ -139,9 +141,18 @@ export default function ClaimTable({
         <td className={cell}><Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill></td>
         <td className={`${cellMuted} truncate`} title={c.asigurator || ""}>{c.asigurator || "—"}</td>
         <td className={`${cell} truncate`} title={c.client || ""}>{c.client || "—"}</td>
-        <td className={`${cell} font-mono whitespace-nowrap`}>
-          {c.numarInmatriculare || "—"}
-          {c.blocat && <span className="ml-1 text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}
+        <td className={`${cell} font-mono`}>
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="whitespace-nowrap">
+              {c.numarInmatriculare || "—"}
+              {c.blocat && <span className="ml-1 text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}
+            </div>
+            {c.blocat && blockedReason ? (
+              <span className="text-[10px] text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+                Motiv: {blockedReason}
+              </span>
+            ) : null}
+          </div>
         </td>
         <td className={`${cellMuted} truncate`} title={c.marcaModel || ""}>{c.marcaModel || "—"}</td>
         <td className={`${cell}`} title={`${String(s.num).padStart(2, "0")}. ${s.label}`}>
@@ -164,6 +175,11 @@ export default function ClaimTable({
                 />
               </div>
             )}
+            {stageSince.dateTimeLabel ? (
+              <span className="text-[10px] text-[var(--app-muted)] truncate" title={`În etapă din ${stageSince.dateTimeLabel}`}>
+                În etapă din {stageSince.dateTimeLabel}
+              </span>
+            ) : null}
           </div>
         </td>
         <td className={`${cellMuted} whitespace-nowrap`}>{fmtDate(c.dataDeschiderii)}</td>

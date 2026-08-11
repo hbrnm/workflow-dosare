@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from "react";
 import { Download, X, CheckSquare, Square, FileSpreadsheet, FileText, Layers, Wallet, CalendarClock, Car, BarChart3 } from "lucide-react";
 import { downloadWorkflowModules } from "../../utils/exportWorkflowModules";
+import { countUniqueVehicles } from "../../utils/plateSchedule";
 import { EXPORT_FORMAT } from "../../utils/exportClaimsList";
 import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
@@ -69,7 +70,7 @@ export default function ExportExcelModal({ claims = [], onClose }) {
       title: "Modulul Programări Atelier",
       desc: "Programări service, mecanici/vopsitori alocați, date estimative de livrare.",
       icon: CalendarClock,
-      count: claims.filter((c) => c.dataProgramare).length,
+      count: countUniqueVehicles(claims.filter((c) => c.dataProgramare)),
     },
     {
       id: "masiniSchimb",

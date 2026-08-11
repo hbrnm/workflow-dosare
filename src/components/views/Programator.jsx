@@ -7,7 +7,7 @@ import {
 } from "../../utils/dateUtils";
 import { isProgramatorClaim } from "../../constants/config";
 import { getProgramareChipClass } from "../../utils/programareStatus";
-import { groupClaimsByPlate, groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
+import { groupClaimsByPlate, countUniqueVehicles } from "../../utils/plateSchedule";
 import ProgramatorClaimCard from "./ProgramatorClaimCard";
 import ProgramareNeonorataModal from "../modals/ProgramareNeonorataModal";
 
@@ -230,12 +230,22 @@ export default function Programator({
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims, activeDateStr]);
 
+  const activeDayVehicleCount = useMemo(
+    () => countUniqueVehicles(activeDayClaims),
+    [activeDayClaims]
+  );
+
   const upcomingClaims = useMemo(() => {
     const today = todayISO();
     return claims
       .filter((c) => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) >= today)
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims]);
+
+  const upcomingByPlate = useMemo(
+    () => groupClaimsByPlate(upcomingClaims),
+    [upcomingClaims]
+  );
 
   const activeDayFormatted = useMemo(() => {
     if (!activeDateStr) return "";
@@ -398,18 +408,19 @@ export default function Programator({
       </div>
 
       {/* Listă viitoare — aceeași logică ca pe mobil */}
-      {upcomingClaims.length > 0 && (
+      {upcomingByPlate.length > 0 && (
         <div className="shrink-0 app-prog-upcoming rounded-xl px-3 py-2.5">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="text-[12px] font-extrabold text-[var(--app-text-strong)]">
-              Programări viitoare ({upcomingClaims.length})
+              Programări viitoare ({upcomingByPlate.length} mașini)
             </div>
             <div className="text-[10.5px] text-[var(--app-muted)] font-medium">
               Click pe o mașină ca să sari la ziua ei în calendar
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 max-h-[88px] overflow-y-auto">
-            {upcomingClaims.map((c) => {
+            {upcomingByPlate.map((group) => {
+              const c = group[0];
               const day = c.dataProgramare.slice(0, 10);
               const time = c.dataProgramare.slice(11, 16) || "08:00";
               const isActive = day === activeDateStr;
@@ -421,11 +432,13 @@ export default function Programator({
                   className={`app-prog-upcoming-chip flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
                     isActive ? "is-active" : ""
                   }`}
-                  title={`${c.client || ""} · ${c.marcaModel || ""} · dosar ${c.numarDosar || "—"}`}
+                  title={`${c.client || ""} · ${c.marcaModel || ""} · ${group.length > 1 ? `${group.length} dosare` : `dosar ${c.numarDosar || "—"}`}`}
                 >
                   <span className="font-mono">{day.slice(8, 10)}/{day.slice(5, 7)} {time}</span>
                   <span className="uppercase font-mono">{c.numarInmatriculare || "—"}</span>
-                  {c.numarDosar ? <span className="opacity-70">#{c.numarDosar}</span> : null}
+                  {group.length > 1 ? (
+                    <span className="opacity-70">×{group.length}</span>
+                  ) : c.numarDosar ? <span className="opacity-70">#{c.numarDosar}</span> : null}
                 </button>
               );
             })}
@@ -449,7 +462,7 @@ export default function Programator({
           <div className="app-prog-cal-grid grid grid-cols-7 auto-rows-fr gap-px flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
               const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
-              const total = dayClaims.length;
+              const total = countUniqueVehicles(dayClaims);
               const isSelected = activeDateStr === cell.iso;
               const isToday = cell.iso === todayISO();
               const crossesMonth =
@@ -560,7 +573,7 @@ export default function Programator({
           <div className="app-prog-sidebar-header pb-2 flex items-center justify-between shrink-0">
             <div>
               <div className="text-[15px] font-bold text-[var(--app-text-strong)]">Programări: {activeDayFormatted}</div>
-              <div className="text-[12.5px] text-[var(--app-muted)]">{activeDayClaims.length}/{capacitate} programate</div>
+              <div className="text-[12.5px] text-[var(--app-muted)]">{activeDayVehicleCount}/{capacitate} programate (mașini)</div>
             </div>
             
             {/* Quick Share / Print tools */}

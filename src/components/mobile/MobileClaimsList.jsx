@@ -49,6 +49,7 @@ function CompactClaimCard({
   const stageSince = getSinceMeta(c.dataSchimbareStatus || c.dataDeschiderii || null);
   const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
   const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
+  const blockedReason = String(c.motivBlocare || c.motivBlocat || "").trim();
   const programareLabel = formatProgramareDate(c.dataProgramare);
   const subline = noteText || c.client || "";
   const showPieseRow = isPieseComandateStatus(c.status);
@@ -86,7 +87,7 @@ function CompactClaimCard({
             {stShort}
           </span>
           {c.blocat ? (
-            <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+            <span className="m-brief-claim-blocked" title={blockedReason || "Blocat"}>
               B
             </span>
           ) : null}
@@ -110,6 +111,11 @@ function CompactClaimCard({
             onSchedule={onScheduleFromPiese}
             onPatchDates={onPatchPieseDates}
           />
+        ) : null}
+        {c.blocat && blockedReason ? (
+          <p className="m-brief-alerte-why text-[var(--app-danger)]" title={`Motiv blocare: ${blockedReason}`}>
+            Motiv blocare: {blockedReason}
+          </p>
         ) : null}
         {subline ? (
           <p className="m-brief-alerte-why is-muted" title={subline}>

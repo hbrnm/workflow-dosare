@@ -14,6 +14,7 @@ import {
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
+import { countUniqueVehicles } from "../../utils/plateSchedule";
 import {
   ALERT_GROUPS,
   ALERT_TYPE_META,
@@ -283,6 +284,12 @@ export default function MobileBrief({
     };
   }, [focus, stageLists, attentionRows, attentionFilter, attentionFilterMeta]);
 
+  const focusBoardCount = useMemo(() => {
+    if (focusBoard.kind !== "claims") return focusBoard.rows.length;
+    if (focus === "programat" || focus === "lucru") return countUniqueVehicles(focusBoard.rows);
+    return focusBoard.rows.length;
+  }, [focusBoard, focus]);
+
   const featured = alertsList[0] || items[0] || null;
 
   const ackAlert = async (e, claimId) => {
@@ -320,8 +327,8 @@ export default function MobileBrief({
   const pipelineTiles = [
     { key: "air", label: "AIR", count: stageLists.air.length, tone: "steel" },
     { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
-    { key: "programat", label: "Prog.", count: stageLists.programat.length, tone: "accent" },
-    { key: "lucru", label: "Repar.", count: stageLists.lucru.length, tone: "accent" },
+    { key: "programat", label: "Prog.", count: countUniqueVehicles(stageLists.programat), tone: "accent" },
+    { key: "lucru", label: "Repar.", count: countUniqueVehicles(stageLists.lucru), tone: "accent" },
     { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok", title: "AP — Accept plată" },
     { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
@@ -868,7 +875,7 @@ export default function MobileBrief({
                   {focus === "accept" ? "Accept plată (AP)" : focusBoard.title}
                 </h2>
                 <span className="m-brief-board-count shrink-0">
-                  {focusBoard.rows.length}
+                  {focusBoardCount}
                 </span>
               </div>
               <p className="m-brief-board-hint">{focusBoard.hint}</p>

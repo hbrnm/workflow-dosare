@@ -21,6 +21,7 @@ import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 import { glossaryTitle } from "../../constants/glossary";
+import { countUniqueVehicles } from "../../utils/plateSchedule";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate" },
@@ -135,6 +136,9 @@ export default function BriefZilnic({
       const key = getStatusDefinition(c.status).key;
       if (map[key] !== undefined) map[key] += 1;
     });
+    // Business rule: multiple claims on same vehicle count once in Programări/Reparație.
+    map.programat = countUniqueVehicles(claims.filter((c) => claimStatusKey(c) === "programat"));
+    map.in_lucru = countUniqueVehicles(claims.filter((c) => claimStatusKey(c) === "in_lucru"));
     return map;
   }, [claims]);
 
@@ -150,6 +154,10 @@ export default function BriefZilnic({
   const focusMeta = stageFocus ? STAGE_FOCUS[stageFocus] : null;
   const FocusIcon = focusMeta?.Icon || null;
   const focusRows = stageFocus ? (stageLists[stageFocus] || []) : [];
+  const focusCount =
+    stageFocus === "programat" || stageFocus === "lucru"
+      ? countUniqueVehicles(focusRows)
+      : focusRows.length;
 
   const canEditClaim = (c) => (typeof canEditFn === "function" ? canEditFn(c) : true);
 
@@ -679,7 +687,7 @@ export default function BriefZilnic({
               <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {FocusIcon ? <FocusIcon size={16} /> : null}
                 {focusMeta.title}
-                <span className="font-mono text-[12px] text-[var(--app-muted)]">({focusRows.length})</span>
+                <span className="font-mono text-[12px] text-[var(--app-muted)]">({focusCount})</span>
               </h3>
             </div>
             <div className="flex items-center gap-2">

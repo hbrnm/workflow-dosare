@@ -8,6 +8,7 @@ import { STATUSES, PHASE_COLORS, PIE_COLORS, getStatusDefinition } from "../../c
 import { daysBetween, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import { buildAtelierFunnel } from "../../utils/atelierFunnel";
+import { countClaimsForStatus } from "../../utils/plateSchedule";
 import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
@@ -47,7 +48,12 @@ export default function Dashboard({
       }).sort((a, b) => b.zileDepasite - a.zileDepasite);
   }, [claims]);
 
-  const perStatus = STATUSES.map((s) => ({ name: String(s.num).padStart(2, "0"), label: s.label, total: claims.filter((c) => c.status === s.key).length, color: PHASE_COLORS[s.phase].bar }));
+  const perStatus = STATUSES.map((s) => ({
+    name: String(s.num).padStart(2, "0"),
+    label: s.label,
+    total: countClaimsForStatus(claims, s.key),
+    color: PHASE_COLORS[s.phase].bar,
+  }));
 
   const perAsigurator = useMemo(() => {
     const map = {};

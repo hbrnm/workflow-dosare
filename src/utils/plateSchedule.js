@@ -74,6 +74,22 @@ export function groupClaimsByPlate(claims = []) {
   return Array.from(map.values());
 }
 
+/** Number of unique vehicles (plate-grouped claims). */
+export function countUniqueVehicles(claims = []) {
+  return groupClaimsByPlate(claims).length;
+}
+
+const UNIQUE_VEHICLE_STATUS_KEYS = new Set(["programat", "in_lucru"]);
+
+/** Count claims in a status; programat + in_lucru dedupe by plate. */
+export function countClaimsForStatus(claims = [], statusKey) {
+  const matching = (claims || []).filter((c) => c.status === statusKey);
+  if (UNIQUE_VEHICLE_STATUS_KEYS.has(statusKey)) {
+    return countUniqueVehicles(matching);
+  }
+  return matching.length;
+}
+
 /** Group by plate + exact appointment ISO (same date & time). */
 export function groupClaimsByPlateAndSchedule(claims = []) {
   const map = new Map();

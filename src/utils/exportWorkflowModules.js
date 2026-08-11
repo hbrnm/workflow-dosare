@@ -1,5 +1,6 @@
 import { getStatusDefinition } from "../constants/config";
 import { fmtDate, todayISO, daysBetween } from "./dateUtils";
+import { countUniqueVehicles } from "./plateSchedule";
 import { downloadMultiSectionPdf } from "./exportListPdf";
 
 export function buildDosareModuleRows(claims = []) {
@@ -90,13 +91,24 @@ export function buildStatisticiModuleRows(claims = []) {
   claims.forEach((c) => {
     const key = c.asigurator?.trim() || "Neprecizat";
     if (!map[key]) {
-      map[key] = { total: 0, rca: 0, casco: 0, blocate: 0, facturate: 0, valoareDevizTotal: 0 };
+      map[key] = {
+        total: 0,
+        rca: 0,
+        casco: 0,
+        blocate: 0,
+        facturate: 0,
+        valoareDevizTotal: 0,
+        programat: [],
+        inLucru: [],
+      };
     }
     map[key].total += 1;
     if (c.tipAsigurare === "RCA") map[key].rca += 1;
     if (c.tipAsigurare === "CASCO") map[key].casco += 1;
     if (c.blocat) map[key].blocate += 1;
     if (c.status === "facturat") map[key].facturate += 1;
+    if (c.status === "programat") map[key].programat.push(c);
+    if (c.status === "in_lucru") map[key].inLucru.push(c);
     map[key].valoareDevizTotal += Number(c.valoareDeviz) || 0;
   });
 
@@ -107,6 +119,8 @@ export function buildStatisticiModuleRows(claims = []) {
     "Dosare CASCO": stat.casco,
     "Dosare Blocate": stat.blocate,
     "Dosare Finalizate / Facturate": stat.facturate,
+    "Mașini programate (unice)": countUniqueVehicles(stat.programat),
+    "Mașini în reparație (unice)": countUniqueVehicles(stat.inLucru),
     "Valoare Devize Însumată (RON)": stat.valoareDevizTotal,
   }));
 }
