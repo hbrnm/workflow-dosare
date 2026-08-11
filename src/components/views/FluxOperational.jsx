@@ -20,6 +20,7 @@ import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from 
 import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 import { copyClaimNumber } from "../../utils/copyClaimNumber";
+import { buildStatusCounts } from "../../utils/plateSchedule";
 
 const STAGE_SORT_KEY = "deschidere";
 
@@ -379,14 +380,7 @@ export default function TablouPeFazeRedesign({
     return claims.filter(isDeliveryDeadlineOverdue);
   }, [claims]);
 
-  const statusCounts = useMemo(() => {
-    const counts = {};
-    STATUSES.forEach((s) => { counts[s.key] = 0; });
-    claims.forEach((c) => {
-      if (counts[c.status] !== undefined) counts[c.status]++;
-    });
-    return counts;
-  }, [claims]);
+  const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
   const cardProps = {
     onOpen,

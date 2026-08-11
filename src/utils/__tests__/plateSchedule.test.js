@@ -7,6 +7,7 @@ import {
   groupClaimsByPlateAndSchedule,
   countUniqueVehicles,
   countClaimsForStatus,
+  buildStatusCounts,
 } from "../plateSchedule";
 
 describe("plateSchedule", () => {
@@ -77,10 +78,17 @@ describe("plateSchedule", () => {
       { id: "5", numarInmatriculare: "B333CCC", status: "in_lucru" },
       { id: "6", numarInmatriculare: "B444DDD", status: "deschidere" },
       { id: "7", numarInmatriculare: "B444DDD", status: "deschidere" },
+      { id: "8", numarInmatriculare: "B555EEE", status: "chemat_lucru" }, // legacy → programat
+      { id: "9", numarInmatriculare: "B555EEE", status: "programat" },
     ];
-    expect(countUniqueVehicles(claims.filter((c) => c.status === "programat"))).toBe(2);
-    expect(countClaimsForStatus(claims, "programat")).toBe(2);
+    expect(countUniqueVehicles(claims.filter((c) => c.status === "programat"))).toBe(3);
+    expect(countClaimsForStatus(claims, "programat")).toBe(3);
     expect(countClaimsForStatus(claims, "in_lucru")).toBe(1);
     expect(countClaimsForStatus(claims, "deschidere")).toBe(2);
+
+    const counts = buildStatusCounts(claims);
+    expect(counts.programat).toBe(3);
+    expect(counts.in_lucru).toBe(1);
+    expect(counts.deschidere).toBe(2);
   });
 });

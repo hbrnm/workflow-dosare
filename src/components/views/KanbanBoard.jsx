@@ -10,6 +10,7 @@ import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
+import { countClaimsForStatus } from "../../utils/plateSchedule";
 
 function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -444,6 +445,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
       <div className="flex gap-3 overflow-x-auto pb-4 pt-1 align-top scrollbar-thin">
         {STATUSES.map((status) => {
           const list = claims.filter((c) => c.status === status.key);
+          const stageCount = countClaimsForStatus(claims, status.key);
           const colorObj = getPhaseColors(status.key);
 
           return (
@@ -470,8 +472,15 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                   <span className="truncate">{status.label}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="w-5 h-5 flex items-center justify-center rounded-full bg-white/20 text-[10.5px] font-bold">
-                    {list.length}
+                  <span
+                    className="w-5 h-5 flex items-center justify-center rounded-full bg-white/20 text-[10.5px] font-bold"
+                    title={
+                      status.key === "programat" || status.key === "in_lucru"
+                        ? `${stageCount} mașini unice (${list.length} dosare)`
+                        : undefined
+                    }
+                  >
+                    {stageCount}
                   </span>
                   <button
                     onClick={() => onAddInStatus && onAddInStatus(status.key)}
