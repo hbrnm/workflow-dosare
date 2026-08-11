@@ -345,7 +345,7 @@ export function parseAudatexRoTotals(text) {
       continue;
     }
     if (lineLbl.includes("TOTALVOPSITORIE") && amt > 50) {
-      set("_totalVopsitorie", amt, "audatex_total_vops");
+      set("totalVopsitorieAudatex", amt, "audatex_total_vops");
       continue;
     }
     if (lineLbl.includes("TOTALPIESE")) {
@@ -366,19 +366,37 @@ export function parseAudatexRoTotals(text) {
     const m = String(text).match(/TOTAL\s+M\s*A\s*N\s*O\s*P\s*E\s*R\s*A\s+((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
     if (m) set("manoperaTinichigerie", parseAudatexMoney(m[1]), "audatex_cuprins_manopera");
   }
+  if (values.manoperaTinichigerie == null) {
+    const m = String(text).match(/TOTAL\s+MANOPERA[^\d]{0,40}((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
+    if (m) set("manoperaTinichigerie", parseAudatexMoney(m[1]), "audatex_cuprins_manopera_plain");
+  }
   if (values.cheltuieliDiverse == null) {
     const m = String(text).match(/TOTAL\s+C\s*O\s*S\s*T\s*U\s*R\s*I\s*S\s*U\s*P\s*L\s*E\s*M\s*E\s*N\s*T\s*A\s*R\s*E\s+((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
     if (m) set("cheltuieliDiverse", parseAudatexMoney(m[1]), "audatex_cuprins_supliment");
   }
-  if (values._totalVopsitorie == null && values.manoperaVopsitorie == null) {
+  if (values.cheltuieliDiverse == null) {
+    const m = String(text).match(/TOTAL\s+COSTURI\s+SUPLIMENTARE[^\d]{0,40}((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
+    if (m) set("cheltuieliDiverse", parseAudatexMoney(m[1]), "audatex_cuprins_supliment_plain");
+  }
+  if (values.totalVopsitorieAudatex == null && values.manoperaVopsitorie == null) {
     const m = String(text).match(/TOTAL\s+V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E\s+((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
-    if (m) set("_totalVopsitorie", parseAudatexMoney(m[1]), "audatex_cuprins_vops");
+    if (m) set("totalVopsitorieAudatex", parseAudatexMoney(m[1]), "audatex_cuprins_vops");
+  }
+  if (values.totalVopsitorieAudatex == null) {
+    const m = String(text).match(/TOTAL\s+VOPSITORIE[^\d]{0,40}((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
+    if (m) set("totalVopsitorieAudatex", parseAudatexMoney(m[1]), "audatex_cuprins_vops_plain");
   }
   if (values.valoareDevizAudatex == null) {
     const m = String(text).match(
       /C\s*O\s*S\s*T\s+R\s*E\s*P\s*A\s*R\s*A\s*T\s*I\s*E\s+F\s*A\s*R\s*A\s+T\s*V\s*A\s+((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i
     );
     if (m) set("valoareDevizAudatex", parseAudatexMoney(m[1]), "audatex_cuprins_netto");
+  }
+  if (values.valoareDevizAudatex == null) {
+    const m = String(text).match(
+      /COST\s+REPARATIE\s+FARA\s+TVA[^\d]{0,40}((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i
+    );
+    if (m) set("valoareDevizAudatex", parseAudatexMoney(m[1]), "audatex_cuprins_netto_plain");
   }
 
   // Paint labour from vopsitorie detail block if missing
@@ -391,12 +409,25 @@ export function parseAudatexRoTotals(text) {
     if (m) set("manoperaVopsitorie", parseAudatexMoney(m[1]), "audatex_vops_ore");
   }
 
-  if (values.materialeVopsitorie == null && values._totalVopsitorie != null && values.manoperaVopsitorie != null) {
-    const derived = Math.round((values._totalVopsitorie - values.manoperaVopsitorie) * 100) / 100;
+  if (values.materialeVopsitorie == null && values.totalVopsitorieAudatex != null && values.manoperaVopsitorie != null) {
+    const derived = Math.round((values.totalVopsitorieAudatex - values.manoperaVopsitorie) * 100) / 100;
     if (derived > 0) set("materialeVopsitorie", derived, "audatex_materiale_derived");
   }
 
-  delete values._totalVopsitorie;
+  // Canonical Audatex cuprins totals (UI import)
+  if (values.valoarePieseAudatex != null) values.totalPieseAudatex = values.valoarePieseAudatex;
+  if (values.manoperaTinichigerie != null) values.totalManoperaAudatex = values.manoperaTinichigerie;
+  if (values.cheltuieliDiverse != null) values.totalCosturiSuplimentareAudatex = values.cheltuieliDiverse;
+  if (values.valoareDevizAudatex != null) values.costReparatieFaraTva = values.valoareDevizAudatex;
+  if (
+    values.totalVopsitorieAudatex == null &&
+    values.manoperaVopsitorie != null &&
+    values.materialeVopsitorie != null
+  ) {
+    values.totalVopsitorieAudatex =
+      Math.round((values.manoperaVopsitorie + values.materialeVopsitorie) * 100) / 100;
+  }
+
   delete values._brutCuTva;
 
   if (values.valoareDevizAudatex == null) {

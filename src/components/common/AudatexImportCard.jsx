@@ -1,10 +1,11 @@
 import React, { useRef, useState } from "react";
 import { FileUp, Loader2, Sparkles, Check, X, AlertCircle } from "lucide-react";
 import {
-  AUDATEX_IMPORT_FIELDS,
+  AUDATEX_DEVIZ_TOTALS,
   applyEstimateValuesToClaim,
   countExtractedFields,
   countExtractedOperations,
+  normalizeAudatexImportValues,
 } from "../../utils/audatexParse";
 import { parseEstimateFile } from "../../utils/audatexImportFile";
 
@@ -34,7 +35,7 @@ function buildImportMeta(file, result) {
 /**
  * Upload Audatex/DAT estimate → parse → apply automatically on claim form.
  */
-export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false, readOnly = false }) {
+export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false, readOnly = false, onImported }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -44,17 +45,18 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
   const doApply = (result, file, withOps = applyOps) => {
     const ops = result.lineItems?.operations || [];
     setClaim((c) =>
-      applyEstimateValuesToClaim(c || claim, result.values || {}, {
+      applyEstimateValuesToClaim(c, result.values || {}, {
         operations: ops,
         applyOperations: withOps && ops.length > 0,
         replaceOperations: true,
         importMeta: buildImportMeta(file, result),
       })
     );
+    onImported?.();
     const n = countExtractedFields(result.values);
     const opCount = countExtractedOperations(result.lineItems);
     showNotice?.(
-      `Import aplicat: ${n} sume` + (withOps && opCount ? ` + ${opCount} linii pe dosar` : "") + `.`,
+      `Import aplicat: ${n} totaluri Audatex` + (withOps && opCount ? ` + ${opCount} linii pe dosar` : "") + `.`,
       "success"
     );
   };
@@ -171,8 +173,9 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-            {AUDATEX_IMPORT_FIELDS.map((f) => {
-              const v = preview.values?.[f.key];
+            {AUDATEX_DEVIZ_TOTALS.map((f) => {
+              const normalized = normalizeAudatexImportValues(preview.values || {});
+              const v = normalized[f.key];
               if (v == null) return null;
               return (
                 <div
@@ -181,10 +184,8 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
                 >
                   <div className="text-[9px] font-semibold uppercase text-[var(--app-muted)]">{f.label}</div>
                   <div className="font-mono text-[12px] font-bold text-[var(--app-text-strong)]">
-                    {f.key === "zileChirieAudatex" ? Math.round(v) : formatRon(v)}
-                    {f.key !== "zileChirieAudatex" ? (
-                      <span className="ml-0.5 text-[9px] font-normal text-[var(--app-muted)]">lei</span>
-                    ) : null}
+                    {formatRon(v)}
+                    <span className="ml-0.5 text-[9px] font-normal text-[var(--app-muted)]">lei</span>
                   </div>
                 </div>
               );

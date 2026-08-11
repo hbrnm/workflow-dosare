@@ -122,5 +122,9 @@ describe("audatexParse", () => {
     expect(claim.manopera.tinichigerie.facturat).toBe(200);
     expect(claim.manopera.vopsitorie.facturat).toBe(150);
     expect(claim.financiar.materialeVopsitorie).toBe(250);
+    expect(claim.financiar.audatex.totalPiese).toBe(400);
+    expect(claim.financiar.audatex.totalManopera).toBe(200);
+    expect(claim.financiar.audatex.costReparatieFaraTva).toBe(1000);
+    expect(claim.financiar.audatex.totalVopsitorie).toBe(400);
   });
 });

@@ -16,14 +16,73 @@ import { isAudatexRoText, parseAudatexRoEstimate } from "./audatexRoParse";
  */
 
 export const AUDATEX_IMPORT_FIELDS = [
-  { key: "valoareDevizAudatex", label: "Deviz (netto)" },
-  { key: "valoarePieseAudatex", label: "Piese" },
-  { key: "manoperaTinichigerie", label: "Manoperă tinichigerie" },
-  { key: "manoperaVopsitorie", label: "Manoperă vopsitorie" },
-  { key: "materialeVopsitorie", label: "Materiale vopsitorie" },
-  { key: "cheltuieliDiverse", label: "Costuri suplimentare" },
+  { key: "costReparatieFaraTva", label: "Cost reparație fără TVA" },
+  { key: "totalPieseAudatex", label: "Total piese" },
+  { key: "totalManoperaAudatex", label: "Total manoperă" },
+  { key: "totalCosturiSuplimentareAudatex", label: "Costuri suplimentare (2%)" },
+  { key: "totalVopsitorieAudatex", label: "Total vopsitorie" },
+  { key: "manoperaVopsitorie", label: "Manoperă vopsitorie (detaliu)" },
+  { key: "materialeVopsitorie", label: "Materiale vopsitorie (detaliu)" },
   { key: "zileChirieAudatex", label: "Zile chirie" },
 ];
+
+/** Câmpuri principale afișate în tab Financiar — mapare 1:1 cu cuprinsul Audatex. */
+export const AUDATEX_DEVIZ_TOTALS = [
+  { key: "totalPiese", label: "Total piese", valueKeys: ["totalPieseAudatex", "valoarePieseAudatex"] },
+  { key: "totalManopera", label: "Total manoperă", valueKeys: ["totalManoperaAudatex", "manoperaTinichigerie"] },
+  {
+    key: "totalCosturiSuplimentare",
+    label: "Total costuri suplimentare (2%)",
+    valueKeys: ["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"],
+  },
+  { key: "totalVopsitorie", label: "Total vopsitorie", valueKeys: ["totalVopsitorieAudatex"] },
+  { key: "costReparatieFaraTva", label: "Cost reparație fără TVA", valueKeys: ["costReparatieFaraTva", "valoareDevizAudatex"] },
+];
+
+function pickAudatexValue(values, keys) {
+  for (const k of keys) {
+    const v = values?.[k];
+    if (v != null && v !== "" && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+}
+
+/** Normalize parsed Audatex values into canonical cuprins totals + legacy fields. */
+export function normalizeAudatexImportValues(values = {}) {
+  const totalPiese = pickAudatexValue(values, ["totalPieseAudatex", "valoarePieseAudatex"]) ?? 0;
+  const totalManopera = pickAudatexValue(values, ["totalManoperaAudatex", "manoperaTinichigerie"]) ?? 0;
+  const totalCosturiSuplimentare =
+    pickAudatexValue(values, ["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"]) ?? 0;
+  const manoperaVopsitorie = pickAudatexValue(values, ["manoperaVopsitorie"]) ?? 0;
+  const materialeVopsitorie = pickAudatexValue(values, ["materialeVopsitorie"]) ?? 0;
+  let totalVopsitorie = pickAudatexValue(values, ["totalVopsitorieAudatex"]);
+  if (totalVopsitorie == null && (manoperaVopsitorie > 0 || materialeVopsitorie > 0)) {
+    totalVopsitorie = Math.round((manoperaVopsitorie + materialeVopsitorie) * 100) / 100;
+  }
+  totalVopsitorie = totalVopsitorie ?? 0;
+  const costReparatieFaraTva =
+    pickAudatexValue(values, ["costReparatieFaraTva", "valoareDevizAudatex"]) ??
+    Math.round((totalPiese + totalManopera + totalCosturiSuplimentare + totalVopsitorie) * 100) / 100;
+
+  return {
+    totalPiese,
+    totalManopera,
+    totalCosturiSuplimentare,
+    totalVopsitorie,
+    costReparatieFaraTva,
+    manoperaVopsitorie,
+    materialeVopsitorie,
+    valoarePieseAudatex: totalPiese,
+    manoperaTinichigerie: totalManopera,
+    cheltuieliDiverse: totalCosturiSuplimentare,
+    valoareDevizAudatex: costReparatieFaraTva,
+    totalPieseAudatex: totalPiese,
+    totalManoperaAudatex: totalManopera,
+    totalCosturiSuplimentareAudatex: totalCosturiSuplimentare,
+    totalVopsitorieAudatex: totalVopsitorie,
+    zileChirieAudatex: pickAudatexValue(values, ["zileChirieAudatex"]),
+  };
+}
 
 /** Normalize Romanian money strings: 8.954,35 → 8954.35 */
 export function parseRoMoney(raw) {
@@ -545,33 +604,55 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     vopsitorie: { ...(next.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }) },
   };
 
-  if (values.valoareDevizAudatex != null) {
-    next.valoareDevizAudatex = values.valoareDevizAudatex;
-    financiar.valoareDevizAudatex = values.valoareDevizAudatex;
+  const normalized = normalizeAudatexImportValues(values);
+  const audatex = { ...(financiar.audatex || {}) };
+  const has = (keys) => keys.some((k) => values[k] != null && values[k] !== "");
+
+  if (has(["totalPieseAudatex", "valoarePieseAudatex"])) {
+    next.valoarePieseAudatex = normalized.totalPiese;
+    financiar.pieseFacturateFaraTva = normalized.totalPiese;
+    audatex.totalPiese = normalized.totalPiese;
   }
-  if (values.valoarePieseAudatex != null) {
-    next.valoarePieseAudatex = values.valoarePieseAudatex;
-    financiar.pieseFacturateFaraTva = values.valoarePieseAudatex;
+  if (has(["totalManoperaAudatex", "manoperaTinichigerie"])) {
+    financiar.manoperaTinichigerie = normalized.totalManopera;
+    manopera.tinichigerie.facturat = normalized.totalManopera;
+    manopera.tinichigerie.alocat = normalized.totalManopera;
+    audatex.totalManopera = normalized.totalManopera;
   }
-  if (values.manoperaTinichigerie != null) {
-    financiar.manoperaTinichigerie = values.manoperaTinichigerie;
-    manopera.tinichigerie.facturat = values.manoperaTinichigerie;
-    manopera.tinichigerie.alocat = values.manoperaTinichigerie;
+  if (has(["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"])) {
+    financiar.cheltuieliDiverse = normalized.totalCosturiSuplimentare;
+    financiar.costuriExterne = normalized.totalCosturiSuplimentare;
+    audatex.totalCosturiSuplimentare = normalized.totalCosturiSuplimentare;
   }
-  if (values.manoperaVopsitorie != null) {
-    financiar.manoperaVopsitorie = values.manoperaVopsitorie;
-    manopera.vopsitorie.facturat = values.manoperaVopsitorie;
-    manopera.vopsitorie.alocat = values.manoperaVopsitorie;
+  if (has(["totalVopsitorieAudatex"])) {
+    audatex.totalVopsitorie = normalized.totalVopsitorie;
   }
-  if (values.materialeVopsitorie != null) {
-    financiar.materialeVopsitorie = values.materialeVopsitorie;
+  if (has(["manoperaVopsitorie"])) {
+    financiar.manoperaVopsitorie = normalized.manoperaVopsitorie;
+    manopera.vopsitorie.facturat = normalized.manoperaVopsitorie;
+    manopera.vopsitorie.alocat = normalized.manoperaVopsitorie;
+    audatex.manoperaVopsitorie = normalized.manoperaVopsitorie;
   }
-  if (values.cheltuieliDiverse != null) {
-    financiar.cheltuieliDiverse = values.cheltuieliDiverse;
-    financiar.costuriExterne = values.cheltuieliDiverse;
+  if (has(["materialeVopsitorie"])) {
+    financiar.materialeVopsitorie = normalized.materialeVopsitorie;
+    audatex.materialeVopsitorie = normalized.materialeVopsitorie;
   }
-  if (values.zileChirieAudatex != null) {
-    next.zileChirieAudatex = values.zileChirieAudatex;
+  if (
+    has(["totalVopsitorieAudatex"]) ||
+    (has(["manoperaVopsitorie"]) && has(["materialeVopsitorie"]))
+  ) {
+    audatex.totalVopsitorie = normalized.totalVopsitorie;
+  }
+  if (has(["costReparatieFaraTva", "valoareDevizAudatex"])) {
+    next.valoareDevizAudatex = normalized.costReparatieFaraTva;
+    financiar.valoareDevizAudatex = normalized.costReparatieFaraTva;
+    audatex.costReparatieFaraTva = normalized.costReparatieFaraTva;
+  }
+
+  financiar.audatex = audatex;
+
+  if (normalized.zileChirieAudatex != null && values.zileChirieAudatex != null) {
+    next.zileChirieAudatex = normalized.zileChirieAudatex;
   }
 
   if (options.importMeta) {
@@ -605,7 +686,13 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
 }
 
 export function countExtractedFields(values = {}) {
-  return AUDATEX_IMPORT_FIELDS.filter((f) => values[f.key] != null && values[f.key] !== "").length;
+  return AUDATEX_DEVIZ_TOTALS.filter((f) => {
+    if (f.valueKeys.some((k) => values[k] != null && values[k] !== "")) return true;
+    if (f.key === "totalVopsitorie") {
+      return values.manoperaVopsitorie != null && values.materialeVopsitorie != null;
+    }
+    return false;
+  }).length;
 }
 
 export function countExtractedOperations(lineItems) {
