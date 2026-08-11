@@ -82,6 +82,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
 
   const dismiss = () => setPreview(null);
   const ops = preview?.lineItems?.operations || [];
+  const partsCount = preview?.lineItems?.parts?.length || 0;
 
   return (
     <div
@@ -128,6 +129,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
                 Format: {preview.format || "?"} · încredere: {preview.confidence || "?"}
                 {preview.empty ? " · fără date" : ""}
                 {!preview.empty && ops.length ? ` · ${ops.length} linii` : ""}
+                {!preview.empty && partsCount ? ` · ${partsCount} piese` : ""}
               </div>
             </div>
             <button type="button" className="shrink-0 p-1 text-[var(--app-muted)]" onClick={dismiss} aria-label="Închide">
