@@ -574,6 +574,10 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     next.zileChirieAudatex = values.zileChirieAudatex;
   }
 
+  if (options.importMeta) {
+    financiar.audatexImport = options.importMeta;
+  }
+
   next.financiar = financiar;
   next.manopera = manopera;
 

@@ -345,6 +345,44 @@ export default function ClaimModal({
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
   const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
 
+  /** Sincronizează câmpuri Audatex root + financiar (import / edit manual). */
+  const setDevizAudatex = (val) =>
+    setForm((f) => ({
+      ...f,
+      valoareDevizAudatex: val,
+      financiar: { ...(f.financiar || {}), valoareDevizAudatex: val },
+    }));
+  const setPieseAudatex = (val) =>
+    setForm((f) => ({
+      ...f,
+      valoarePieseAudatex: val,
+      financiar: { ...(f.financiar || {}), pieseFacturateFaraTva: val },
+    }));
+  const setManoperaAudatex = (key, val) => {
+    const dept = key === "manoperaTinichigerie" ? "tinichigerie" : "vopsitorie";
+    setForm((f) => ({
+      ...f,
+      financiar: { ...(f.financiar || {}), [key]: val },
+      manopera: {
+        ...(f.manopera || {}),
+        [dept]: {
+          ...(f.manopera?.[dept] || { facturat: 0, alocat: 0, dataIntrareEtapa: null }),
+          facturat: val,
+          alocat: val,
+        },
+      },
+    }));
+  };
+  const setCheltuieliDiverse = (val) =>
+    setForm((f) => ({
+      ...f,
+      financiar: {
+        ...(f.financiar || {}),
+        cheltuieliDiverse: val,
+        costuriExterne: val,
+      },
+    }));
+
   const financial = form.financiar || {};
   const valoareDevizAudatex = parseNumber(form.valoareDevizAudatex, 0);
   const valoareAcceptPlata = parseNumber(financial.valoareAcceptPlata ?? form.valoareAcceptataReglata, 0);
@@ -360,6 +398,10 @@ export default function ClaimModal({
 
   const cheltuieliDiverse = parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
   const costMasinaSchimb = parseNumber(financial.costMasinaSchimb, 0);
+  const materialeVopsitorie = parseNumber(financial.materialeVopsitorie, 0);
+  const totalVopsitorieAudatex = manoperaVopsitorie + materialeVopsitorie;
+  const totalDevizComponente =
+    pretPieseAudatex + manoperaTinichigerie + totalVopsitorieAudatex + cheltuieliDiverse;
 
   const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
   const totalCosturiService = pretPieseService + cheltuieliDiverse + costMasinaSchimb;
@@ -1703,32 +1745,40 @@ export default function ClaimModal({
               {/* ========================================================================= */}
               {activeTab === "financial" && (
                 <div className="space-y-3">
-                  <AudatexImportCard claim={form} setClaim={setForm} showNotice={onNotify} />
+                  <AudatexImportCard claim={form} setClaim={setForm} showNotice={onNotify} readOnly={readOnly} />
 
-                  {/* Secțiunea 1: Valori Deviz Audatex, Accept Plată & Franșiză */}
+                  {/* Secțiunea 1: Total deviz + accept / franșiză */}
                   <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[var(--app-accent)]" /> 1. Valori Deviz Audatex, Accept Plată &amp; Franșiză</span>
-                      <span className="text-[10.5px] font-mono font-semibold text-[var(--app-muted)]">TOATE SUMELE ÎN LEI (FĂRĂ TVA)</span>
+                      <span className="flex items-center gap-1.5"><Wallet size={15} className="text-[var(--app-accent)]" /> 1. Deviz Audatex — total &amp; reglementare</span>
+                      <span className="text-[10.5px] font-mono font-semibold text-[var(--app-muted)]">LEI FĂRĂ TVA</span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Deviz Audatex (lei)</label>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Cost reparație netto (deviz Audatex)</label>
                         <input
                           type="number"
                           min={0}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)] text-[var(--app-text-strong)]"
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-accent)]/40 rounded-lg font-mono font-extrabold text-[14px] bg-[var(--app-surface)] text-[var(--app-text-strong)]"
                           value={form.valoareDevizAudatex || 0}
-                          onChange={(e) => set("valoareDevizAudatex", Number(e.target.value) || 0)}
+                          onChange={(e) => setDevizAudatex(Number(e.target.value) || 0)}
                           placeholder="0"
                         />
+                        {totalDevizComponente > 0 && Math.abs(totalDevizComponente - valoareDevizAudatex) > 1 && (
+                          <p className="mt-1 text-[10px] text-[var(--app-warning)]">
+                            Suma componentelor: {totalDevizComponente.toLocaleString("ro-RO")} lei — verifică cu devizul
+                          </p>
+                        )}
                       </div>
                       <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-success)] mb-1">Valoare Accept Plată (lei)</label>
+                        <label className="block text-[10.5px] font-bold text-[var(--app-success)] mb-1">Accept plată (lei)</label>
                         <input
                           type="number"
                           min={0}
+                          disabled={readOnly}
                           className="w-full p-2 border border-[var(--app-success)]/40 rounded-lg font-mono font-extrabold text-[12.5px] bg-[var(--app-success-muted)]/40 text-[var(--app-success)]"
                           value={financial.valoareAcceptPlata || form.valoareAcceptataReglata || 0}
                           onChange={(e) => {
@@ -1743,20 +1793,22 @@ export default function ClaimModal({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-danger)] mb-1">Valoare Franșiză (lei)</label>
+                        <label className="block text-[10.5px] font-bold text-[var(--app-danger)] mb-1">Franșiză (lei)</label>
                         <input
                           type="number"
                           min={0}
+                          disabled={readOnly}
                           className="w-full p-2 border border-[var(--app-danger)]/30 rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-danger)]/10 text-[#8C2E2E]"
                           value={financial.valoareFransiza || 0}
                           onChange={(e) => setFinancial("valoareFransiza", Number(e.target.value) || 0)}
                           placeholder="0"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Nr. Factură &amp; Stadiu</label>
+                      <div className="md:col-span-2">
+                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Nr. factură</label>
                         <input
                           type="text"
+                          disabled={readOnly}
                           className="w-full p-2 border border-[var(--app-border)] rounded-lg font-bold text-[12px] bg-[var(--app-surface)]"
                           placeholder="ex: FACT-1029"
                           value={financial.numarFactura || form.numarFactura || ""}
@@ -1766,106 +1818,121 @@ export default function ClaimModal({
                     </div>
                   </div>
 
-                  {/* Secțiunea 2: Defalcare Manoperă & Cost Piese Audatex vs Service */}
+                  {/* Secțiunea 2: Structură deviz Audatex (import) */}
                   <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
-                    <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
-                      <span>2. Defalcare Manoperă &amp; Preț Piese (Audatex vs. Service)</span>
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5">
+                      2. Structură deviz Audatex (piese · manoperă · vopsitorie)
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Piese de schimb</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={pretPieseAudatex || 0}
+                          onChange={(e) => setPieseAudatex(Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Manoperă tinichigerie</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={manoperaTinichigerie || 0}
+                          onChange={(e) => setManoperaAudatex("manoperaTinichigerie", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Manoperă vopsitorie</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={manoperaVopsitorie || 0}
+                          onChange={(e) => setManoperaAudatex("manoperaVopsitorie", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Materiale vopsitorie</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={materialeVopsitorie || 0}
+                          onChange={(e) => setFinancial("materialeVopsitorie", Number(e.target.value) || 0)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Costuri suplimentare</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={cheltuieliDiverse || 0}
+                          onChange={(e) => setCheltuieliDiverse(Number(e.target.value) || 0)}
+                          placeholder="Articole supl. deviz"
+                        />
+                      </div>
+                      <div className="flex flex-col justify-end rounded-lg border border-dashed border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-2">
+                        <span className="text-[10px] font-semibold uppercase text-[var(--app-muted)]">Total vopsitorie</span>
+                        <span className="font-mono text-[13px] font-bold text-[var(--app-text-strong)]">
+                          {totalVopsitorieAudatex.toLocaleString("ro-RO")} lei
+                        </span>
+                        <span className="text-[9px] text-[var(--app-muted)]">manoperă + materiale</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Secțiunea 3: Costuri service reale */}
+                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
+                    <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5">
+                      3. Costuri reale service (achiziții)
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Coloana Stânga: Manoperă & Piese Audatex */}
-                      <div className="space-y-2.5 bg-[var(--app-surface-2)] p-3 rounded-xl border border-[var(--app-border)]">
-                        <div className="text-[11px] font-extrabold text-[var(--app-muted)] uppercase flex items-center gap-1">
-                          <Wrench size={13} /> Manoperă &amp; Deviz Piese Audatex
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Manoperă Tinichigerie</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
-                              value={manoperaTinichigerie || 0}
-                              onChange={(e) => setFinancial("manoperaTinichigerie", Number(e.target.value) || 0)}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Manoperă Vopsitorie</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
-                              value={manoperaVopsitorie || 0}
-                              onChange={(e) => setFinancial("manoperaVopsitorie", Number(e.target.value) || 0)}
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Materiale Vopsitorie</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
-                              value={parseNumber(financial.materialeVopsitorie, 0) || 0}
-                              onChange={(e) => setFinancial("materialeVopsitorie", Number(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Preț Achiziție Piese Audatex (lei)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text)] text-[12.5px] bg-[var(--app-surface)]"
-                            value={form.valoarePieseAudatex || 0}
-                            onChange={(e) => set("valoarePieseAudatex", Number(e.target.value) || 0)}
-                            placeholder="Preț piese din deviz"
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Achiziție piese service (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-danger)] text-[12.5px] bg-[var(--app-surface)]"
+                          value={form.valoareAchizitiePiese || 0}
+                          onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
+                          placeholder="Cost real piese"
+                        />
+                        {pretPieseAudatex > 0 && (
+                          <p className="mt-1 text-[10px] text-[var(--app-muted)]">
+                            Marjă piese față de deviz: {(pretPieseAudatex - pretPieseService).toLocaleString("ro-RO")} lei
+                          </p>
+                        )}
                       </div>
-
-                      {/* Coloana Dreapta: Piese Service & Cheltuieli Diverse */}
-                      <div className="space-y-2.5 bg-[var(--app-surface-2)] p-3 rounded-xl border border-[var(--app-border)]">
-                        <div className="text-[11px] font-extrabold text-[var(--app-warning)] uppercase flex items-center gap-1">
-                          <Tag size={13} /> Costuri Realizate Service
-                        </div>
-                        <div>
-                          <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Preț Achiziție Piese Service (lei)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-danger)] text-[12.5px] bg-[var(--app-surface)]"
-                            value={form.valoareAchizitiePiese || 0}
-                            onChange={(e) => set("valoareAchizitiePiese", Number(e.target.value) || 0)}
-                            placeholder="Cost real piese achiziționate"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cheltuieli Diverse</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
-                              value={cheltuieliDiverse || 0}
-                              onChange={(e) => setFinancial("cheltuieliDiverse", Number(e.target.value) || 0)}
-                              placeholder="Subcontractări / alte"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost Auto Schimb</label>
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface)]"
-                              value={costMasinaSchimb || 0}
-                              onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
-                            />
-                          </div>
-                        </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost auto schimb (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
+                          value={costMasinaSchimb || 0}
+                          onChange={(e) => setFinancial("costMasinaSchimb", Number(e.target.value) || 0)}
+                        />
                       </div>
                     </div>
+                  </div>
 
                     {/* Summary KPI Raport Financiar Real */}
                     <div className="p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] shadow-xs mt-2">
@@ -1927,7 +1994,6 @@ export default function ClaimModal({
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               )}
 

@@ -1,27 +1,28 @@
 import * as XLSX from "xlsx";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   parseEstimateText,
   parseEstimateXml,
   parseEstimateSheetRows,
 } from "./audatexParse";
 
+let pdfWorkerReady = false;
+
+async function ensurePdfWorker(pdfjs) {
+  if (pdfWorkerReady || !pdfjs?.GlobalWorkerOptions) return;
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  pdfWorkerReady = true;
+}
+
 async function extractPdfText(arrayBuffer) {
   const pdfjs = await import("pdfjs-dist");
-  // Vite: bundle worker next to the module
-  if (pdfjs.GlobalWorkerOptions) {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-      "pdfjs-dist/build/pdf.worker.min.mjs",
-      import.meta.url
-    ).toString();
-  }
-  const doc = await pdfjs.getDocument({
-    data: arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer),
-  }).promise;
+  await ensurePdfWorker(pdfjs);
+  const data = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
+  const doc = await pdfjs.getDocument({ data }).promise;
   const pages = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    // Group by approximate Y so recapitulation labels stay on their own lines
     const rows = [];
     let currentY = null;
     let buf = [];
@@ -73,8 +74,6 @@ async function readAsText(file) {
 
 /**
  * Parse an uploaded Audatex/DAT estimate file.
- * @param {File} file
- * @returns {Promise<{ values: object, confidence: string, sourceHints: string[], format: string, rawPreview?: string }>}
  */
 export async function parseEstimateFile(file) {
   if (!file) throw new Error("Selectează un fișier.");
@@ -83,7 +82,19 @@ export async function parseEstimateFile(file) {
 
   if (name.endsWith(".pdf") || type === "application/pdf") {
     const buf = await readAsArrayBuffer(file);
-    const text = await extractPdfText(buf);
+    let text = "";
+    try {
+      text = await extractPdfText(buf);
+    } catch (err) {
+      const msg = err?.message || String(err);
+      if (/worker|fake worker/i.test(msg)) {
+        throw new Error("Nu pot citi PDF-ul (worker). Reîncarcă pagina și încearcă din nou.");
+      }
+      throw new Error(`Nu pot citi PDF-ul: ${msg}`);
+    }
+    if (!text || text.replace(/\s/g, "").length < 80) {
+      throw new Error("PDF-ul nu conține text selectabil (scan?). Exportă din Audatex ca PDF nativ.");
+    }
     const result = parseEstimateText(text);
     return { ...result, rawPreview: text.slice(0, 1500) };
   }
@@ -111,7 +122,6 @@ export async function parseEstimateFile(file) {
     return { ...result, rawPreview: rows.slice(0, 40).map((r) => r.join(" | ")).join("\n") };
   }
 
-  // Fallback: try as text
   const text = await readAsText(file);
   const result = parseEstimateText(text);
   return { ...result, rawPreview: text.slice(0, 1500) };

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { FileUp, Loader2, Sparkles, Check, X } from "lucide-react";
+import { FileUp, Loader2, Sparkles, Check, X, AlertCircle } from "lucide-react";
 import {
   AUDATEX_IMPORT_FIELDS,
   applyEstimateValuesToClaim,
@@ -22,67 +22,84 @@ function flagChips(op) {
   return chips;
 }
 
+function buildImportMeta(file, result) {
+  return {
+    fileName: file?.name || "",
+    importedAt: new Date().toISOString(),
+    format: result?.format || "unknown",
+    confidence: result?.confidence || "",
+  };
+}
+
 /**
- * Upload Audatex/DAT estimate → preview extracted costs + lines → apply onto claim.
+ * Upload Audatex/DAT estimate → parse → apply automatically on claim form.
  */
-export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false }) {
+export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false, readOnly = false }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
   const [applyOps, setApplyOps] = useState(true);
+  const [lastError, setLastError] = useState("");
+
+  const doApply = (result, file, withOps = applyOps) => {
+    const ops = result.lineItems?.operations || [];
+    setClaim((c) =>
+      applyEstimateValuesToClaim(c || claim, result.values || {}, {
+        operations: ops,
+        applyOperations: withOps && ops.length > 0,
+        replaceOperations: true,
+        importMeta: buildImportMeta(file, result),
+      })
+    );
+    const n = countExtractedFields(result.values);
+    const opCount = countExtractedOperations(result.lineItems);
+    showNotice?.(
+      `Import aplicat: ${n} sume` + (withOps && opCount ? ` + ${opCount} linii pe dosar` : "") + `.`,
+      "success"
+    );
+  };
 
   const onPick = async (fileList) => {
     const file = Array.from(fileList || [])[0];
-    if (!file) return;
+    if (!file || readOnly) return;
     setBusy(true);
     setPreview(null);
+    setLastError("");
     try {
       const result = await parseEstimateFile(file);
       const n = countExtractedFields(result.values);
       const ops = countExtractedOperations(result.lineItems);
       if (n === 0 && ops === 0) {
-        showNotice?.(
-          "Nu am putut extrage sume sau linii din fișier. Verifică că e un export Audatex/DAT (PDF/XML/CSV) cu listă + recapitulare.",
-          "error"
-        );
+        const err =
+          "Nu am putut extrage date din fișier. Folosește export PDF nativ Audatex/DAT (cu text), nu scan.";
+        setLastError(err);
+        showNotice?.(err, "error");
         setPreview({ ...result, fileName: file.name, empty: true });
         return;
       }
-      setPreview({ ...result, fileName: file.name, empty: false });
-      setApplyOps(ops > 0);
-      showNotice?.(
-        `Extrase ${n} sume` + (ops ? ` + ${ops} linii` : "") + ` din ${file.name}.`,
-        "success"
-      );
+      const withOps = ops > 0;
+      setApplyOps(withOps);
+      setPreview({ ...result, fileName: file.name, empty: false, applied: true });
+      doApply(result, file, withOps);
     } catch (err) {
-      showNotice?.(err?.message || "Citirea fișierului a eșuat.", "error");
+      const msg = err?.message || "Citirea fișierului a eșuat.";
+      setLastError(msg);
+      showNotice?.(msg, "error");
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
 
-  const apply = () => {
+  const reApply = () => {
     if (!preview || preview.empty) return;
-    const ops = preview.lineItems?.operations || [];
-    setClaim((c) =>
-      applyEstimateValuesToClaim(c || claim, preview.values || {}, {
-        operations: ops,
-        applyOperations: applyOps && ops.length > 0,
-        replaceOperations: true,
-      })
-    );
-    const msg =
-      applyOps && ops.length
-        ? `Aplicat: sume + ${ops.length} linii pe dosar.`
-        : "Valorile din deviz au fost aplicate pe dosar.";
-    showNotice?.(msg, "success");
-    setPreview(null);
+    doApply(preview, { name: preview.fileName }, applyOps);
   };
 
   const dismiss = () => setPreview(null);
   const ops = preview?.lineItems?.operations || [];
   const partsCount = preview?.lineItems?.parts?.length || 0;
+  const lastImport = claim?.financiar?.audatexImport;
 
   return (
     <div
@@ -94,42 +111,58 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
         <div>
           <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)]">
             <Sparkles size={14} className="text-[var(--app-accent)]" />
-            Import cheltuieli din deviz
+            Import deviz Audatex
           </div>
           {!compact && (
             <p className="mt-0.5 text-[11px] text-[var(--app-muted)]">
-              PDF / XML / CSV / Excel — extrage sume + lista de piese / manoperă (INL, REV, REP, UNI).
+              PDF / XML / CSV — completează automat câmpurile financiare + operațiuni (INL, REV, REP, UNI).
+            </p>
+          )}
+          {lastImport?.fileName && !preview && (
+            <p className="mt-1 text-[10px] text-[var(--app-success)]">
+              Ultim import: {lastImport.fileName}
+              {lastImport.format ? ` · ${lastImport.format}` : ""}
             </p>
           )}
         </div>
-        <label
-          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-1.5 text-[11px] font-bold text-[var(--app-text)] hover:border-[var(--app-accent)] ${
-            busy ? "pointer-events-none opacity-60" : ""
-          }`}
-        >
-          {busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
-          {busy ? "Analizez…" : "Încarcă deviz"}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".pdf,.xml,.csv,.xlsx,.xls,.txt,application/pdf,text/xml,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
-            disabled={busy}
-            onChange={(e) => onPick(e.target.files)}
-          />
-        </label>
+        {!readOnly && (
+          <label
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-1.5 text-[11px] font-bold text-[var(--app-text)] hover:border-[var(--app-accent)] ${
+              busy ? "pointer-events-none opacity-60" : ""
+            }`}
+          >
+            {busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
+            {busy ? "Analizez…" : "Încarcă deviz"}
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,.xml,.csv,.xlsx,.xls,.txt,application/pdf,text/xml,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              className="hidden"
+              disabled={busy}
+              onChange={(e) => onPick(e.target.files)}
+            />
+          </label>
+        )}
       </div>
 
-      {preview && (
-        <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] p-3 space-y-2">
+      {lastError && (
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--app-danger)]/30 bg-[var(--app-danger)]/10 px-3 py-2 text-[11px] text-[var(--app-danger)]">
+          <AlertCircle size={14} className="mt-0.5 shrink-0" />
+          <span>{lastError}</span>
+        </div>
+      )}
+
+      {preview && !preview.empty && (
+        <div className="rounded-lg border border-[var(--app-success)]/30 bg-[var(--app-success)]/10 p-3 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 text-[11px]">
-              <div className="truncate font-semibold text-[var(--app-text)]">{preview.fileName}</div>
+              <div className="flex items-center gap-1.5 font-semibold text-[var(--app-success)]">
+                <Check size={14} /> Import aplicat — {preview.fileName}
+              </div>
               <div className="text-[var(--app-muted)]">
                 Format: {preview.format || "?"} · încredere: {preview.confidence || "?"}
-                {preview.empty ? " · fără date" : ""}
-                {!preview.empty && ops.length ? ` · ${ops.length} linii` : ""}
-                {!preview.empty && partsCount ? ` · ${partsCount} piese` : ""}
+                {ops.length ? ` · ${ops.length} linii` : ""}
+                {partsCount ? ` · ${partsCount} piese` : ""}
               </div>
             </div>
             <button type="button" className="shrink-0 p-1 text-[var(--app-muted)]" onClick={dismiss} aria-label="Închide">
@@ -137,30 +170,28 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
             </button>
           </div>
 
-          {!preview.empty && (
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-              {AUDATEX_IMPORT_FIELDS.map((f) => {
-                const v = preview.values?.[f.key];
-                if (v == null) return null;
-                return (
-                  <div
-                    key={f.key}
-                    className="rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5"
-                  >
-                    <div className="text-[9px] font-semibold uppercase text-[var(--app-muted)]">{f.label}</div>
-                    <div className="font-mono text-[12px] font-bold text-[var(--app-text-strong)]">
-                      {f.key === "zileChirieAudatex" ? Math.round(v) : formatRon(v)}
-                      {f.key !== "zileChirieAudatex" ? (
-                        <span className="ml-0.5 text-[9px] font-normal text-[var(--app-muted)]">lei</span>
-                      ) : null}
-                    </div>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {AUDATEX_IMPORT_FIELDS.map((f) => {
+              const v = preview.values?.[f.key];
+              if (v == null) return null;
+              return (
+                <div
+                  key={f.key}
+                  className="rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1.5"
+                >
+                  <div className="text-[9px] font-semibold uppercase text-[var(--app-muted)]">{f.label}</div>
+                  <div className="font-mono text-[12px] font-bold text-[var(--app-text-strong)]">
+                    {f.key === "zileChirieAudatex" ? Math.round(v) : formatRon(v)}
+                    {f.key !== "zileChirieAudatex" ? (
+                      <span className="ml-0.5 text-[9px] font-normal text-[var(--app-muted)]">lei</span>
+                    ) : null}
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              );
+            })}
+          </div>
 
-          {!preview.empty && ops.length > 0 && (
+          {ops.length > 0 && (
             <div className="space-y-1.5">
               <label className="flex items-center gap-2 text-[11px] font-semibold text-[var(--app-text)]">
                 <input
@@ -169,10 +200,10 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
                   onChange={(e) => setApplyOps(e.target.checked)}
                   className="rounded border-[var(--app-border)]"
                 />
-                Aplică lista pe dosar ({ops.length} linii — înlocuiește operațiunile actuale)
+                Include lista pe dosar ({ops.length} linii)
               </label>
-              <ul className="max-h-40 space-y-1 overflow-y-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] p-2">
-                {ops.slice(0, 40).map((op) => (
+              <ul className="max-h-32 space-y-1 overflow-y-auto rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] p-2">
+                {ops.slice(0, 25).map((op) => (
                   <li key={op.id || op.piesa} className="flex items-start justify-between gap-2 text-[11px]">
                     <span className="min-w-0 truncate font-medium text-[var(--app-text)]">{op.piesa}</span>
                     <span className="shrink-0 text-[9px] font-bold text-[var(--app-muted)]">
@@ -180,28 +211,13 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
                     </span>
                   </li>
                 ))}
-                {ops.length > 40 && (
-                  <li className="text-[10px] text-[var(--app-muted)]">… și încă {ops.length - 40}</li>
-                )}
               </ul>
-            </div>
-          )}
-
-          {!preview.empty && (
-            <div className="flex flex-wrap gap-2 pt-1">
               <button
                 type="button"
-                onClick={apply}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--app-accent)] px-3 py-1.5 text-[11px] font-bold text-white"
+                onClick={reApply}
+                className="text-[10px] font-semibold text-[var(--app-accent)] underline"
               >
-                <Check size={14} /> Aplică pe dosar
-              </button>
-              <button
-                type="button"
-                onClick={dismiss}
-                className="rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-[11px] font-semibold text-[var(--app-muted)]"
-              >
-                Anulează
+                Reaplică sume{applyOps ? " + linii" : ""}
               </button>
             </div>
           )}
