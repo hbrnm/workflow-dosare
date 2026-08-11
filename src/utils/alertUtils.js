@@ -57,6 +57,8 @@ export function isReadyForPickupOverdue(claim, pickupThresholdDays) {
 export function isStageOverdue(claim) {
   if (claim?.alerteAck) return false;
   if (claim?.status === "facturat") return false;
+  // Accept plată are alertă dedicată (Plăți) — nu dubla în Întârzieri.
+  if (getStatusDefinition(claim?.status).key === "accept_plata") return false;
   if (claim?.gataDeRidicare && !claim?.ridicata) return false;
 
   // Programare viitoare: nu e întârziată încă — așteptăm data din calendar
@@ -75,13 +77,17 @@ export function getDaysInStage(claim) {
   return anchor ? businessDaysSince(anchor) : 0;
 }
 
-// Dosare pe Accept plată (după reparație) — așteaptă decontare / facturare
+/**
+ * Dosare pe Accept plată care au depășit pragul din Setări (zile lucrătoare).
+ * Nu mai alertează în ziua mutării — respectă termenul pe stadiu (ex. 3 zile).
+ */
 export function isAcceptPlataWithoutParts(claim) {
   if (claim?.alerteAck) return false;
-  return Boolean(
-    !claim.blocat &&
-    getStatusDefinition(claim.status).key === "accept_plata"
-  );
+  if (claim?.blocat) return false;
+  if (getStatusDefinition(claim?.status).key !== "accept_plata") return false;
+  const threshold = getClaimAlertDays(claim);
+  const anchor = getStageAlertAnchor(claim);
+  return Boolean(anchor && businessDaysSince(anchor) >= threshold);
 }
 
 // Detectează dosarele care nu au avut nicio modificare/activitate de mai mult de X zile
@@ -192,6 +198,8 @@ export function getAlertMetric(item) {
       };
     case "masini_schimb":
       return { value: c.zile || 0, unit: "zile", hint: "la schimb" };
+    case "accept_plata":
+      return { value: getDaysInStage(c), unit: "zile", hint: "în Accept plată" };
     case "restante":
       return { value: getDaysPaymentOverdue(c), unit: "zile", hint: "scadență" };
     default:
@@ -331,12 +339,14 @@ export function buildAlertBuckets(claims = [], { pragRidicare = 3, pragInactivit
   });
 
   acceptPlata.forEach((c) => {
+    const zile = getDaysInStage(c);
+    const prag = getClaimAlertDays(c);
     items.push({
       id: `accept_plata-${c.id}`,
       claim: c,
       type: "accept_plata",
-      title: "Accept plată",
-      reason: "Reparație finalizată — așteaptă acceptul de plată / decontarea",
+      title: `Accept plată (+${zile}z)`,
+      reason: `În Accept plată de ${zile} ${zile === 1 ? "zi" : "zile"} (prag ${prag}z) — așteaptă acceptul / decontarea`,
       severity: "info",
     });
   });

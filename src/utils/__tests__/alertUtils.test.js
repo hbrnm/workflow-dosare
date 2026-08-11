@@ -192,6 +192,7 @@ describe('alertUtils', () => {
         id: '3',
         status: 'accept_plata',
         blocat: false,
+        dataSchimbareStatus: isoDaysAgo(8),
       },
       {
         id: '4',
@@ -267,12 +268,48 @@ describe('alertUtils', () => {
     expect(buckets.items).toHaveLength(0);
   });
 
-  it('accept_plata alert uses short Accept plată title', () => {
-    const buckets = buildAlertBuckets([
-      { id: 'a1', status: 'accept_plata', blocat: false },
+  it('accept_plata alert waits for stage threshold (settings days)', () => {
+    // Default accept_plata alertDays = 5; frozen today = 2026-08-05
+    expect(buildAlertBuckets([
+      { id: 'a1', status: 'accept_plata', blocat: false, dataSchimbareStatus: isoDaysAgo(1) },
+    ]).counts.accept_plata).toBe(0);
+
+    const overdue = buildAlertBuckets([
+      { id: 'a2', status: 'accept_plata', blocat: false, dataSchimbareStatus: isoDaysAgo(8) },
     ]);
-    expect(buckets.items[0].title).toBe('Accept plată');
-    expect(buckets.counts.accept_plata).toBe(1);
+    expect(overdue.counts.accept_plata).toBe(1);
+    expect(overdue.items[0].title).toMatch(/^Accept plată \(\+/);
+    expect(overdue.items[0].reason).toMatch(/prag \d+z/);
+  });
+
+  it('accept_plata respects Setări override and does not go into stagnate', () => {
+    const store = new Map();
+    vi.stubGlobal('localStorage', {
+      getItem: (k) => (store.has(k) ? store.get(k) : null),
+      setItem: (k, v) => { store.set(k, String(v)); },
+      removeItem: (k) => { store.delete(k); },
+    });
+    localStorage.setItem(
+      'workflow_dosare_termene_alerta',
+      JSON.stringify({ accept_plata: 3 })
+    );
+    const fresh = {
+      id: 'a1',
+      status: 'accept_plata',
+      blocat: false,
+      dataSchimbareStatus: isoDaysAgo(1),
+    };
+    const late = {
+      id: 'a2',
+      status: 'accept_plata',
+      blocat: false,
+      dataSchimbareStatus: isoDaysAgo(6),
+    };
+    expect(buildAlertBuckets([fresh]).counts.accept_plata).toBe(0);
+    expect(buildAlertBuckets([fresh]).counts.stagnate).toBe(0);
+    expect(buildAlertBuckets([late]).counts.accept_plata).toBe(1);
+    expect(buildAlertBuckets([late]).counts.stagnate).toBe(0);
+    vi.unstubAllGlobals();
   });
 
   it('accept_plata alert clears when claim moves to facturat', () => {
