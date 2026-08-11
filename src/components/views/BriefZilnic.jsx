@@ -21,7 +21,7 @@ import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 import { glossaryTitle } from "../../constants/glossary";
-import { countUniqueVehicles } from "../../utils/plateSchedule";
+import { buildStatusCounts, countUniqueVehicles } from "../../utils/plateSchedule";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate" },
@@ -129,18 +129,7 @@ export default function BriefZilnic({
     claims.filter((c) => getStatusDefinition(c.status).key !== "facturat").length,
     [claims]);
 
-  const statusStats = useMemo(() => {
-    const map = {};
-    STATUSES.forEach((s) => (map[s.key] = 0));
-    claims.forEach((c) => {
-      const key = getStatusDefinition(c.status).key;
-      if (map[key] !== undefined) map[key] += 1;
-    });
-    // Business rule: multiple claims on same vehicle count once in Programări/Reparație.
-    map.programat = countUniqueVehicles(claims.filter((c) => claimStatusKey(c) === "programat"));
-    map.in_lucru = countUniqueVehicles(claims.filter((c) => claimStatusKey(c) === "in_lucru"));
-    return map;
-  }, [claims]);
+  const statusStats = useMemo(() => buildStatusCounts(claims), [claims]);
 
   const stageLists = useMemo(() => ({
     air: sortClaimsForFocus(claimsForStatus(claims, "deschidere"), "air"),

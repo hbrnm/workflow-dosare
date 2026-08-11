@@ -1,3 +1,4 @@
+import { STATUSES, getStatusDefinition } from "../constants/config";
 import { isAwaitingSchedule, POST_PROGRAMAT_STATUSES } from "./scheduleStatusEffects";
 
 export function normalizePlate(value) {
@@ -81,13 +82,26 @@ export function countUniqueVehicles(claims = []) {
 
 const UNIQUE_VEHICLE_STATUS_KEYS = new Set(["programat", "in_lucru"]);
 
-/** Count claims in a status; programat + in_lucru dedupe by plate. */
+function claimStatusKey(claim) {
+  return getStatusDefinition(claim?.status).key;
+}
+
+/** Count claims in a status; programat + in_lucru dedupe by plate (1 vehicle = 1). */
 export function countClaimsForStatus(claims = [], statusKey) {
-  const matching = (claims || []).filter((c) => c.status === statusKey);
+  const matching = (claims || []).filter((c) => claimStatusKey(c) === statusKey);
   if (UNIQUE_VEHICLE_STATUS_KEYS.has(statusKey)) {
     return countUniqueVehicles(matching);
   }
   return matching.length;
+}
+
+/** Stage badge counts for Flux / Tabel / Brief — unique vehicles for Programări & Reparație. */
+export function buildStatusCounts(claims = []) {
+  const counts = {};
+  STATUSES.forEach((s) => {
+    counts[s.key] = countClaimsForStatus(claims, s.key);
+  });
+  return counts;
 }
 
 /** Group by plate + exact appointment ISO (same date & time). */

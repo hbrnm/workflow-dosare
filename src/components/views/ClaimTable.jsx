@@ -16,6 +16,7 @@ import {
   groupHasSearchHighlight,
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
+import { buildStatusCounts } from "../../utils/plateSchedule";
 
 export default function ClaimTable({
   claims,
@@ -33,14 +34,7 @@ export default function ClaimTable({
   const [focusedStage, setFocusedStage] = useState(null);
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  const statusCounts = useMemo(() => {
-    const counts = {};
-    STATUSES.forEach((s) => { counts[s.key] = 0; });
-    claims.forEach((c) => {
-      if (counts[c.status] !== undefined) counts[c.status]++;
-    });
-    return counts;
-  }, [claims]);
+  const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
   const filtered = useMemo(() => {
     if (!focusedStage) return claims;
