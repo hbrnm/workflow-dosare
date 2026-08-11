@@ -74,6 +74,11 @@ export function groupClaimsByPlate(claims = []) {
   return Array.from(map.values());
 }
 
+/** Number of unique vehicles (plate-grouped claims). */
+export function countUniqueVehicles(claims = []) {
+  return groupClaimsByPlate(claims).length;
+}
+
 /** Group by plate + exact appointment ISO (same date & time). */
 export function groupClaimsByPlateAndSchedule(claims = []) {
   const map = new Map();

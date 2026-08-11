@@ -12,7 +12,7 @@ import {
 } from "../../constants/config";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
-import { groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
+import { countUniqueVehicles, groupClaimsByPlateAndSchedule } from "../../utils/plateSchedule";
 
 /**
  * Aceeași sursă de adevăr ca Programatorul desktop:
@@ -33,11 +33,11 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
   }, [claims]);
 
   const countAzi = useMemo(
-    () => programari.filter((c) => c.dataProgramare.slice(0, 10) === todayStr).length,
+    () => countUniqueVehicles(programari.filter((c) => c.dataProgramare.slice(0, 10) === todayStr)),
     [programari, todayStr]
   );
   const countViitoare = useMemo(
-    () => programari.filter((c) => c.dataProgramare.slice(0, 10) >= todayStr).length,
+    () => countUniqueVehicles(programari.filter((c) => c.dataProgramare.slice(0, 10) >= todayStr)),
     [programari, todayStr]
   );
 
@@ -112,7 +112,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
       <header className="m-ui-hero">
         <div className="flex items-end justify-between gap-3">
           <h1 className="m-ui-title">Programări</h1>
-          <span className="m-ui-count">{filteredProgramari.length}</span>
+          <span className="m-ui-count">{countUniqueVehicles(filteredProgramari)}</span>
         </div>
       </header>
 
@@ -120,7 +120,7 @@ export default function MobileProgramari({ claims, onOpen, onPatch, canEditFn, o
         {[
           { key: "azi", label: "Azi", count: countAzi },
           { key: "viitoare", label: "Viitoare", count: countViitoare },
-          { key: "toate", label: "Toate", count: programari.length },
+          { key: "toate", label: "Toate", count: countUniqueVehicles(programari) },
         ].map((chip) => {
           const active = filterMode === chip.key;
           return (
