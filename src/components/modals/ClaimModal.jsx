@@ -42,7 +42,7 @@ import PhotoLightbox from "../common/PhotoLightbox";
 import AudatexImportCard from "../common/AudatexImportCard";
 import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
 import { loadCachedManoperaTarife } from "../../constants/manoperaTarife";
-import { computeServiceLaborCosts, applyLaborCostsToClaim } from "../../utils/manoperaCost";
+import { computeServiceLaborCosts, applyLaborCostsToClaim, hasConfiguredLaborRates } from "../../utils/manoperaCost";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 import { useModalEscape } from "../../hooks/useModalEscape";
 
@@ -459,6 +459,7 @@ export default function ClaimModal({
   const oreLucrateTinichigerie = parseNumber(financial.oreLucrateTinichigerie, 0);
   const oreLucrateVopsitorie = parseNumber(financial.oreLucrateVopsitorie, 0);
   const laborPreview = computeServiceLaborCosts(oreLucrateTinichigerie, oreLucrateVopsitorie, manoperaTarife);
+  const laborRatesConfigured = hasConfiguredLaborRates(manoperaTarife);
   const costManoperaService = costManoperaTinichigerieService + costManoperaVopsitorieService;
   const marjaManopera = venitManoperaAudatex - costManoperaService;
 
@@ -1928,6 +1929,14 @@ export default function ClaimModal({
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5">
                       Costuri reale service (achiziții)
                     </div>
+
+                    {!laborRatesConfigured && (oreLucrateTinichigerie > 0 || oreLucrateVopsitorie > 0) && (
+                      <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                        Tarifele manoperei nu sunt configurate — costul rămâne 0. Mergi la{" "}
+                        <strong>Setări → General → Tarife manoperă internă</strong> și completează salariul lunar
+                        (ex. 8000 lei) sau tariful manual (lei/h), apoi apasă „Calculează cost din ore”.
+                      </p>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>

@@ -28,7 +28,6 @@ export function laborCostFromHours(hours, hourlyRate) {
   return Math.round(h * r * 100) / 100;
 }
 
-/** Calculează costurile service din ore lucrate + tarife atelier. */
 export function computeServiceLaborCosts(oreTinichigerie, oreVopsitorie, tarifeRaw) {
   const tarife = normalizeManoperaTarife(tarifeRaw);
   const rateTin = resolveRoleHourlyRate(tarife.tinichigerie);
@@ -62,4 +61,10 @@ export function applyLaborCostsToClaim(claim, tarifeRaw, options = {}) {
   }
 
   return { ...claim, financiar };
+}
+
+/** True dacă există cel puțin un tarif orar (manual sau din salariu). */
+export function hasConfiguredLaborRates(tarifeRaw) {
+  const tarife = normalizeManoperaTarife(tarifeRaw);
+  return resolveRoleHourlyRate(tarife.tinichigerie) > 0 || resolveRoleHourlyRate(tarife.vopsitorie) > 0;
 }
