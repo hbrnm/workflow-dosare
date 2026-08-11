@@ -371,8 +371,7 @@ export default function ClaimModal({
         };
       }
       if (key === "totalCosturiSuplimentare") {
-        patch.financiar.cheltuieliDiverse = n;
-        patch.financiar.costuriExterne = n;
+        /* Doar deviz Audatex — nu se amestecă cu cheltuielile reale service. */
       }
       if (key === "costReparatieFaraTva") {
         patch.valoareDevizAudatex = n;
@@ -387,6 +386,16 @@ export default function ClaimModal({
     });
   };
 
+  const setCheltuieliService = (val) =>
+    setForm((f) => ({
+      ...f,
+      financiar: {
+        ...(f.financiar || {}),
+        cheltuieliDiverse: val,
+        costuriExterne: val,
+      },
+    }));
+
   const financial = form.financiar || {};
   const audatexDeviz = financial.audatex || {};
   const readDevizFaraTva = () =>
@@ -396,7 +405,7 @@ export default function ClaimModal({
     if (v != null && v !== "") return parseNumber(v, 0);
     if (key === "totalPiese") return parseNumber(form.valoarePieseAudatex ?? financial.pieseFacturateFaraTva, 0);
     if (key === "totalManopera") return parseNumber(financial.manoperaTinichigerie ?? form.manopera?.tinichigerie?.facturat, 0);
-    if (key === "totalCosturiSuplimentare") return parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
+    if (key === "totalCosturiSuplimentare") return parseNumber(audatexDeviz.totalCosturiSuplimentare, 0);
     if (key === "totalVopsitorie") {
       return parseNumber(
         audatexDeviz.totalVopsitorie ??
@@ -430,13 +439,13 @@ export default function ClaimModal({
   const pretPieseService = parseNumber(form.valoareAchizitiePiese, 0);
   const marjaPiese = pretPieseAudatex - pretPieseService;
 
-  const cheltuieliDiverse = totalCosturiSuplimentareAudatex;
+  const cheltuieliDiverseService = parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
   const costMasinaSchimb = parseNumber(financial.costMasinaSchimb, 0);
   const totalDevizComponente =
     totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex + totalVopsitorieAudatex;
 
   const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
-  const totalCosturiService = pretPieseService + cheltuieliDiverse + costMasinaSchimb;
+  const totalCosturiService = pretPieseService + cheltuieliDiverseService + costMasinaSchimb;
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
@@ -1891,7 +1900,7 @@ export default function ClaimModal({
                       Costuri reale service (achiziții)
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Achiziție piese service (lei)</label>
                         <input
@@ -1908,6 +1917,22 @@ export default function ClaimModal({
                             Marjă piese față de deviz: {(pretPieseAudatex - pretPieseService).toLocaleString("ro-RO")} lei
                           </p>
                         )}
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cheltuieli diverse service (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={cheltuieliDiverseService || 0}
+                          onChange={(e) => setCheltuieliService(Number(e.target.value) || 0)}
+                          placeholder="Transport, consumabile, subcontractori…"
+                        />
+                        <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                          Costuri reale în afara pieselor — nu se iau din devizul Audatex.
+                        </p>
                       </div>
                       <div>
                         <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost auto schimb (lei)</label>

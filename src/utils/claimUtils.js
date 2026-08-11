@@ -160,7 +160,7 @@ export function sanitizeClaim(c) {
         ...emptyAudatexDevizTotals(),
         totalPiese: parseNumber(c.financiar?.audatex?.totalPiese ?? c.valoarePieseAudatex ?? c.financiar?.pieseFacturateFaraTva, 0),
         totalManopera: parseNumber(c.financiar?.audatex?.totalManopera ?? c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
-        totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare ?? c.financiar?.cheltuieliDiverse ?? c.financiar?.costuriExterne, 0),
+        totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare, 0),
         totalVopsitorie: parseNumber(
           c.financiar?.audatex?.totalVopsitorie ??
             (parseNumber(c.financiar?.manoperaVopsitorie, 0) + parseNumber(c.financiar?.materialeVopsitorie, 0)),
@@ -481,7 +481,7 @@ export function toDb(c) {
         ...emptyAudatexDevizTotals(),
         totalPiese: parseNumber(c.financiar?.audatex?.totalPiese ?? c.valoarePieseAudatex ?? c.financiar?.pieseFacturateFaraTva, 0),
         totalManopera: parseNumber(c.financiar?.audatex?.totalManopera ?? c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
-        totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare ?? c.financiar?.cheltuieliDiverse ?? c.financiar?.costuriExterne, 0),
+        totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare, 0),
         totalVopsitorie: parseNumber(
           c.financiar?.audatex?.totalVopsitorie ??
             (parseNumber(c.financiar?.manoperaVopsitorie, 0) + parseNumber(c.financiar?.materialeVopsitorie, 0)),

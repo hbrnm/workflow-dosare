@@ -76,7 +76,7 @@ export function normalizeAudatexImportValues(values = {}) {
     materialeVopsitorie,
     valoarePieseAudatex: totalPiese,
     manoperaTinichigerie: totalManopera,
-    cheltuieliDiverse: totalCosturiSuplimentare,
+    cheltuieliDiverse: pickAudatexValue(values, ["cheltuieliDiverse"]),
     valoareDevizAudatex: costReparatieFaraTva,
     totalPieseAudatex: totalPiese,
     totalManoperaAudatex: totalManopera,
@@ -622,8 +622,6 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     audatex.totalManopera = normalized.totalManopera;
   }
   if (has(["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"])) {
-    financiar.cheltuieliDiverse = normalized.totalCosturiSuplimentare;
-    financiar.costuriExterne = normalized.totalCosturiSuplimentare;
     audatex.totalCosturiSuplimentare = normalized.totalCosturiSuplimentare;
   }
   if (has(["totalVopsitorieAudatex"])) {
