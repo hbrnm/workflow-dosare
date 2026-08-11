@@ -5,6 +5,8 @@ import {
   findCoScheduleSiblings,
   groupClaimsByPlate,
   groupClaimsByPlateAndSchedule,
+  countUniqueVehicles,
+  countClaimsForStatus,
 } from "../plateSchedule";
 
 describe("plateSchedule", () => {
@@ -64,5 +66,21 @@ describe("plateSchedule", () => {
     const bySlot = groupClaimsByPlateAndSchedule(claims);
     expect(bySlot).toHaveLength(2);
     expect(bySlot.find((g) => g.length === 2).map((c) => c.id).sort()).toEqual(["1", "2"]);
+  });
+
+  it("counts unique vehicles and dedupes programat/in_lucru by plate", () => {
+    const claims = [
+      { id: "1", numarInmatriculare: "B111AAA", status: "programat" },
+      { id: "2", numarInmatriculare: "B111AAA", status: "programat" },
+      { id: "3", numarInmatriculare: "B222BBB", status: "programat" },
+      { id: "4", numarInmatriculare: "B333CCC", status: "in_lucru" },
+      { id: "5", numarInmatriculare: "B333CCC", status: "in_lucru" },
+      { id: "6", numarInmatriculare: "B444DDD", status: "deschidere" },
+      { id: "7", numarInmatriculare: "B444DDD", status: "deschidere" },
+    ];
+    expect(countUniqueVehicles(claims.filter((c) => c.status === "programat"))).toBe(2);
+    expect(countClaimsForStatus(claims, "programat")).toBe(2);
+    expect(countClaimsForStatus(claims, "in_lucru")).toBe(1);
+    expect(countClaimsForStatus(claims, "deschidere")).toBe(2);
   });
 });

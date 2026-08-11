@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
 import { BarChart3, Clock, Wallet, AlertTriangle } from "lucide-react";
-import { STATUSES, getStatusDefinition, getPhaseColors } from "../../constants/config";
+import { STATUSES, getPhaseColors } from "../../constants/config";
 import { daysBetween } from "../../utils/dateUtils";
 import { isStageOverdue } from "../../utils/alertUtils";
+import { countClaimsForStatus } from "../../utils/plateSchedule";
 import {
   groupRestanteByInsurer,
   isPaymentOverdue,
@@ -38,7 +39,7 @@ export default function KpiDashboard({ claims, onOpen }) {
 
     const perStatus = STATUSES.map((s) => ({
       ...s,
-      count: list.filter((c) => getStatusDefinition(c.status).key === s.key).length,
+      count: countClaimsForStatus(list, s.key),
     }));
 
     return {
