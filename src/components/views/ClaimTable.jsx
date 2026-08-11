@@ -17,6 +17,7 @@ import {
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
 import { buildStatusCounts } from "../../utils/plateSchedule";
+import { getClaimOpenedAt } from "../../utils/fluxClaimSort";
 
 export default function ClaimTable({
   claims,
@@ -44,6 +45,11 @@ export default function ClaimTable({
   const sorted = useMemo(() => {
     const arr = [...filtered];
     arr.sort((a, b) => {
+      if (sortKey === "dataDeschiderii") {
+        const diff = getClaimOpenedAt(a) - getClaimOpenedAt(b);
+        if (diff !== 0) return sortDir === "asc" ? diff : -diff;
+        return String(b.numarDosar || "").localeCompare(String(a.numarDosar || ""), "ro");
+      }
       let av = a[sortKey], bv = b[sortKey];
       if (sortKey === "status") {
         av = STATUSES.findIndex((s) => s.key === a.status);

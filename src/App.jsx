@@ -353,6 +353,7 @@ export default function App() {
     insurers,
     userClaims,
     filteredClaims,
+    stageClaims,
     activeFilterCount,
   } = useClaimFilters({
     claims,
@@ -1344,7 +1345,7 @@ export default function App() {
                     </div>
                   ) : null}
                   <ClaimTable
-                    claims={filteredClaims}
+                    claims={onlyBlocked ? filteredClaims : stageClaims}
                     onOpen={openExisting}
                     onDelete={handleDelete}
                     canEditFn={canEdit}
@@ -1366,7 +1367,7 @@ export default function App() {
                 </div>
               ) : (
                 <TablouPeFaze
-                  claims={filteredClaims}
+                  claims={onlyBlocked ? filteredClaims : stageClaims}
                   onOpen={handleOpenClaim}
                   onMoveToStatus={handleMoveToStatus}
                   onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}

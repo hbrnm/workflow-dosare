@@ -14,7 +14,7 @@ import DosarNumber from "../common/DosarNumber";
 import { telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
-import { getLatestClaimNoteText } from "../../utils/alertUtils";
+import { getLatestClaimNoteText, isPartsArrivedUnscheduled } from "../../utils/alertUtils";
 import { glossaryTitle, GLOSSARY } from "../../constants/glossary";
 
 const STAGE_ICONS = {
@@ -172,20 +172,22 @@ export default function MobileClaimsList({
   const filtered = useMemo(() => {
     return claims.filter((c) => {
       const key = getStatusDefinition(c.status).key;
+      if (statusFilter === "blocate") return !!c.blocat;
+      // Blocked dossiers live only under „Blocate”, not in pipeline stages.
+      if (c.blocat) return false;
       if (statusFilter === "deschidere" && key !== "deschidere") return false;
       if (statusFilter === "in_lucru" && key !== "in_lucru") return false;
       if (statusFilter === "programat" && key !== "programat") return false;
       if (statusFilter === "accept_plata" && key !== "accept_plata") return false;
       if (statusFilter === "piese_comandate" && !isPieseComandateStatus(c.status)) return false;
-      if (statusFilter === "piese_sosite" && !(c.pieseSosite && !c.dataProgramare)) return false;
+      if (statusFilter === "piese_sosite" && !isPartsArrivedUnscheduled(c)) return false;
       if (statusFilter === "facturat" && key !== "facturat") return false;
-      if (statusFilter === "blocate" && !c.blocat) return false;
       return true;
     });
   }, [claims, statusFilter]);
 
   const pieseSositeCount = useMemo(
-    () => claims.filter((c) => c.pieseSosite && !c.dataProgramare).length,
+    () => claims.filter((c) => !c.blocat && isPartsArrivedUnscheduled(c)).length,
     [claims]
   );
 

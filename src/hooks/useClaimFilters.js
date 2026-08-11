@@ -1,6 +1,12 @@
 import { useState, useMemo, useCallback } from "react";
 import { claimMatchesSearch } from "../utils/searchUtils";
 
+/** Flux/Tabel pipeline: blocked dossiers only appear in the dedicated Blocate view. */
+export function selectStageClaims(filteredClaims = [], onlyBlocked = false) {
+  if (onlyBlocked) return filteredClaims;
+  return filteredClaims.filter((c) => !c.blocat);
+}
+
 export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, pragInactivitate }) {
   const [search, setSearch] = useState("");
   const [filterTip, setFilterTip] = useState("toate");
@@ -47,6 +53,12 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     return [...res].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || ""));
   }, [userClaims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]);
 
+  /** Flux / Tabel stage views: never mix blocked dossiers into pipeline stages. */
+  const stageClaims = useMemo(
+    () => selectStageClaims(filteredClaims, onlyBlocked),
+    [filteredClaims, onlyBlocked]
+  );
+
   const insurers = useMemo(
     () => [...new Set(claims.map((c) => c.asigurator).filter(Boolean))].sort(),
     [claims]
@@ -87,6 +99,7 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
     insurers,
     userClaims,
     filteredClaims,
+    stageClaims,
     activeFilterCount,
   };
 }

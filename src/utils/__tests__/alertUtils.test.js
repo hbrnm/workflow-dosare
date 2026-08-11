@@ -128,6 +128,11 @@ describe('alertUtils', () => {
   it('isPartsArrivedUnscheduled detects missing schedule', () => {
     expect(isPartsArrivedUnscheduled({ pieseSosite: true, dataProgramare: null })).toBe(true);
     expect(isPartsArrivedUnscheduled({ pieseSosite: true, dataProgramare: '2026-08-01' })).toBe(false);
+    expect(isPartsArrivedUnscheduled({
+      pieseSosite: true,
+      dataProgramare: null,
+      adusaFizic: true,
+    })).toBe(false);
   });
 
   it('isDeliveryDeadlineOverdue detects passed delivery date without confirmation', () => {

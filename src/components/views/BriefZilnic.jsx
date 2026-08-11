@@ -59,7 +59,7 @@ function claimStatusKey(claim) {
 }
 
 function claimsForStatus(claims, statusKey) {
-  return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
+  return (claims || []).filter((c) => !c.blocat && claimStatusKey(c) === statusKey);
 }
 
 function sortClaimsForFocus(rows, focusKey) {
@@ -129,7 +129,10 @@ export default function BriefZilnic({
     claims.filter((c) => getStatusDefinition(c.status).key !== "facturat").length,
     [claims]);
 
-  const statusStats = useMemo(() => buildStatusCounts(claims), [claims]);
+  const statusStats = useMemo(
+    () => buildStatusCounts((claims || []).filter((c) => !c.blocat)),
+    [claims]
+  );
 
   const stageLists = useMemo(() => ({
     air: sortClaimsForFocus(claimsForStatus(claims, "deschidere"), "air"),
