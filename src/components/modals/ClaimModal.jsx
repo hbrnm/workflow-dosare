@@ -468,13 +468,20 @@ export default function ClaimModal({
   const marjaPiese = pretPieseAudatex - pretPieseService;
 
   const cheltuieliDiverseService = parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
+  const costMaterialeVopsitorieService = parseNumber(financial.costMaterialeVopsitorieService, 0);
+  const costConsumabileTinichigerieService = parseNumber(financial.costConsumabileTinichigerieService, 0);
   const costMasinaSchimb = parseNumber(financial.costMasinaSchimb, 0);
   const totalDevizComponente =
     totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex + totalVopsitorieAudatex;
 
   const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
   const totalCosturiService =
-    pretPieseService + costManoperaService + cheltuieliDiverseService + costMasinaSchimb;
+    pretPieseService +
+    costManoperaService +
+    costMaterialeVopsitorieService +
+    costConsumabileTinichigerieService +
+    cheltuieliDiverseService +
+    costMasinaSchimb;
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
@@ -2055,6 +2062,40 @@ export default function ClaimModal({
                         )}
                       </div>
                       <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost materiale vopsitorie reale (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={costMaterialeVopsitorieService || 0}
+                          onChange={(e) => setFinancial("costMaterialeVopsitorieService", Number(e.target.value) || 0)}
+                          placeholder="Lac, grund, diluant, chit, mascare…"
+                        />
+                        {materialeVopsitorie > 0 && (
+                          <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                            Deviz Audatex materiale vopsitorie: {materialeVopsitorie.toLocaleString("ro-RO")} lei
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Consumabile tinichigerie (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={costConsumabileTinichigerieService || 0}
+                          onChange={(e) => setFinancial("costConsumabileTinichigerieService", Number(e.target.value) || 0)}
+                          placeholder="Discuri, burghie, sârmă sudură, abrazive…"
+                        />
+                        <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                          Consumabile atelier care nu apar explicit pe deviz.
+                        </p>
+                      </div>
+                      <div>
                         <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cheltuieli diverse service (lei)</label>
                         <input
                           type="number"
@@ -2103,7 +2144,7 @@ export default function ClaimModal({
                         <div className="p-2.5 rounded-xl bg-[var(--app-surface)] border border-[var(--app-danger)]/30">
                           <div className="text-[10px] font-semibold text-[var(--app-danger)] uppercase mb-1">Total Costuri</div>
                           <div className="text-[15px] font-extrabold text-[var(--app-danger)] font-mono">{totalCosturiService.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
-                          <div className="text-[9px] text-[var(--app-muted)] mt-0.5">Piese + Manoperă + Diverse + Schimb</div>
+                          <div className="text-[9px] text-[var(--app-muted)] mt-0.5">Piese + Manoperă + Materiale + Consumabile + Diverse + Schimb</div>
                         </div>
 
                         {/* Profit Brut */}
