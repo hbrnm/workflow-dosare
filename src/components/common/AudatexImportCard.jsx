@@ -35,7 +35,7 @@ function buildImportMeta(file, result) {
 /**
  * Upload Audatex/DAT estimate → parse → apply automatically on claim form.
  */
-export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false, readOnly = false, onImported }) {
+export default function AudatexImportCard({ claim, setClaim, showNotice, compact = false, readOnly = false, onImported, manoperaTarife = null }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
@@ -50,6 +50,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
         applyOperations: withOps && ops.length > 0,
         replaceOperations: true,
         importMeta: buildImportMeta(file, result),
+        manoperaTarife,
       })
     );
     onImported?.();

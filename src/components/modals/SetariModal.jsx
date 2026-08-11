@@ -26,6 +26,8 @@ import { fmtDate } from "../../utils/dateUtils";
 import { supabase } from "../../supabaseClient";
 import { downloadAtelierGdprExport, wipeAtelierDosare } from "../../utils/gdprExport";
 import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
+import { normalizeManoperaTarife, DEFAULT_MANOPERA_TARIFE } from "../../constants/manoperaTarife";
+import { resolveRoleHourlyRate } from "../../utils/manoperaCost";
 
 export default function SetariModal({
   claims = [],
@@ -55,6 +57,8 @@ export default function SetariModal({
   desktopUi = false,
   billing = null,
   onSaveBilling = null,
+  manoperaTarife: manoperaTarifeProp = null,
+  onSaveManoperaTarife = null,
   tenancyReady = false,
   atelierId = null,
   atelierSlug = null,
@@ -107,6 +111,9 @@ export default function SetariModal({
     return initial;
   });
   const [tvaDefault, setTvaDefault] = useState(21);
+  const [manoperaTarifeDraft, setManoperaTarifeDraft] = useState(() =>
+    normalizeManoperaTarife(manoperaTarifeProp || DEFAULT_MANOPERA_TARIFE)
+  );
   const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
   const [saving, setSaving] = useState(false);
@@ -122,6 +129,12 @@ export default function SetariModal({
   const [myNewPassword, setMyNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    if (manoperaTarifeProp) {
+      setManoperaTarifeDraft(normalizeManoperaTarife(manoperaTarifeProp));
+    }
+  }, [manoperaTarifeProp]);
 
   useEffect(() => {
     if (initialInsurersList && initialInsurersList.length > 0) {
@@ -193,6 +206,9 @@ export default function SetariModal({
       }
       if (onSaveInsurers) {
         await onSaveInsurers(insurersList);
+      }
+      if (onSaveManoperaTarife) {
+        await onSaveManoperaTarife(manoperaTarifeDraft);
       }
       if (onSaveBranding) {
         const ok = await onSaveBranding({
@@ -755,6 +771,114 @@ export default function SetariModal({
                       />
                       <span className="text-[12.5px] font-bold text-[var(--app-muted)]">% TVA</span>
                     </div>
+                  </div>
+
+                  {/* Tarife manoperă — cost real din salariu */}
+                  <div className="col-span-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-3">
+                    <div>
+                      <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
+                        <Wrench size={15} className="text-[var(--app-accent)]" /> Tarife manoperă internă
+                      </label>
+                      <p className="text-[11px] text-[var(--app-muted)] mt-1">
+                        Salariu lunar + ore productive → tarif orar pentru calcul automat al costului manoperei pe dosar.
+                        Exemplu: 8000 lei/lună, 160 ore, overhead 20% → ~60 lei/h.
+                      </p>
+                    </div>
+
+                    {(["tinichigerie", "vopsitorie"]).map((role) => {
+                      const roleLabel = role === "tinichigerie" ? "Tinichigerie" : "Vopsitorie";
+                      const cfg = manoperaTarifeDraft[role] || {};
+                      const computedRate = resolveRoleHourlyRate(cfg);
+                      const previewRate =
+                        cfg.tarifOrar != null && cfg.tarifOrar !== "" ? Number(cfg.tarifOrar) : computedRate;
+                      return (
+                        <div key={role} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg p-2.5">
+                          <div className="sm:col-span-4 text-[11px] font-bold text-[var(--app-text-strong)] uppercase tracking-wide">
+                            {roleLabel}
+                            <span className="ml-2 text-[10px] font-mono text-[var(--app-accent)]">
+                              {previewRate > 0 ? `${previewRate.toLocaleString("ro-RO")} lei/h` : "—"}
+                            </span>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Salariu lunar (lei)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
+                              value={cfg.salariuLunar || ""}
+                              onChange={(e) =>
+                                setManoperaTarifeDraft((prev) => ({
+                                  ...prev,
+                                  [role]: { ...prev[role], salariuLunar: Number(e.target.value) || 0, tarifOrar: null },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Ore/lună</label>
+                            <input
+                              type="number"
+                              min="1"
+                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
+                              value={cfg.oreProductiveLuna ?? 160}
+                              onChange={(e) =>
+                                setManoperaTarifeDraft((prev) => ({
+                                  ...prev,
+                                  [role]: { ...prev[role], oreProductiveLuna: Math.max(1, Number(e.target.value) || 160), tarifOrar: null },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Overhead (%)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
+                              value={cfg.overheadProc ?? 20}
+                              onChange={(e) =>
+                                setManoperaTarifeDraft((prev) => ({
+                                  ...prev,
+                                  [role]: { ...prev[role], overheadProc: Math.max(0, Number(e.target.value) || 0), tarifOrar: null },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Tarif manual (lei/h)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder={computedRate > 0 ? String(computedRate) : "auto"}
+                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
+                              value={cfg.tarifOrar ?? ""}
+                              onChange={(e) =>
+                                setManoperaTarifeDraft((prev) => ({
+                                  ...prev,
+                                  [role]: {
+                                    ...prev[role],
+                                    tarifOrar: e.target.value === "" ? null : Number(e.target.value) || null,
+                                  },
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <label className="flex items-center gap-2 text-[11px] text-[var(--app-text-strong)] cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={manoperaTarifeDraft.autoCalcFromOre !== false}
+                        onChange={(e) =>
+                          setManoperaTarifeDraft((prev) => ({ ...prev, autoCalcFromOre: e.target.checked }))
+                        }
+                        className="rounded border-[var(--app-border)]"
+                      />
+                      Calculează automat costul manoperei când se schimbă orele pe dosar
+                    </label>
                   </div>
                 </div>
               </div>

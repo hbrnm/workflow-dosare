@@ -23,6 +23,8 @@ describe("audatex deviz cu piese 60340395", () => {
     expect(values.manoperaVopsitorie).toBeCloseTo(730, 2);
     expect(values.materialeVopsitorie).toBeCloseTo(1675.15, 2);
     expect(values.cheltuieliDiverse).toBeCloseTo(262.62, 2);
+    expect(values.oreTinichigerieAudatex).toBeCloseTo(5.4, 2);
+    expect(values.oreVopsitorieAudatex).toBeCloseTo(7.3, 2);
 
     expect(lineItems.parts.length).toBeGreaterThanOrEqual(4);
     const partNames = lineItems.parts.map((p) => p.name.toUpperCase());

@@ -448,7 +448,51 @@ export function parseAudatexRoTotals(text) {
     if (sum > 0) set("valoareDevizAudatex", Math.round(sum * 100) / 100, "audatex_sum");
   }
 
+  const laborHours = extractAudatexLaborHours(text);
+  if (laborHours.oreTinichigerieAudatex != null) {
+    values.oreTinichigerieAudatex = laborHours.oreTinichigerieAudatex;
+    hints.push("audatex_ore_tinichigerie");
+  }
+  if (laborHours.oreVopsitorieAudatex != null) {
+    values.oreVopsitorieAudatex = laborHours.oreVopsitorieAudatex;
+    hints.push("audatex_ore_vopsitorie");
+  }
+
   return { values, hints };
+}
+
+/** Extrage ore lucrate tinichigerie/vopsitorie din deviz (UT sau ORE). */
+export function extractAudatexLaborHours(text) {
+  const raw = String(text || "");
+  let oreTinichigerieAudatex = null;
+  let oreVopsitorieAudatex = null;
+
+  const oreTinMatch = raw.match(/TOTAL\s+([\d.]+)\s+ORE\s+X\s+[\d.]+\s+RON/i);
+  if (oreTinMatch) {
+    oreTinichigerieAudatex = Math.round(parseFloat(oreTinMatch[1]) * 100) / 100;
+  }
+
+  if (oreTinichigerieAudatex == null && /100\s+UT\s*=\s*1\s+ORA/i.test(raw)) {
+    const clMatches = [...raw.matchAll(/TOTAL\s+CL\s+\d+\s+(\d+)\s+UT/gi)];
+    if (clMatches.length) {
+      const totalUt = clMatches.reduce((sum, m) => sum + parseInt(m[1], 10), 0);
+      if (totalUt > 0) oreTinichigerieAudatex = Math.round((totalUt / 100) * 100) / 100;
+    }
+  }
+
+  const oreVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.]+)\s+ORE/i);
+  if (oreVopsMatch) {
+    oreVopsitorieAudatex = Math.round(parseFloat(oreVopsMatch[1]) * 100) / 100;
+  }
+
+  if (oreVopsitorieAudatex == null) {
+    const utVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+100\s+UT\/ORA\s*:\s*(\d+)\s+UT/i);
+    if (utVopsMatch) {
+      oreVopsitorieAudatex = Math.round((parseInt(utVopsMatch[1], 10) / 100) * 100) / 100;
+    }
+  }
+
+  return { oreTinichigerieAudatex, oreVopsitorieAudatex };
 }
 
 /**

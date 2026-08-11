@@ -14,12 +14,17 @@ import {
   atelierPatchToSetariMirror,
   brandingLogoStoragePath,
 } from "../utils/atelierSettings";
+import {
+  normalizeManoperaTarife,
+  loadCachedManoperaTarife,
+  cacheManoperaTarife,
+} from "../constants/manoperaTarife";
 
 const BRANDING_SELECT =
   "atelier_nume, atelier_short, logo_url";
 
 const ATELIER_SETTINGS_SELECT =
-  "id, slug, nume, short, logo_url, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, asiguratori, termene_alerta_status, plan, trial_ends_at, seat_limit";
+  "id, slug, nume, short, logo_url, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, asiguratori, termene_alerta_status, manopera_tarife, plan, trial_ends_at, seat_limit";
 
 export function useSettings(session, showNotice, { atelierId = null, atelierSlug = null } = {}) {
   const [capacitateZilnica, setCapacitateZilnica] = useState(3);
@@ -35,6 +40,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
     trialEndsAt: null,
     seatLimit: 10,
   });
+  const [manoperaTarife, setManoperaTarife] = useState(() => loadCachedManoperaTarife());
   const [resolvedSlug, setResolvedSlug] = useState(atelierSlug);
 
   const myEmail = session?.user?.email || "";
@@ -61,11 +67,26 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
 
       // ── Per-tenant: load from ateliere ────────────────────
       if (atelierId) {
-        const { data: atelierRow, error: atelierErr } = await supabase
-          .from("ateliere")
-          .select(ATELIER_SETTINGS_SELECT)
-          .eq("id", atelierId)
-          .maybeSingle();
+        let atelierRow = null;
+        let atelierErr = null;
+        {
+          const res = await supabase
+            .from("ateliere")
+            .select(ATELIER_SETTINGS_SELECT)
+            .eq("id", atelierId)
+            .maybeSingle();
+          atelierRow = res.data;
+          atelierErr = res.error;
+          if (atelierErr && /manopera_tarife|column/i.test(String(atelierErr.message || ""))) {
+            const res2 = await supabase
+              .from("ateliere")
+              .select("id, slug, nume, short, logo_url, capacitate_zilnica, prag_ridicare_zile, prag_inactivitate_zile, asiguratori, termene_alerta_status, plan, trial_ends_at, seat_limit")
+              .eq("id", atelierId)
+              .maybeSingle();
+            atelierRow = res2.data;
+            atelierErr = res2.error;
+          }
+        }
 
         if (!atelierErr && atelierRow) {
           setResolvedSlug(atelierRow.slug || atelierSlug);
@@ -257,6 +278,11 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
         trialEndsAt: data.trial_ends_at || null,
         seatLimit: data.seat_limit ?? 10,
       });
+    }
+    if (data.manopera_tarife && typeof data.manopera_tarife === "object") {
+      const next = normalizeManoperaTarife(data.manopera_tarife);
+      setManoperaTarife(next);
+      cacheManoperaTarife(next);
     }
   }
 
@@ -656,6 +682,26 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
     );
   };
 
+  const saveManoperaTarife = async (nextRaw) => {
+    const next = normalizeManoperaTarife(nextRaw);
+    setManoperaTarife(next);
+    cacheManoperaTarife(next);
+
+    if (atelierId) {
+      const { ok, error } = await persistAtelierPatch({ manopera_tarife: next });
+      if (!ok) {
+        showNotice(
+          "Tarife manoperă salvate local. Pentru sync cloud rulează migrarea 38: " + error.message,
+          "warning"
+        );
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
   const saveBilling = async (next) => {
     const plan = next.plan || "trial";
     const trial_ends_at = next.trialEndsAt || null;
@@ -700,6 +746,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
     customInsurers,
     branding,
     billingSettings,
+    manoperaTarife,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
@@ -710,6 +757,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
     saveBranding,
     uploadBrandingLogo,
     saveBilling,
+    saveManoperaTarife,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,

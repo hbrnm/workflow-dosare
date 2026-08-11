@@ -229,6 +229,7 @@ export default function App() {
     customInsurers,
     branding: settingsBranding,
     billingSettings,
+    manoperaTarife,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
@@ -239,6 +240,7 @@ export default function App() {
     saveBranding: saveBrandingBase,
     uploadBrandingLogo,
     saveBilling,
+    saveManoperaTarife,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
@@ -874,6 +876,8 @@ export default function App() {
                 onChangePassword={handleChangePassword}
                 billing={effectiveBilling}
                 onSaveBilling={saveBilling}
+                manoperaTarife={manoperaTarife}
+                onSaveManoperaTarife={saveManoperaTarife}
                 tenancyReady={tenancyReady}
                 atelierId={atelierId}
                 atelierSlug={atelier?.slug || null}
@@ -939,6 +943,7 @@ export default function App() {
               allClaims={claims}
               adminEmails={adminEmails}
               userEmail={myEmail}
+              manoperaTarife={manoperaTarife}
             />
           </Suspense>
         )}
@@ -1590,6 +1595,8 @@ export default function App() {
               onChangePassword={handleChangePassword}
               billing={effectiveBilling}
               onSaveBilling={saveBilling}
+              manoperaTarife={manoperaTarife}
+              onSaveManoperaTarife={saveManoperaTarife}
               tenancyReady={tenancyReady}
               atelierId={atelierId}
               atelierSlug={atelier?.slug || null}
@@ -1629,6 +1636,7 @@ export default function App() {
               onNotify={showNotice}
               desktopUi
               userEmail={myEmail}
+              manoperaTarife={manoperaTarife}
             />
           </ErrorBoundary>
         )}

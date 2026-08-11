@@ -2,6 +2,7 @@ import { parseNumber } from "./claimUtils";
 import { uid } from "./dateUtils";
 import { operationsSummary } from "./estimateUtils";
 import { isAudatexRoText, parseAudatexRoEstimate } from "./audatexRoParse";
+import { applyLaborCostsToClaim } from "./manoperaCost";
 
 /**
  * Parse Audatex / DAT Romanian repair estimates (PDF text, XML, CSV, XLSX)
@@ -656,6 +657,13 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     next.zileChirieAudatex = normalized.zileChirieAudatex;
   }
 
+  if (values.oreTinichigerieAudatex != null) {
+    financiar.oreLucrateTinichigerie = Math.round(Number(values.oreTinichigerieAudatex) * 100) / 100;
+  }
+  if (values.oreVopsitorieAudatex != null) {
+    financiar.oreLucrateVopsitorie = Math.round(Number(values.oreVopsitorieAudatex) * 100) / 100;
+  }
+
   if (options.importMeta) {
     financiar.audatexImport = options.importMeta;
   }
@@ -681,6 +689,14 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
       next.operatiuni = [...existing, ...incoming];
     }
     next.ceEsteDeReparat = operationsSummary(next.operatiuni);
+  }
+
+  if (options.manoperaTarife && (values.oreTinichigerieAudatex != null || values.oreVopsitorieAudatex != null)) {
+    return applyLaborCostsToClaim(next, options.manoperaTarife, {
+      oreTinichigerie: financiar.oreLucrateTinichigerie,
+      oreVopsitorie: financiar.oreLucrateVopsitorie,
+      setOre: false,
+    });
   }
 
   return next;

@@ -41,6 +41,8 @@ import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import PhotoLightbox from "../common/PhotoLightbox";
 import AudatexImportCard from "../common/AudatexImportCard";
 import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
+import { loadCachedManoperaTarife } from "../../constants/manoperaTarife";
+import { computeServiceLaborCosts, applyLaborCostsToClaim } from "../../utils/manoperaCost";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 import { useModalEscape } from "../../hooks/useModalEscape";
 
@@ -157,6 +159,7 @@ export default function ClaimModal({
   themeId = "atelier",
   desktopUi = false,
   userEmail = "",
+  manoperaTarife: manoperaTarifeProp = null,
 }) {
   const safeClaim = useMemo(() => sanitizeClaim(claim), [claim]);
   const [isDragging, setIsDragging] = useState(false);
@@ -213,6 +216,10 @@ export default function ClaimModal({
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
   const pdfMenuRef = useRef(null);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
+  const manoperaTarife = useMemo(
+    () => manoperaTarifeProp || loadCachedManoperaTarife(),
+    [manoperaTarifeProp]
+  );
 
   useEffect(() => {
     if (!pdfMenuOpen) return;
@@ -395,6 +402,18 @@ export default function ClaimModal({
       },
     }));
 
+  const applyLaborFromOre = useCallback(
+    (oreTin, oreVops) => {
+      setForm((f) =>
+        applyLaborCostsToClaim(f, manoperaTarife, {
+          oreTinichigerie: oreTin ?? f.financiar?.oreLucrateTinichigerie ?? 0,
+          oreVopsitorie: oreVops ?? f.financiar?.oreLucrateVopsitorie ?? 0,
+        })
+      );
+    },
+    [manoperaTarife]
+  );
+
   const financial = form.financiar || {};
   const audatexDeviz = financial.audatex || {};
   const readDevizFaraTva = () =>
@@ -437,6 +456,9 @@ export default function ClaimModal({
   const venitManoperaAudatex = totalManoperaAudatex + manoperaVopsitorieAudatex;
   const costManoperaTinichigerieService = parseNumber(financial.costManoperaTinichigerieService, 0);
   const costManoperaVopsitorieService = parseNumber(financial.costManoperaVopsitorieService, 0);
+  const oreLucrateTinichigerie = parseNumber(financial.oreLucrateTinichigerie, 0);
+  const oreLucrateVopsitorie = parseNumber(financial.oreLucrateVopsitorie, 0);
+  const laborPreview = computeServiceLaborCosts(oreLucrateTinichigerie, oreLucrateVopsitorie, manoperaTarife);
   const costManoperaService = costManoperaTinichigerieService + costManoperaVopsitorieService;
   const marjaManopera = venitManoperaAudatex - costManoperaService;
 
@@ -1848,6 +1870,7 @@ export default function ClaimModal({
                     setClaim={setForm}
                     showNotice={onNotify}
                     readOnly={readOnly}
+                    manoperaTarife={manoperaTarife}
                     onImported={() => setActiveTab("financial")}
                   />
 
@@ -1907,6 +1930,68 @@ export default function ClaimModal({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Ore tinichigerie (deviz / lucrate)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={oreLucrateTinichigerie || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            if (manoperaTarife.autoCalcFromOre !== false) {
+                              applyLaborFromOre(val, undefined);
+                            } else {
+                              setFinancial("oreLucrateTinichigerie", val);
+                            }
+                          }}
+                          placeholder="ex: 4.3 (din Audatex UT)"
+                        />
+                        {laborPreview.rateTinichigerie > 0 && (
+                          <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                            Tarif intern: {laborPreview.rateTinichigerie.toLocaleString("ro-RO")} lei/h
+                            {manoperaTarife.autoCalcFromOre !== false ? ` → ${laborPreview.tinichigerie.toLocaleString("ro-RO")} lei` : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Ore vopsitorie (deviz / lucrate)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={oreLucrateVopsitorie || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            if (manoperaTarife.autoCalcFromOre !== false) {
+                              applyLaborFromOre(undefined, val);
+                            } else {
+                              setFinancial("oreLucrateVopsitorie", val);
+                            }
+                          }}
+                          placeholder="ex: 7.3 (din Audatex ORE)"
+                        />
+                        {laborPreview.rateVopsitorie > 0 && (
+                          <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                            Tarif intern: {laborPreview.rateVopsitorie.toLocaleString("ro-RO")} lei/h
+                            {manoperaTarife.autoCalcFromOre !== false ? ` → ${laborPreview.vopsitorie.toLocaleString("ro-RO")} lei` : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          onClick={() => applyLaborFromOre()}
+                          className="w-full px-3 py-2 rounded-lg border border-[var(--app-accent)]/40 bg-[var(--app-accent)]/10 text-[var(--app-accent)] text-[11px] font-bold hover:bg-[var(--app-accent)]/20 disabled:opacity-50"
+                        >
+                          Calculează cost din ore
+                        </button>
+                      </div>
                       <div>
                         <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Achiziție piese service (lei)</label>
                         <input
