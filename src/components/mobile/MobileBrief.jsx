@@ -147,7 +147,7 @@ function buildAttentionStageChips(items) {
 }
 
 function claimsForStatus(claims, statusKey) {
-  return (claims || []).filter((c) => claimStatusKey(c) === statusKey);
+  return (claims || []).filter((c) => !c.blocat && claimStatusKey(c) === statusKey);
 }
 
 function sortClaimsForFocus(rows, focusKey) {

@@ -40,4 +40,14 @@ describe("fluxClaimSort", () => {
     const flat = grouped.flatMap(([, g]) => g);
     expect(flat.map((c) => c.id)).toEqual(["2", "1"]);
   });
+
+  it("places newest groups left-first across mixed open dates", () => {
+    const mixed = [
+      { id: "a", numarInmatriculare: "B100AAA", status: "deschidere", dataDeschiderii: "2026-07-01" },
+      { id: "b", numarInmatriculare: "B200BBB", status: "deschidere", dataDeschiderii: "2026-08-10" },
+      { id: "c", numarInmatriculare: "B300CCC", status: "deschidere", dataDeschiderii: "2026-08-05" },
+    ];
+    const grouped = groupAndSortStageClaims(mixed, "deschidere", 4);
+    expect(grouped.map(([, g]) => g[0].id)).toEqual(["b", "c", "a"]);
+  });
 });

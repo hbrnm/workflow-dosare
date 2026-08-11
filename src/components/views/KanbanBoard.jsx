@@ -11,6 +11,7 @@ import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import { countClaimsForStatus } from "../../utils/plateSchedule";
+import { getClaimOpenedAt } from "../../utils/fluxClaimSort";
 
 function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -444,8 +445,13 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
 
       <div className="flex gap-3 overflow-x-auto pb-4 pt-1 align-top scrollbar-thin">
         {STATUSES.map((status) => {
-          const list = claims.filter((c) => c.status === status.key);
-          const stageCount = countClaimsForStatus(claims, status.key);
+          const list = claims
+            .filter((c) => !c.blocat && c.status === status.key)
+            .sort((a, b) => getClaimOpenedAt(b) - getClaimOpenedAt(a));
+          const stageCount = countClaimsForStatus(
+            claims.filter((c) => !c.blocat),
+            status.key
+          );
           const colorObj = getPhaseColors(status.key);
 
           return (

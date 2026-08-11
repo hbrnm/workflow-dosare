@@ -131,9 +131,11 @@ export function getLoanerDaysUsed(claim) {
   return businessDaysSince(claim?.dataDariiLaSchimb || claim?.dataProgramare);
 }
 
-/** Piese sosite / status vechi piese_sosite, fără dată de programare. */
+/** Piese sosite / status vechi piese_sosite, fără dată de programare.
+ * Dacă mașina e deja adusă fizic în service, nu mai e alertă de programare. */
 export function isPartsArrivedUnscheduled(claim) {
   if (claim?.alerteAck) return false;
+  if (claim?.adusaFizic) return false;
   return Boolean((claim?.pieseSosite || claim?.status === "piese_sosite") && !claim?.dataProgramare);
 }
 

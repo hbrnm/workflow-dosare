@@ -8,6 +8,7 @@ import {
 import { isProgramatorClaim } from "../../constants/config";
 import { getProgramareChipClass } from "../../utils/programareStatus";
 import { groupClaimsByPlate, countUniqueVehicles } from "../../utils/plateSchedule";
+import { isPartsArrivedUnscheduled } from "../../utils/alertUtils";
 import ProgramatorClaimCard from "./ProgramatorClaimCard";
 import ProgramareNeonorataModal from "../modals/ProgramareNeonorataModal";
 
@@ -72,8 +73,8 @@ function checkMasinaSchimbConflict(claims, currentId, masinaSchimb, dateStr) {
 /* Pending alert banner — dosare piese_sosite fără dată programată          */
 /* ───────────────────────────────────────────────────────────────────────── */
 function PendingBanner({ claims, onOpen }) {
-  const pending = useMemo(() =>
-    claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare),
+  const pending = useMemo(
+    () => claims.filter(isPartsArrivedUnscheduled),
     [claims]
   );
   if (pending.length === 0) return null;
@@ -252,9 +253,9 @@ export default function Programator({
     return activeDateStr.split("-").reverse().join(".");
   }, [activeDateStr]);
 
-  // Arrived claims that do not have dateProgramare yet
+  // Arrived claims that do not have dateProgramare yet (and not already in service)
   const arrivedClaims = useMemo(() => {
-    return claims.filter(c => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare);
+    return claims.filter(isPartsArrivedUnscheduled);
   }, [claims]);
 
   const dateRangeLabel = useMemo(() => {

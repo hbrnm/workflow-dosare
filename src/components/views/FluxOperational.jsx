@@ -516,7 +516,7 @@ export default function TablouPeFazeRedesign({
                   />
                   {stageClaims.length > 0 && (
                     <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
-                      Ultimele deschise →
+                      Cele mai noi → stânga
                     </span>
                   )}
                 </div>
