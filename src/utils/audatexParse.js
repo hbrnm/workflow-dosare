@@ -1,6 +1,7 @@
 import { parseNumber } from "./claimUtils";
 import { uid } from "./dateUtils";
 import { operationsSummary } from "./estimateUtils";
+import { isAudatexRoText, parseAudatexRoEstimate } from "./audatexRoParse";
 
 /**
  * Parse Audatex / DAT Romanian repair estimates (PDF text, XML, CSV, XLSX)
@@ -20,6 +21,7 @@ export const AUDATEX_IMPORT_FIELDS = [
   { key: "manoperaTinichigerie", label: "Manoperă tinichigerie" },
   { key: "manoperaVopsitorie", label: "Manoperă vopsitorie" },
   { key: "materialeVopsitorie", label: "Materiale vopsitorie" },
+  { key: "cheltuieliDiverse", label: "Costuri suplimentare" },
   { key: "zileChirieAudatex", label: "Zile chirie" },
 ];
 
@@ -301,6 +303,9 @@ function mergeLineItemsToOperations(parts, labour, paint) {
  */
 export function parseEstimateText(text) {
   const raw = String(text || "");
+  if (isAudatexRoText(raw)) {
+    return parseAudatexRoEstimate(raw);
+  }
   const values = {};
   const hints = [];
 
@@ -560,6 +565,10 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
   }
   if (values.materialeVopsitorie != null) {
     financiar.materialeVopsitorie = values.materialeVopsitorie;
+  }
+  if (values.cheltuieliDiverse != null) {
+    financiar.cheltuieliDiverse = values.cheltuieliDiverse;
+    financiar.costuriExterne = values.cheltuieliDiverse;
   }
   if (values.zileChirieAudatex != null) {
     next.zileChirieAudatex = values.zileChirieAudatex;

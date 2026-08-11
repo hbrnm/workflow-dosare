@@ -14,7 +14,9 @@ async function extractPdfText(arrayBuffer) {
       import.meta.url
     ).toString();
   }
-  const doc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const doc = await pdfjs.getDocument({
+    data: arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer),
+  }).promise;
   const pages = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
@@ -45,7 +47,10 @@ async function extractPdfText(arrayBuffer) {
   return pages.join("\n");
 }
 
-function readAsArrayBuffer(file) {
+async function readAsArrayBuffer(file) {
+  if (typeof file?.arrayBuffer === "function") {
+    return file.arrayBuffer();
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -54,7 +59,10 @@ function readAsArrayBuffer(file) {
   });
 }
 
-function readAsText(file) {
+async function readAsText(file) {
+  if (typeof file?.text === "function") {
+    return file.text();
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ""));
