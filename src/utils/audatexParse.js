@@ -618,7 +618,6 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
   if (has(["totalManoperaAudatex", "manoperaTinichigerie"])) {
     financiar.manoperaTinichigerie = normalized.totalManopera;
     manopera.tinichigerie.facturat = normalized.totalManopera;
-    manopera.tinichigerie.alocat = normalized.totalManopera;
     audatex.totalManopera = normalized.totalManopera;
   }
   if (has(["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"])) {
@@ -630,7 +629,6 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
   if (has(["manoperaVopsitorie"])) {
     financiar.manoperaVopsitorie = normalized.manoperaVopsitorie;
     manopera.vopsitorie.facturat = normalized.manoperaVopsitorie;
-    manopera.vopsitorie.alocat = normalized.manoperaVopsitorie;
     audatex.manoperaVopsitorie = normalized.manoperaVopsitorie;
   }
   if (has(["materialeVopsitorie"])) {

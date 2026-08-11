@@ -366,7 +366,6 @@ export default function ClaimModal({
           tinichigerie: {
             ...(f.manopera?.tinichigerie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }),
             facturat: n,
-            alocat: n,
           },
         };
       }
@@ -430,10 +429,16 @@ export default function ClaimModal({
   const totalManoperaAudatex = getAudatexDevizValue("totalManopera");
   const totalCosturiSuplimentareAudatex = getAudatexDevizValue("totalCosturiSuplimentare");
   const totalVopsitorieAudatex = getAudatexDevizValue("totalVopsitorie");
+  const manoperaVopsitorieAudatex = parseNumber(audatexDeviz.manoperaVopsitorie, 0);
   const manoperaVopsitorie = parseNumber(audatexDeviz.manoperaVopsitorie ?? financial.manoperaVopsitorie ?? form.manopera?.vopsitorie?.facturat, 0);
   const materialeVopsitorie = parseNumber(audatexDeviz.materialeVopsitorie ?? financial.materialeVopsitorie, 0);
   const manoperaTinichigerie = totalManoperaAudatex;
-  const totalManopera = totalManoperaAudatex + manoperaVopsitorie;
+
+  const venitManoperaAudatex = totalManoperaAudatex + manoperaVopsitorieAudatex;
+  const costManoperaTinichigerieService = parseNumber(financial.costManoperaTinichigerieService, 0);
+  const costManoperaVopsitorieService = parseNumber(financial.costManoperaVopsitorieService, 0);
+  const costManoperaService = costManoperaTinichigerieService + costManoperaVopsitorieService;
+  const marjaManopera = venitManoperaAudatex - costManoperaService;
 
   const pretPieseAudatex = totalPieseAudatex;
   const pretPieseService = parseNumber(form.valoareAchizitiePiese, 0);
@@ -445,7 +450,8 @@ export default function ClaimModal({
     totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex + totalVopsitorieAudatex;
 
   const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
-  const totalCosturiService = pretPieseService + cheltuieliDiverseService + costMasinaSchimb;
+  const totalCosturiService =
+    pretPieseService + costManoperaService + cheltuieliDiverseService + costMasinaSchimb;
   const profitBrutReal = venitNetTotal - totalCosturiService;
   const marjaProfitProc = venitNetTotal > 0 ? ((profitBrutReal / venitNetTotal) * 100).toFixed(1) : "0.0";
 
@@ -1919,6 +1925,42 @@ export default function ClaimModal({
                         )}
                       </div>
                       <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost manoperă tinichigerie (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={costManoperaTinichigerieService || 0}
+                          onChange={(e) => setFinancial("costManoperaTinichigerieService", Number(e.target.value) || 0)}
+                          placeholder="Ore × tarif intern, salarii alocate…"
+                        />
+                        {totalManoperaAudatex > 0 && (
+                          <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                            Deviz Audatex: {totalManoperaAudatex.toLocaleString("ro-RO")} lei
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cost manoperă vopsitorie (lei)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          disabled={readOnly}
+                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-surface)]"
+                          value={costManoperaVopsitorieService || 0}
+                          onChange={(e) => setFinancial("costManoperaVopsitorieService", Number(e.target.value) || 0)}
+                          placeholder="Subcontractor vopsitorie, ore vopsitor…"
+                        />
+                        {manoperaVopsitorieAudatex > 0 && (
+                          <p className="mt-1 text-[9px] text-[var(--app-muted)]">
+                            Deviz Audatex (manoperă vops): {manoperaVopsitorieAudatex.toLocaleString("ro-RO")} lei
+                          </p>
+                        )}
+                      </div>
+                      <div>
                         <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Cheltuieli diverse service (lei)</label>
                         <input
                           type="number"
@@ -1967,7 +2009,7 @@ export default function ClaimModal({
                         <div className="p-2.5 rounded-xl bg-[var(--app-surface)] border border-[var(--app-danger)]/30">
                           <div className="text-[10px] font-semibold text-[var(--app-danger)] uppercase mb-1">Total Costuri</div>
                           <div className="text-[15px] font-extrabold text-[var(--app-danger)] font-mono">{totalCosturiService.toLocaleString("ro-RO")} <span className="text-[10px] font-normal">lei</span></div>
-                          <div className="text-[9px] text-[var(--app-muted)] mt-0.5">Piese + Diverse + Schimb</div>
+                          <div className="text-[9px] text-[var(--app-muted)] mt-0.5">Piese + Manoperă + Diverse + Schimb</div>
                         </div>
 
                         {/* Profit Brut */}
@@ -1991,21 +2033,37 @@ export default function ClaimModal({
                         </div>
                       </div>
 
-                      {/* Detalii Marjă Piese */}
+                      {/* Marjă piese */}
                       <div className="mt-2.5 p-2.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl">
-                        <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-1.5 flex items-center gap-1"><Package size={12} /> Marjă Piese (Audatex vs. Achiziție Service)</div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-[var(--app-muted)]">Preț Audatex: <strong className="text-[var(--app-text-strong)] font-mono">{pretPieseAudatex.toLocaleString("ro-RO")} lei</strong></span>
-                          <span className="text-[var(--app-muted)]">Preț Service: <strong className="text-[var(--app-danger)] font-mono">{pretPieseService.toLocaleString("ro-RO")} lei</strong></span>
+                        <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-1.5 flex items-center gap-1"><Package size={12} /> Marjă piese</div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <span className="text-[var(--app-muted)]">Audatex: <strong className="text-[var(--app-text-strong)] font-mono">{pretPieseAudatex.toLocaleString("ro-RO")} lei</strong></span>
+                          <span className="text-[var(--app-muted)]">Cost service: <strong className="text-[var(--app-danger)] font-mono">{pretPieseService.toLocaleString("ro-RO")} lei</strong></span>
                           <span className={`font-extrabold font-mono text-[12px] ${marjaPiese >= 0 ? "text-[var(--app-success)]" : "text-[var(--app-danger)]"}`}>
                             {marjaPiese >= 0 ? "+" : ""}{marjaPiese.toLocaleString("ro-RO")} lei
                           </span>
                         </div>
-                        <div className="mt-1.5 text-[10px] text-[var(--app-muted)]">
-                          Total Manoperă: <strong className="text-[var(--app-text-strong)]">{totalManopera.toLocaleString("ro-RO")} lei</strong>
-                          <span className="mx-2">·</span>
-                          Franșiză client: <strong className="text-[#8C2E2E]">{valoareFransiza.toLocaleString("ro-RO")} lei</strong>
+                      </div>
+
+                      {/* Marjă manoperă */}
+                      <div className="mt-2 p-2.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl">
+                        <div className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase mb-1.5 flex items-center gap-1"><Wrench size={12} /> Marjă manoperă</div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <span className="text-[var(--app-muted)]">
+                            Audatex: <strong className="text-[var(--app-text-strong)] font-mono">{venitManoperaAudatex.toLocaleString("ro-RO")} lei</strong>
+                            <span className="ml-1 text-[9px]">(tinichigerie {totalManoperaAudatex.toLocaleString("ro-RO")} + vops {manoperaVopsitorieAudatex.toLocaleString("ro-RO")})</span>
+                          </span>
+                          <span className="text-[var(--app-muted)]">Cost service: <strong className="text-[var(--app-danger)] font-mono">{costManoperaService.toLocaleString("ro-RO")} lei</strong></span>
+                          <span className={`font-extrabold font-mono text-[12px] ${marjaManopera >= 0 ? "text-[var(--app-success)]" : "text-[var(--app-danger)]"}`}>
+                            {marjaManopera >= 0 ? "+" : ""}{marjaManopera.toLocaleString("ro-RO")} lei
+                          </span>
                         </div>
+                        <p className="mt-1.5 text-[9px] text-[var(--app-muted)]">
+                          Materiale vopsitorie (deviz): {materialeVopsitorie.toLocaleString("ro-RO")} lei — nu intră în marja manoperă.
+                          {valoareFransiza > 0 ? (
+                            <span className="ml-2">Franșiză client: <strong className="text-[#8C2E2E]">{valoareFransiza.toLocaleString("ro-RO")} lei</strong></span>
+                          ) : null}
+                        </p>
                       </div>
                     </div>
                 </div>
