@@ -15,6 +15,7 @@ export function atelierRowToSettings(row) {
     prag_inactivitate_zile: row.prag_inactivitate_zile,
     asiguratori: row.asiguratori,
     termene_alerta_status: row.termene_alerta_status,
+    manopera_tarife: row.manopera_tarife,
     plan: row.plan,
     trial_ends_at: row.trial_ends_at,
     seat_limit: row.seat_limit,
@@ -46,6 +47,7 @@ export function atelierPatchToSetariMirror(patch) {
   if ("prag_inactivitate_zile" in patch) out.prag_inactivitate_zile = patch.prag_inactivitate_zile;
   if ("asiguratori" in patch) out.asiguratori = patch.asiguratori;
   if ("termene_alerta_status" in patch) out.termene_alerta_status = patch.termene_alerta_status;
+  if ("manopera_tarife" in patch) out.manopera_tarife = patch.manopera_tarife;
   if ("plan" in patch) out.plan = patch.plan;
   if ("trial_ends_at" in patch) out.trial_ends_at = patch.trial_ends_at;
   if ("seat_limit" in patch) out.seat_limit = patch.seat_limit;
