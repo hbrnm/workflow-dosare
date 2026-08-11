@@ -32,6 +32,7 @@ describe("audatex real deviz 60338570", () => {
     expect(values.totalVopsitorieAudatex).toBeCloseTo(1887.59, 2);
     expect(values.cheltuieliDiverse).toBeCloseTo(262.62, 2);
     expect(values.totalCosturiSuplimentareAudatex).toBeCloseTo(262.62, 2);
+    expect(values.costReparatieCuTva).toBeCloseTo(3122.05, 2);
 
     expect(countExtractedOperations(lineItems)).toBeGreaterThanOrEqual(10);
 

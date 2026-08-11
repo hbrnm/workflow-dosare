@@ -357,7 +357,7 @@ export function parseAudatexRoTotals(text) {
       continue;
     }
     if (lineLbl.includes("COSTREPARATIECUTVA")) {
-      set("_brutCuTva", amt, "audatex_brut");
+      set("costReparatieCuTva", amt, "audatex_brut");
     }
   }
 
@@ -419,6 +419,14 @@ export function parseAudatexRoTotals(text) {
   if (values.manoperaTinichigerie != null) values.totalManoperaAudatex = values.manoperaTinichigerie;
   if (values.cheltuieliDiverse != null) values.totalCosturiSuplimentareAudatex = values.cheltuieliDiverse;
   if (values.valoareDevizAudatex != null) values.costReparatieFaraTva = values.valoareDevizAudatex;
+  if (values.costReparatieCuTva == null && values.valoareDevizAudatex != null) {
+    const m = String(text).match(/C\s*O\s*S\s*T\s+R\s*E\s*P\s*A\s*R\s*A\s*T\s*I\s*E\s+C\s*U\s+T\s*V\s*A\s+((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
+    if (m) set("costReparatieCuTva", parseAudatexMoney(m[1]), "audatex_cuprins_brut");
+  }
+  if (values.costReparatieCuTva == null) {
+    const m = String(text).match(/COST\s+REPARATIE\s+CU\s+TVA[^\d]{0,40}((?:\d{1,3}(?:\s\d{3})*|\d+)\.\d{2})/i);
+    if (m) set("costReparatieCuTva", parseAudatexMoney(m[1]), "audatex_cuprins_brut_plain");
+  }
   if (
     values.totalVopsitorieAudatex == null &&
     values.manoperaVopsitorie != null &&

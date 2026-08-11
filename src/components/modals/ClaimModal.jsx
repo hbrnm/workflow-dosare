@@ -40,6 +40,7 @@ import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import PhotoLightbox from "../common/PhotoLightbox";
 import AudatexImportCard from "../common/AudatexImportCard";
+import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
 import { shouldPromoteToProgramatOnSchedule, PRE_PROGRAMAT_STATUSES } from "../../utils/scheduleStatusEffects";
 import { useModalEscape } from "../../hooks/useModalEscape";
 
@@ -345,20 +346,21 @@ export default function ClaimModal({
   const setStage = (dept, val) => setForm((f) => ({ ...f, manopera: { ...(f.manopera || {}), [dept]: val } }));
   const setFinancial = (key, value) => setForm((f) => ({ ...f, financiar: { ...(f.financiar || {}), [key]: value } }));
 
-  /** Sincronizează totaluri Audatex (cuprins deviz) + câmpuri legacy. */
-  const setAudatexTotal = (key, val) => {
-    const n = Number(val) || 0;
+  /** Actualizează un câmp din devizul Audatex (financiar.audatex). */
+  const setAudatexDevizField = (key, rawVal) => {
+    const n = Number(rawVal) || 0;
     setForm((f) => {
-      const audatex = { ...(f.financiar?.audatex || {}), [key]: n };
-      const financiar = { ...(f.financiar || {}), audatex };
-      const patch = { financiar };
+      const financiar = { ...(f.financiar || {}) };
+      const audatex = { ...(financiar.audatex || {}), [key]: n };
+      const tvaProc = parseNumber(financiar.tvaProc, 21);
+      const patch = { financiar: { ...financiar, audatex } };
 
       if (key === "totalPiese") {
         patch.valoarePieseAudatex = n;
-        financiar.pieseFacturateFaraTva = n;
+        patch.financiar.pieseFacturateFaraTva = n;
       }
       if (key === "totalManopera") {
-        financiar.manoperaTinichigerie = n;
+        patch.financiar.manoperaTinichigerie = n;
         patch.manopera = {
           ...(f.manopera || {}),
           tinichigerie: {
@@ -369,79 +371,58 @@ export default function ClaimModal({
         };
       }
       if (key === "totalCosturiSuplimentare") {
-        financiar.cheltuieliDiverse = n;
-        financiar.costuriExterne = n;
-      }
-      if (key === "totalVopsitorie") {
-        const manVops = parseNumber(financiar.audatex?.manoperaVopsitorie ?? financiar.manoperaVopsitorie, 0);
-        const mat = parseNumber(financiar.audatex?.materialeVopsitorie ?? financiar.materialeVopsitorie, 0);
-        if (manVops + mat > n + 0.01) {
-          financiar.audatex = { ...audatex, manoperaVopsitorie: manVops, materialeVopsitorie: mat };
-        }
+        patch.financiar.cheltuieliDiverse = n;
+        patch.financiar.costuriExterne = n;
       }
       if (key === "costReparatieFaraTva") {
         patch.valoareDevizAudatex = n;
-        financiar.valoareDevizAudatex = n;
+        patch.financiar.valoareDevizAudatex = n;
+        if (!audatex.costReparatieCuTva || audatex.costReparatieCuTva === 0) {
+          audatex.costReparatieCuTva = Math.round(n * (1 + tvaProc / 100) * 100) / 100;
+          patch.financiar.audatex = audatex;
+        }
       }
 
-      return { ...f, ...patch, financiar };
+      return { ...f, ...patch };
     });
   };
 
-  const setDevizAudatex = (val) => setAudatexTotal("costReparatieFaraTva", val);
-  const setPieseAudatex = (val) => setAudatexTotal("totalPiese", val);
-  const setManoperaAudatex = (key, val) => {
-    const n = Number(val) || 0;
-    if (key === "manoperaTinichigerie") {
-      setAudatexTotal("totalManopera", n);
-      return;
-    }
-    setForm((f) => ({
-      ...f,
-      financiar: {
-        ...(f.financiar || {}),
-        [key]: n,
-        audatex: { ...(f.financiar?.audatex || {}), [key === "manoperaVopsitorie" ? "manoperaVopsitorie" : key]: n },
-      },
-      manopera: {
-        ...(f.manopera || {}),
-        vopsitorie: {
-          ...(f.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }),
-          facturat: n,
-          alocat: n,
-        },
-      },
-    }));
-  };
-  const setCheltuieliDiverse = (val) => setAudatexTotal("totalCosturiSuplimentare", val);
-
   const financial = form.financiar || {};
-  const audatexTotals = financial.audatex || {};
-  const valoareDevizAudatex = parseNumber(
-    audatexTotals.costReparatieFaraTva ?? form.valoareDevizAudatex ?? financial.valoareDevizAudatex,
-    0
-  );
+  const audatexDeviz = financial.audatex || {};
+  const readDevizFaraTva = () =>
+    parseNumber(audatexDeviz.costReparatieFaraTva ?? form.valoareDevizAudatex ?? financial.valoareDevizAudatex, 0);
+  const getAudatexDevizValue = (key) => {
+    const v = audatexDeviz[key];
+    if (v != null && v !== "") return parseNumber(v, 0);
+    if (key === "totalPiese") return parseNumber(form.valoarePieseAudatex ?? financial.pieseFacturateFaraTva, 0);
+    if (key === "totalManopera") return parseNumber(financial.manoperaTinichigerie ?? form.manopera?.tinichigerie?.facturat, 0);
+    if (key === "totalCosturiSuplimentare") return parseNumber(financial.cheltuieliDiverse ?? financial.costuriExterne, 0);
+    if (key === "totalVopsitorie") {
+      return parseNumber(
+        audatexDeviz.totalVopsitorie ??
+          parseNumber(financial.manoperaVopsitorie, 0) + parseNumber(financial.materialeVopsitorie, 0),
+        0
+      );
+    }
+    if (key === "costReparatieFaraTva") return readDevizFaraTva();
+    if (key === "costReparatieCuTva") {
+      const fara = readDevizFaraTva();
+      const tvaProc = parseNumber(financial.tvaProc, 21);
+      return Math.round(fara * (1 + tvaProc / 100) * 100) / 100;
+    }
+    return 0;
+  };
+
+  const valoareDevizAudatex = getAudatexDevizValue("costReparatieFaraTva");
   const valoareAcceptPlata = parseNumber(financial.valoareAcceptPlata ?? form.valoareAcceptataReglata, 0);
   const valoareFransiza = parseNumber(financial.valoareFransiza, 0);
 
-  const totalPieseAudatex = parseNumber(audatexTotals.totalPiese ?? form.valoarePieseAudatex ?? financial.pieseFacturateFaraTva, 0);
-  const totalManoperaAudatex = parseNumber(
-    audatexTotals.totalManopera ?? financial.manoperaTinichigerie ?? form.manopera?.tinichigerie?.facturat,
-    0
-  );
-  const totalCosturiSuplimentareAudatex = parseNumber(
-    audatexTotals.totalCosturiSuplimentare ?? financial.cheltuieliDiverse ?? financial.costuriExterne,
-    0
-  );
-  const manoperaVopsitorie = parseNumber(
-    audatexTotals.manoperaVopsitorie ?? financial.manoperaVopsitorie ?? form.manopera?.vopsitorie?.facturat,
-    0
-  );
-  const materialeVopsitorie = parseNumber(audatexTotals.materialeVopsitorie ?? financial.materialeVopsitorie, 0);
-  const totalVopsitorieAudatex = parseNumber(
-    audatexTotals.totalVopsitorie ?? manoperaVopsitorie + materialeVopsitorie,
-    0
-  );
+  const totalPieseAudatex = getAudatexDevizValue("totalPiese");
+  const totalManoperaAudatex = getAudatexDevizValue("totalManopera");
+  const totalCosturiSuplimentareAudatex = getAudatexDevizValue("totalCosturiSuplimentare");
+  const totalVopsitorieAudatex = getAudatexDevizValue("totalVopsitorie");
+  const manoperaVopsitorie = parseNumber(audatexDeviz.manoperaVopsitorie ?? financial.manoperaVopsitorie ?? form.manopera?.vopsitorie?.facturat, 0);
+  const materialeVopsitorie = parseNumber(audatexDeviz.materialeVopsitorie ?? financial.materialeVopsitorie, 0);
   const manoperaTinichigerie = totalManoperaAudatex;
   const totalManopera = totalManoperaAudatex + manoperaVopsitorie;
 
@@ -1796,6 +1777,57 @@ export default function ClaimModal({
               {/* ========================================================================= */}
               {activeTab === "financial" && (
                 <div className="space-y-3">
+                  {/* Deviz Audatex — cele 6 totaluri din cuprins */}
+                  <div className="bg-[var(--app-surface)] border-2 border-[var(--app-accent)]/30 rounded-xl p-4 space-y-3 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--app-border)] pb-2">
+                      <div>
+                        <div className="text-[13px] font-extrabold uppercase tracking-wide text-[var(--app-text-strong)] flex items-center gap-1.5">
+                          <Wallet size={16} className="text-[var(--app-accent)]" />
+                          Deviz Audatex
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-[var(--app-muted)]">
+                          Totaluri din cuprinsul devizului — completează manual sau importă PDF mai jos.
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold uppercase text-[var(--app-muted)] bg-[var(--app-surface-2)] px-2 py-1 rounded-md">
+                        lei · fără TVA (exceptând ultimul rând)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {AUDATEX_DEVIZ_UI_FIELDS.map(({ key, label, primary }) => (
+                        <div
+                          key={key}
+                          className={primary ? "sm:col-span-2 rounded-lg border border-[var(--app-accent)]/30 bg-[var(--app-surface-2)] p-2.5" : ""}
+                        >
+                          <label className={`block mb-1 ${primary ? "text-[11px] font-extrabold text-[var(--app-accent)]" : "text-[10.5px] font-bold text-[var(--app-muted)]"}`}>
+                            {label}
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            disabled={readOnly}
+                            className={`w-full p-2.5 border rounded-lg font-mono bg-[var(--app-surface)] ${
+                              primary
+                                ? "border-[var(--app-accent)]/50 font-extrabold text-[16px] text-[var(--app-text-strong)]"
+                                : "border-[var(--app-border)] font-bold text-[13px]"
+                            }`}
+                            value={getAudatexDevizValue(key)}
+                            onChange={(e) => setAudatexDevizField(key, e.target.value)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {totalDevizComponente > 0 && Math.abs(totalDevizComponente - valoareDevizAudatex) > 1 && (
+                      <p className="text-[10px] text-[var(--app-warning)] bg-[var(--app-warning)]/10 border border-[var(--app-warning)]/30 rounded-lg px-2.5 py-1.5">
+                        Suma piese + manoperă + suplimente + vopsitorie = {totalDevizComponente.toLocaleString("ro-RO")} lei
+                        — diferă de total reparație fără TVA ({valoareDevizAudatex.toLocaleString("ro-RO")} lei)
+                      </p>
+                    )}
+                  </div>
+
                   <AudatexImportCard
                     claim={form}
                     setClaim={setForm}
@@ -1804,94 +1836,12 @@ export default function ClaimModal({
                     onImported={() => setActiveTab("financial")}
                   />
 
-                  {/* Secțiunea 1: Totaluri deviz Audatex (cuprins) */}
-                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
-                    <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Wallet size={15} className="text-[var(--app-accent)]" /> Totaluri deviz Audatex
-                      </span>
-                      <span className="text-[10.5px] font-mono font-semibold text-[var(--app-muted)]">LEI FĂRĂ TVA</span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-[11px]">
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Total piese</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={totalPieseAudatex}
-                          onChange={(e) => setPieseAudatex(Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Total manoperă</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={totalManoperaAudatex}
-                          onChange={(e) => setAudatexTotal("totalManopera", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Total costuri suplimentare (2%)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={totalCosturiSuplimentareAudatex}
-                          onChange={(e) => setCheltuieliDiverse(Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Total vopsitorie</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={totalVopsitorieAudatex}
-                          onChange={(e) => setAudatexTotal("totalVopsitorie", Number(e.target.value) || 0)}
-                        />
-                        <p className="mt-1 text-[9px] text-[var(--app-muted)]">
-                          Detaliu: manoperă {manoperaVopsitorie.toLocaleString("ro-RO")} + materiale {materialeVopsitorie.toLocaleString("ro-RO")} lei
-                        </p>
-                      </div>
-                      <div className="sm:col-span-2 lg:col-span-2">
-                        <label className="block text-[10.5px] font-bold text-[var(--app-accent)] mb-1">Cost reparație fără TVA</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-accent)]/40 rounded-lg font-mono font-extrabold text-[15px] bg-[var(--app-surface)] text-[var(--app-text-strong)]"
-                          value={valoareDevizAudatex}
-                          onChange={(e) => setDevizAudatex(Number(e.target.value) || 0)}
-                        />
-                        {totalDevizComponente > 0 && Math.abs(totalDevizComponente - valoareDevizAudatex) > 1 && (
-                          <p className="mt-1 text-[10px] text-[var(--app-warning)]">
-                            Suma componentelor: {totalDevizComponente.toLocaleString("ro-RO")} lei — verifică cu devizul Audatex
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Secțiunea 2: Reglementare + detaliu vopsitorie */}
+                  {/* Reglementare asigurător */}
                   <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
                     <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] border-b border-[var(--app-border)] pb-1.5">
-                      Accept plată, franșiză &amp; detaliu vopsitorie
+                      Accept plată &amp; franșiză
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 text-[11px]">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 text-[11px]">
                       <div>
                         <label className="block text-[10.5px] font-bold text-[var(--app-success)] mb-1">Accept plată (lei)</label>
                         <input
@@ -1905,10 +1855,9 @@ export default function ClaimModal({
                             setForm((f) => ({
                               ...f,
                               valoareAcceptataReglata: val,
-                              financiar: { ...(f.financiar || {}), valoareAcceptPlata: val }
+                              financiar: { ...(f.financiar || {}), valoareAcceptPlata: val },
                             }));
                           }}
-                          placeholder="0"
                         />
                       </div>
                       <div>
@@ -1920,34 +1869,9 @@ export default function ClaimModal({
                           className="w-full p-2 border border-[var(--app-danger)]/30 rounded-lg font-mono font-bold text-[12.5px] bg-[var(--app-danger)]/10 text-[#8C2E2E]"
                           value={financial.valoareFransiza || 0}
                           onChange={(e) => setFinancial("valoareFransiza", Number(e.target.value) || 0)}
-                          placeholder="0"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Manoperă vopsitorie (detaliu)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={manoperaVopsitorie || 0}
-                          onChange={(e) => setManoperaAudatex("manoperaVopsitorie", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Materiale vopsitorie (detaliu)</label>
-                        <input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          disabled={readOnly}
-                          className="w-full p-2 border border-[var(--app-border)] rounded-lg font-mono font-bold text-[12px] bg-[var(--app-surface)]"
-                          value={materialeVopsitorie || 0}
-                          onChange={(e) => setFinancial("materialeVopsitorie", Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div className="md:col-span-2">
                         <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">Nr. factură</label>
                         <input
                           type="text"

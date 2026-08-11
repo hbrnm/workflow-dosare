@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { FileUp, Loader2, Sparkles, Check, X, AlertCircle } from "lucide-react";
+import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
 import {
-  AUDATEX_DEVIZ_TOTALS,
   applyEstimateValuesToClaim,
   countExtractedFields,
   countExtractedOperations,
@@ -173,10 +173,10 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-            {AUDATEX_DEVIZ_TOTALS.map((f) => {
+            {AUDATEX_DEVIZ_UI_FIELDS.map((f) => {
               const normalized = normalizeAudatexImportValues(preview.values || {});
               const v = normalized[f.key];
-              if (v == null) return null;
+              if (v == null || v === "") return null;
               return (
                 <div
                   key={f.key}

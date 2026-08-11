@@ -36,7 +36,8 @@ export const AUDATEX_DEVIZ_TOTALS = [
     valueKeys: ["totalCosturiSuplimentareAudatex", "cheltuieliDiverse"],
   },
   { key: "totalVopsitorie", label: "Total vopsitorie", valueKeys: ["totalVopsitorieAudatex"] },
-  { key: "costReparatieFaraTva", label: "Cost reparație fără TVA", valueKeys: ["costReparatieFaraTva", "valoareDevizAudatex"] },
+  { key: "costReparatieFaraTva", label: "Total reparație fără TVA", valueKeys: ["costReparatieFaraTva", "valoareDevizAudatex"] },
+  { key: "costReparatieCuTva", label: "Total reparație cu TVA", valueKeys: ["costReparatieCuTva"] },
 ];
 
 function pickAudatexValue(values, keys) {
@@ -70,6 +71,7 @@ export function normalizeAudatexImportValues(values = {}) {
     totalCosturiSuplimentare,
     totalVopsitorie,
     costReparatieFaraTva,
+    costReparatieCuTva: pickAudatexValue(values, ["costReparatieCuTva"]) ?? null,
     manoperaVopsitorie,
     materialeVopsitorie,
     valoarePieseAudatex: totalPiese,
@@ -647,6 +649,9 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     next.valoareDevizAudatex = normalized.costReparatieFaraTva;
     financiar.valoareDevizAudatex = normalized.costReparatieFaraTva;
     audatex.costReparatieFaraTva = normalized.costReparatieFaraTva;
+  }
+  if (has(["costReparatieCuTva"])) {
+    audatex.costReparatieCuTva = normalized.costReparatieCuTva;
   }
 
   financiar.audatex = audatex;

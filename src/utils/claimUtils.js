@@ -1,4 +1,5 @@
 import { INSURERS, STATUS_MIGRATION, STATUSES, getStatusAlertDays } from "../constants/config";
+import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
 import { uid, todayISO, nowISO } from "./dateUtils";
 
 export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
@@ -37,7 +38,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     },
     masinaSchimb: "", dataDariiLaSchimb: "", zileChirieAudatex: 0,
     valoarePieseAudatex: 0, valoareAchizitiePiese: 0,
-    financiar: { tvaProc: 21, pieseFacturateFaraTva: 0, costManoperaInterna: 0, costuriExterne: 0, costMasinaSchimb: 0, numarFactura: "", dataFactura: null, audatex: { totalPiese: 0, totalManopera: 0, totalCosturiSuplimentare: 0, totalVopsitorie: 0, costReparatieFaraTva: 0 } },
+    financiar: { tvaProc: 21, pieseFacturateFaraTva: 0, costManoperaInterna: 0, costuriExterne: 0, costMasinaSchimb: 0, numarFactura: "", dataFactura: null, audatex: emptyAudatexDevizTotals() },
     blocat: false, motivBlocare: "",
     createdBy: null, createdByEmail: "", updatedByEmail: "",
     atelierId: null,
@@ -156,6 +157,7 @@ export function sanitizeClaim(c) {
       numarFactura: c.financiar?.numarFactura || "",
       dataFactura: c.financiar?.dataFactura || null,
       audatex: {
+        ...emptyAudatexDevizTotals(),
         totalPiese: parseNumber(c.financiar?.audatex?.totalPiese ?? c.valoarePieseAudatex ?? c.financiar?.pieseFacturateFaraTva, 0),
         totalManopera: parseNumber(c.financiar?.audatex?.totalManopera ?? c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
         totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare ?? c.financiar?.cheltuieliDiverse ?? c.financiar?.costuriExterne, 0),
@@ -165,6 +167,7 @@ export function sanitizeClaim(c) {
           0
         ),
         costReparatieFaraTva: parseNumber(c.financiar?.audatex?.costReparatieFaraTva ?? c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
+        costReparatieCuTva: parseNumber(c.financiar?.audatex?.costReparatieCuTva, 0),
         manoperaVopsitorie: parseNumber(c.financiar?.audatex?.manoperaVopsitorie ?? c.financiar?.manoperaVopsitorie ?? c.manopera?.vopsitorie?.facturat, 0),
         materialeVopsitorie: parseNumber(c.financiar?.audatex?.materialeVopsitorie ?? c.financiar?.materialeVopsitorie, 0),
       },
@@ -475,6 +478,7 @@ export function toDb(c) {
       numarFactura: c.financiar?.numarFactura || "",
       dataFactura: c.financiar?.dataFactura || null,
       audatex: {
+        ...emptyAudatexDevizTotals(),
         totalPiese: parseNumber(c.financiar?.audatex?.totalPiese ?? c.valoarePieseAudatex ?? c.financiar?.pieseFacturateFaraTva, 0),
         totalManopera: parseNumber(c.financiar?.audatex?.totalManopera ?? c.financiar?.manoperaTinichigerie ?? c.manopera?.tinichigerie?.facturat, 0),
         totalCosturiSuplimentare: parseNumber(c.financiar?.audatex?.totalCosturiSuplimentare ?? c.financiar?.cheltuieliDiverse ?? c.financiar?.costuriExterne, 0),
@@ -484,6 +488,7 @@ export function toDb(c) {
           0
         ),
         costReparatieFaraTva: parseNumber(c.financiar?.audatex?.costReparatieFaraTva ?? c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
+        costReparatieCuTva: parseNumber(c.financiar?.audatex?.costReparatieCuTva, 0),
         manoperaVopsitorie: parseNumber(c.financiar?.audatex?.manoperaVopsitorie ?? c.financiar?.manoperaVopsitorie ?? c.manopera?.vopsitorie?.facturat, 0),
         materialeVopsitorie: parseNumber(c.financiar?.audatex?.materialeVopsitorie ?? c.financiar?.materialeVopsitorie, 0),
       },
