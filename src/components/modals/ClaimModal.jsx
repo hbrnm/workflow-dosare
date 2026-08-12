@@ -138,7 +138,6 @@ export function compressColorImage(file) {
     reader.readAsDataURL(file);
   });
 }
-}
 
 export default function ClaimModal({
   claim,
