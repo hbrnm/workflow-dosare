@@ -70,8 +70,15 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
   const base64Data = await fileToBase64(file);
   const mimeType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
 
-  const modelsToTry = [modelParam, "gemini-1.5-flash", "gemini-1.5-pro"];
-  const uniqueModels = Array.from(new Set(modelsToTry));
+  const modelEndpoints = [
+    { version: "v1beta", name: "gemini-3.6-flash" },
+    { version: "v1beta", name: "gemini-3.6-pro" },
+    { version: "v1beta", name: modelParam || "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-flash" },
+    { version: "v1", name: "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1", name: "gemini-1.5-pro" },
+  ];
 
   const body = {
     contents: [
@@ -96,8 +103,8 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
   };
 
   let lastError = null;
-  for (const model of uniqueModels) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  for (const m of modelEndpoints) {
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${apiKey}`;
     try {
       const resp = await fetch(url, {
         method: "POST",

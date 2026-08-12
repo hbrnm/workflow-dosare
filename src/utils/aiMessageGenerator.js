@@ -41,14 +41,21 @@ Reguli:
     return `Bună ziua! Vă transmitem o actualizare privind dosarul vehiculului ${plate}: stadiul curent este "${status}". Pentru detalii suplimentare, rămânem la dispoziția dumneavoastră.`;
   }
 
-  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
+  const modelEndpoints = [
+    { version: "v1beta", name: "gemini-3.6-flash" },
+    { version: "v1beta", name: "gemini-3.6-pro" },
+    { version: "v1beta", name: "gemini-1.5-flash" },
+    { version: "v1", name: "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1", name: "gemini-1.5-pro" },
+  ];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 250 },
   };
 
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+  for (const m of modelEndpoints) {
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -61,7 +68,7 @@ Reguli:
         return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
       }
     } catch (err) {
-      console.warn(`Fallback model ${model}:`, err);
+      console.warn(`Fallback model ${m.name} (${m.version}):`, err);
     }
   }
 

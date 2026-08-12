@@ -47,14 +47,21 @@ Cu stima,
 Echipa Service Auto`;
   }
 
-  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
+  const modelEndpoints = [
+    { version: "v1beta", name: "gemini-3.6-flash" },
+    { version: "v1beta", name: "gemini-3.6-pro" },
+    { version: "v1beta", name: "gemini-1.5-flash" },
+    { version: "v1", name: "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1", name: "gemini-1.5-pro" },
+  ];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
   };
 
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+  for (const m of modelEndpoints) {
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -67,7 +74,7 @@ Echipa Service Auto`;
         return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       }
     } catch (err) {
-      console.warn(`Fallback adresa model ${model}:`, err);
+      console.warn(`Fallback adresa model ${m.name} (${m.version}):`, err);
     }
   }
 

@@ -47,14 +47,24 @@ Reguli de răspuns:
 `;
 
 /**
- * Apelează Gemini API cu fallback pe mai multe modele stabile (gemini-1.5-flash, gemini-1.5-pro)
+ * Apelează Gemini API cu fallback garantat pe mai multe modele și versiuni API (v1 / v1beta)
  */
 export async function callGeminiApiWithFallback(effectiveKey, body) {
-  const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
+  const modelEndpoints = [
+    { version: "v1beta", name: "gemini-3.6-flash" },
+    { version: "v1beta", name: "gemini-3.6-pro" },
+    { version: "v1beta", name: "gemini-2.0-flash" },
+    { version: "v1beta", name: "gemini-1.5-flash" },
+    { version: "v1", name: "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1", name: "gemini-1.5-pro" },
+    { version: "v1beta", name: "gemini-2.5-flash" },
+    { version: "v1beta", name: "gemini-pro" },
+  ];
   let lastErr = null;
 
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+  for (const m of modelEndpoints) {
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -67,19 +77,13 @@ export async function callGeminiApiWithFallback(effectiveKey, body) {
       }
 
       const errText = await resp.text();
-      if (resp.status === 404) {
-        lastErr = new Error(`Model ${model} 404: ${errText}`);
-        continue;
-      }
-
-      throw new Error(`Eroare API (${resp.status}): ${errText}`);
+      lastErr = new Error(`Model ${m.name} (${m.version} - ${resp.status}): ${errText}`);
     } catch (err) {
       lastErr = err;
-      if (!err.message?.includes("404")) throw err;
     }
   }
 
-  throw lastErr || new Error("Niciun model Gemini nu este disponibil.");
+  throw lastErr || new Error("Niciun model Gemini nu este disponibil pentru cheia API specificată.");
 }
 
 /**

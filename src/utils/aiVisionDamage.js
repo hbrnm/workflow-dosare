@@ -26,7 +26,14 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
   const base64Data = await fileToBase64(file);
   const mimeType = file.type || "image/jpeg";
 
-  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
+  const modelEndpoints = [
+    { version: "v1beta", name: "gemini-3.6-flash" },
+    { version: "v1beta", name: "gemini-3.6-pro" },
+    { version: "v1beta", name: "gemini-1.5-flash" },
+    { version: "v1", name: "gemini-1.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1", name: "gemini-1.5-pro" },
+  ];
   const body = {
     contents: [
       {
@@ -43,8 +50,8 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
   };
 
   let lastErr = null;
-  for (const model of models) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+  for (const m of modelEndpoints) {
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -58,7 +65,7 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
         if (text) return JSON.parse(text);
       }
       const err = await resp.text();
-      lastErr = new Error(`Model ${model} (${resp.status}): ${err}`);
+      lastErr = new Error(`Model ${m.name} (${m.version} - ${resp.status}): ${err}`);
     } catch (err) {
       lastErr = err;
     }
