@@ -1,5 +1,28 @@
 /* Mobil — aceleași tokeni ca desktop (.app-shell), fără teme multiple */
 
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    background: var(--app-bg);
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .mobile-shell.app-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .mobile-shell.app-shell button,
+  .mobile-shell.app-shell a,
+  .mobile-shell.app-shell input,
+  .mobile-shell.app-shell select {
+    touch-action: manipulation;
+  }
+}
+
 .mobile-shell.app-shell {
   background: var(--app-bg);
   color: var(--app-text);
@@ -2453,4 +2476,3 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .m-claim-sheet input.text-\[16px\] {
   font-size: 16px !important;
 }
-

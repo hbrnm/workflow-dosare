@@ -17,7 +17,7 @@ export default defineConfig({
         theme_color: "#0d1117",
         background_color: "#0d1117",
         display: "standalone",
-        orientation: "portrait",
+        orientation: "any",
         start_url: "/",
         icons: [
           {
@@ -36,7 +36,7 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,json,woff,woff2}"],
         runtimeCaching: [
           {
             // OpenCV.js document-scan engine (~9MB) — cache after first load
