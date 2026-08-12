@@ -600,129 +600,190 @@ export default function Programator({
 
           {/* Slots List (Scrollable) */}
           <div className="flex-1 overflow-y-auto min-h-0 pr-1 divide-y divide-[var(--app-border)]/60 scrollbar-thin">
-            {SLOTURI_ORARE.map(slot => {
-              const items = activeDayClaims.filter(c => getSlotForIso(c.dataProgramare) === slot);
-              const hasItems = items.length > 0;
-              const isSchedulingThisSlot = activeSlotForScheduling === slot;
+            {(() => {
+              const groupedSlots = [];
+              let currentRange = null;
 
-              return (
-                <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between text-[12.5px] font-mono text-[var(--app-muted)] mb-1 font-bold">
-                    <span>{slot}</span>
-                    {!isSchedulingThisSlot && (
+              SLOTURI_ORARE.forEach((slot) => {
+                const items = activeDayClaims.filter((c) => getSlotForIso(c.dataProgramare) === slot);
+                const hasItems = items.length > 0;
+                const isScheduling = activeSlotForScheduling === slot;
+
+                if (hasItems || isScheduling) {
+                  if (currentRange) {
+                    groupedSlots.push(currentRange);
+                    currentRange = null;
+                  }
+                  groupedSlots.push({ type: "slot", slot, items, hasItems, isScheduling });
+                } else {
+                  if (!currentRange) {
+                    currentRange = {
+                      type: "range",
+                      startSlot: slot,
+                      endSlot: slot,
+                      slots: [slot],
+                    };
+                  } else {
+                    currentRange.slots.push(slot);
+                    currentRange.endSlot = slot;
+                  }
+                }
+              });
+
+              if (currentRange) {
+                groupedSlots.push(currentRange);
+              }
+
+              return groupedSlots.map((entry) => {
+                if (entry.type === "range") {
+                  const isSingle = entry.slots.length === 1;
+                  const label = isSingle
+                    ? entry.startSlot
+                    : `${entry.startSlot.split(" - ")[0]} – ${entry.endSlot.split(" - ")[1]}`;
+
+                  return (
+                    <div
+                      key={entry.startSlot}
+                      onClick={() => {
+                        setActiveSlotForScheduling(entry.slots[0]);
+                        setSelectingFromArrived(false);
+                      }}
+                      className="group py-2 px-3 my-1 rounded-lg border border-dashed border-[var(--app-border)]/60 hover:border-[var(--app-accent)] hover:bg-[var(--app-surface-2)] transition-all cursor-pointer flex items-center justify-between text-[12px] select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-[var(--app-muted)]">{label}</span>
+                        <span className="text-[10.5px] font-semibold text-[var(--app-muted)] bg-[var(--app-surface-muted)] px-2 py-0.5 rounded-full">
+                          {isSingle ? "Liber" : `${entry.slots.length} sloturi libere`}
+                        </span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setActiveSlotForScheduling(slot);
-                          setSelectingFromArrived(false);
-                        }}
-                        className="app-prog-slot-add font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        className="text-[11px] font-bold text-[var(--app-accent)] opacity-80 group-hover:opacity-100 hover:underline"
                       >
                         + Programează
                       </button>
-                    )}
-                  </div>
-
-                  {hasItems ? (
-                    <div className="space-y-1">
-                      {groupClaimsByPlate(items).map((group) => (
-                        <ProgramatorClaimCard
-                          key={group.length > 1 ? `stack-${group[0].id}` : group[0].id}
-                          claim={group[0]}
-                          groupClaims={group.length > 1 ? group : null}
-                          claims={claims}
-                          onOpen={onOpen}
-                          onPatch={onPatch}
-                          canEdit={canEditFn}
-                          onMarkNeonorata={handleMarkNeonorata}
-                          checkMasinaSchimbConflict={checkMasinaSchimbConflict}
-                          onNotify={onNotify}
-                        />
-                      ))}
                     </div>
-                  ) : isSchedulingThisSlot ? (
-                    <div className="app-prog-schedule-popover rounded-lg p-2.5 space-y-2 text-[11px]">
-                      <div className="app-prog-schedule-popover-header flex items-center justify-between pb-1">
-                        <span className="font-bold">Programează la {slot.split(" - ")[0]}</span>
+                  );
+                }
+
+                const { slot, items, hasItems, isScheduling } = entry;
+                return (
+                  <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between text-[12.5px] font-mono text-[var(--app-muted)] mb-1 font-bold">
+                      <span>{slot}</span>
+                      {!isScheduling && (
                         <button
                           type="button"
                           onClick={() => {
-                            setActiveSlotForScheduling(null);
+                            setActiveSlotForScheduling(slot);
                             setSelectingFromArrived(false);
                           }}
-                          className="text-[var(--app-muted)] hover:text-[var(--app-text-strong)] font-bold"
+                          className="app-prog-slot-add font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                         >
-                          ✕
+                          + Programează
                         </button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveSlotForScheduling(null);
-                            if (onAddInStatus) {
-                              onAddInStatus("programat", makeIsoFromSlot(activeDateStr, slot));
-                            }
-                          }}
-                          className="app-prog-action py-1.5 rounded text-center font-bold transition-colors"
-                        >
-                          Dosar nou
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectingFromArrived(prev => !prev)}
-                          className={`app-prog-action py-1.5 rounded text-center font-bold transition-colors ${selectingFromArrived ? "is-active" : ""}`}
-                        >
-                          Piese sosite
-                        </button>
-                      </div>
-
-                      {selectingFromArrived && (
-                        <div className="app-prog-arrived-list space-y-1 mt-2 max-h-[140px] overflow-y-auto rounded p-1.5 scrollbar-thin">
-                          {arrivedClaims.length === 0 ? (
-                            <div className="text-[10px] text-[var(--app-muted)] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
-                          ) : (
-                            arrivedClaims.map(c => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => {
-                                  if (onPatch) {
-                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
-                                    setActiveSlotForScheduling(null);
-                                    setSelectingFromArrived(false);
-                                  }
-                                }}
-                                className="w-full text-left p-1 rounded border-b text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                  <span className="font-mono font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
-                                  {c.numarDosar && (
-                                    <span className="text-[9.5px] font-mono font-bold bg-[var(--app-surface-muted)] px-1.5 py-0.2 rounded shrink-0" title={`Dosar #${c.numarDosar}`}>
-                                      #{c.numarDosar}
-                                    </span>
-                                  )}
-                                  {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
-                                    <>
-                                      <span className="text-[var(--app-muted)] shrink-0">·</span>
-                                      <span className="text-[var(--app-muted)] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
-                                    </>
-                                  )}
-                                </div>
-                                <span className="text-[var(--app-muted)] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="app-prog-slot-free">Liber</div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {hasItems ? (
+                      <div className="space-y-1">
+                        {groupClaimsByPlate(items).map((group) => (
+                          <ProgramatorClaimCard
+                            key={group.length > 1 ? `stack-${group[0].id}` : group[0].id}
+                            claim={group[0]}
+                            groupClaims={group.length > 1 ? group : null}
+                            claims={claims}
+                            onOpen={onOpen}
+                            onPatch={onPatch}
+                            canEdit={canEditFn}
+                            onMarkNeonorata={handleMarkNeonorata}
+                            checkMasinaSchimbConflict={checkMasinaSchimbConflict}
+                            onNotify={onNotify}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="app-prog-schedule-popover rounded-lg p-2.5 space-y-2 text-[11px]">
+                        <div className="app-prog-schedule-popover-header flex items-center justify-between pb-1">
+                          <span className="font-bold">Programează la {slot.split(" - ")[0]}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveSlotForScheduling(null);
+                              setSelectingFromArrived(false);
+                            }}
+                            className="text-[var(--app-muted)] hover:text-[var(--app-text-strong)] font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveSlotForScheduling(null);
+                              if (onAddInStatus) {
+                                onAddInStatus("programat", makeIsoFromSlot(activeDateStr, slot));
+                              }
+                            }}
+                            className="app-prog-action py-1.5 rounded text-center font-bold transition-colors"
+                          >
+                            Dosar nou
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectingFromArrived(prev => !prev)}
+                            className={`app-prog-action py-1.5 rounded text-center font-bold transition-colors ${selectingFromArrived ? "is-active" : ""}`}
+                          >
+                            Piese sosite
+                          </button>
+                        </div>
+
+                        {selectingFromArrived && (
+                          <div className="app-prog-arrived-list space-y-1 mt-2 max-h-[140px] overflow-y-auto rounded p-1.5 scrollbar-thin">
+                            {arrivedClaims.length === 0 ? (
+                              <div className="text-[10px] text-[var(--app-muted)] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
+                            ) : (
+                              arrivedClaims.map(c => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (onPatch) {
+                                      onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
+                                      setActiveSlotForScheduling(null);
+                                      setSelectingFromArrived(false);
+                                    }
+                                  }}
+                                  className="w-full text-left p-1 rounded border-b text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span className="font-mono font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
+                                    {c.numarDosar && (
+                                      <span className="text-[9.5px] font-mono font-bold bg-[var(--app-surface-muted)] px-1.5 py-0.2 rounded shrink-0" title={`Dosar #${c.numarDosar}`}>
+                                        #{c.numarDosar}
+                                      </span>
+                                    )}
+                                    {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
+                                      <>
+                                        <span className="text-[var(--app-muted)] shrink-0">·</span>
+                                        <span className="text-[var(--app-muted)] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <span className="text-[var(--app-muted)] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 

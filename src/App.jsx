@@ -22,6 +22,7 @@ const Rapoarte = lazyWithRetry(() => import("./components/views/Rapoarte"));
 const QuickCapture = lazyWithRetry(() => import("./components/views/QuickCapture"));
 const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
 const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
+const AiDocumentUploadModal = lazyWithRetry(() => import("./components/modals/AiDocumentUploadModal"));
 // Eager: Setări e flux critic — evită chunk stale după deploy PWA.
 import SetariModal from "./components/modals/SetariModal";
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
@@ -88,6 +89,7 @@ export default function App() {
       return null;
     }
   });
+  const [isAiModalOpenHeader, setIsAiModalOpenHeader] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
@@ -1177,13 +1179,24 @@ export default function App() {
           {/* Right Header Actions — same height/padding for Dosar nou + Alerte */}
           <div className="flex items-center gap-2">
             {userCanCreate ? (
-              <AppButton
-                variant="primary"
-                onClick={() => openNew()}
-                className="app-header-action-btn"
-              >
-                <Plus size={14} /> <span>Dosar nou</span>
-              </AppButton>
+              <>
+                <AppButton
+                  variant="primary"
+                  onClick={() => openNew()}
+                  className="app-header-action-btn"
+                >
+                  <Plus size={14} /> <span>Dosar nou</span>
+                </AppButton>
+                <button
+                  type="button"
+                  onClick={() => setIsAiModalOpenHeader(true)}
+                  className="app-header-action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-[12px] font-bold transition-all cursor-pointer shadow-sm"
+                  title="Scanează și extrage automat datele din deviz/PV cu Agent AI"
+                >
+                  <Sparkles size={14} className="text-indigo-400 animate-pulse" />
+                  <span className="hidden sm:inline">Scanează AI</span>
+                </button>
+              </>
             ) : (
               <span
                 className="app-type-xs text-[var(--app-muted)] px-2 hidden sm:inline"
@@ -1650,6 +1663,16 @@ export default function App() {
             canEditFn={canEdit}
             onNotify={showNotice}
           />
+        {isAiModalOpenHeader && (
+          <AiDocumentUploadModal
+            isOpen={isAiModalOpenHeader}
+            onClose={() => setIsAiModalOpenHeader(false)}
+            onDataExtracted={(extractedClaimPartial, tipDocument) => {
+              if (!extractedClaimPartial) return;
+              openNew();
+              showNotice(`Date extrase cu succes din ${tipDocument || "document"}!`, "success");
+            }}
+          />
         )}
       </Suspense>
 
@@ -1678,6 +1701,10 @@ export default function App() {
         onOpenQuickCapture={() => {
           clearSearch();
           openQuickCapture();
+        }}
+        onOpenAiScan={() => {
+          clearSearch();
+          setIsAiModalOpenHeader(true);
         }}
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
