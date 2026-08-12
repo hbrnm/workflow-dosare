@@ -7,7 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "script", // Înregistrează automat Service Worker-ul în HTML fără import-uri speciale
+      // Explicit registration in src/main.jsx reloads active clients after updates.
+      injectRegister: null,
       includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
         name: "Workflow Daune 2.0",
@@ -34,6 +35,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
         runtimeCaching: [
           {
