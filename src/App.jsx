@@ -29,7 +29,6 @@ const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"
 const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
 const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
 import CommandPalette from "./components/common/CommandPalette";
-import AiCopilotWidget from "./components/common/AiCopilotWidget";
 import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import AppButton from "./components/common/AppButton";
@@ -1711,9 +1710,6 @@ export default function App() {
         onExportExcel={exportExcel}
         onExportPdf={exportPdf}
       />
-
-      {/* Widget Supervizor Atelier */}
-      <AiCopilotWidget claims={claims} />
 
       {/* Desktop: fără overlay global — bara/Ctrl+K folosesc doar paleta inteligentă.
           Mobil păstrează SearchResultsOverlay în shell-ul mobil. */}

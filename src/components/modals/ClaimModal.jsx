@@ -38,10 +38,6 @@ import ClaimTimeline from "../common/ClaimTimeline";
 import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
-import { generateClientMessage } from "../../utils/aiMessageGenerator";
-import { analyzeVehicleDamagePhotos } from "../../utils/aiVisionDamage";
-import { auditClaimFinancials } from "../../utils/aiAuditor";
-import AiInsurerNoticeModal from "./AiInsurerNoticeModal";
 import PhotoLightbox from "../common/PhotoLightbox";
 import AudatexImportCard from "../common/AudatexImportCard";
 import { AUDATEX_DEVIZ_UI_FIELDS } from "../../constants/audatexDevizFields";
@@ -214,49 +210,6 @@ export default function ClaimModal({
   const [pdfMenuOpen, setPdfMenuOpen] = useState(false);
   const pdfMenuRef = useRef(null);
   const [showFinancialAccordion, setShowFinancialAccordion] = useState(false);
-  const [isInsurerNoticeModalOpen, setIsInsurerNoticeModalOpen] = useState(false);
-  const [generatingClientMsg, setGeneratingClientMsg] = useState(false);
-  const [analyzingPhotos, setAnalyzingPhotos] = useState(false);
-
-  const handleGenerateClientMsg = async (intent = "update_status") => {
-    setGeneratingClientMsg(true);
-    try {
-      const msg = await generateClientMessage(form, intent);
-      await navigator.clipboard.writeText(msg);
-      if (onNotify) onNotify("Mesaj compus cu succes și copiat în clipboard!", "success");
-    } catch (err) {
-      if (onNotify) onNotify("Nu s-a putut compune mesajul.", "danger");
-    } finally {
-      setGeneratingClientMsg(false);
-    }
-  };
-
-  const handleAnalyzePhoto = async (file) => {
-    if (!file) return;
-    setAnalyzingPhotos(true);
-    try {
-      const res = await analyzeVehicleDamagePhotos(file);
-      if (res?.ceEsteDeReparat) {
-        set("ceEsteDeReparat", res.ceEsteDeReparat);
-      }
-      if (Array.isArray(res?.operatiuni) && res.operatiuni.length > 0) {
-        const formatted = res.operatiuni.map((op) => ({
-          id: uid(),
-          piesa: String(op.piesa || "").toUpperCase(),
-          inl: Boolean(op.inl),
-          rev: Boolean(op.rev),
-          rep: Boolean(op.rep),
-          uni: Boolean(op.uni),
-        }));
-        set("operatiuni", [...(form.operatiuni || []), ...formatted]);
-      }
-      if (onNotify) onNotify("Avariile au fost detectate cu succes din fotografie!", "success");
-    } catch (err) {
-      if (onNotify) onNotify(`Eroare analiză foto: ${err.message}`, "danger");
-    } finally {
-      setAnalyzingPhotos(false);
-    }
-  };
   const manoperaTarife = useMemo(
     () => manoperaTarifeProp || loadCachedManoperaTarife(),
     [manoperaTarifeProp]
@@ -1100,27 +1053,6 @@ export default function ClaimModal({
 
                 <button
                   type="button"
-                  onClick={() => setIsInsurerNoticeModalOpen(true)}
-                  className="flex items-center gap-1 text-indigo-300 hover:text-white text-[10.5px] font-bold border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg px-2 py-1 transition-colors cursor-pointer"
-                  title="Redactează adresă oficială / supliment către asigurător"
-                >
-                  <Sparkles size={12} className="animate-pulse" />
-                  <span className="hidden sm:inline">Adresă Asigurător</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleGenerateClientMsg("update_status")}
-                  disabled={generatingClientMsg}
-                  className="flex items-center gap-1 text-emerald-300 hover:text-white text-[10.5px] font-bold border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg px-2 py-1 transition-colors cursor-pointer"
-                  title="Compune mesaj politicos pentru client (WhatsApp/SMS)"
-                >
-                  {generatingClientMsg ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
-                  <span className="hidden sm:inline">Mesaj Client</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={handleDownloadZip}
                   disabled={downloadingZip}
                   className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
@@ -1837,14 +1769,7 @@ export default function ClaimModal({
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
                         {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
-                      </label>
                     </div>
-
-                    <label className={`col-span-2 flex items-center justify-center gap-2 border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${analyzingPhotos ? "opacity-50 pointer-events-none" : ""}`}>
-                      {analyzingPhotos ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} className="animate-pulse text-indigo-400" />}
-                      <span>{analyzingPhotos ? "Se analizează avariile..." : "Analiză Foto Avarii (Auto-detecție)"}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleAnalyzePhoto(e.target.files?.[0])} />
-                    </label>
 
                     {form.poze.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 pt-1">
@@ -1971,53 +1896,6 @@ export default function ClaimModal({
                     manoperaTarife={manoperaTarife}
                     onImported={() => setActiveTab("financial")}
                   />
-
-                  {/* Audit Financiar & Profitabilitate Card */}
-                  {(() => {
-                    const audit = auditClaimFinancials(form);
-                    if (!audit) return null;
-                    return (
-                      <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-xl p-4 space-y-2.5 shadow-xs text-xs">
-                        <div className="flex items-center justify-between border-b border-indigo-500/20 pb-2">
-                          <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-indigo-400" />
-                            <span className="font-bold text-indigo-200">Audit Financiar &amp; Profitabilitate Deviz</span>
-                          </div>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${audit.avertismente.length > 0 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40" : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"}`}>
-                            {audit.score}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-center py-1">
-                          <div className="bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-semibold">Total Deviz</div>
-                            <div className="font-mono font-bold text-indigo-300 text-xs sm:text-sm">{audit.valDeviz.toLocaleString("ro-RO")} RON</div>
-                          </div>
-                          <div className="bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-semibold">Marjă Piese (val)</div>
-                            <div className={`font-mono font-bold text-xs sm:text-sm ${audit.marjaPieseValoare >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                              {audit.marjaPieseValoare > 0 ? "+" : ""}{audit.marjaPieseValoare.toLocaleString("ro-RO")} RON
-                            </div>
-                          </div>
-                          <div className="bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                            <div className="text-[10px] text-slate-400 font-semibold">Marjă Piese (%)</div>
-                            <div className="font-mono font-bold text-indigo-300 text-xs sm:text-sm">{audit.marjaPieseProcent}%</div>
-                          </div>
-                        </div>
-
-                        {audit.avertismente.map((a, i) => (
-                          <div key={i} className="text-[11px] text-amber-200 bg-amber-950/40 p-2 rounded-lg border border-amber-500/30 flex items-start gap-1.5 font-medium">
-                            <span>⚠️</span> <span>{a}</span>
-                          </div>
-                        ))}
-                        {audit.recomandari.map((r, i) => (
-                          <div key={i} className="text-[11px] text-emerald-200 bg-emerald-950/40 p-2 rounded-lg border border-emerald-500/30 flex items-start gap-1.5 font-medium">
-                            <span>💡</span> <span>{r}</span>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
 
                   {/* Reglementare asigurător */}
                   <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs">
@@ -2717,14 +2595,6 @@ export default function ClaimModal({
           </div>
         )}
 
-        {isInsurerNoticeModalOpen && (
-          <AiInsurerNoticeModal
-            isOpen={isInsurerNoticeModalOpen}
-            onClose={() => setIsInsurerNoticeModalOpen(false)}
-            claim={form}
-            onNotify={onNotify}
-          />
-        )}
       </div>
     </div>
   );
