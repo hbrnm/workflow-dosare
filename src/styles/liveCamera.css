@@ -129,6 +129,11 @@
   transform: scale(0.9);
 }
 
+.live-cam-shutter:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
 .live-cam-shutter-inner {
   width: 4rem;
   height: 4rem;

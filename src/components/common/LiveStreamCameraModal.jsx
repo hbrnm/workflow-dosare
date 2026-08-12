@@ -9,6 +9,9 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
   const [photoCount, setPhotoCount] = useState(0);
   const [lastThumbUrl, setLastThumbUrl] = useState(null);
   const [flash, setFlash] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [cameraAttempt, setCameraAttempt] = useState(0);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const thumbUrlRef = useRef(null);
@@ -27,8 +30,10 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
 
     async function startCamera() {
       try {
-        if (!navigator?.mediaDevices?.getUserMedia) {
-          console.warn("Camera API unavailable");
+        setCameraReady(false);
+        setCameraError("");
+        if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+          setCameraError("Camera live nu este disponibilă în acest browser.");
           return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -42,9 +47,16 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          void videoRef.current.play().catch(() => {});
         }
       } catch (err) {
         console.warn("Camera video stream failed:", err);
+        if (active) {
+          const permissionError = err?.name === "NotAllowedError" || err?.name === "SecurityError";
+          setCameraError(permissionError
+            ? "Permite accesul la cameră din setările browserului și încearcă din nou."
+            : "Camera nu a putut fi pornită. Încearcă din nou sau folosește Camera telefonului.");
+        }
       }
     }
 
@@ -68,7 +80,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
         thumbUrlRef.current = null;
       }
     };
-  }, []);
+  }, [cameraAttempt]);
 
   const setThumbFromBlob = (blob) => {
     if (!blob || !aliveRef.current) return;
@@ -79,7 +91,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
   };
 
   const capturePhotoInstantly = async () => {
-    if (!videoRef.current || !aliveRef.current) return;
+    if (!videoRef.current || !aliveRef.current || !cameraReady) return;
     try {
       if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
         navigator.vibrate(10);
@@ -149,7 +161,35 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
       </div>
 
       <div className="live-cam-stage">
-        <video ref={videoRef} autoPlay playsInline muted className="live-cam-video" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="live-cam-video"
+          onLoadedMetadata={(event) => event.currentTarget.play().catch(() => {})}
+          onCanPlay={() => setCameraReady(true)}
+        />
+        {!cameraReady && !cameraError && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 text-[13px] font-bold">
+            Se pornește camera…
+          </div>
+        )}
+        {cameraError && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/75 p-6 text-center">
+            <div>
+              <p className="text-[14px] font-extrabold">Camera nu este disponibilă</p>
+              <p className="mt-2 text-[12px] text-white/75">{cameraError}</p>
+              <button
+                type="button"
+                className="mt-4 rounded-lg bg-white/15 px-4 py-2 text-[12px] font-extrabold hover:bg-white/25"
+                onClick={() => setCameraAttempt((attempt) => attempt + 1)}
+              >
+                Reîncearcă
+              </button>
+            </div>
+          </div>
+        )}
         {flash && <div className="live-cam-flash" />}
         {lastThumbUrl ? (
           <div
@@ -169,6 +209,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
           type="button"
           onClick={capturePhotoInstantly}
           className="live-cam-shutter"
+          disabled={!cameraReady}
           aria-label="Fotografiază"
         >
           <span className="live-cam-shutter-inner" />
