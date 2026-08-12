@@ -75,8 +75,8 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-            <span className="font-mono font-bold text-[var(--app-text-strong)] flex items-center gap-1">
-              <Car size={10} className="text-[var(--app-muted)]" />
+            <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1">
+              <Car size={12} className="text-[var(--app-accent)]" />
               {claim.numarInmatriculare || "—"}
             </span>
             <span className="truncate max-w-[90px]">{claim.marcaModel || claim.asigurator}</span>

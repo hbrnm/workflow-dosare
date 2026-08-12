@@ -85,8 +85,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {/* Rând 1: identificare + vechime */}
       <div className="flex items-center justify-between gap-2 flex-1">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 min-w-0 flex-wrap">
-            <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate">
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate drop-shadow-sm">
               {claim.numarInmatriculare || "FĂRĂ NR."}
             </span>
             {claim.numarDosar && (
@@ -269,7 +269,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate uppercase">
+                <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
                   {plate}
                 </span>
                 <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
@@ -317,7 +317,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
       <div className="flex items-center justify-between gap-2 flex-1">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 min-w-0 flex-wrap">
-            <span className="font-mono font-extrabold text-[13px] text-[var(--app-text-strong)] truncate uppercase">
+            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
               {plate}
             </span>
             <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
