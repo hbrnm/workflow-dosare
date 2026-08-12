@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { Phone, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel, isPieseComandateStatus } from "../../constants/config";
 import { fmtDate, telLink, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
