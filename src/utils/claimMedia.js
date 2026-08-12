@@ -1,7 +1,15 @@
 import { uid, nowISO } from "./dateUtils";
 
 export function storagePath(claimId, file, folder = "poze") {
-  const ext = file.name ? file.name.split(".").pop() : "bin";
+  let ext = "jpg";
+  if (file && file.name) {
+    ext = file.name.split(".").pop();
+  } else if (file && file.type) {
+    if (file.type.includes("pdf")) ext = "pdf";
+    else if (file.type.includes("png")) ext = "png";
+    else if (file.type.includes("webp")) ext = "webp";
+    else ext = "jpg";
+  }
   return `${claimId || "temp"}/${folder}/${uid()}.${ext}`;
 }
 
@@ -38,33 +46,14 @@ export async function refreshStorageUrls(items = [], bucketName, supabaseClient)
 
     if (!error && Array.isArray(data)) {
       data.forEach((signed, i) => {
-        const target = toSign[i];
-        if (!target) return;
-        if (signed?.signedUrl) {
-          result[target.index] = { ...result[target.index], url: signed.signedUrl };
+        if (signed && signed.signedUrl && toSign[i]) {
+          result[toSign[i].index].url = signed.signedUrl;
         }
       });
-      return result;
     }
-  } catch (err) {
-    console.warn("createSignedUrls batch failed, falling back", err);
+  } catch (e) {
+    console.warn("Eroare la generarea URL-urilor semnate:", e);
   }
-
-  // Fallback: one-by-one
-  await Promise.all(
-    toSign.map(async ({ index, path }) => {
-      try {
-        const { data: signed } = await supabaseClient.storage
-          .from(bucketName)
-          .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
-        if (signed?.signedUrl) {
-          result[index] = { ...result[index], url: signed.signedUrl };
-        }
-      } catch (err) {
-        /* keep previous url */
-      }
-    })
-  );
 
   return result;
 }
@@ -207,14 +196,23 @@ export function resolveMediaPatch(currentClaim = {}, patch = {}) {
 
 export async function uploadStorageItem(supabaseClient, bucketName, claimId, file, folder) {
   const path = storagePath(claimId, file, folder);
-  const { error } = await supabaseClient.storage.from(bucketName).upload(path, file, { upsert: false });
+  const mimeType = file.type || (bucketName === "documente-dosare" ? "application/pdf" : "image/jpeg");
+  
+  const { error } = await supabaseClient.storage.from(bucketName).upload(path, file, {
+    contentType: mimeType,
+    upsert: false,
+  });
   if (error) throw error;
+
   const { data: signed, error: signedError } = await supabaseClient.storage
     .from(bucketName)
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+
   if (signedError) {
     await supabaseClient.storage.from(bucketName).remove([path]);
     throw signedError;
   }
-  return { id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() };
+
+  const fallbackName = file.name || (mimeType.includes("pdf") ? `Document_${uid().slice(0, 4)}.pdf` : `Foto_${uid().slice(0, 4)}.jpg`);
+  return { id: uid(), path, url: signed?.signedUrl || "", nume: fallbackName, incarcatLa: nowISO() };
 }

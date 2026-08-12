@@ -750,8 +750,20 @@ export default function ClaimModal({
     const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
-      const path = storagePath(claimId, file);
-      const { error } = await supabase.storage.from("poze-dosare").upload(path, file, { upsert: false });
+      let fileToUpload = file;
+      try {
+        if (file.type?.startsWith("image/")) {
+          fileToUpload = await compressColorImage(file);
+        }
+      } catch (err) {
+        console.warn("Comprimare eșuată, se folosește fișierul original:", err);
+      }
+
+      const path = storagePath(claimId, fileToUpload);
+      const { error } = await supabase.storage.from("poze-dosare").upload(path, fileToUpload, {
+        contentType: fileToUpload.type || "image/jpeg",
+        upsert: false,
+      });
       if (error) { onNotify(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("poze-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
@@ -759,7 +771,8 @@ export default function ClaimModal({
         onNotify(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
-      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, categoria, incarcatLa: nowISO() });
+      const nume = file.name || `Foto_${uid().slice(0, 4)}.jpg`;
+      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume, categoria, incarcatLa: nowISO() });
     }
     if (noi.length) {
       setFormMedia({ poze: [...noi, ...form.poze] });
@@ -1769,6 +1782,7 @@ export default function ClaimModal({
                       <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
                         {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
                         <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
+                      </label>
                     </div>
 
                     {form.poze.length > 0 ? (

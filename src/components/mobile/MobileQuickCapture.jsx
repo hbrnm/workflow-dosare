@@ -148,38 +148,41 @@ export default function MobileQuickCapture({
   }, [mediaFingerprint]);
 
   // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
-  const handleMobilePhotoCapture = async (fileList, categorie = "generale", targetInputRef = null) => {
+  const handleMobilePhotoCapture = async (fileInputData, categorie = "generale") => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar din listă.", "error");
       return;
     }
-    const files = Array.from(fileList || []);
-    if (files.length === 0) return; // Utilizatorul a închis camera -> se oprește bucla automat
+    const files = Array.isArray(fileInputData)
+      ? fileInputData
+      : fileInputData instanceof FileList
+      ? Array.from(fileInputData)
+      : fileInputData
+      ? [fileInputData]
+      : [];
 
-    // Redeschide camera nativă imediat pentru poza următoare
-    if (targetInputRef && targetInputRef.current) {
-      setTimeout(() => {
-        try {
-          targetInputRef.current.click();
-        } catch (err) {
-          console.warn("Auto-reopen camera error:", err);
-        }
-      }, 350);
-    }
+    if (files.length === 0) return;
 
     setUploading(true);
     try {
       const noiPoze = [];
-      for (const file of files) {
-        if (file.size > MAX_UPLOAD_SIZE_BYTES) continue;
-        const compressed = await compressImage(file);
+      for (const rawFile of files) {
+        let compressed = rawFile;
+        try {
+          compressed = await compressImage(rawFile);
+        } catch (e) {
+          console.warn("Comprimare eșuată în mobil, se transmite fișierul brut:", e);
+        }
         const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
-        const itemWithCat = typeof uploaded === "object" ? { ...uploaded, categoria: categorie } : { url: uploaded, categoria: categorie };
+        const itemWithCat = typeof uploaded === "object"
+          ? { ...uploaded, categoria: categorie || "generale" }
+          : { url: uploaded, categoria: categorie || "generale" };
         noiPoze.push(itemWithCat);
       }
 
       if (noiPoze.length > 0) {
         await onPatch(selectedClaim.id, { appendPoze: noiPoze }, { canEditFn });
+        onNotify(`${noiPoze.length} fotografie(i) salvată(e) pe dosarul ${selectedClaim.numarInmatriculare}`, "success");
       }
     } catch (err) {
       onNotify("Eroare la încărcare poză: " + err.message, "error");
