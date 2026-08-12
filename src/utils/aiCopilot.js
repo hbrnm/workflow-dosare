@@ -47,6 +47,42 @@ Reguli de răspuns:
 `;
 
 /**
+ * Apelează Gemini API cu fallback pe mai multe modele stabile (gemini-1.5-flash, gemini-1.5-pro)
+ */
+export async function callGeminiApiWithFallback(effectiveKey, body) {
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
+  let lastErr = null;
+
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (resp.ok) {
+        return await resp.json();
+      }
+
+      const errText = await resp.text();
+      if (resp.status === 404) {
+        lastErr = new Error(`Model ${model} 404: ${errText}`);
+        continue;
+      }
+
+      throw new Error(`Eroare API (${resp.status}): ${errText}`);
+    } catch (err) {
+      lastErr = err;
+      if (!err.message?.includes("404")) throw err;
+    }
+  }
+
+  throw lastErr || new Error("Niciun model Gemini nu este disponibil.");
+}
+
+/**
  * Apelează Gemini API pentru Supervizor Atelier
  */
 export async function askSupervizorAtelier(userQuery, claims = [], apiKey = "") {
@@ -56,8 +92,6 @@ export async function askSupervizorAtelier(userQuery, claims = [], apiKey = "") 
   }
 
   const claimsContext = buildClaimsContextSummary(claims);
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
 
   const body = {
     contents: [
@@ -75,18 +109,7 @@ export async function askSupervizorAtelier(userQuery, claims = [], apiKey = "") 
     },
   };
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Eroare Supervizor API (${resp.status}): ${errText}`);
-  }
-
-  const data = await resp.json();
+  const data = await callGeminiApiWithFallback(effectiveKey, body);
   const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!answer) {

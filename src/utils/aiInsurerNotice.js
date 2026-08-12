@@ -47,26 +47,29 @@ Cu stima,
 Echipa Service Auto`;
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
-
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
   };
 
-  try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (!resp.ok) throw new Error("Eroare API adresa asigurator");
-
-    const data = await resp.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-  } catch (err) {
-    console.warn("Fallback adresa asigurator:", err);
-    return `CĂTRE: ${asigurator}\nSubiect: ${tipAdresaLabel} - Dosar ${nrDosar} (${plate})\n\nVă rugăm să procesați dosarul de daună în valoare de ${suma} RON.`;
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      }
+    } catch (err) {
+      console.warn(`Fallback adresa model ${model}:`, err);
+    }
   }
+
+  return `CĂTRE: ${asigurator}\nSubiect: ${tipAdresaLabel} - Dosar ${nrDosar} (${plate})\n\nVă rugăm să procesați dosarul de daună în valoare de ${suma} RON.`;
 }

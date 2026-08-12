@@ -26,8 +26,7 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
   const base64Data = await fileToBase64(file);
   const mimeType = file.type || "image/jpeg";
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
-
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
   const body = {
     contents: [
       {
@@ -43,23 +42,27 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
     },
   };
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let lastErr = null;
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Eroare analiza foto (${resp.status}): ${err}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return JSON.parse(text);
+      }
+      const err = await resp.text();
+      lastErr = new Error(`Model ${model} (${resp.status}): ${err}`);
+    } catch (err) {
+      lastErr = err;
+    }
   }
 
-  const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!text) {
-    throw new Error("Nu s-au putut detecta avarii în imagine.");
-  }
-
-  return JSON.parse(text);
+  throw lastErr || new Error("Nu s-au putut detecta avarii în imagine.");
 }

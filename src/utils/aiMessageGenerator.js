@@ -41,26 +41,29 @@ Reguli:
     return `Bună ziua! Vă transmitem o actualizare privind dosarul vehiculului ${plate}: stadiul curent este "${status}". Pentru detalii suplimentare, rămânem la dispoziția dumneavoastră.`;
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`;
-
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 250 },
   };
 
-  try {
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (!resp.ok) throw new Error("Eroare API la generarea mesajului");
-
-    const data = await resp.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
-  } catch (err) {
-    console.warn("Fallback la generare mesaj:", err);
-    return `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
+      if (resp.ok) {
+        const data = await resp.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
+      }
+    } catch (err) {
+      console.warn(`Fallback model ${model}:`, err);
+    }
   }
+
+  return `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
 }

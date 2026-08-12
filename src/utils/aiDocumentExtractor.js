@@ -62,7 +62,7 @@ export function fileToBase64(file) {
 /**
  * Apelează direct Google Gemini API cu cheia configurată de utilizator sau din Supabase
  */
-export async function extractClaimDataWithGeminiDirect(file, apiKey, model = "gemini-2.0-flash") {
+export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam = "gemini-1.5-flash") {
   if (!apiKey) {
     throw new Error("Cheia API Google Gemini lipsește. Introduceți cheia în Setări sau folosiți Supabase Edge Function.");
   }
@@ -70,7 +70,8 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, model = "ge
   const base64Data = await fileToBase64(file);
   const mimeType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const modelsToTry = [modelParam, "gemini-1.5-flash", "gemini-1.5-pro"];
+  const uniqueModels = Array.from(new Set(modelsToTry));
 
   const body = {
     contents: [
@@ -94,26 +95,34 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, model = "ge
     },
   };
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let lastError = null;
+  for (const model of uniqueModels) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`Eroare Gemini API (${resp.status}): ${errText}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textResponse) {
+          throw new Error("Nu s-a extras niciun text în răspunsul Gemini.");
+        }
+        const extractedRaw = JSON.parse(textResponse);
+        return mapExtractedJsonToClaim(extractedRaw);
+      }
+
+      const errText = await resp.text();
+      lastError = new Error(`Eroare Gemini API ${model} (${resp.status}): ${errText}`);
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const data = await resp.json();
-  const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!textResponse) {
-    throw new Error("Gemini API nu a returnat text valid.");
-  }
-
-  const parsedJson = JSON.parse(textResponse);
-  return mapExtractedJsonToClaim(parsedJson);
+  throw lastError || new Error("Procesarea cu Gemini API a eșuat pe toate modelele.");
 }
 
 /**
