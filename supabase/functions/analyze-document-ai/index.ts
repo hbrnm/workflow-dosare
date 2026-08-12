@@ -50,6 +50,15 @@ serve(async (req) => {
   }
 
   try {
+    // Verificare autentificare utilizator (JWT token)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Autorizare nepermisă. Token-ul JWT lipsește." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) {
       return new Response(

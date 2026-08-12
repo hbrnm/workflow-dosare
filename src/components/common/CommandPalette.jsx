@@ -73,7 +73,7 @@ export default function CommandPalette({
 
     // Actions List
     const actions = [
-      { type: "action", id: "ai", label: "Scanează cu Agent AI", sub: "Extrage automat datele din devize Audatex/Eurotax/PV", icon: Sparkles, handler: onOpenAiScan },
+      { type: "action", id: "ai", label: "Scanează Document", sub: "Extrage automat datele din devize Audatex/Eurotax/PV", icon: Sparkles, handler: onOpenAiScan },
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
       { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte cu auto-crop, cameră live", icon: Camera, handler: onOpenQuickCapture },
       { type: "action", id: "excel", label: "Exportă Excel", sub: "Descarcă toate dosarele în format .xlsx", icon: Download, handler: onExportExcel },
