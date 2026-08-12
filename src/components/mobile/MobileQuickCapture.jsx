@@ -13,7 +13,6 @@ import { todayISO } from "../../utils/dateUtils";
 import { categoryLabel } from "../../utils/scanUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
-import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import PhotoLightbox from "../common/PhotoLightbox";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
 import { isSearchHighlighted } from "../../utils/searchUtils";
@@ -36,7 +35,7 @@ export default function MobileQuickCapture({
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
-  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
   const [showLiveScanner, setShowLiveScanner] = useState(false);
   const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
@@ -46,6 +45,8 @@ export default function MobileQuickCapture({
   const receptieInputRef = useRef(null);
   const reconstatareInputRef = useRef(null);
   const predareInputRef = useRef(null);
+  const phoneCameraInputRef = useRef(null);
+  const localPhotosInputRef = useRef(null);
 
   useEffect(() => {
     if (!focusClaimId) return;
@@ -54,7 +55,7 @@ export default function MobileQuickCapture({
     if (focusCaptureCategory === "receptie" || focusCaptureCategory === "predare" || focusCaptureCategory === "reconstatare") {
       setCameraCategory(focusCaptureCategory);
     }
-    setShowLiveCamera(true);
+    setShowPhotoSourcePicker(true);
     onFocusClaimConsumed?.();
   }, [focusClaimId, focusCaptureCategory, onFocusClaimConsumed]);
 
@@ -65,14 +66,14 @@ export default function MobileQuickCapture({
   // Prevent App from switching to desktop shell on landscape rotate while capture UI is open.
   useEffect(() => {
     const locked =
-      showLiveCamera ||
+      showPhotoSourcePicker ||
       showLiveScanner ||
       Boolean(activeScanCrop) ||
       previewMediaIndex != null;
     onMobileShellLockChange?.(locked);
     return () => onMobileShellLockChange?.(false);
   }, [
-    showLiveCamera,
+    showPhotoSourcePicker,
     showLiveScanner,
     activeScanCrop,
     previewMediaIndex,
@@ -189,6 +190,12 @@ export default function MobileQuickCapture({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handlePhotoSourceChange = (event) => {
+    const files = Array.from(event.target.files || []).filter((file) => file.type.startsWith("image/"));
+    event.target.value = "";
+    if (files.length > 0) handleMobilePhotoCapture(files, cameraCategory);
   };
 
   // Încărcare document PDF
@@ -510,9 +517,9 @@ export default function MobileQuickCapture({
           {/* Declanșator principal */}
           <button
             type="button"
-            onClick={() => { softHaptic(12); setShowLiveCamera(true); }}
+            onClick={() => { softHaptic(12); setShowPhotoSourcePicker(true); }}
             className="m-ui-primary-cta m-press"
-            title="Deschide camera"
+            title="Alege sursa fotografiei"
           >
             <Camera size={32} className="text-[var(--app-accent)]" />
             <span className="text-[15px] font-extrabold" style={{ fontFamily: "var(--app-font-display)" }}>
@@ -520,6 +527,23 @@ export default function MobileQuickCapture({
             </span>
             <span className="text-[11px] font-semibold opacity-60 capitalize">{cameraCategory}</span>
           </button>
+
+          <input
+            ref={phoneCameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handlePhotoSourceChange}
+          />
+          <input
+            ref={localPhotosInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={handlePhotoSourceChange}
+          />
 
           {/* Mai mult: Scan Acte / Galerie */}
           <div className="border-t border-[var(--app-border)] pt-2">
@@ -810,12 +834,59 @@ export default function MobileQuickCapture({
       )}
 
       {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}
-      {showLiveCamera && selectedClaim && (
-        <LiveStreamCameraModal
-          initialCategorie={cameraCategory}
-          onSavePhoto={handleMobilePhotoCapture}
-          onClose={() => setShowLiveCamera(false)}
-        />
+      {showPhotoSourcePicker && selectedClaim && (
+        <div
+          className="fixed inset-0 z-[90] flex items-end bg-black/60 p-3 sm:items-center sm:justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="photo-source-title"
+          onClick={() => setShowPhotoSourcePicker(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface)] p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3 id="photo-source-title" className="text-[16px] font-extrabold text-[var(--app-text-strong)]">Adaugă fotografii</h3>
+                <p className="mt-0.5 text-[12px] text-[var(--app-muted)]">Categoria: {categoryLabel(cameraCategory)}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg p-1.5 text-[var(--app-muted)] hover:bg-[var(--app-surface-2)]"
+                onClick={() => setShowPhotoSourcePicker(false)}
+                aria-label="Închide"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="grid gap-2">
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl bg-[var(--app-accent)] px-4 py-3 text-left text-white"
+                onClick={() => {
+                  setShowPhotoSourcePicker(false);
+                  phoneCameraInputRef.current?.click();
+                }}
+              >
+                <Camera size={22} />
+                <span><span className="block text-[14px] font-extrabold">Fotografiază acum</span><span className="block text-[11px] opacity-85">Deschide camera implicită a telefonului</span></span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] px-4 py-3 text-left text-[var(--app-text)]"
+                onClick={() => {
+                  setShowPhotoSourcePicker(false);
+                  localPhotosInputRef.current?.click();
+                }}
+              >
+                <Upload size={22} className="text-[var(--app-accent)]" />
+                <span><span className="block text-[14px] font-extrabold">Alege din telefon sau Drive</span><span className="block text-[11px] text-[var(--app-muted)]">Galerie, Fișiere, Google Drive și alte surse disponibile</span></span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Scanner documente live tip CamScanner / QuickScan */}
