@@ -13,6 +13,7 @@ import { todayISO } from "../../utils/dateUtils";
 import { categoryLabel } from "../../utils/scanUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import PhotoLightbox from "../common/PhotoLightbox";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
 import { isSearchHighlighted } from "../../utils/searchUtils";
@@ -36,6 +37,7 @@ export default function MobileQuickCapture({
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showPhotoSourcePicker, setShowPhotoSourcePicker] = useState(false);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
   const [showLiveScanner, setShowLiveScanner] = useState(false);
   const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
@@ -67,6 +69,7 @@ export default function MobileQuickCapture({
   useEffect(() => {
     const locked =
       showPhotoSourcePicker ||
+      showLiveCamera ||
       showLiveScanner ||
       Boolean(activeScanCrop) ||
       previewMediaIndex != null;
@@ -74,6 +77,7 @@ export default function MobileQuickCapture({
     return () => onMobileShellLockChange?.(false);
   }, [
     showPhotoSourcePicker,
+    showLiveCamera,
     showLiveScanner,
     activeScanCrop,
     previewMediaIndex,
@@ -834,6 +838,14 @@ export default function MobileQuickCapture({
       )}
 
       {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}
+      {showLiveCamera && selectedClaim && (
+        <LiveStreamCameraModal
+          initialCategorie={cameraCategory}
+          onSavePhoto={handleMobilePhotoCapture}
+          onClose={() => setShowLiveCamera(false)}
+        />
+      )}
+
       {showPhotoSourcePicker && selectedClaim && (
         <div
           className="fixed inset-0 z-[90] flex items-end bg-black/60 p-3 sm:items-center sm:justify-center"
@@ -867,11 +879,22 @@ export default function MobileQuickCapture({
                 className="flex items-center gap-3 rounded-xl bg-[var(--app-accent)] px-4 py-3 text-left text-white"
                 onClick={() => {
                   setShowPhotoSourcePicker(false);
-                  phoneCameraInputRef.current?.click();
+                  setShowLiveCamera(true);
                 }}
               >
                 <Camera size={22} />
-                <span><span className="block text-[14px] font-extrabold">Fotografiază acum</span><span className="block text-[11px] opacity-85">Deschide camera implicită a telefonului</span></span>
+                <span><span className="block text-[14px] font-extrabold">Fotografiază continuu</span><span className="block text-[11px] opacity-85">Salvează direct fiecare poză, fără confirmare</span></span>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] px-4 py-3 text-left text-[var(--app-text)]"
+                onClick={() => {
+                  setShowPhotoSourcePicker(false);
+                  phoneCameraInputRef.current?.click();
+                }}
+              >
+                <Camera size={22} className="text-[var(--app-accent)]" />
+                <span><span className="block text-[14px] font-extrabold">Camera telefonului</span><span className="block text-[11px] text-[var(--app-muted)]">Folosește aplicația foto implicită</span></span>
               </button>
               <button
                 type="button"
