@@ -37,6 +37,7 @@ export default function MobileQuickCapture({
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
   const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [liveCameraStream, setLiveCameraStream] = useState(null);
   const [cameraCategory, setCameraCategory] = useState("receptie");
   const [showLiveScanner, setShowLiveScanner] = useState(false);
   const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
@@ -114,6 +115,24 @@ export default function MobileQuickCapture({
     if (!selectedClaimId) return null;
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
+
+  const openLiveCamera = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      setLiveCameraStream(stream);
+      setShowLiveCamera(true);
+    } catch (error) {
+      console.warn("Camera live nu a putut fi pornită:", error);
+    }
+  };
 
   // URL-uri semnate proaspete pentru thumbnails (cele din DB expiră)
   const [displayPoze, setDisplayPoze] = useState([]);
@@ -510,7 +529,7 @@ export default function MobileQuickCapture({
           {/* Declanșator principal */}
           <button
             type="button"
-            onClick={() => { softHaptic(12); setShowLiveCamera(true); }}
+            onClick={() => { softHaptic(12); openLiveCamera(); }}
             className="m-ui-primary-cta m-press"
             title="Deschide camera"
           >
@@ -813,8 +832,12 @@ export default function MobileQuickCapture({
       {showLiveCamera && selectedClaim && (
         <LiveStreamCameraModal
           initialCategorie={cameraCategory}
+          initialStream={liveCameraStream}
           onSavePhoto={handleMobilePhotoCapture}
-          onClose={() => setShowLiveCamera(false)}
+          onClose={() => {
+            setShowLiveCamera(false);
+            setLiveCameraStream(null);
+          }}
         />
       )}
 

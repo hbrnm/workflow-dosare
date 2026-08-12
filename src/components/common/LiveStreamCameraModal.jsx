@@ -4,7 +4,7 @@ import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import { useModalEscape } from "../../hooks/useModalEscape";
 import "../../styles/liveCamera.css";
 
-export default function LiveStreamCameraModal({ initialCategorie = "receptie", onSavePhoto, onClose }) {
+export default function LiveStreamCameraModal({ initialCategorie = "receptie", initialStream = null, onSavePhoto, onClose }) {
   const [categorie, setCategorie] = useState(initialCategorie);
   const [photoCount, setPhotoCount] = useState(0);
   const [lastThumbUrl, setLastThumbUrl] = useState(null);
@@ -26,6 +26,18 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
     aliveRef.current = true;
     let active = true;
 
+    const attachStream = (stream) => {
+      if (!active) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        void videoRef.current.play().catch(() => {});
+      }
+    };
+
     async function startCamera() {
       try {
         setCameraReady(false);
@@ -36,21 +48,14 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
           video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         });
-        if (!active) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          void videoRef.current.play().catch(() => {});
-        }
+        attachStream(stream);
       } catch (err) {
         console.warn("Camera video stream failed:", err);
       }
     }
 
-    startCamera();
+    if (initialStream) attachStream(initialStream);
+    else startCamera();
     return () => {
       active = false;
       aliveRef.current = false;
@@ -70,7 +75,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", o
         thumbUrlRef.current = null;
       }
     };
-  }, []);
+  }, [initialStream]);
 
   const setThumbFromBlob = (blob) => {
     if (!blob || !aliveRef.current) return;
