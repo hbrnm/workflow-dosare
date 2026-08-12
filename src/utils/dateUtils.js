@@ -3,13 +3,16 @@
 // ---------------------------------------------------------------------------
 
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
-export const todayISO = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
+/** Formatează un obiect Date în format YYYY-MM-DD (componente locale). */
+export function formatDateYMD(d) {
+  if (!d || Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+  return `${y}-${m}-${day}`;
+}
+
+export const todayISO = () => formatDateYMD(new Date());
 export const nowISO = () => new Date().toISOString();
 
 export function normalizedText(value) {
@@ -38,12 +41,7 @@ export function toLocalDateKey(iso) {
   ) {
     return raw.slice(0, 10);
   }
-  const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return formatDateYMD(new Date(raw));
 }
 
 /** Oră locală HH:mm din ISO (gol dacă e doar dată). */

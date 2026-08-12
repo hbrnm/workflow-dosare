@@ -26,7 +26,6 @@ export const BILLING_PLANS = {
 };
 
 export const DEFAULT_SEAT_LIMIT = 10;
-export const DEFAULT_TRIAL_DAYS = 30;
 
 /**
  * @param {{ plan?: string, trialEndsAt?: string|null, seatLimit?: number|null, memberCount?: number, stripeCustomerId?: string|null, stripeSubscriptionId?: string|null }} input

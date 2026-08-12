@@ -12,6 +12,7 @@ import {
   getAlertMetric,
 } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { countUniqueVehicles } from "../../utils/plateSchedule";
@@ -447,14 +448,7 @@ export default function MobileBrief({
             className="app-alerte-actions"
             onClick={(e) => e.stopPropagation()}
           >
-            {phone ? (
-              <>
-                <WhatsAppButton phone={phone} claim={c} size={11} />
-                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
-                  <Phone size={13} />
-                </a>
-              </>
-            ) : null}
+            <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
             {showFactureaza ? (
               <button
                 type="button"
@@ -680,14 +674,7 @@ export default function MobileBrief({
             className="app-alerte-actions"
             onClick={(e) => e.stopPropagation()}
           >
-            {phone ? (
-              <>
-                <WhatsAppButton phone={phone} claim={c} size={11} />
-                <a href={telLink(phone)} className="app-alerte-btn-ghost" title="Sună">
-                  <Phone size={13} />
-                </a>
-              </>
-            ) : null}
+            <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
             {showFoto ? (
               <button
                 type="button"

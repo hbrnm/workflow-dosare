@@ -1,5 +1,5 @@
 import { uid } from "./dateUtils";
-import { operationsSummary } from "./estimateUtils";
+import { operationsSummary, createOperation } from "./estimateUtils";
 
 /** Detect Audatex Romania printable export (SISTEM AUDATEX, UT, CALCUL REPARATIE). */
 export function isAudatexRoText(text) {
@@ -247,14 +247,7 @@ function mergeAudatexOperations(parts, labour, paint) {
         return;
       }
     }
-    byKey.set(key, {
-      id: uid(),
-      piesa: clean,
-      inl: !!flags.inl,
-      rev: !!flags.rev,
-      rep: !!flags.rep,
-      uni: !!flags.uni,
-    });
+    byKey.set(key, createOperation(clean, flags));
   };
 
   for (const p of parts) upsert(p.name, p.flags || { inl: true, rev: false, rep: false, uni: false });

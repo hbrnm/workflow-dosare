@@ -8,6 +8,7 @@ import {
   normalizeAudatexImportValues,
 } from "../../utils/audatexParse";
 import { parseEstimateFile } from "../../utils/audatexImportFile";
+import AiDocumentUploadModal from "../modals/AiDocumentUploadModal";
 
 function formatRon(n) {
   if (n == null || n === "") return "—";
@@ -41,6 +42,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
   const [preview, setPreview] = useState(null);
   const [applyOps, setApplyOps] = useState(true);
   const [lastError, setLastError] = useState("");
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const doApply = (result, file, withOps = applyOps) => {
     const ops = result.lineItems?.operations || [];
@@ -129,22 +131,33 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
           )}
         </div>
         {!readOnly && (
-          <label
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-1.5 text-[11px] font-bold text-[var(--app-text)] hover:border-[var(--app-accent)] ${
-              busy ? "pointer-events-none opacity-60" : ""
-            }`}
-          >
-            {busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
-            {busy ? "Analizez…" : "Încarcă deviz"}
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.xml,.csv,.xlsx,.xls,.txt,application/pdf,text/xml,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="hidden"
-              disabled={busy}
-              onChange={(e) => onPick(e.target.files)}
-            />
-          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAiModalOpen(true)}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-[11px] font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all"
+            >
+              <Sparkles size={14} className="text-indigo-400 animate-pulse" />
+              Extrage cu Agent AI
+            </button>
+
+            <label
+              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-1.5 text-[11px] font-bold text-[var(--app-text)] hover:border-[var(--app-accent)] ${
+                busy ? "pointer-events-none opacity-60" : ""
+              }`}
+            >
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
+              {busy ? "Analizez…" : "Încarcă deviz"}
+              <input
+                ref={inputRef}
+                type="file"
+                accept=".pdf,.xml,.csv,.xlsx,.xls,.txt,application/pdf,text/xml,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => onPick(e.target.files)}
+              />
+            </label>
+          </div>
         )}
       </div>
 
@@ -225,6 +238,27 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
           )}
         </div>
       )}
+
+      <AiDocumentUploadModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onDataExtracted={(extractedClaimPartial, tipDocument) => {
+          if (!extractedClaimPartial) return;
+          setClaim((prev) => ({
+            ...prev,
+            ...extractedClaimPartial,
+            financiar: {
+              ...prev.financiar,
+              ...(extractedClaimPartial.financiar || {}),
+            },
+            operatiuni:
+              Array.isArray(extractedClaimPartial.operatiuni) && extractedClaimPartial.operatiuni.length > 0
+                ? extractedClaimPartial.operatiuni
+                : prev.operatiuni,
+          }));
+          showNotice?.(`Date extrase cu succes cu Agentul AI din ${tipDocument || "document"}!`, "success");
+        }}
+      />
     </div>
   );
 }

@@ -10,14 +10,13 @@ import DosarNumber from "../common/DosarNumber";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import StageTabLabel from "../common/StageTabLabel";
 import { glossaryTitle } from "../../constants/glossary";
-import FluxStageStrip from "../common/FluxStageStrip";
+import FluxHeaderBar from "../common/FluxHeaderBar";
 import {
   isSearchHighlighted,
   groupHasSearchHighlight,
   scrollToFirstHighlight,
 } from "../../utils/searchUtils";
 import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from "../../utils/fluxClaimSort";
-import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 import { copyClaimNumber } from "../../utils/copyClaimNumber";
 import { buildStatusCounts } from "../../utils/plateSchedule";
@@ -445,20 +444,13 @@ export default function TablouPeFazeRedesign({
       )}
 
       {/* Etape — aceeași bandă ca în Tabel */}
-      <div className="flex items-stretch gap-2 min-w-0">
-        <FluxStageStrip
-          className="flex-1 min-w-0"
-          statusCounts={statusCounts}
-          focusedStage={focusedStage}
-          onFocusStage={setFocusedStage}
-        />
-        <ExportFormatMenu
-          count={exportClaims.length}
-          disabled={exportClaims.length === 0}
-          onExport={handleDownloadList}
-          className="shrink-0 self-center"
-        />
-      </div>
+      <FluxHeaderBar
+        statusCounts={statusCounts}
+        focusedStage={focusedStage}
+        onFocusStage={setFocusedStage}
+        exportCount={exportClaims.length}
+        onExport={handleDownloadList}
+      />
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">

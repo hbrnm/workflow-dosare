@@ -138,12 +138,6 @@ export function compressColorImage(file) {
     reader.readAsDataURL(file);
   });
 }
-
-export function processScanImage(file) {
-  // Compat: detecție 4 colțuri + Pro mode auto dacă poza e slabă
-  return import("../../utils/documentScanner").then(({ processDocumentScan }) =>
-    processDocumentScan(file, { pro: true }).then((r) => r.dataUrl)
-  );
 }
 
 export default function ClaimModal({

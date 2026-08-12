@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { X, Plus, FileText, Phone, Car, Building2, Check, User } from "lucide-react";
+import { X, Plus, FileText, Phone, Car, Building2, Check, User, Sparkles } from "lucide-react";
 import { INSURERS } from "../../constants/config";
 import { emptyClaim, getMostFrequentInsurer } from "../../utils/claimUtils";
 import {
@@ -10,6 +10,7 @@ import {
 } from "../common/modalShellClasses";
 import AppButton from "../common/AppButton";
 import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
+import AiDocumentUploadModal from "./AiDocumentUploadModal";
 
 const fieldClass = (desktopUi) =>
   desktopUi
@@ -40,6 +41,7 @@ export default function QuickCreateClaimModal({
   const [asigurator, setAsigurator] = useState(defaultInsurer);
   const [customAsigurator, setCustomAsigurator] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   const handleClose = useCallback(() => onClose?.(), [onClose]);
   useModalEscape(handleClose, { enabled: isOpen });
@@ -96,6 +98,16 @@ export default function QuickCreateClaimModal({
     }
   };
 
+  const handleAiDataExtracted = (extractedClaim) => {
+    if (!extractedClaim) return;
+    if (extractedClaim.numarInmatriculare) setNumarInmatriculare(extractedClaim.numarInmatriculare);
+    if (extractedClaim.numarDosar) setNumarDosar(extractedClaim.numarDosar);
+    if (extractedClaim.client) setClient(extractedClaim.client);
+    if (extractedClaim.telefonClient) setTelefon(extractedClaim.telefonClient);
+    if (extractedClaim.asigurator) setAsigurator(extractedClaim.asigurator);
+    notify("Datele au fost preluate din document de către Agentul AI!", "success");
+  };
+
   return (
     <div
       className={modalOverlayClass(desktopUi, { dense: true })}
@@ -133,6 +145,22 @@ export default function QuickCreateClaimModal({
         </div>
 
         <form onSubmit={handleSubmit} className="m-modal-body flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Banner Agent AI */}
+          <button
+            type="button"
+            onClick={() => setIsAiModalOpen(true)}
+            className="w-full py-2.5 px-3.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-between transition-all cursor-pointer group"
+          >
+            <div className="flex items-center gap-2 text-left">
+              <Sparkles size={16} className="text-indigo-400 animate-pulse shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-indigo-300">Scanează cu Agentul AI</p>
+                <p className="text-[10px] text-slate-400">Încarcă deviz/PV pentru pre-completare</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-medium text-indigo-400 group-hover:underline">Extrage →</span>
+          </button>
+
           <div>
             <label className={labelClass(desktopUi)}>
               <Car size={14} className="text-[var(--app-accent)]" /> Nr. înmatriculare *
@@ -249,6 +277,12 @@ export default function QuickCreateClaimModal({
           </div>
         </form>
       </div>
+
+      <AiDocumentUploadModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        onDataExtracted={handleAiDataExtracted}
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
 } from "../../constants/config";
 import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "../../constants/alertCategories";
 import WhatsAppButton from "../common/WhatsAppButton";
+import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
@@ -273,14 +274,13 @@ export default function BriefZilnic({
             ) : null}
           </div>
           <div className="app-brief-flow-actions" onClick={(e) => e.stopPropagation()}>
-            {phone ? (
-              <>
-                <WhatsAppButton phone={phone} claim={c} size={11} />
-                <a href={telLink(phone)} className="app-brief-flow-icon-btn" title="Sună" aria-label="Sună">
-                  <Phone size={13} />
-                </a>
-              </>
-            ) : null}
+            <ClaimPhoneActions
+              phone={phone}
+              claim={c}
+              waSize={11}
+              phoneSize={13}
+              btnClassName="app-brief-flow-icon-btn"
+            />
             {showPartsArrived ? (
               <button
                 type="button"

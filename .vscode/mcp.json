@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "repowise": {
+      "type": "http",
+      "url": "https://api.repowise.dev/mcp/hbrnm/workflow-dosare",
+      "headers": {
+        "Authorization": "Bearer rw_live_x74sJG5TL3nal1YedLFFN4oRF3GZU6Uw"
+      }
+    }
+  },
+  "mcpServers": {
+    "repowise": {
+      "type": "http",
+      "url": "https://api.repowise.dev/mcp/hbrnm/workflow-dosare",
+      "headers": {
+        "Authorization": "Bearer rw_live_x74sJG5TL3nal1YedLFFN4oRF3GZU6Uw"
+      }
+    }
+  }
+}

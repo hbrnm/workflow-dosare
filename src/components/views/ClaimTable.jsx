@@ -2,14 +2,12 @@ import React, { useState, useMemo, useEffect } from "react";
 import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel, isPieseComandateStatus } from "../../constants/config";
 import { fmtDate, telLink, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
-import { Trash2, Phone, ChevronDown, ChevronUp } from "lucide-react";
-import ExportFormatMenu from "../common/ExportFormatMenu";
 import { downloadClaimsList } from "../../utils/exportClaimsList";
 import Pill from "../common/Pill";
 import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
-import FluxStageStrip from "../common/FluxStageStrip";
+import FluxHeaderBar from "../common/FluxHeaderBar";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import {
   isSearchHighlighted,
@@ -212,20 +210,13 @@ export default function ClaimTable({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 space-y-2">
-      <div className="flex items-stretch gap-2 min-w-0">
-        <FluxStageStrip
-          className="flex-1 min-w-0"
-          statusCounts={statusCounts}
-          focusedStage={focusedStage}
-          onFocusStage={setFocusedStage}
-        />
-        <ExportFormatMenu
-          count={sorted.length}
-          disabled={sorted.length === 0}
-          onExport={handleDownloadList}
-          className="shrink-0 self-center"
-        />
-      </div>
+      <FluxHeaderBar
+        statusCounts={statusCounts}
+        focusedStage={focusedStage}
+        onFocusStage={setFocusedStage}
+        exportCount={sorted.length}
+        onExport={handleDownloadList}
+      />
 
       <div className="app-table-wrap overflow-x-auto rounded-lg flex-1 min-h-0">
         <table className="app-table w-full min-w-[960px] text-[12.5px]">

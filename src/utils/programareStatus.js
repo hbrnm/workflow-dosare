@@ -5,12 +5,6 @@ export const PROGRAMARE_STATUS = {
   NEONORATA: "neonorata",
 };
 
-export function normalizeProgramareStatus(value) {
-  if (value === PROGRAMARE_STATUS.ONORATA || value === PROGRAMARE_STATUS.NEONORATA) {
-    return value;
-  }
-  return null;
-}
 
 export function getProgramareChipClass(status) {
   if (status === PROGRAMARE_STATUS.ONORATA) {

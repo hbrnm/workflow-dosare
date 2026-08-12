@@ -15,6 +15,7 @@ import { telLink } from "../../utils/dateUtils";
 import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup } from "../../constants/alertCategories";
 import DosarNumber from "../common/DosarNumber";
 import WhatsAppButton from "../common/WhatsAppButton";
+import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import {
   modalOverlayClass,
   modalOverlayProps,
@@ -342,18 +343,13 @@ export default function AlerteModal({
                             className="app-alerte-actions"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {phone && (item.type === "neridicate" || item.type === "stagnate") && (
-                              <>
-                                <WhatsAppButton phone={phone} claim={c} size={12} />
-                                <a
-                                  href={telLink(phone)}
-                                  className="app-alerte-btn-ghost"
-                                  title="Sună"
-                                >
-                                  <Phone size={14} />
-                                </a>
-                              </>
-                            )}
+                            <ClaimPhoneActions
+                              phone={phone}
+                              claim={c}
+                              waSize={12}
+                              phoneSize={14}
+                              condition={item.type === "neridicate" || item.type === "stagnate"}
+                            />
                             {showFactureaza && (
                               <button
                                 type="button"

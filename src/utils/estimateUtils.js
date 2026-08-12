@@ -14,8 +14,19 @@ export const DEVIZ_FILE_TYPES = [
   { key: "altele", label: "Altele" },
 ];
 
+export function createOperation(piesa = "", flags = {}) {
+  return {
+    id: uid(),
+    piesa: String(piesa || "").trim(),
+    inl: !!flags?.inl,
+    rev: !!flags?.rev,
+    rep: !!flags?.rep,
+    uni: !!flags?.uni,
+  };
+}
+
 export function emptyOperationLine() {
-  return { id: uid(), piesa: "", inl: false, rev: false, rep: false, uni: false };
+  return createOperation("", {});
 }
 
 /** Normalizează operatiuni la listă de linii (compatibil cu formatul vechi obiect). */
