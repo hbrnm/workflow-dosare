@@ -1664,6 +1664,7 @@ export default function App() {
             canEditFn={canEdit}
             onNotify={showNotice}
           />
+        )}
         {isAiModalOpenHeader && (
           <AiDocumentUploadModal
             isOpen={isAiModalOpenHeader}
