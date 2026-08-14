@@ -6,6 +6,7 @@ async function createPdf(options = {}) {
 import { getStatusDefinition } from "../constants/config";
 import { fmtDateTime, fmtDate } from "./dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "./claimUtils";
+import { resolveCerereDespagubireParties } from "./cerereDespagubire";
 
 function stripDiacritics(str) {
   if (str === null || str === undefined) return "";
@@ -326,4 +327,666 @@ export async function generateazaFisaIntrareService(claim) {
   doc.text(sd("Semnătură Predare Auto în Service"), 135, y);
 
   doc.save(`fisa-intrare-service-${stripDiacritics(claim.numarDosar || "nou")}.pdf`);
+}
+
+/**
+ * Cerere despăgubire Omniasig — tipizat curat (layout tip oficial):
+ * header cu adresă + logo Omniasig / Vienna Insurance Group, corp tipizat
+ * cu linii punctate, tabel plată și footer actualizat.
+ *
+ * @param {object} claim
+ * @param {{ atelierNume?: string, plata?: { beneficiar?: string, banca?: string, cont?: string } } | null} [options]
+ */
+export async function generateazaCerereDespagubireOmniasig(claim, options = null) {
+  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  const fontkit = (await import("@pdf-lib/fontkit")).default;
+  const parties = resolveCerereDespagubireParties(claim);
+  const plata = options?.plata || {};
+  const beneficiar = String(
+    plata.beneficiar || options?.atelierNume || "SC AUTO WASH IMPEX SRL"
+  ).trim();
+  const banca = String(plata.banca || "PROCREDIT BANK").trim();
+  const cont = String(plata.cont || "RO56 MIRO 0000 1184 0304 0301").trim();
+
+  const base = import.meta.env.BASE_URL || "/";
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+
+  const embedSerif = async (file, fallback) => {
+    try {
+      const fontRes = await fetch(`${base}fonts/${file}`);
+      if (!fontRes.ok) throw new Error(`font ${fontRes.status}`);
+      return pdfDoc.embedFont(await fontRes.arrayBuffer(), { subset: true });
+    } catch {
+      return pdfDoc.embedFont(fallback);
+    }
+  };
+  const font = await embedSerif("LiberationSerif-Regular.ttf", StandardFonts.TimesRoman);
+  const fontBold = await embedSerif("LiberationSerif-Bold.ttf", StandardFonts.TimesRomanBold);
+
+  let logo = null;
+  try {
+    const logoRes = await fetch(`${base}forms/omniasig-logo.png`);
+    if (logoRes.ok) logo = await pdfDoc.embedPng(await logoRes.arrayBuffer());
+  } catch {
+    logo = null;
+  }
+
+  const page = pdfDoc.addPage([595.28, 841.89]);
+  const { width, height } = page.getSize();
+  const ink = rgb(0, 0, 0);
+  const muted = rgb(0.18, 0.18, 0.18);
+  const lineGray = rgb(0.35, 0.35, 0.35);
+  const left = 34;
+  const right = width - 34;
+  const contentW = right - left;
+
+  // Scale tipografic + spațiere: umple pagina până deasupra footerului
+  const bodySize = 11.5;
+  const partySize = 9.8; // Subsemnatul / reprezentant + valori complete (tel, nr. auto, anexe)
+  const optSize = 11;
+  const legalSize = 8.8;
+  const settleSize = 10.5;
+  const titleSize = 17;
+  const lineStep = 18;
+  const optStep = 17;
+  const legalStep = 11.5;
+  const annexStep = 16;
+
+  const textW = (t, size, f = font) => f.widthOfTextAtSize(t, size);
+  const fit = (raw, size, maxW, f = fontBold) => {
+    let content = sd(raw);
+    if (!content || content === "—") return "";
+    if (maxW <= 0) return content;
+    while (content.length > 3 && f.widthOfTextAtSize(content, size) > maxW) {
+      content = content.slice(0, -1);
+    }
+    if (content !== sd(raw)) content = `${content.slice(0, -1)}.`;
+    return content;
+  };
+  const draw = (t, x, y, size, f = font, color = ink) => {
+    const content = typeof t === "string" ? t : sd(t);
+    if (!content) return;
+    page.drawText(content, { x, y, size, font: f, color });
+  };
+  const dots = (x, y, w) => {
+    const step = 3.4;
+    for (let px = x; px < x + w - 1; px += step) {
+      page.drawCircle({ x: px, y: y + 0.5, size: 0.55, color: lineGray });
+    }
+  };
+  const drawRich = (parts, x, y, size) => {
+    let px = x;
+    for (const [t, bold] of parts) {
+      const f = bold ? fontBold : font;
+      draw(sd(t), px, y, size, f);
+      px += textW(sd(t), size, f);
+    }
+    return px;
+  };
+  const wrapLines = (raw, size, maxW, f = font) => {
+    const words = sd(raw).split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = "";
+    for (const w of words) {
+      const next = cur ? `${cur} ${w}` : w;
+      if (f.widthOfTextAtSize(next, size) <= maxW) {
+        cur = next;
+      } else {
+        if (cur) lines.push(cur);
+        cur = w;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+
+  const footTop = 78;
+  const signBand = 30;
+  const contentBottom = footTop + signBand;
+
+  // —— Header: adresă stânga + logo dreapta ——
+  draw("Aleea Alexandru nr. 51, Sector 1, 011822, Bucuresti, Romania.", left, height - 40, 8.5, font, muted);
+
+  if (logo) {
+    const logoW = 128;
+    const logoH = (logo.height / logo.width) * logoW;
+    page.drawImage(logo, {
+      x: right - logoW,
+      y: height - 26 - logoH,
+      width: logoW,
+      height: logoH,
+    });
+  } else {
+    draw("OMNIASIG", right - 102, height - 46, 15, fontBold, rgb(0, 0.525, 0.255));
+    draw("VIENNA INSURANCE GROUP", right - 102, height - 57, 6.5, font, rgb(0.55, 0.05, 0.08));
+  }
+
+  // —— Titlu ——
+  let y = height - 92;
+  const title = "CERERE DESPAGUBIRE";
+  draw(title, (width - textW(title, titleSize, fontBold)) / 2, y, titleSize, fontBold);
+  const tw = textW(title, titleSize, fontBold);
+  page.drawLine({
+    start: { x: (width - tw) / 2, y: y - 2.5 },
+    end: { x: (width + tw) / 2, y: y - 2.5 },
+    thickness: 1,
+    color: ink,
+  });
+
+  y -= 22;
+  const dosarLabel = "cu privire la dosarul nr: ";
+  const dosarX = (width - textW(dosarLabel, 11.5, font) - 160) / 2;
+  draw(dosarLabel, dosarX, y, 11.5, font);
+  const dosarValX = dosarX + textW(dosarLabel, 11.5, font);
+  const dosarVal = fit(claim.numarDosar || "", 11.5, 156, fontBold);
+  if (dosarVal) draw(dosarVal, dosarValX + 2, y, 11.5, fontBold);
+  else dots(dosarValX, y, 160);
+
+  // —— Corp: Subsemnatul + reprezentant pe o singură linie (text puțin mai mic) ——
+  y -= 26;
+  const subLabel = "Subsemnatul(a)";
+  const firmLabel = ", reprezentant al societatii";
+  let cx = left;
+  draw(subLabel, cx, y, partySize, font);
+  cx += textW(subLabel, partySize, font) + 4;
+
+  const afterSubMin = cx + 70;
+  const firmLabelW = textW(firmLabel, partySize, font) + 4;
+  const subVal = fit(parties.subsemnatul || "", partySize, 155, fontBold);
+  if (subVal) {
+    draw(subVal, cx, y, partySize, fontBold);
+    cx += textW(subVal, partySize, fontBold) + 3;
+  } else {
+    dots(cx, y, 110);
+    cx += 110;
+  }
+  cx = Math.max(cx, afterSubMin);
+
+  draw(firmLabel, cx, y, partySize, font);
+  cx += firmLabelW;
+  const firmMaxW = Math.max(60, right - cx - 2);
+  const firmVal = fit(parties.reprezentantSocietate || "", partySize, firmMaxW, fontBold);
+  if (firmVal) draw(firmVal, cx, y, partySize, fontBold);
+  else dots(cx, y, firmMaxW);
+
+  y -= lineStep;
+  draw("CUI/CNP", left, y, bodySize, font);
+  cx = left + textW("CUI/CNP", bodySize, font) + 5;
+  dots(cx, y, 82);
+  cx += 86;
+  draw(", domiciliat in", cx, y, bodySize, font);
+  cx += textW(", domiciliat in", bodySize, font) + 5;
+  dots(cx, y, 72);
+  cx += 76;
+  draw(", str.", cx, y, bodySize, font);
+  cx += textW(", str.", bodySize, font) + 5;
+  dots(cx, y, 86);
+  cx += 90;
+  draw(", nr.", cx, y, bodySize, font);
+  cx += textW(", nr.", bodySize, font) + 5;
+  dots(cx, y, 30);
+  cx += 34;
+  draw(", ap.", cx, y, bodySize, font);
+  cx += textW(", ap.", bodySize, font) + 5;
+  dots(cx, y, Math.max(24, right - cx));
+
+  y -= lineStep;
+  draw("sector", left, y, bodySize, font);
+  cx = left + textW("sector", bodySize, font) + 5;
+  dots(cx, y, 40);
+  cx += 44;
+  draw(", tel.", cx, y, bodySize, font);
+  cx += textW(", tel.", bodySize, font) + 5;
+  const telVal = fit(claim.telefonClient || "", partySize, 80, fontBold);
+  if (telVal) draw(telVal, cx, y, partySize, fontBold);
+  else dots(cx, y, 80);
+
+  y -= lineStep;
+  draw("proprietar al autovehiculului cu numarul", left, y, bodySize, font);
+  cx = left + textW("proprietar al autovehiculului cu numarul", bodySize, font) + 5;
+  const plateVal = fit(claim.numarInmatriculare || "", partySize, right - cx - 2, fontBold);
+  if (plateVal) draw(plateVal, cx, y, partySize, fontBold);
+  else dots(cx, y, Math.max(60, right - cx));
+
+  y -= lineStep;
+  draw("va rog sa aprobati plata despagubirii in suma de", left, y, bodySize, font);
+  cx = left + textW("va rog sa aprobati plata despagubirii in suma de", bodySize, font) + 5;
+  dots(cx, y, 150);
+  draw("lei, dupa cum urmeaza:", cx + 158, y, bodySize, font);
+
+  // —— Opțiuni plată (checkbox) ——
+  const checkbox = (x, yy, checked = false) => {
+    page.drawRectangle({
+      x,
+      y: yy - 1.2,
+      width: 9.5,
+      height: 9.5,
+      borderColor: ink,
+      borderWidth: 0.85,
+    });
+    if (checked) {
+      page.drawLine({ start: { x: x + 1.8, y: yy + 2.8 }, end: { x: x + 4, y: yy }, thickness: 1.1, color: ink });
+      page.drawLine({ start: { x: x + 4, y: yy }, end: { x: x + 7.5, y: yy + 5.5 }, thickness: 1.1, color: ink });
+    }
+  };
+
+  y -= 22;
+  checkbox(left, y);
+  drawRich(
+    [
+      ["pentru reparatie efectuata in ", false],
+      ["regie proprie", true],
+      [", pe baza evaluarii OMNIASIG;", false],
+    ],
+    left + 14,
+    y,
+    optSize
+  );
+
+  y -= optStep;
+  checkbox(left, y);
+  drawRich(
+    [
+      ["avans", true],
+      [" – pe baza documentelor anexate;", false],
+    ],
+    left + 14,
+    y,
+    optSize
+  );
+
+  y -= optStep;
+  checkbox(left, y);
+  drawRich(
+    [
+      ["dupa efectuarea reparatiilor – ", false],
+      ["plata finala", true],
+      [", pe baza urmatoarelor documente anexate:", false],
+    ],
+    left + 14,
+    y,
+    optSize
+  );
+
+  // linii documente (după plata finală) + suplimentar
+  y -= annexStep;
+  draw("FACTURA FISCALA NUMARUL _____", left, y, partySize, fontBold);
+  y -= annexStep;
+  draw("DEVIZ AUDATEX _____", left, y, partySize, fontBold);
+  y -= annexStep;
+  dots(left, y, contentW);
+
+  y -= 18;
+  draw("Suplimentar, mai anexez:", left, y, bodySize, fontBold);
+  y -= annexStep;
+  dots(left, y, contentW);
+  y -= annexStep;
+  dots(left, y, contentW);
+  y -= annexStep;
+  dots(left, y, contentW);
+
+  // —— Tabel plată ——
+  y -= 16;
+  draw("Plata se va efectua in favoarea:", left, y, bodySize, fontBold);
+  y -= 8;
+
+  const tableTop = y;
+  const rowH = 18;
+  const headerH = 16;
+  const rows = 3;
+  const colBen = 158;
+  const colSuma = 74;
+  const colBanca = contentW - colBen - colSuma;
+  const tableH = headerH + rows * rowH;
+
+  page.drawRectangle({
+    x: left,
+    y: tableTop - tableH,
+    width: contentW,
+    height: tableH,
+    borderColor: ink,
+    borderWidth: 1,
+  });
+  page.drawRectangle({
+    x: left,
+    y: tableTop - headerH,
+    width: contentW,
+    height: headerH,
+    color: rgb(0.93, 0.93, 0.93),
+    borderColor: ink,
+    borderWidth: 1,
+  });
+  page.drawLine({
+    start: { x: left + colBen, y: tableTop },
+    end: { x: left + colBen, y: tableTop - tableH },
+    thickness: 0.8,
+    color: ink,
+  });
+  page.drawLine({
+    start: { x: left + colBen + colBanca, y: tableTop },
+    end: { x: left + colBen + colBanca, y: tableTop - tableH },
+    thickness: 0.8,
+    color: ink,
+  });
+  for (let i = 1; i <= rows; i += 1) {
+    const ly = tableTop - headerH - i * rowH;
+    page.drawLine({
+      start: { x: left, y: ly },
+      end: { x: right, y: ly },
+      thickness: 0.7,
+      color: ink,
+    });
+  }
+
+  const headerY = tableTop - 11;
+  draw("BENEFICIAR", left + 8, headerY, 9, fontBold);
+  draw("BANCA & CONT / CASIERIE", left + colBen + 8, headerY, 9, fontBold);
+  draw("SUMA", left + colBen + colBanca + 18, headerY, 9, fontBold);
+
+  const r1Y = tableTop - headerH - 12;
+  draw(fit(beneficiar, 9.5, colBen - 14, fontBold), left + 6, r1Y, 9.5, fontBold);
+  draw(fit(banca, 10, colBanca - 14, fontBold), left + colBen + 6, r1Y, 10, fontBold);
+  const r2Y = tableTop - headerH - rowH - 12;
+  draw(fit(cont, 10, colBanca - 14, fontBold), left + colBen + 6, r2Y, 10, fontBold);
+
+  y = tableTop - tableH - 16;
+
+  // —— Declarații legale (text tipizat oficial) ——
+  const decls = [
+    "- Raspund de exactitatea, realitatea si corectitudinea actelor depuse. Inteleg ca depunerea de documente false (facturi, devize, alte inscrisuri) indreptateste Asiguratorul sa refuze plata tuturor despagubirilor solicitate.",
+    "- Declar pe propria raspundere ca nu mai posed alte polite de asigurare de acelasi tip si nu am solicitat sau primit despagubiri/compensatii banesti de la alt asigurator sau de la terte persoane - sofer vinovat RCA.",
+    "- In cazul furtului total, daca autovehiculul va fi gasit, ma oblig sa restitui despagubirea primita sau, dupa caz, diferenta de despagubire daca autovehiculul a suferit avarii. Pentru a conserva dreptul la regres, ma oblig a nu elibera la Politie sau alte organe de cercetare, declaratie de renuntare la pretentii, motivul fiind ca am fost despagubit de OMNIASIG V.I.G. S.A.",
+    "- In cazul in care actele incheiate de organele de politie, unitatile de pompieri sau alte organe competente sa cerceteze accidentele de autovehicule, sunt anulate, ma oblig sa restitui de indata intreaga despagubire primita.",
+  ];
+  for (const d of decls) {
+    const lines = wrapLines(d, legalSize, contentW, font);
+    for (const line of lines) {
+      draw(line, left, y, legalSize, font, muted);
+      y -= legalStep;
+    }
+    y -= 3;
+  }
+
+  y -= 4;
+  draw("Suma de (in cifre)", left, y, settleSize, font);
+  dots(left + textW("Suma de (in cifre)", settleSize, font) + 5, y, 95);
+  draw("adica (in litere)", left + 210, y, settleSize, font);
+  dots(
+    left + 210 + textW("adica (in litere)", settleSize, font) + 5,
+    y,
+    right - (left + 210 + textW("adica (in litere)", settleSize, font) + 5)
+  );
+
+  y -= 15;
+  draw("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", left, y, settleSize, font);
+  cx = left + textW("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", settleSize, font) + 5;
+  dots(cx, y, Math.max(48, right - cx));
+
+  y -= 15;
+  draw("Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire", left, y, settleSize, font);
+  y -= 14;
+  draw("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", left, y, settleSize, font);
+  cx = left + textW("de la OMNIASIG V.I.G. S.A., asiguratorul de raspundere civila", settleSize, font) + 5;
+  dots(cx, y, 72);
+  cx += 76;
+  draw("si fata de (nume sofer vinovat)", cx, y, settleSize, font);
+  y -= 14;
+  dots(left, y, 210);
+  draw("persoana vinovata de producerea accidentului din data de", left + 218, y, settleSize, font);
+  dots(
+    left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5,
+    y,
+    Math.max(40, right - (left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5))
+  );
+
+  y -= 18;
+  draw("Obiectii:", left, y, bodySize, fontBold);
+
+  // Umple până deasupra benzii de semnătură cu linii de obiețiuni
+  const obiectiiLines = [];
+  let oy = y - 15;
+  while (oy > contentBottom + 18) {
+    obiectiiLines.push(oy);
+    oy -= 15;
+  }
+  // minim 3 linii
+  while (obiectiiLines.length < 3) {
+    const last = obiectiiLines[obiectiiLines.length - 1] || y - 15;
+    obiectiiLines.push(last - 15);
+  }
+  for (const ly of obiectiiLines) {
+    if (ly > contentBottom + 12) dots(left, ly, contentW);
+  }
+
+  // Semnătură lipită deasupra footerului
+  const signY = contentBottom;
+  draw("DATA", left, signY, 11, fontBold);
+  dots(left + 36, signY, 110);
+  draw("SEMNATURA / STAMPILA", left + 260, signY, 11, fontBold);
+  dots(left + 260 + textW("SEMNATURA / STAMPILA", 11, fontBold) + 6, signY, 110);
+
+  // —— Footer (date identificare actuale Omniasig) ——
+  page.drawLine({
+    start: { x: left, y: footTop },
+    end: { x: right, y: footTop },
+    thickness: 1.6,
+    color: ink,
+  });
+
+  let fy = footTop - 12;
+  draw("Tel: (+40) 21 405 7420", left, fy, 7.2, font, muted);
+  draw("Cod Unic Inregistrare: 14360018", left + 286, fy, 7.2, font, muted);
+  fy -= 9;
+  draw("Fax: (+40) 21 311 4490", left, fy, 7.2, font, muted);
+  draw("Nr. ordine in Registrul Comertului: J40/10454/2001", left + 286, fy, 7.2, font, muted);
+  fy -= 9;
+  draw("Email: office@omniasig.ro", left, fy, 7.2, font, muted);
+  draw("Capital social: 506.352.385 lei", left + 286, fy, 7.2, font, muted);
+  fy -= 11;
+  const legal1 =
+    "Autorizata de Autoritatea de Supraveghere Financiara - R.A. - 047/10.04.2003; Societate administrata in sistem dualist; www.omniasig.ro";
+  for (const line of wrapLines(legal1, 6.5, contentW, font)) {
+    draw(line, left, fy, 6.5, font, muted);
+    fy -= 8;
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `cerere-despagubire-omniasig-${token}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function generateazaCerereDespagubireAsirom(claim) {
+  const doc = await createPdf();
+  const parties = resolveCerereDespagubireParties(claim);
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 14;
+
+  const write = (text, x, yy, opts = {}) => {
+    doc.text(sd(text), x, yy, opts);
+  };
+
+  const tip = String(claim.tipAsigurare || "").toUpperCase();
+  const isRca = tip.includes("RCA");
+  const isCasco = tip.includes("CASCO");
+  const mark = (on) => (on ? "[X]" : "[ ]");
+
+  doc.setFontSize(8);
+  doc.setTextColor(80);
+  write("ASIROM Vienna Insurance Group", 14, y);
+  y += 4;
+  write("www.asirom.ro · Call Center 021 9146", 14, y);
+  y += 8;
+  doc.setTextColor(0);
+
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  write("CERERE", pageW / 2, y, { align: "center" });
+  y += 6;
+  doc.setFontSize(10);
+  write("de plata a drepturilor din asigurare la asigurarile generale", pageW / 2, y, { align: "center" });
+  y += 9;
+
+  // Tabel antet
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  doc.setFillColor(245, 245, 245);
+  doc.rect(14, y, 182, 22, "F");
+  doc.setDrawColor(180);
+  doc.rect(14, y, 182, 22, "S");
+
+  let rowY = y + 5;
+  doc.setFont(undefined, "bold");
+  write("Nr. dosar:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(claim.numarDosar || "……………", 36, rowY);
+
+  doc.setFont(undefined, "bold");
+  write("Polita tip:", 90, rowY);
+  doc.setFont(undefined, "normal");
+  write(`${mark(isRca)} RCA   ${mark(isCasco)} Casco   ${mark(!isRca && !isCasco)} Non Auto`, 110, rowY);
+  rowY += 6;
+
+  const bun = [claim.numarInmatriculare, claim.marcaModel].filter(Boolean).join(" · ") || "……………………";
+  doc.setFont(undefined, "bold");
+  write("Bunul avariat:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(bun, 42, rowY);
+  rowY += 6;
+
+  doc.setFont(undefined, "bold");
+  write("Asigurat/Pagubit:", 16, rowY);
+  doc.setFont(undefined, "normal");
+  write(parties.proprietar || "……………………", 48, rowY);
+  doc.setFont(undefined, "bold");
+  write("Data eveniment:", 120, rowY);
+  doc.setFont(undefined, "normal");
+  write("____________", 152, rowY);
+
+  y += 26;
+
+  const calitate = parties.asCompanyOwner || parties.hasSeparateDelegat
+    ? "Reprezentant al beneficiarului"
+    : "Asigurat/Pagubit";
+  const sub = parties.subsemnatul || "…………………………………………";
+  const firmNote = parties.reprezentantSocietate
+    ? ` (reprezentant al societatii ${parties.reprezentantSocietate})`
+    : "";
+
+  doc.setFontSize(9);
+  const intro = `Subsemnatul(a) ${sub}${firmNote}, CNP ____________________, domiciliat in localitatea ____________________, adresa completa ______________________________________________, nr. telefon ${claim.telefonClient || "______________"}, email ____________________, cu actul de identitate seria ____, nr. ____________, in calitate de ${calitate}, solicit plata despagubirii in valoare de ____________________ (lei):`;
+  const introLines = doc.splitTextToSize(sd(intro), 182);
+  doc.text(introLines, 14, y);
+  y += introLines.length * 4.2 + 4;
+
+  doc.rect(14, y - 2.2, 3, 3);
+  write("conform evaluare ASIROM (fara documente justificative);", 20, y);
+  y += 5.5;
+  doc.rect(14, y - 2.2, 3, 3);
+  write("conform documente justificative anexate, astfel:", 20, y);
+  y += 5.5;
+  write("In original: .......................................................................................................................", 14, y);
+  y += 5;
+  write("In fotocopie: .....................................................................................................................", 14, y);
+  y += 8;
+
+  doc.setFont(undefined, "bold");
+  write("Despagubirea cuvenita sunt de acord sa fie platita:", 14, y);
+  y += 6;
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(8.5);
+  write("[ ] prin casieriile BCR, suma _____________ lei, beneficiar _________________________________", 14, y);
+  y += 5;
+  write("[ ] prin cont bancar, suma _____________ lei, IBAN _________________________________________", 14, y);
+  y += 5;
+  write("    banca _______________________________, titular _________________________________________", 14, y);
+  y += 8;
+
+  doc.setFontSize(8);
+  doc.setFont(undefined, "bold");
+  write("Declar, pe propria raspundere, urmatoarele:", 14, y);
+  y += 4.5;
+  doc.setFont(undefined, "normal");
+  const decls = [
+    "Am avizat acest eveniment si la Asiguratorul: .............................., iar suma stabilita de acesta este ……….. / Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurare.",
+    "Nu mai posed aceeasi forma de asigurare pentru bunul respectiv incheiata si la alta societate de asigurare.",
+    "Ma oblig sa restitui de indata, partial sau total, societatii de asigurare suma de bani primita cu titlu de despagubire, in functie de o eventuala hotarare a instantei ori in cazul anularii actelor organelor competente.",
+    "Declar ca, prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nicio pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata de producerea evenimentului.",
+  ];
+  for (const d of decls) {
+    const lines = doc.splitTextToSize(sd(d), 182);
+    doc.text(lines, 14, y);
+    y += lines.length * 3.5 + 1.2;
+  }
+  y += 3;
+
+  doc.setFontSize(9);
+  write("Doresc sa primesc informare dupa realizarea platii pe email: _______________________________", 14, y);
+  y += 5;
+  write("Observatii: ...........................................................................................................................", 14, y);
+  y += 5;
+  write("Localitate: _______________________________", 14, y);
+  y += 10;
+
+  doc.setFont(undefined, "bold");
+  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
+  write("Data completarii: __________", 130, y);
+  y += 5;
+  doc.setFont(undefined, "normal");
+  write(`(nume/prenume in clar): ${sd(sub)}`, 14, y);
+  y += 8;
+  write("Semnatura (stampila daca este cazul): _______________________________", 14, y);
+
+  // Pagina 2 — consimțământ GDPR (compact)
+  doc.addPage();
+  y = 16;
+  doc.setFontSize(11);
+  doc.setFont(undefined, "bold");
+  write("DECLARATIE SI CONSIMTAMANT PRIVIND PRELUCRAREA DATELOR CU CARACTER PERSONAL", pageW / 2, y, {
+    align: "center",
+  });
+  y += 10;
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+  const gdprIntro = `Subsemnatul(a) ${sub}, domiciliat(a) in ____________________ si cu CNP _______________, declar ca am citit si am inteles continutul Notei de informare cu privire la prelucrarea de catre ASIROM a datelor cu caracter personal (disponibila pe site-ul ASIROM) si ca imi exprim consimtamantul pentru urmatoarele:`;
+  const gdprLines = doc.splitTextToSize(sd(gdprIntro), 182);
+  doc.text(gdprLines, 14, y);
+  y += gdprLines.length * 4.2 + 6;
+
+  doc.setFontSize(8.5);
+  write("[ ] Sunt de acord   [ ] Nu sunt de acord — utilizarea datelor mele pentru oferte / promotii ASIROM.", 14, y);
+  y += 8;
+
+  const gdprBody = [
+    "Pentru derularea contractului de asigurare ASIROM are acordul meu expres sa contacteze medici / institutii medicale si sa obtina date privind starea mea de sanatate, in masura in care sunt necesare pentru solutionarea dosarului de dauna.",
+    "Sunt de acord ca aceste date sa fie transmise catre ASIROM si reasiguratori / spitale / medici doar in scopul determinarii cuantumului despagubirii.",
+    "Fara acces la datele necesare, ASIROM poate fi in imposibilitatea obiectiva de a solutiona pretentiile de despagubire.",
+  ];
+  for (const g of gdprBody) {
+    const lines = doc.splitTextToSize(sd(g), 182);
+    doc.text(lines, 14, y);
+    y += lines.length * 3.6 + 2;
+  }
+  y += 6;
+  write("[ ] Sunt de acord   [ ] Nu sunt de acord — prelucrare date privind sanatatea pentru dosarul de dauna.", 14, y);
+  y += 14;
+
+  doc.setFontSize(9);
+  doc.setFont(undefined, "bold");
+  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
+  write("Data: __________", 130, y);
+  y += 6;
+  doc.setFont(undefined, "normal");
+  write(`(nume/prenume, semnatura): ${sd(sub)} _______________________________`, 14, y);
+
+  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
+  doc.save(`cerere-despagubire-asirom-${token}.pdf`);
 }

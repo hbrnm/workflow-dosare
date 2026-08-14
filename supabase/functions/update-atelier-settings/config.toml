@@ -1,0 +1,2 @@
+# Requires caller JWT (Authorization: Bearer …)
+verify_jwt = true

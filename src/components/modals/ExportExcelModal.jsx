@@ -1,10 +1,11 @@
-import React, { useState } from "react";
-import { Download, X, CheckSquare, Square, FileSpreadsheet, Layers, Wallet, CalendarClock, Car, BarChart3 } from "lucide-react";
-import * as XLSX from "xlsx";
-import { getStatusDefinition } from "../../constants/config";
-import { fmtDate, todayISO, daysBetween } from "../../utils/dateUtils";
+import React, { useState, useCallback } from "react";
+import { Download, X, CheckSquare, Square, FileSpreadsheet, FileText, Layers, Wallet, CalendarClock, Car, BarChart3 } from "lucide-react";
+import { downloadWorkflowModules } from "../../utils/exportWorkflowModules";
+import { countUniqueVehicles } from "../../utils/plateSchedule";
+import { EXPORT_FORMAT } from "../../utils/exportClaimsList";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
-export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClose }) {
+export default function ExportExcelModal({ claims = [], onClose }) {
   const [selectedModules, setSelectedModules] = useState({
     dosare: true,
     financiar: true,
@@ -12,6 +13,10 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
     masiniSchimb: true,
     statistici: true,
   });
+
+  const handleClose = useCallback(() => onClose?.(), [onClose]);
+  useModalEscape(handleClose);
+  const backdropProps = overlayBackdropCloseProps(true, handleClose);
 
   const toggleModule = (key) => {
     setSelectedModules((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -39,134 +44,9 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
 
   const selectedCount = Object.values(selectedModules).filter(Boolean).length;
 
-  const handleExport = () => {
+  const handleExport = async (format) => {
     if (selectedCount === 0) return;
-
-    const wb = XLSX.utils.book_new();
-
-    // 1. Modulul Dosare
-    if (selectedModules.dosare) {
-      const rows = claims.map((c) => ({
-        "Nr. dosar": c.numarDosar || "—",
-        "Tip Asigurare": c.tipAsigurare || "—",
-        "Asigurător": c.asigurator || "—",
-        "Client": c.client || "—",
-        "Telefon Client": c.telefonClient || "—",
-        "Nr. Înmatriculare": c.numarInmatriculare || "—",
-        "VIN": c.vin || "—",
-        "Marcă / Model": c.marcaModel || "—",
-        "Status Curent": getStatusDefinition(c.status)?.label || c.status,
-        "Blocat": c.blocat ? "DA" : "NU",
-        "Motiv Blocat": c.motivBlocat || "—",
-        "Data Deschiderii": fmtDate(c.dataDeschiderii),
-        "Data Schimbare Status": fmtDate(c.dataSchimbareStatus),
-        "Creat de": c.createdByEmail || "—",
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Lista Dosare");
-    }
-
-    // 2. Modulul Financiar
-    if (selectedModules.financiar) {
-      const rows = claims.map((c) => {
-        const fin = c.manopera || {};
-        const tin = fin.tinichigerie || {};
-        const vop = fin.vopsitorie || {};
-        const facturatTotal = (Number(tin.facturat) || 0) + (Number(vop.facturat) || 0);
-
-        return {
-          "Nr. dosar": c.numarDosar || "—",
-          "Client": c.client || "—",
-          "Asigurător": c.asigurator || "—",
-          "Valoare Deviz Estimat (RON)": c.valoareDeviz || 0,
-          "Valoare Decontată (RON)": c.valoareDecontata || 0,
-          "Diferență Regie / Client (RON)": c.diferentaRegie || 0,
-          "Facturat Tinichigerie (RON)": tin.facturat || 0,
-          "Ore Tinichigerie": tin.ore || 0,
-          "Facturat Vopsitorie (RON)": vop.facturat || 0,
-          "Ore Vopsitorie": vop.ore || 0,
-          "Total Manoperă Facturată (RON)": facturatTotal,
-          "Comandă Piese": c.pieseComandate ? "Comandate" : "Necomandate",
-          "Piese Sosite": c.pieseSosite ? "Sosite" : "Incomplete / Neprimite",
-          "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-        };
-      });
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Raport Financiar");
-    }
-
-    // 3. Modulul Programări Atelier
-    if (selectedModules.programari) {
-      const rows = claims
-        .filter((c) => c.dataProgramare)
-        .map((c) => ({
-          "Nr. dosar": c.numarDosar || "—",
-          "Client": c.client || "—",
-          "Nr. Inmatriculare": c.numarInmatriculare || "—",
-          "Marcă / Model": c.marcaModel || "—",
-          "Data Programare": fmtDate(c.dataProgramare),
-          "Tinichigiu / Mecanic Alocat": c.mecanicAlocat || "Nealocat",
-          "Vopsitor Alocat": c.vopsitorAlocat || "Nealocat",
-          "Estimare Finalizare Work": fmtDate(c.dataEstimataFinalizare),
-          "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-        }));
-      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: "Nicio programare existentă" }]);
-      XLSX.utils.book_append_sheet(wb, ws, "Programări Atelier");
-    }
-
-    // 4. Modulul Mașini la Schimb
-    if (selectedModules.masiniSchimb) {
-      const rows = claims
-        .filter((c) => c.masinaSchimb && c.masinaSchimb.trim())
-        .map((c) => {
-          const zileEfective = daysBetween(c.dataDariiLaSchimb || c.dataProgramare);
-          const depasit = c.zileChirieAudatex > 0 && zileEfective > c.zileChirieAudatex;
-          return {
-            "Nr. dosar": c.numarDosar || "—",
-            "Client": c.client || "—",
-            "Telefon Client": c.telefonClient || "—",
-            "Mașină la Schimb Alocată": c.masinaSchimb,
-            "Dată Predare Auto": fmtDate(c.dataDariiLaSchimb),
-            "Zile Aprobate Audatex": c.zileChirieAudatex || 0,
-            "Zile Efective Utilizate": zileEfective,
-            "Status Depășire": depasit ? `Depășit cu ${zileEfective - c.zileChirieAudatex} zile` : "În grafic / OK",
-            "Status Dosar": getStatusDefinition(c.status)?.label || c.status,
-          };
-        });
-      const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: "Nicio mașină la schimb alocată" }]);
-      XLSX.utils.book_append_sheet(wb, ws, "Auto la Schimb");
-    }
-
-    // 5. Modulul Statistici pe Asigurători
-    if (selectedModules.statistici) {
-      const map = {};
-      claims.forEach((c) => {
-        const key = c.asigurator?.trim() || "Neprecizat";
-        if (!map[key]) {
-          map[key] = { total: 0, rca: 0, casco: 0, blocate: 0, facturate: 0, valoareDevizTotal: 0 };
-        }
-        map[key].total += 1;
-        if (c.tipAsigurare === "RCA") map[key].rca += 1;
-        if (c.tipAsigurare === "CASCO") map[key].casco += 1;
-        if (c.blocat) map[key].blocate += 1;
-        if (c.status === "facturat") map[key].facturate += 1;
-        map[key].valoareDevizTotal += Number(c.valoareDeviz) || 0;
-      });
-
-      const rows = Object.entries(map).map(([asigurator, stat]) => ({
-        "Asigurător": asigurator,
-        "Total Dosare": stat.total,
-        "Dosare RCA": stat.rca,
-        "Dosare CASCO": stat.casco,
-        "Dosare Blocate": stat.blocate,
-        "Dosare Finalizate / Facturate": stat.facturate,
-        "Valoare Devize Însumată (RON)": stat.valoareDevizTotal,
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, "Statistici Asigurători");
-    }
-
-    XLSX.writeFile(wb, `export-workflow-dosare-${todayISO()}.xlsx`);
+    await downloadWorkflowModules(claims, selectedModules, format);
     onClose();
   };
 
@@ -190,7 +70,7 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
       title: "Modulul Programări Atelier",
       desc: "Programări service, mecanici/vopsitori alocați, date estimative de livrare.",
       icon: CalendarClock,
-      count: claims.filter((c) => c.dataProgramare).length,
+      count: countUniqueVehicles(claims.filter((c) => c.dataProgramare)),
     },
     {
       id: "masiniSchimb",
@@ -209,35 +89,51 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[#FCFAF5] rounded-2xl border border-[#DAD4C6] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-        
+    <div
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+      {...backdropProps}
+    >
+      <div
+        className="bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-[#1C2127] text-white px-5 py-4 flex items-center justify-between border-b border-white/10">
+        <div className="bg-[var(--app-surface-2)] text-[var(--app-text-strong)] px-5 py-4 flex items-center justify-between border-b border-[var(--app-border)]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#C98A2B] text-white flex items-center justify-center font-bold shadow-sm">
+            <div className="w-9 h-9 rounded-lg app-accent-bg flex items-center justify-center font-bold">
               <FileSpreadsheet size={20} />
             </div>
             <div>
-              <h2 className="font-extrabold text-[16px] tracking-tight text-white">Export în Excel</h2>
-              <p className="text-[11.5px] text-white/70">Alege modulele ale căror date dorești să le exporți</p>
+              <h2 className="font-semibold text-[16px] tracking-tight app-display">Export date</h2>
+              <p className="text-[11.5px] text-[var(--app-muted)]">Alege modulele și formatul de export</p>
             </div>
           </div>
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            type="button"
+            onClick={handleClose}
+            className="p-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-muted)] transition-colors"
+            aria-label="Închide"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Selection Toolbar */}
-        <div className="px-5 py-2.5 bg-[#EFEAE1] border-b border-[#DAD4C6] flex items-center justify-between text-[12px] font-semibold text-[#6B6558]">
-          <span>Module selectate: <strong className="text-[#C98A2B] font-bold">{selectedCount} din {moduleDefinitions.length}</strong></span>
+        <div className="px-5 py-2.5 bg-[var(--app-surface-muted)] border-b border-[var(--app-border)] flex items-center justify-between text-[12px] font-semibold text-[var(--app-muted)]">
+          <span>
+            Module selectate:{" "}
+            <strong className="text-[var(--app-accent)] font-bold">
+              {selectedCount} din {moduleDefinitions.length}
+            </strong>
+          </span>
           <div className="flex gap-3">
-            <button onClick={selectAll} className="text-[#3B5166] hover:text-[#23282E] hover:underline">Selectează toate</button>
-            <span className="text-[#DAD4C6]">|</span>
-            <button onClick={deselectAll} className="text-[#B23A2E] hover:underline">Deselectează toate</button>
+            <button type="button" onClick={selectAll} className="text-[var(--app-text)] hover:underline">
+              Selectează toate
+            </button>
+            <span className="text-[var(--app-border)]">|</span>
+            <button type="button" onClick={deselectAll} className="text-[var(--app-danger)] hover:underline">
+              Deselectează toate
+            </button>
           </div>
         </div>
 
@@ -248,29 +144,33 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
             return (
               <div
                 key={id}
+                role="checkbox"
+                aria-checked={active}
                 onClick={() => toggleModule(id)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                className={`p-3 rounded-lg border transition-all cursor-pointer flex items-start gap-3 ${
                   active
-                    ? "bg-white border-[#C98A2B] shadow-sm"
-                    : "bg-[#FAF8F5]/60 border-[#DAD4C6] hover:bg-white text-opacity-70"
+                    ? "bg-[var(--app-surface-2)] border-[var(--app-accent)]"
+                    : "bg-[var(--app-surface)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
                 }`}
               >
-                <div className="mt-0.5 text-[#C98A2B]">
-                  {active ? <CheckSquare size={19} className="fill-[#C98A2B] text-white" /> : <Square size={19} className="text-[#8A8375]" />}
+                <div className="mt-0.5 text-[var(--app-accent)]">
+                  {active ? (
+                    <CheckSquare size={19} className="text-[var(--app-accent)]" />
+                  ) : (
+                    <Square size={19} className="text-[var(--app-muted)]" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13.5px] font-extrabold text-[#23282E] flex items-center gap-1.5">
-                      <Icon size={15} className={active ? "text-[#C98A2B]" : "text-[#8A8375]"} />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13.5px] font-semibold text-[var(--app-text-strong)] flex items-center gap-1.5">
+                      <Icon size={15} className={active ? "text-[var(--app-accent)]" : "text-[var(--app-muted)]"} />
                       {title}
                     </span>
-                    <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[#EFEAE1] text-[#3B5166]">
+                    <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-[var(--app-surface-muted)] text-[var(--app-muted)] shrink-0">
                       {count}
                     </span>
                   </div>
-                  <p className="text-[11.5px] text-[#6B6558] mt-0.5 leading-snug">
-                    {desc}
-                  </p>
+                  <p className="text-[11.5px] text-[var(--app-muted)] mt-0.5 leading-snug">{desc}</p>
                 </div>
               </div>
             );
@@ -278,29 +178,41 @@ export default function ExportExcelModal({ claims = [], pragRidicare = 3, onClos
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-white border-t border-[#DAD4C6] flex items-center justify-end gap-3">
+        <div className="p-4 bg-[var(--app-surface-2)] border-t border-[var(--app-border)] flex items-center justify-end gap-2 flex-wrap">
           <button
             type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-[#DAD4C6] text-[#3B5166] font-bold text-[13px] hover:bg-[#FAF8F5]"
+            onClick={handleClose}
+            className="px-4 py-2 rounded-lg border border-[var(--app-border)] text-[var(--app-text)] font-bold text-[13px] hover:bg-[var(--app-surface-muted)]"
           >
             Renunță
           </button>
           <button
             type="button"
-            onClick={handleExport}
+            onClick={() => handleExport(EXPORT_FORMAT.PDF)}
             disabled={selectedCount === 0}
-            className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-[13px] shadow-sm transition-all ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-[13px] transition-all ${
               selectedCount > 0
-                ? "bg-[#C98A2B] text-white hover:bg-[#B37A22] active:scale-95"
-                : "bg-[#DAD4C6] text-white cursor-not-allowed"
+                ? "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)] hover:bg-[var(--app-border)]"
+                : "bg-[var(--app-surface-muted)] text-[var(--app-muted)] cursor-not-allowed opacity-50"
+            }`}
+          >
+            <FileText size={16} />
+            <span>PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport(EXPORT_FORMAT.XLSX)}
+            disabled={selectedCount === 0}
+            className={`flex items-center gap-2 px-5 py-2 rounded-lg font-bold text-[13px] transition-all ${
+              selectedCount > 0
+                ? "app-accent-bg hover:bg-[var(--app-accent-hover)]"
+                : "bg-[var(--app-surface-muted)] text-[var(--app-muted)] cursor-not-allowed opacity-50"
             }`}
           >
             <Download size={16} />
-            <span>Descarcă Excel (.xlsx)</span>
+            <span>Excel</span>
           </button>
         </div>
-
       </div>
     </div>
   );

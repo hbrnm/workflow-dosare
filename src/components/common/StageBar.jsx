@@ -11,20 +11,20 @@ export default function StageBar({ label, icon, data, onChange }) {
   const days = safeData.dataIntrareEtapa ? daysBetween(safeData.dataIntrareEtapa) : 0;
 
   return (
-    <div className="border border-[#DAD4C6] rounded-xl p-3 bg-white space-y-2.5 shadow-2xs">
-      <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
-        <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-[#23282E]">
+    <div className="border border-[var(--app-border)] rounded-xl p-3 bg-[var(--app-surface)] space-y-2.5 shadow-2xs">
+      <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
+        <span className="flex items-center gap-1.5 text-[12.5px] font-bold text-[var(--app-text-strong)]">
           {icon} {label}
         </span>
         {started ? (
-          <span className="text-[10.5px] font-semibold text-[#3E6B45] bg-[#EEF5EE] px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span className="text-[10.5px] font-semibold text-[var(--app-success)] bg-[var(--app-success-muted)] px-2 py-0.5 rounded-full flex items-center gap-1">
             <CheckCircle2 size={11} /> {days}z în lucru
           </span>
         ) : (
           <button
             type="button"
             onClick={() => onChange({ ...safeData, dataIntrareEtapa: nowISO() })}
-            className="flex items-center gap-1 text-[10.5px] font-bold text-[#3B5166] hover:bg-[#3B5166]/10 px-2 py-0.5 rounded transition-colors"
+            className="flex items-center gap-1 text-[10.5px] font-bold text-[var(--app-muted)] hover:bg-[var(--app-muted)]/10 px-2 py-0.5 rounded transition-colors"
           >
             <Play size={10} /> pornește
           </button>
@@ -33,21 +33,21 @@ export default function StageBar({ label, icon, data, onChange }) {
 
       <div className="grid grid-cols-2 gap-2 text-[11px]">
         <div>
-          <span className="block text-[10.5px] text-[#6B6558] mb-0.5 font-medium">Facturat (lei)</span>
+          <span className="block text-[10.5px] text-[var(--app-muted)] mb-0.5 font-medium">Facturat (lei)</span>
           <input
             type="number"
             min={0}
-            className="w-full border border-[#DAD4C6] rounded-md px-2 py-1 font-mono font-bold text-[#23282E] text-[12px]"
+            className="w-full border border-[var(--app-border)] rounded-md px-2 py-1 font-mono font-bold text-[var(--app-text-strong)] text-[12px] bg-[var(--app-surface-2)]"
             value={facturat}
             onChange={(e) => onChange({ ...safeData, facturat: Number(e.target.value) || 0 })}
           />
         </div>
         <div>
-          <span className="block text-[10.5px] text-[#6B6558] mb-0.5 font-medium">Buget Alocat (lei)</span>
+          <span className="block text-[10.5px] text-[var(--app-muted)] mb-0.5 font-medium">Buget Alocat (lei)</span>
           <input
             type="number"
             min={0}
-            className="w-full border border-[#DAD4C6] rounded-md px-2 py-1 font-mono text-[#6B6558] text-[12px]"
+            className="w-full border border-[var(--app-border)] rounded-md px-2 py-1 font-mono text-[var(--app-muted)] text-[12px] bg-[var(--app-surface-2)]"
             value={alocat}
             onChange={(e) => onChange({ ...safeData, alocat: Number(e.target.value) || 0 })}
           />
@@ -56,12 +56,12 @@ export default function StageBar({ label, icon, data, onChange }) {
 
       {alocat > 0 && (
         <div className="space-y-1">
-          <div className="flex justify-between text-[10px] text-[#8A8375] font-semibold">
+          <div className="flex justify-between text-[10px] text-[var(--app-muted)] font-semibold">
             <span>Progres decontare</span>
             <span>{pct}%</span>
           </div>
-          <div className="w-full h-2 bg-[#EFEAE1] rounded-full overflow-hidden">
-            <div className="h-full bg-[#C98A2B] transition-all" style={{ width: `${pct}%` }} />
+          <div className="w-full h-2 bg-[var(--app-surface-muted)] rounded-full overflow-hidden">
+            <div className="h-full bg-[var(--app-accent)] transition-all" style={{ width: `${pct}%` }} />
           </div>
         </div>
       )}

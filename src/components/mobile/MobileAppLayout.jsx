@@ -1,25 +1,40 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Monitor, X, Lightbulb,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
-import { getMobileTheme } from "../../constants/mobileThemes";
-import {
-  loadMobileTab,
-  saveMobileTab,
-  isMobileCoachDismissed,
-  dismissMobileCoach,
-  softHaptic,
-} from "../../utils/mobilePrefs";
-import "../../styles/mobileThemes.css";
+import MobileSearchBar from "./MobileSearchBar";
+import EmptyWorkspace from "../common/EmptyWorkspace";
+import ListSkeleton from "../common/ListSkeleton";
+import LoadError from "../common/LoadError";
+import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
+import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
+
+/** Navigare principală mobil — Brief e hub-ul; Dosare e inventar secundar. */
+const PRIMARY_NAV_ITEMS = [
+  { id: "brief", label: "Brief", Icon: BarChart3 },
+  { id: "capture", label: "Foto & Doc", Icon: Camera },
+  { id: "programari", label: "Programări", Icon: CalendarClock },
+];
+
+const SECONDARY_NAV_ITEMS = [
+  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
+];
 
 export default function MobileAppLayout({
   claims,
+  loading = false,
+  loadError = null,
+  onRetryLoad = null,
+  isOffline = false,
   session,
   userEmail,
+  isAdmin = true,
+  roleLabel = null,
+  totalClaimsCount = 0,
   onOpenClaim,
   onNewClaim,
   onPatchClaim,
@@ -27,21 +42,45 @@ export default function MobileAppLayout({
   onNotify,
   onLogout,
   onOpenSettings,
+  onOpenAlerts,
+  memberships = [],
+  activeAtelierId = null,
+  onSwitchAtelier = null,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
   totalAlertsCount = 0,
+  blockedCount = 0,
   branding = null,
-  onSwitchToDesktop,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
-  themeId = "atelier",
+  search = "",
+  setSearch,
+  highlightClaimIds = null,
+  onMobileShellLockChange,
+  hideBottomChrome = false,
+  mobileTab = null,
+  onMobileTabChange = null,
 }) {
-  const [activeTab, setActiveTab] = useState(() => loadMobileTab());
+  // Home mobil = Brief; navigarea e din brand-ul floating.
+  const [internalTab, setInternalTab] = useState("brief");
+  const activeTab = mobileTab ?? internalTab;
+  const setActiveTab = (id) => {
+    if (onMobileTabChange) onMobileTabChange(id);
+    else setInternalTab(id);
+  };
   const [focusClaimId, setFocusClaimId] = useState(null);
-  const [showCoach, setShowCoach] = useState(() => !isMobileCoachDismissed());
+  const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
+  const menuRef = useRef(null);
 
-  const theme = useMemo(() => getMobileTheme(themeId), [themeId]);
+  const openBlockedDosare = () => {
+    softHaptic(8);
+    setMenuOpen(false);
+    setDosareStatusFilter("blocate");
+    setActiveTab("dosare");
+  };
 
   useEffect(() => {
     saveMobileTab(activeTab);
@@ -50,206 +89,336 @@ export default function MobileAppLayout({
   useEffect(() => {
     if (!captureFocusClaimId) return;
     setFocusClaimId(captureFocusClaimId);
+    setFocusCaptureCategory(null);
     setActiveTab("capture");
+    setMenuOpen(false);
     onCaptureFocusConsumed?.();
   }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
-  const shellStyle = useMemo(() => {
-    const vars = { ...(theme.vars || {}) };
-    if (theme.fonts?.body) vars["--m-font-body"] = theme.fonts.body;
-    if (theme.fonts?.display) vars["--m-font-display"] = theme.fonts.display;
-    return vars;
-  }, [theme]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointerDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
-  const tabs = useMemo(() => ([
-    { id: "capture", label: theme.labels.capture, Icon: theme.icons.capture },
-    { id: "brief", label: theme.labels.brief, Icon: theme.icons.brief, badge: totalAlertsCount },
-    { id: "dosare", label: theme.labels.dosare, Icon: theme.icons.dosare },
-    { id: "programari", label: theme.labels.programari, Icon: theme.icons.programari },
-  ]), [theme, totalAlertsCount]);
+  const filteredClaims = useMemo(() => {
+    const q = search.trim();
+    if (!q) return claims;
+    return claims.filter((c) => claimMatchesSearch(c, q));
+  }, [claims, search]);
+
+  const handleSearchChange = (value) => {
+    setSearch?.(value);
+  };
+
+  useEffect(() => {
+    if (!highlightClaimIds?.size) return;
+    const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "mobile-claim"), 150);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimIds]);
 
   const handleTabChange = (id) => {
     softHaptic(8);
+    if (id === "dosare") setDosareStatusFilter("toate");
     setActiveTab(id);
+    setMenuOpen(false);
   };
 
-  const handleDismissCoach = () => {
-    dismissMobileCoach();
-    setShowCoach(false);
+  const openCaptureForClaim = (claimId, category = null) => {
+    softHaptic(8);
+    if (claimId) setFocusClaimId(claimId);
+    setFocusCaptureCategory(category || null);
+    setActiveTab("capture");
+    setMenuOpen(false);
   };
+
+  const consumeCaptureFocus = () => {
+    setFocusClaimId(null);
+    setFocusCaptureCategory(null);
+  };
+
+  const atelierName = branding?.atelierNume || "Dosare Daună";
 
   return (
     <div
-      className="mobile-shell fixed inset-0 flex flex-col overflow-hidden"
-      data-mtheme={theme.id}
-      data-nav={theme.navStyle}
-      data-header={theme.headerStyle}
-      style={shellStyle}
+      className={`mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden ${
+        hideBottomChrome ? "is-chrome-hidden" : ""
+      }`}
     >
-      <header className="m-header-bar px-3.5 py-2.5 flex items-center justify-between shrink-0 shadow-md border-b select-none z-30">
-        <div className="flex items-center gap-2 min-w-0">
+      {!hideBottomChrome && (
+      <div className="m-float-brand-wrap" ref={menuRef}>
+        <button
+          type="button"
+          className={`m-float-brand m-float-brand--logo m-press ${menuOpen ? "is-open" : ""}`}
+          onClick={() => {
+            softHaptic(8);
+            setMenuOpen((v) => !v);
+          }}
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          aria-label={`Meniu ${atelierName}`}
+          title={atelierName}
+        >
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              className="w-7 h-7 rounded-lg object-contain bg-white/10 shrink-0"
+              className="m-float-brand-mark object-contain"
             />
           ) : (
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center font-extrabold text-[11px] text-white shadow-xs shrink-0"
-              style={{ backgroundColor: branding?.accentColor || "var(--m-accent)" }}
-            >
-              {(branding?.atelierShort || "WD").slice(0, 2)}
-            </div>
-          )}
-          <div className="min-w-0">
-            <span className="m-display font-extrabold text-[13.5px] tracking-tight block truncate">
-              {branding?.atelierNume || "Dosare Daună"}
+            <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
+              <Menu size={18} strokeWidth={2.25} />
             </span>
-            <span className="text-[10px] opacity-70 block truncate max-w-[150px]">
-              {userEmail || "Operator"}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onSwitchToDesktop && (
-            <button
-              type="button"
-              onClick={onSwitchToDesktop}
-              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-              title="Mod desktop"
-            >
-              <Monitor size={16} />
-            </button>
           )}
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-              title="Setări"
-            >
-              <Settings size={16} />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="m-press p-1.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-white/10 transition-colors"
-            title="Deconectare"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
+        </button>
 
-      <main className="flex-1 min-h-0 p-3 pb-24 overflow-y-auto scrollbar-thin">
-        {showCoach && (
-          <div className="m-coach mb-3 rounded-2xl border border-[#DAD4C6] bg-white p-3.5 shadow-sm flex gap-3 items-start">
-            <div
-              className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white"
-              style={{ backgroundColor: "var(--m-accent)" }}
-            >
-              <Lightbulb size={16} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="m-display font-extrabold text-[13px] text-[#23282E]">Pe teren, rapid</p>
-              <p className="text-[11.5px] text-[#6B6558] mt-0.5 leading-snug">
-                Caută nr. auto → selectează dosarul → <strong>Fotografiază</strong>.
-                Deschide un dosar pentru status, telefon și pasul următor.
-              </p>
-            </div>
+        {menuOpen ? (
+          <div className="m-float-menu" role="menu">
+            <div className="m-float-menu-label">Navigare</div>
+            {PRIMARY_NAV_ITEMS.map(({ id, label, Icon }) => {
+              const active = activeTab === id;
+              const badge = id === "brief" ? totalAlertsCount : 0;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  className={`m-float-menu-item ${active ? "is-active" : ""}`}
+                  onClick={() => handleTabChange(id)}
+                >
+                  <span className="m-float-menu-icon">
+                    <Icon size={15} />
+                  </span>
+                  <span className="m-float-menu-item-label">{label}</span>
+                  {badge > 0 ? (
+                    <span className="m-float-menu-badge">{badge > 99 ? "99+" : badge}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+
+            <div className="m-float-menu-divider" />
+            <div className="m-float-menu-label">Inventar</div>
+            {SECONDARY_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  role="menuitem"
+                  className={`m-float-menu-item is-secondary ${active ? "is-active" : ""}`}
+                  onClick={() => handleTabChange(id)}
+                  title={hint}
+                >
+                  <span className="m-float-menu-icon">
+                    <Icon size={15} />
+                  </span>
+                  <span className="m-float-menu-item-label">{label}</span>
+                </button>
+              );
+            })}
+
+            {onOpenAlerts ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item is-secondary"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenAlerts(totalAlertsCount > 0 ? "depasite" : "toate");
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Bell size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Centrul de Alerte</span>
+                <span className="m-float-menu-badge">{totalAlertsCount > 99 ? "99+" : totalAlertsCount}</span>
+              </button>
+            ) : null}
+
+            {blockedCount > 0 ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item is-secondary"
+                onClick={openBlockedDosare}
+              >
+                <span className="m-float-menu-icon">
+                  <Ban size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Dosare blocate</span>
+                <span className="m-float-menu-badge">{blockedCount > 99 ? "99+" : blockedCount}</span>
+              </button>
+            ) : null}
+
+            <div className="m-float-menu-divider" />
+            <div className="m-float-menu-label">Cont</div>
+            {userEmail ? (
+              <div className="m-float-menu-meta truncate">{userEmail}</div>
+            ) : null}
+            {memberships.length > 1 ? (
+              <>
+                <div className="m-float-menu-label">Atelier</div>
+                {memberships.map((m) => {
+                  const active = m.id === activeAtelierId;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      role="menuitem"
+                      className={`m-float-menu-item ${active ? "is-active" : ""}`}
+                      onClick={async () => {
+                        softHaptic(8);
+                        setMenuOpen(false);
+                        if (!active) await onSwitchAtelier?.(m.id);
+                      }}
+                    >
+                      <span className="m-float-menu-icon">
+                        {active ? <Check size={15} /> : <Building2 size={15} />}
+                      </span>
+                      <span className="m-float-menu-item-label">{m.nume}</span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : memberships[0] ? (
+              <div className="m-float-menu-meta truncate">
+                Atelier: {memberships[0].nume}
+              </div>
+            ) : null}
+            {onOpenSettings ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  window.setTimeout(() => onOpenSettings(), 0);
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Settings size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Setări</span>
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={handleDismissCoach}
-              className="m-press shrink-0 p-1.5 rounded-lg text-[#8A8375] hover:bg-[#FAF8F5]"
-              aria-label="Închide tipul"
+              role="menuitem"
+              className="m-float-menu-item is-danger"
+              onClick={() => {
+                softHaptic(8);
+                setMenuOpen(false);
+                onLogout?.();
+              }}
             >
-              <X size={16} />
+              <span className="m-float-menu-icon">
+                <LogOut size={15} />
+              </span>
+              <span className="m-float-menu-item-label">Deconectare</span>
             </button>
           </div>
-        )}
+        ) : null}
+      </div>
+      )}
 
-        {activeTab === "capture" ? (
+      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 pb-28 overflow-y-auto scrollbar-thin">
+        {loading ? (
+          <ListSkeleton rows={5} />
+        ) : loadError || isOffline ? (
+          <LoadError
+            message={loadError?.message}
+            offline={isOffline || loadError?.offline}
+            onRetry={onRetryLoad}
+          />
+        ) : claims.length === 0 && (activeTab === "brief" || activeTab === "dosare") ? (
+          <EmptyWorkspace
+            onNew={onNewClaim}
+            ownershipHint={!isAdmin && totalClaimsCount > 0}
+            roleLabel={roleLabel}
+          />
+        ) : activeTab === "capture" ? (
           <MobileQuickCapture
-            claims={claims}
+            claims={filteredClaims}
+            searchQuery={search}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             onNotify={onNotify}
             focusClaimId={focusClaimId}
-            onFocusClaimConsumed={() => setFocusClaimId(null)}
+            focusCaptureCategory={focusCaptureCategory}
+            onFocusClaimConsumed={consumeCaptureFocus}
+            highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={onMobileShellLockChange}
           />
         ) : activeTab === "brief" ? (
           <MobileBrief
             claims={claims}
+            listClaims={filteredClaims}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onGoTab={handleTabChange}
+            onGoCapture={openCaptureForClaim}
+            onOpenAlerts={onOpenAlerts}
+            onOpenBlocked={openBlockedDosare}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
             onPatchClaim={onPatchClaim}
             onNotify={onNotify}
-            homeStyle={theme.homeStyle || "list"}
+            homeStyle="inbox"
             atelierNume={branding?.atelierNume}
+            searchActive={Boolean(search.trim())}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
-            claims={claims}
+            claims={filteredClaims}
+            allClaimsCount={claims.length}
+            searchQuery={search}
             onOpen={onOpenClaim}
             onNew={onNewClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
-            atelierNume={branding?.atelierNume}
             onNotify={onNotify}
+            highlightClaimIds={highlightClaimIds}
+            onBackToBrief={() => handleTabChange("brief")}
+            statusFilter={dosareStatusFilter}
+            onStatusFilterChange={setDosareStatusFilter}
           />
         ) : activeTab === "programari" ? (
           <MobileProgramari
-            claims={claims}
+            claims={filteredClaims}
             onOpen={onOpenClaim}
             onPatch={onPatchClaim}
             canEditFn={canEditFn}
             onNotify={onNotify}
+            searchActive={Boolean(search.trim())}
           />
         ) : null}
       </main>
 
-      <nav
-        className="m-nav-bar fixed bottom-0 left-0 right-0 z-50 border-t px-1.5 py-1.5 grid grid-cols-4 gap-0 select-none shadow-2xl backdrop-blur-md"
-        aria-label="Navigare mobilă"
-      >
-        {tabs.map(({ id, label, Icon, badge }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => handleTabChange(id)}
-              className={`m-nav-item relative flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 ${
-                active ? "is-active" : "font-semibold opacity-80 hover:opacity-100"
-              }`}
-            >
-              <span className="m-nav-icon relative inline-flex h-5 w-5 items-center justify-center">
-                <Icon size={20} strokeWidth={active ? 2.25 : 2} />
-                {badge > 0 && (
-                  <span
-                    className="absolute -right-2.5 -top-1.5 min-w-[14px] h-3.5 px-1 rounded-full text-white text-[8px] font-black flex items-center justify-center leading-none"
-                    style={{ backgroundColor: "var(--m-danger)" }}
-                  >
-                    {badge > 99 ? "99+" : badge}
-                  </span>
-                )}
-              </span>
-              <span className="m-nav-label w-full truncate text-center text-[9.5px] leading-tight tracking-tight">
-                {label}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
+      {!hideBottomChrome && (
+        <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
+          <MobileSearchBar value={search} onChange={handleSearchChange} />
+        </div>
+      )}
     </div>
   );
 }

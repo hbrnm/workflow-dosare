@@ -7,13 +7,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "icons": "node scripts/generate-pwa-icons.mjs",
+    "test": "vitest",
+    "check": "vitest --run && vite build"
   },
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "@supabase/supabase-js": "^2.45.0",
     "jspdf": "^2.5.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.383.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.4.168",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
@@ -23,6 +28,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
+    "sharp": "^0.35.3",
     "tailwindcss": "^3.4.4",
     "vite": "^5.3.1",
     "vite-plugin-pwa": "^0.20.0",

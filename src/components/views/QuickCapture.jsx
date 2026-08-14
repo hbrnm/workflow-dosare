@@ -11,6 +11,7 @@ import { compressImage } from "../../utils/imageUtils";
 import { processDocumentScan } from "../../utils/documentScanner";
 import { categoryLabel, PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import PhotoLightbox from "../common/PhotoLightbox";
 import Pill from "../common/Pill";
 
 async function processScanImage(file) {
@@ -28,7 +29,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [scanSession, setScanSession] = useState(null);
   const [uploadingScan, setUploadingScan] = useState(false);
-  const [previewMedia, setPreviewMedia] = useState(null);
+  const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
 
@@ -112,11 +113,11 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           const withCat = typeof uploaded === "object" ? { ...uploaded, categoria } : { url: uploaded, categoria };
           currentPoze = [withCat, ...currentPoze];
           setPoze(currentPoze);
-          onPatch(selected.id, { poze: currentPoze });
+          onPatch(selected.id, { appendPoze: [withCat] });
         } else {
           currentDocs = [uploaded, ...currentDocs];
           setDocumente(currentDocs);
-          onPatch(selected.id, { documente: currentDocs });
+          onPatch(selected.id, { appendDocumente: [uploaded] });
         }
       } catch (err) {
         onNotify(`Eroare la „${item.name}": ${err.message || err}`, "error");
@@ -178,20 +179,24 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         const uploaded = await uploadStorageItem(supabase, "documente-dosare", selected.id, pdfFile, "documente");
         currentDocs = [uploaded, ...currentDocs];
         setDocumente(currentDocs);
-        onPatch(selected.id, { documente: currentDocs });
+        onPatch(selected.id, { appendDocumente: [uploaded] });
       }
 
       if (scanSession.saveAsPhotos) {
         const baseName = (scanSession.fileName || "scan").trim().replace(/\.pdf$/i, "");
+        const uploadedPhotos = [];
         for (let i = 0; i < scanSession.pages.length; i++) {
           const res = await fetch(scanSession.pages[i]);
           const blob = await res.blob();
           const photoFile = new File([blob], `${baseName}_pagina_${i + 1}.jpg`, { type: "image/jpeg" });
           const uploaded = await uploadStorageItem(supabase, "poze-dosare", selected.id, photoFile, "poze");
+          uploadedPhotos.push(uploaded);
           currentPoze = [uploaded, ...currentPoze];
         }
         setPoze(currentPoze);
-        onPatch(selected.id, { poze: currentPoze });
+        if (uploadedPhotos.length) {
+          onPatch(selected.id, { appendPoze: uploadedPhotos });
+        }
       }
 
       onNotify("Document scanat și atașat cu succes!", "success");
@@ -209,7 +214,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     }
     const next = poze.filter((_, i) => i !== idx);
     setPoze(next);
-    onPatch(selected.id, { poze: next });
+    onPatch(selected.id, { removePoze: [poza] });
   };
 
   const removeDoc = async (doc, idx) => {
@@ -218,7 +223,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
     }
     const next = documente.filter((_, i) => i !== idx);
     setDocumente(next);
-    onPatch(selected.id, { documente: next });
+    onPatch(selected.id, { removeDocumente: [doc] });
   };
 
   const openLiveCamera = (cat) => {
@@ -231,16 +236,16 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-0 sm:p-5 overflow-y-auto">
-      <div className="bg-[#FCFAF5] w-full h-[100dvh] sm:h-auto max-w-2xl rounded-none sm:rounded-xl shadow-2xl border-0 sm:border border-[#DAD4C6] flex flex-col max-h-[100dvh] sm:max-h-[92vh] overflow-hidden relative">
+      <div className="bg-[var(--app-surface)] w-full h-[100dvh] sm:h-auto max-w-2xl rounded-none sm:rounded-xl shadow-2xl border-0 sm:border border-[var(--app-border)] flex flex-col max-h-[100dvh] sm:max-h-[92vh] overflow-hidden relative">
 
-        <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[#23282E] text-white shrink-0">
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-[var(--app-chrome)] text-white shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             {step === "capture" ? (
-              <button onClick={backToPick} className="p-1 -ml-1 rounded-md hover:bg-white/10 shrink-0" title="Schimbă dosarul">
+              <button type="button" onClick={backToPick} className="p-1 -ml-1 rounded-md hover:bg-white/10 shrink-0" title="Schimbă dosarul" aria-label="Schimbă dosarul">
                 <ChevronLeft size={20} />
               </button>
             ) : (
-              <Camera size={18} className="text-[#C98A2B] shrink-0" />
+              <Camera size={18} className="text-[var(--app-accent)] shrink-0" />
             )}
             <div className="min-w-0">
               <div className="font-bold text-[13.5px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -251,19 +256,19 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 shrink-0">
+          <button type="button" onClick={onClose} className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 shrink-0" title="Închide" aria-label="Închide">
             <X size={20} />
           </button>
         </div>
 
         {step === "pick" ? (
           <>
-            <div className="px-3 py-2.5 bg-white border-b border-[#DAD4C6] shrink-0">
+            <div className="px-3 py-2.5 bg-[var(--app-surface-2)] border-b border-[var(--app-border)] shrink-0">
               <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]" />
                 <input
                   autoFocus
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#DAD4C6] text-[14px] bg-[#FAF8F5] focus:bg-white"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[var(--app-border)] text-[14px] text-[var(--app-text-strong)] bg-[var(--app-surface-muted)] focus:bg-[var(--app-surface)] placeholder:text-[var(--app-muted)]"
                   placeholder="Caută nr. dosar, client, nr. auto..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -272,7 +277,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
-              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#8A8375] px-1 pb-1.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--app-muted)] px-1 pb-1.5">
                 {query.trim() ? `${results.length} rezultat(e)` : "Dosare recente"}
               </div>
               <div className="space-y-1.5">
@@ -282,29 +287,29 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     <button
                       key={c.id}
                       onClick={() => selectClaim(c)}
-                      className="w-full flex items-center gap-2.5 bg-white border border-[#DAD4C6] rounded-lg px-3 py-2.5 text-left hover:border-[#C98A2B] hover:shadow-sm transition-all"
+                      className="w-full flex items-center gap-2.5 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-left hover:border-[var(--app-accent)] hover:shadow-sm transition-all"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] flex items-center justify-center shrink-0 text-[#8A8375]">
+                      <div className="w-9 h-9 rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] flex items-center justify-center shrink-0 text-[var(--app-muted)]">
                         <Car size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-[13px] text-[#23282E] truncate">{c.numarDosar || "(fără nr.)"}</span>
+                          <span className="font-mono font-bold text-[13px] text-[var(--app-text-strong)] truncate">{c.numarDosar || "(fără nr.)"}</span>
                           <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill>
                         </div>
-                        <div className="text-[11.5px] text-[#6B6558] truncate">{c.client || "Client neintrodus"} · {c.numarInmatriculare || "—"}</div>
+                        <div className="text-[11.5px] text-[var(--app-muted)] truncate">{c.client || "Client neintrodus"} · {c.numarInmatriculare || "—"}</div>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0 text-[10px]">
-                        <span className="text-[#8A8375] font-semibold">{String(s.num).padStart(2, "0")}. {s.label}</span>
+                        <span className="text-[var(--app-muted)] font-semibold">{String(s.num).padStart(2, "0")}. {s.label}</span>
                         {(c.poze?.length > 0) && (
-                          <span className="flex items-center gap-0.5 text-[#3B5166] font-bold"><ImageIcon size={10} /> {c.poze.length}</span>
+                          <span className="flex items-center gap-0.5 text-[var(--app-text)] font-bold"><ImageIcon size={10} /> {c.poze.length}</span>
                         )}
                       </div>
                     </button>
                   );
                 })}
                 {results.length === 0 && (
-                  <div className="text-center py-10 text-[12.5px] text-[#8A8375] italic">Niciun dosar găsit.</div>
+                  <div className="text-center py-10 text-[12.5px] text-[var(--app-muted)] italic">Niciun dosar găsit.</div>
                 )}
               </div>
             </div>
@@ -313,7 +318,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-4">
             {/* Categorii foto + cameră live */}
             <div className="space-y-2">
-              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#8A8375]">Fotografii pe categorii</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--app-muted)]">Fotografii pe categorii</div>
               <div className="grid grid-cols-3 gap-2">
                 {PHOTO_CATEGORIES.map(({ key, label, color }) => (
                   <button
@@ -330,21 +335,21 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <label className="flex flex-col items-center justify-center gap-1 border border-[#DAD4C6] rounded-lg py-2.5 px-1 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-center">
-                <Upload size={16} className="text-[#3B5166]" />
-                <span className="text-[11px] font-bold text-[#3B5166]">Din galerie</span>
+              <label className="flex flex-col items-center justify-center gap-1 border border-[var(--app-border)] rounded-lg py-2.5 px-1 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] transition-colors cursor-pointer text-center">
+                <Upload size={16} className="text-[var(--app-text)]" />
+                <span className="text-[11px] font-bold text-[var(--app-text)]">Din galerie</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files, "poza", "generale"); e.target.value = ""; }} />
               </label>
 
-              <label className="flex flex-col items-center justify-center gap-1 border border-[#C98A2B]/40 rounded-lg py-2.5 px-1 bg-[#FAF8F5] hover:bg-[#F7EAD3]/50 transition-colors cursor-pointer text-center">
-                <FileText size={16} className="text-[#C98A2B]" />
-                <span className="text-[11px] font-bold text-[#7A5316]">Scan Acte</span>
+              <label className="flex flex-col items-center justify-center gap-1 border border-[var(--app-accent)]/40 rounded-lg py-2.5 px-1 bg-[var(--app-surface-2)] hover:bg-[var(--app-accent)]/10 transition-colors cursor-pointer text-center">
+                <FileText size={16} className="text-[var(--app-accent)]" />
+                <span className="text-[11px] font-bold text-[var(--app-accent)]">Scan Acte</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleAddScanPages(e.target.files); e.target.value = ""; }} />
               </label>
 
-              <label className="flex flex-col items-center justify-center gap-1 border border-[#DAD4C6] rounded-lg py-2.5 px-1 bg-white hover:bg-[#FAF8F5] transition-colors cursor-pointer text-center">
-                <FolderOpen size={16} className="text-[#3B5166]" />
-                <span className="text-[11px] font-bold text-[#3B5166]">PDF / Doc</span>
+              <label className="flex flex-col items-center justify-center gap-1 border border-[var(--app-border)] rounded-lg py-2.5 px-1 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] transition-colors cursor-pointer text-center">
+                <FolderOpen size={16} className="text-[var(--app-text)]" />
+                <span className="text-[11px] font-bold text-[var(--app-text)]">PDF / Doc</span>
                 <input type="file" accept="image/*,application/pdf" multiple className="hidden" onChange={(e) => {
                   const files = Array.from(e.target.files || []);
                   const images = files.filter((f) => f.type.startsWith("image/"));
@@ -357,18 +362,18 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
             </div>
 
             <div>
-              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#8A8375] px-0.5 pb-1.5 flex items-center gap-1.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--app-muted)] px-0.5 pb-1.5 flex items-center gap-1.5">
                 <ImageIcon size={12} /> Poze ({poze.length + pendingPoze.length})
                 {loadingMedia && <Loader2 size={11} className="animate-spin" />}
               </div>
               {poze.length === 0 && pendingPoze.length === 0 ? (
-                <div className="text-[11.5px] text-[#8A8375] italic py-4 text-center border border-dashed border-[#DAD4C6] rounded-lg">
+                <div className="text-[11.5px] text-[var(--app-muted)] italic py-4 text-center border border-dashed border-[var(--app-border)] rounded-lg">
                   Nicio fotografie încă — folosește categoriile de mai sus.
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {pendingPoze.map((p) => (
-                    <div key={p.tempId} className="relative rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
+                    <div key={p.tempId} className="relative rounded-lg overflow-hidden border border-[var(--app-border)] bg-black/5 aspect-square">
                       {p.previewUrl && <img src={p.previewUrl} alt="" className="w-full h-full object-cover opacity-50" />}
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                         <Loader2 size={20} className="text-white animate-spin" />
@@ -378,8 +383,8 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                   {poze.map((p, idx) => {
                     const catLabel = categoryLabel(p.categoria);
                     return (
-                      <div key={p.id || idx} className="relative group rounded-lg overflow-hidden border border-[#DAD4C6] bg-black/5 aspect-square">
-                        <button type="button" onClick={() => setPreviewMedia(p.url || p)} className="block w-full h-full">
+                      <div key={p.id || idx} className="relative group rounded-lg overflow-hidden border border-[var(--app-border)] bg-black/5 aspect-square">
+                        <button type="button" onClick={() => setPreviewMediaIndex(idx)} className="block w-full h-full">
                           <img src={p.url || p} alt={p.nume || ""} className="w-full h-full object-cover" />
                         </button>
                         {catLabel && (
@@ -390,7 +395,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
                           <Eye size={16} />
                         </div>
-                        <button type="button" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[#B23A2E] text-white rounded p-1 z-10">
+                        <button type="button" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 z-10">
                           <Trash2 size={11} />
                         </button>
                       </div>
@@ -401,27 +406,27 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
             </div>
 
             <div>
-              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[#8A8375] px-0.5 pb-1.5 flex items-center gap-1.5">
+              <div className="text-[10.5px] font-bold uppercase tracking-wide text-[var(--app-muted)] px-0.5 pb-1.5 flex items-center gap-1.5">
                 <FileText size={12} /> Documente ({documente.length + pendingDocs.length})
               </div>
               <div className="space-y-1.5">
                 {pendingDocs.map((d) => (
-                  <div key={d.tempId} className="flex items-center gap-2 bg-white border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
-                    <Loader2 size={13} className="animate-spin text-[#8A8375] shrink-0" />
-                    <span className="truncate flex-1 text-[#8A8375]">{d.name}</span>
+                  <div key={d.tempId} className="flex items-center gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-[12px]">
+                    <Loader2 size={13} className="animate-spin text-[var(--app-muted)] shrink-0" />
+                    <span className="truncate flex-1 text-[var(--app-muted)]">{d.name}</span>
                   </div>
                 ))}
                 {documente.map((d, idx) => (
-                  <div key={d.id || idx} className="flex items-center justify-between bg-white border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12px]">
+                  <div key={d.id || idx} className="flex items-center justify-between bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-[12px]">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <FileText size={14} className="text-[#3B5166] shrink-0" />
-                      <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[#2C4160] font-semibold hover:underline truncate flex-1">{d.nume || d.name || `Document_${idx + 1}`}</a>
+                      <FileText size={14} className="text-[var(--app-text)] shrink-0" />
+                      <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[var(--app-text)] font-semibold hover:underline truncate flex-1">{d.nume || d.name || `Document_${idx + 1}`}</a>
                     </div>
-                    <button type="button" onClick={() => removeDoc(d, idx)} className="text-[#B23A2E] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
+                    <button type="button" onClick={() => removeDoc(d, idx)} className="text-[var(--app-danger)] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
                   </div>
                 ))}
                 {documente.length === 0 && pendingDocs.length === 0 && (
-                  <div className="text-[11.5px] text-[#8A8375] italic py-3 text-center border border-dashed border-[#DAD4C6] rounded-lg">
+                  <div className="text-[11.5px] text-[var(--app-muted)] italic py-3 text-center border border-dashed border-[var(--app-border)] rounded-lg">
                     Niciun document atașat.
                   </div>
                 )}
@@ -431,9 +436,9 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         )}
 
         {scanSession && (
-          <div className="absolute inset-0 bg-[#23282E]/95 z-50 flex flex-col p-4 text-white">
+          <div className="absolute inset-0 bg-[var(--app-chrome)]/95 z-50 flex flex-col p-4 text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-3 shrink-0">
-              <h3 className="font-bold text-[13px] flex items-center gap-1.5 text-[#C98A2B]">
+              <h3 className="font-bold text-[13px] flex items-center gap-1.5 text-[var(--app-accent)]">
                 <FileText size={16} /> Scanare document ({scanSession.pages.length} pagini) — auto-crop
               </h3>
               <button type="button" onClick={() => setScanSession(null)} className="text-white/70 hover:text-white">
@@ -450,14 +455,14 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     <button
                       type="button"
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
-                      className="absolute top-1 right-1 bg-[#B23A2E] text-white rounded p-1 hover:opacity-80"
+                      className="absolute top-1 right-1 bg-[var(--app-danger)] text-white rounded p-1 hover:opacity-80"
                     >
                       <Trash2 size={12} />
                     </button>
                   </div>
                 ))}
                 <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
-                  <Plus size={20} className="text-[#C98A2B]" />
+                  <Plus size={20} className="text-[var(--app-accent)]" />
                   <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
                   <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleAddScanPages(e.target.files); e.target.value = ""; }} />
                 </label>
@@ -477,11 +482,11 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                 </div>
                 <div className="flex flex-col gap-1.5 shrink-0">
                   <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
-                    <input type="checkbox" checked={scanSession.saveAsPdf} onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPdf: e.target.checked }))} className="rounded border-white/20 bg-white/5 text-[#C98A2B]" />
+                    <input type="checkbox" checked={scanSession.saveAsPdf} onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPdf: e.target.checked }))} className="rounded border-white/20 bg-white/5 text-[var(--app-accent)]" />
                     <span>Salvează ca PDF</span>
                   </label>
                   <label className="flex items-center gap-2 text-[11.5px] font-semibold select-none cursor-pointer">
-                    <input type="checkbox" checked={scanSession.saveAsPhotos} onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPhotos: e.target.checked }))} className="rounded border-white/20 bg-white/5 text-[#C98A2B]" />
+                    <input type="checkbox" checked={scanSession.saveAsPhotos} onChange={(e) => setScanSession((prev) => ({ ...prev, saveAsPhotos: e.target.checked }))} className="rounded border-white/20 bg-white/5 text-[var(--app-accent)]" />
                     <span>Salvează ca poze</span>
                   </label>
                 </div>
@@ -492,7 +497,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                   type="button"
                   onClick={handleSaveMultiPageScan}
                   disabled={scanSession.pages.length === 0 || uploadingScan}
-                  className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[#C98A2B] text-white text-[12.5px] font-bold hover:bg-[#B37A22] disabled:opacity-50"
+                  className="flex items-center gap-1 px-5 py-1.5 rounded-lg bg-[var(--app-accent)] text-white text-[12.5px] font-bold hover:bg-[var(--app-accent-hover)] disabled:opacity-50"
                 >
                   {uploadingScan ? <><Loader2 size={13} className="animate-spin" /> Se salvează...</> : <><CheckCircle2 size={13} /> Finalizează ({scanSession.pages.length} pag.)</>}
                 </button>
@@ -501,13 +506,12 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
           </div>
         )}
 
-        {previewMedia && (
-          <div className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-xs" onClick={() => setPreviewMedia(null)}>
-            <button onClick={() => setPreviewMedia(null)} className="absolute top-4 right-4 text-white bg-black/60 hover:bg-[#B23A2E] p-2.5 rounded-full transition-colors shadow-lg z-10">
-              <X size={24} />
-            </button>
-            <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
-          </div>
+        {previewMediaIndex != null && poze.length > 0 && (
+          <PhotoLightbox
+            items={poze}
+            startIndex={previewMediaIndex}
+            onClose={() => setPreviewMediaIndex(null)}
+          />
         )}
 
         {showLiveCamera && selected && (
@@ -519,9 +523,9 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         )}
 
         {step === "capture" && !scanSession && (
-          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-[#DAD4C6] bg-white shrink-0">
-            <button type="button" onClick={backToPick} className="px-3 py-1.5 rounded border border-[#C7C0B0] text-[12px] font-semibold text-[#4A443A] hover:bg-[#EFEAE1]">Alt dosar</button>
-            <button type="button" onClick={onClose} className="flex items-center gap-1 px-4 py-1.5 rounded bg-[#3E6B45] text-white text-[12.5px] font-bold hover:bg-[#345A3B]">
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-[var(--app-border)] bg-[var(--app-surface-2)] shrink-0">
+            <button type="button" onClick={backToPick} className="px-3 py-1.5 rounded border border-[var(--app-border)] text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-muted)]">Alt dosar</button>
+            <button type="button" onClick={onClose} className="flex items-center gap-1 px-4 py-1.5 rounded bg-[var(--app-success)] text-white text-[12.5px] font-bold hover:opacity-90">
               <CheckCircle2 size={14} /> Am terminat
             </button>
           </div>

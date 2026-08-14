@@ -1,25 +1,40 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  X, ShieldAlert, ShoppingCart, ChevronRight, Car, Bell, Clock, Boxes, PackageCheck
+  X, Bell, ChevronRight, CheckCircle2, Phone,
 } from "lucide-react";
-import { getStatusDefinition } from "../../constants/config";
+import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 import {
   buildAlertBuckets,
   normalizeAlertTab,
-  getDaysInStage,
-  getDaysSinceLastActivity,
+  filterAlertItems,
+  getLatestClaimNoteText,
+  getAlertMetric,
+  alertSeverityClass,
 } from "../../utils/alertUtils";
-import Pill from "../common/Pill";
+import { telLink } from "../../utils/dateUtils";
+import { ALERT_GROUPS, getAlertGroup, countAlertsForGroup } from "../../constants/alertCategories";
+import DosarNumber from "../common/DosarNumber";
+import WhatsAppButton from "../common/WhatsAppButton";
+import ClaimPhoneActions from "../common/ClaimPhoneActions";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+  modalHeaderClass,
+} from "../common/modalShellClasses";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 
-const CATEGORY_META = [
-  { key: "stagnate", label: "Termene Depășite", emoji: "🚨", active: "bg-[#B23A2E] text-white border-[#B23A2E] ring-[#B23A2E]/40", idle: "text-[#B23A2E]" },
-  { key: "accept_plata", label: "Accept Fără Piese", emoji: "🛒", active: "bg-[#2C4160] text-white border-[#2C4160] ring-[#2C4160]/40", idle: "text-[#2C4160]" },
-  { key: "neridicate", label: "Mașini Neridicate", emoji: "📦", active: "bg-[#C98A2B] text-white border-[#C98A2B] ring-[#C98A2B]/40", idle: "text-[#C98A2B]" },
-  { key: "inactivitate", label: "Fără Activitate", emoji: "⏱️", active: "bg-[#7A5316] text-white border-[#7A5316] ring-[#7A5316]/40", idle: "text-[#7A5316]" },
-  { key: "blocate", label: "Dosare Blocate", emoji: "⚠️", active: "bg-[#4A5568] text-white border-[#4A5568] ring-[#4A5568]/40", idle: "text-[#4A5568]" },
-  { key: "masini_schimb", label: "Auto Schimb", emoji: "🚗", active: "bg-[#A36C1D] text-white border-[#A36C1D] ring-[#A36C1D]/40", idle: "text-[#A36C1D]" },
-  { key: "piese", label: "Piese Neprogramate", emoji: "📦", active: "bg-[#3E6B45] text-white border-[#3E6B45] ring-[#3E6B45]/40", idle: "text-[#3E6B45]" },
-];
+function pickInitialTab(initialTab, counts) {
+  const n = normalizeAlertTab(initialTab);
+  if (n && n !== "toate" && countAlertsForGroup(counts, n) > 0) return n;
+  if (n && n !== "toate") {
+    const firstWithAlerts = ALERT_GROUPS.find((c) => countAlertsForGroup(counts, c) > 0);
+    if (firstWithAlerts) return firstWithAlerts.key;
+    return n;
+  }
+  const firstWithAlerts = ALERT_GROUPS.find((c) => countAlertsForGroup(counts, c) > 0);
+  return firstWithAlerts?.key || "intarzieri";
+}
 
 export default function AlerteModal({
   claims = [],
@@ -32,288 +47,353 @@ export default function AlerteModal({
   onPatchClaim,
   onNotify,
   themeId = "atelier",
+  desktopUi = false,
 }) {
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
     [alertBuckets, claims, pragRidicare, pragInactivitate]
   );
 
-  const [activeTab, setActiveTab] = useState(() => {
-    const n = normalizeAlertTab(initialTab);
-    return !n || n === "toate" ? "stagnate" : n;
-  });
+  const [activeTab, setActiveTab] = useState(() => pickInitialTab(initialTab, buckets.counts));
 
   useEffect(() => {
-    const n = normalizeAlertTab(initialTab);
-    if (n && n !== "toate") setActiveTab(n);
+    setActiveTab(pickInitialTab(initialTab, buckets.counts));
+    // Doar la deschiderea pe un alt tab din Brief / nav — nu reseta la refresh claims
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialTab]);
+
+  const categoriesOrdered = useMemo(() => {
+    const withAlerts = [];
+    const empty = [];
+    ALERT_GROUPS.forEach((cat) => {
+      const count = countAlertsForGroup(buckets.counts, cat);
+      (count > 0 ? withAlerts : empty).push({ ...cat, count });
+    });
+    return { withAlerts, empty };
+  }, [buckets.counts]);
+
+  const mobileCats = useMemo(() => {
+    // Pe mobil: prioritate la cele cu alerte; goalele rămân la final, mai discrete
+    return [...categoriesOrdered.withAlerts, ...categoriesOrdered.empty];
+  }, [categoriesOrdered]);
+
+  useModalEscape(onClose);
+  const backdropProps = overlayBackdropCloseProps(desktopUi, onClose);
+
+  const activeCat = getAlertGroup(activeTab) || ALERT_GROUPS[1];
+  const ActiveIcon = activeCat.icon;
+  const list = useMemo(
+    () => filterAlertItems(buckets.items, activeTab),
+    [buckets.items, activeTab]
+  );
+  const totalAlertsCount = buckets.totalAlertsCount;
 
   const ackAlert = async (e, claimId) => {
     e.stopPropagation();
     if (!onPatchClaim) return;
     const ok = await onPatchClaim(claimId, { alerteAck: true });
-    if (onNotify) onNotify(ok ? "Alerta marcată ca rezolvată." : "Eroare la marcarea alertei.", ok ? "success" : "error");
+    if (onNotify) {
+      onNotify(
+        ok
+          ? "Alertă ascunsă. Revine automat la următoarea schimbare de status."
+          : "Eroare la marcarea alertei.",
+        ok ? "success" : "error"
+      );
+    }
   };
 
   const openClaim = (c) => {
-    onClose?.();
+    // Keep Centrul de Alerte open underneath; dosar stacks in front.
     onOpenClaim?.(c);
   };
 
-  const list = buckets.byType[activeTab] || [];
-  const totalAlertsCount = buckets.totalAlertsCount;
+  const renderSidebarCat = (cat) => {
+    const active = activeTab === cat.key;
+    const Icon = cat.icon;
+    const empty = cat.count === 0;
+    return (
+      <button
+        key={cat.key}
+        type="button"
+        onClick={() => setActiveTab(cat.key)}
+        className={`app-alerte-cat ${active ? "is-active" : ""} ${empty ? "is-empty" : ""}`}
+        style={active ? { "--alerte-cat-accent": cat.hex } : undefined}
+        title={cat.label}
+      >
+        <span className="app-alerte-cat-icon" style={{ color: active ? "inherit" : cat.hex }}>
+          <Icon size={16} strokeWidth={2.25} />
+        </span>
+        <span className="app-alerte-cat-text">
+          <span className="app-alerte-cat-label">{cat.label}</span>
+          {empty && <span className="app-alerte-cat-hint">0</span>}
+        </span>
+        <span className={`app-alerte-cat-count ${cat.count > 0 ? "has-items" : ""}`}>
+          {cat.count}
+        </span>
+      </button>
+    );
+  };
+
+  const renderPillCat = (cat) => {
+    const active = activeTab === cat.key;
+    const Icon = cat.icon;
+    const empty = cat.count === 0;
+    return (
+      <button
+        key={cat.key}
+        type="button"
+        onClick={() => setActiveTab(cat.key)}
+        className={`m-settings-tab app-alerte-pill-tab flex items-center gap-1.5 shrink-0 border-0 ${
+          active ? "is-active" : ""
+        } ${empty ? "is-empty" : ""}`}
+        style={active ? { "--alerte-cat-accent": cat.hex } : undefined}
+        title={cat.label}
+      >
+        <Icon size={14} strokeWidth={2.25} style={{ color: active ? "inherit" : cat.hex }} />
+        <span>{cat.label}</span>
+        <span className={`m-settings-tab-badge app-alerte-pill-badge ${active ? "is-active" : ""} ${cat.count > 0 ? "has-items" : ""}`}>
+          {cat.count}
+        </span>
+      </button>
+    );
+  };
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" data-mtheme={themeId}>
-      <div className="m-modal-panel bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
-
-        <div className="m-modal-header flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0 shadow-md">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#B23A2E] flex items-center justify-center text-white font-bold shadow-md">
-              <Bell size={19} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-extrabold text-[16px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Centrul de Alerte Operaționale
+    <div
+      className={modalOverlayClass(desktopUi)}
+      {...modalOverlayProps(desktopUi, themeId)}
+      {...backdropProps}
+    >
+      <div
+        className={modalPanelClass(
+          desktopUi,
+          // Fixed height on desktop — switching Blocate/Întârzieri/… only scrolls the list
+          "app-alerte-panel app-fixed-shell-modal w-full max-w-5xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] max-h-[100dvh] overflow-hidden"
+        )}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Desktop: classic header bar */}
+        {desktopUi ? (
+          <div className={modalHeaderClass(desktopUi, "app-alerte-header flex items-center justify-between gap-3 px-4 py-3")}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="app-alerte-header-icon shrink-0">
+                <Bell size={18} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                <h2 className="app-alerte-title app-display">
+                  Centrul de Alerte
                 </h2>
-                <span className="bg-[#B23A2E] text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                  {totalAlertsCount} Alerte Total
+                <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
+                  {totalAlertsCount === 0
+                    ? "0"
+                    : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
                 </span>
               </div>
-              <p className="text-[11.5px] text-white/70">Aceleași categorii ca în Brief — alege o categorie pentru acțiune</p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="app-alerte-close shrink-0"
+              aria-label="Închide"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        ) : (
+          /* Mobile: floating title chip — no full-bleed header slab */
+          <div className="app-alerte-mobile-chrome">
+            <div className="app-alerte-mobile-titlepill">
+              <span className="app-alerte-mobile-bell" aria-hidden>
+                <Bell size={15} />
+              </span>
+              <h2 className="app-alerte-mobile-heading">Alerte</h2>
+              <span className={`app-alerte-total ${totalAlertsCount > 0 ? "has-alerts" : ""}`}>
+                {totalAlertsCount === 0
+                  ? "0"
+                  : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
+              </span>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
-            <X size={20} />
-          </button>
-        </div>
+        )}
 
-        <div className="bg-[#FAF8F5] border-b border-[#DAD4C6] px-3 py-3 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 shrink-0 text-center">
-          {CATEGORY_META.map((cat) => {
-            const active = activeTab === cat.key;
-            const count = buckets.counts[cat.key] || 0;
-            return (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setActiveTab(cat.key)}
-                className={`p-2 rounded-xl border transition-all ${
-                  active
-                    ? `${cat.active} shadow-md ring-2`
-                    : "bg-white border-[#DAD4C6] hover:bg-[#FAF8F5] text-[#23282E]"
-                }`}
-              >
-                <span className={`text-[10px] font-extrabold uppercase block truncate ${active ? "text-white" : cat.idle}`}>
-                  {cat.emoji} {cat.label}
-                </span>
-                <span className="font-extrabold text-[17px] block mt-0.5">{count}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2.5">
-          {list.length === 0 ? (
-            <div className="text-[13px] text-[#8A8375] italic py-8 text-center bg-white rounded-xl border border-[#DAD4C6]">
-              Nicio alertă în această categorie.
-            </div>
-          ) : (
-            list.map((c) => {
-              if (activeTab === "stagnate") {
-                const st = getStatusDefinition(c.status);
-                const daysInStage = getDaysInStage(c);
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => openClaim(c)}
-                    className="flex items-center justify-between bg-white border border-[#F4D7D3] rounded-xl p-3 hover:border-[#B23A2E] hover:shadow-sm cursor-pointer transition-all group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#B23A2E]/10 text-[#B23A2E] flex flex-col items-center justify-center shrink-0">
-                        <span className="font-mono font-black text-[14px] leading-none">{daysInStage}</span>
-                        <span className="text-[9px] font-bold uppercase">zile</span>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[14px] text-[#23282E] group-hover:text-[#B23A2E]">{c.numarDosar || "(fără nr.)"}</span>
-                          <Pill tone="amber">{c.tipAsigurare}</Pill>
-                        </div>
-                        <div className="text-[12px] text-[#6B6558] truncate">{c.client || "Client neintrodus"} · {c.numarInmatriculare || "—"} · {c.marcaModel}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[11.5px] font-bold text-[#8A8375] bg-[#EFEAE1] px-2 py-1 rounded-md">{st.label}</span>
-                      <ChevronRight size={18} className="text-[#8A8375]" />
-                    </div>
-                  </div>
-                );
-              }
-
-              if (activeTab === "accept_plata") {
-                return (
-                  <div key={c.id} className="flex items-center justify-between bg-white border border-[#C6D2E1] rounded-xl p-3 hover:border-[#2C4160] hover:shadow-sm transition-all group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#2C4160]/10 text-[#2C4160] flex items-center justify-center shrink-0">
-                        <ShoppingCart size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"}</span>
-                          <Pill tone="amber">{c.tipAsigurare}</Pill>
-                        </div>
-                        <div className="text-[12px] text-[#6B6558] truncate">{c.client} · {c.numarInmatriculare} · {c.asigurator}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button type="button" onClick={() => openClaim(c)} className="px-2.5 py-1.5 bg-[#2C4160] text-white rounded-md text-[12px] font-bold">
-                        Comandă Piese
-                      </button>
-                      <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold hover:bg-[#2C4160]">
-                        Marchează rezolvat
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (activeTab === "neridicate") {
-                return (
-                  <div key={c.id} className="flex items-center justify-between bg-white border border-[#F3E5CD] rounded-xl p-3 hover:border-[#C98A2B] hover:shadow-sm transition-all group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#C98A2B]/15 text-[#7A5316] flex items-center justify-center shrink-0">
-                        <Car size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"}</div>
-                        <div className="text-[12px] text-[#6B6558] truncate">{c.client} · {c.numarInmatriculare} · Tel: {c.telefonClient || "—"}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold">
-                        Marchează rezolvat
-                      </button>
-                      <button type="button" onClick={() => openClaim(c)} className="p-1.5 rounded hover:bg-[#F4F1EA]">
-                        <ChevronRight size={18} className="text-[#8A8375]" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (activeTab === "inactivitate") {
-                const st = getStatusDefinition(c.status);
-                const daysInactive = getDaysSinceLastActivity(c);
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => openClaim(c)}
-                    className="flex items-center justify-between bg-white border border-[#E8DCC4] rounded-xl p-3 hover:border-[#7A5316] hover:shadow-sm cursor-pointer transition-all group"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#7A5316]/10 text-[#7A5316] flex flex-col items-center justify-center shrink-0">
-                        <span className="font-mono font-black text-[14px] leading-none">{daysInactive}</span>
-                        <span className="text-[9px] font-bold uppercase">zile</span>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"}</span>
-                          <span className="text-[11px] font-mono font-bold text-[#7A5316] bg-[#F7EAD3] px-2 py-0.5 rounded-md">{st.label}</span>
-                        </div>
-                        <div className="text-[12px] text-[#6B6558] truncate">{c.client} · {c.numarInmatriculare}</div>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-[#8A8375] shrink-0" />
-                  </div>
-                );
-              }
-
-              if (activeTab === "blocate") {
-                return (
-                  <div key={c.id} className="flex items-center justify-between bg-white border border-[#D5DCB4] rounded-xl p-3 hover:border-[#3B5166] hover:shadow-sm transition-all group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#3B5166]/10 text-[#3B5166] flex items-center justify-center shrink-0">
-                        <ShieldAlert size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"} · {c.numarInmatriculare}</div>
-                        <div className="text-[12px] text-[#B23A2E] font-medium truncate">Motiv: {c.motivBlocare || "Nespecificat"}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold">
-                        Marchează rezolvat
-                      </button>
-                      <button type="button" onClick={() => openClaim(c)} className="p-1.5 rounded hover:bg-[#F4F1EA]">
-                        <ChevronRight size={18} className="text-[#8A8375]" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              if (activeTab === "masini_schimb") {
-                return (
-                  <div key={c.id} className="flex items-center justify-between bg-white border border-[#F3E5CD] rounded-xl p-3 hover:border-[#A36C1D] hover:shadow-sm transition-all group">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#C98A2B]/15 text-[#7A5316] flex items-center justify-center shrink-0">
-                        <Car size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"} · {c.numarInmatriculare}</div>
-                        <div className="text-[12px] text-[#7A5316] truncate">
-                          {c.masinaSchimb} · {c.zile}z / limită {c.zileChirieAudatex}z
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold">
-                        Marchează rezolvat
-                      </button>
-                      <button type="button" onClick={() => openClaim(c)} className="p-1.5 rounded hover:bg-[#F4F1EA]">
-                        <ChevronRight size={18} className="text-[#8A8375]" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-
-              // piese
-              return (
-                <div key={c.id} className="flex items-center justify-between bg-white border border-[#D5E8D8] rounded-xl p-3 hover:border-[#3E6B45] hover:shadow-sm transition-all group">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[#3E6B45]/10 text-[#3E6B45] flex items-center justify-center shrink-0">
-                      <Boxes size={20} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-[14px] text-[#23282E]">{c.numarDosar || "(fără nr.)"} · {c.numarInmatriculare}</div>
-                      <div className="text-[12px] text-[#6B6558] truncate">Piese sosite — fără programare atelier</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={(e) => ackAlert(e, c.id)} className="px-2 py-1.5 bg-[#3B5166] text-white rounded-md text-[12px] font-bold">
-                      Marchează rezolvat
-                    </button>
-                    <button type="button" onClick={() => openClaim(c)} className="p-1.5 rounded hover:bg-[#F4F1EA]">
-                      <PackageCheck size={18} className="text-[#8A8375]" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[#DAD4C6] shrink-0 text-[12px]">
-          <span className="text-[#8A8375]">Centru Alerte · aceleași reguli ca Brief</span>
+        {/* Mobile: category pills in the shared settings pill track + close */}
+        <div className="m-settings-tabs m-settings-tabs--pill app-alerte-pill-track flex shrink-0 overflow-x-auto scrollbar-thin sm:hidden">
+          {mobileCats.map((cat) => renderPillCat(cat))}
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg border border-[#C7C0B0] font-semibold text-[#4A443A] hover:bg-[#EFEAE1]"
+            className="m-settings-close ml-auto shrink-0"
+            aria-label="Închide"
           >
-            Închide
+            <X size={18} />
           </button>
         </div>
+
+        <div className="app-alerte-body flex flex-1 min-h-0">
+          {/* Desktop sidebar */}
+          <aside className="app-alerte-sidebar hidden sm:flex">
+            {categoriesOrdered.withAlerts.length > 0 && (
+              <div className="app-alerte-sidebar-group">
+                <p className="app-alerte-sidebar-heading">Necesită atenție</p>
+                {categoriesOrdered.withAlerts.map((cat) => renderSidebarCat(cat))}
+              </div>
+            )}
+            {categoriesOrdered.empty.length > 0 && (
+              <div className="app-alerte-sidebar-group">
+                <p className="app-alerte-sidebar-heading">Fără alerte</p>
+                {categoriesOrdered.empty.map((cat) => renderSidebarCat(cat))}
+              </div>
+            )}
+          </aside>
+
+          <section className="app-alerte-main flex-1 min-w-0 flex flex-col min-h-0">
+            <div className="app-alerte-section-head hidden sm:block">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="app-alerte-section-icon" style={{ color: activeCat.hex }}>
+                  <ActiveIcon size={18} />
+                </span>
+                <div className="min-w-0">
+                  <h3 className="app-alerte-section-title">{activeCat.label}</h3>
+                  {list.length > 0 && (
+                    <p className="app-alerte-section-meta">
+                      {list.length} {list.length === 1 ? "dosar" : "dosare"}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="app-alerte-list app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
+              {list.length === 0 ? (
+                <div className="app-alerte-empty">
+                  <CheckCircle2 size={28} className="text-[var(--app-success)]" />
+                  <p>Nicio alertă</p>
+                </div>
+              ) : (
+                <ul className="app-alerte-rows">
+                  {list.map((item) => {
+                    const c = item.claim;
+                    const metric = getAlertMetric(item);
+                    const stShort = getStatusShortLabel(c.status);
+                    const stFull = getStatusDefinition(c.status).label;
+                    const phone = c.telefonClient || "";
+                    const showAck = [
+                      "stagnate",
+                      "inactivitate",
+                      "accept_plata",
+                      "neridicate",
+                      "masini_schimb",
+                      "livrare_piese",
+                      "piese",
+                      "restante",
+                    ].includes(item.type);
+                    const showFactureaza = item.type === "accept_plata";
+                    const noteText =
+                      item.noteSnippet || getLatestClaimNoteText(c);
+
+                    return (
+                      <li key={item.id}>
+                        <article
+                          className={`app-alerte-row ${alertSeverityClass(item.severity)}`}
+                          onClick={() => openClaim(c)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              openClaim(c);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          {metric ? (
+                            <div className="app-alerte-metric" title={metric.hint}>
+                              <span className="app-alerte-metric-value">{metric.value}</span>
+                              <span className="app-alerte-metric-unit">{metric.unit}</span>
+                            </div>
+                          ) : (
+                            <div className="app-alerte-metric is-icon" style={{ color: activeCat.hex }}>
+                              <ActiveIcon size={18} />
+                            </div>
+                          )}
+
+                          <div className="app-alerte-row-body min-w-0">
+                            <div className="app-alerte-row-main">
+                              <DosarNumber
+                                value={c.numarDosar}
+                                onNotify={onNotify}
+                                empty="fără nr."
+                                className="app-alerte-dosar hover:text-[var(--app-accent)]"
+                              />
+                              <span className="app-alerte-plate">
+                                {c.numarInmatriculare || "—"}
+                              </span>
+                              <span className="app-alerte-status-chip" title={stFull}>
+                                {stShort}
+                              </span>
+                            </div>
+                            {noteText ? (
+                              <p className="app-alerte-note" title={noteText}>
+                                <span className="app-alerte-meta-label">Notă</span>
+                                {noteText}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div
+                            className="app-alerte-actions"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ClaimPhoneActions
+                              phone={phone}
+                              claim={c}
+                              waSize={12}
+                              phoneSize={14}
+                              condition={item.type === "neridicate" || item.type === "stagnate"}
+                            />
+                            {showFactureaza && (
+                              <button
+                                type="button"
+                                className="app-alerte-btn-primary"
+                                onClick={() => openClaim(c)}
+                              >
+                                Deschide AP
+                              </button>
+                            )}
+                            {showAck && (
+                              <button
+                                type="button"
+                                className="app-alerte-btn-secondary"
+                                onClick={(e) => ackAlert(e, c.id)}
+                              >
+                                Rezolvat
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="app-alerte-btn-open"
+                              onClick={() => openClaim(c)}
+                              aria-label="Deschide dosarul"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {desktopUi ? (
+          <div className="app-alerte-footer">
+            <button type="button" onClick={onClose} className="app-alerte-btn-close">
+              Închide
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

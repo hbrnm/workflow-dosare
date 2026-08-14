@@ -1,0 +1,305 @@
+/* Live camera chrome — portrait bottom shutter, landscape right-edge shutter */
+
+.live-cam {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "start"
+    "stage"
+    "end";
+}
+
+.live-cam-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 20;
+}
+
+.live-cam-rail--start {
+  grid-area: start;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.live-cam-rail--end {
+  grid-area: end;
+  justify-content: space-between;
+  padding: 1.1rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.live-cam-stage {
+  grid-area: stage;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.live-cam-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-cam-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.live-cam-cats {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.live-cam-cat {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.live-cam-cat.is-active {
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.live-cam-icon-btn {
+  padding: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  flex-shrink: 0;
+}
+
+.live-cam-icon-btn:active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.live-cam-done {
+  order: 3;
+  padding: 0.55rem 1.1rem;
+  border-radius: 0.75rem;
+  background: #059669;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
+}
+
+.live-cam-done:active {
+  background: #10b981;
+}
+
+.live-cam-shutter {
+  order: 2;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 999px;
+  border: 4px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+}
+
+.live-cam-shutter:active {
+  transform: scale(0.9);
+}
+
+.live-cam-shutter:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.live-cam-shutter-inner {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.live-cam-shutter:active .live-cam-shutter-inner {
+  background: #d1d5db;
+}
+
+.live-cam-cat-label {
+  order: 1;
+  width: 4rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+}
+
+.live-cam-thumb {
+  position: absolute;
+  top: 0.85rem;
+  left: 0.85rem;
+  z-index: 20;
+  pointer-events: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.live-cam-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-cam-thumb-count {
+  position: absolute;
+  bottom: 0.15rem;
+  right: 0.15rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 0.35rem;
+  background: #10b981;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1.15rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Landscape: categories left, shutter column on the right for thumb reach */
+@media (orientation: landscape) {
+  .live-cam {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "start stage end";
+  }
+
+  .live-cam-rail--start {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    height: 100%;
+    max-width: 7.5rem;
+    padding: 0.75rem 0.55rem;
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .live-cam-cats {
+    flex-direction: column;
+    align-items: stretch;
+    flex: 1;
+    gap: 0.45rem;
+  }
+
+  .live-cam-cat {
+    width: 100%;
+    text-align: center;
+    padding: 0.55rem 0.4rem;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  .live-cam-rail--end {
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    height: 100%;
+    width: 6.25rem;
+    padding: 0.85rem 0.55rem;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Gata top → shutter middle → label bottom */
+  .live-cam-done {
+    order: 1;
+  }
+
+  .live-cam-shutter {
+    order: 2;
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+
+  .live-cam-shutter-inner {
+    width: 3.55rem;
+    height: 3.55rem;
+  }
+
+  .live-cam-cat-label {
+    order: 3;
+    width: auto;
+    max-width: 5.5rem;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    letter-spacing: 0.08em;
+  }
+
+  .live-cam-thumb {
+    top: 0.65rem;
+    left: 0.65rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 420px) {
+  .live-cam-shutter {
+    width: 3.85rem;
+    height: 3.85rem;
+  }
+
+  .live-cam-shutter-inner {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .live-cam-done {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.68rem;
+  }
+
+  .live-cam-thumb {
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-cam-shutter,
+  .live-cam-cat {
+    transition: none;
+  }
+}

@@ -4,7 +4,7 @@ export default function Pill({ children, tone = "steel" }) {
   const tones = {
     steel: "bg-[#3B5166] text-white",
     amber: "bg-[#C98A2B] text-white",
-    ghost: "bg-[#E4DFD3] text-[#4A443A]",
+    ghost: "bg-[var(--app-surface-muted)] text-[var(--app-muted)]",
     danger: "bg-[#B23A2E] text-white",
   };
 

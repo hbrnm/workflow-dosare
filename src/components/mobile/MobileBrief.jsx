@@ -1,34 +1,174 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
-  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays
+  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
+  Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
 } from "lucide-react";
-import { telLink } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems } from "../../utils/alertUtils";
+import { telLink, formatProgramareDate, todayISO, getSinceMeta } from "../../utils/dateUtils";
+import {
+  buildAlertBuckets,
+  filterAlertItems,
+  getLatestClaimNoteText,
+  getAlertMetric,
+} from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import ClaimPhoneActions from "../common/ClaimPhoneActions";
+import DosarNumber from "../common/DosarNumber";
 import { softHaptic } from "../../utils/mobilePrefs";
+import { countUniqueVehicles } from "../../utils/plateSchedule";
+import {
+  ALERT_GROUPS,
+  ALERT_TYPE_META,
+  countAlertsForGroup,
+} from "../../constants/alertCategories";
+import { getStatusDefinition, getStatusShortLabel, getStageAccent } from "../../constants/config";
 
 const FILTER_CHIPS = [
-  { key: "toate", label: "Toate", active: "bg-[#2C4160] text-white border-[#2C4160]", idle: "bg-white text-[#6B6558] border-[#DAD4C6]" },
-  { key: "blocate", label: "🛑 Blocate", active: "bg-[#B23A2E] text-white border-[#B23A2E]", idle: "bg-red-50 text-[#B23A2E] border-red-200" },
-  { key: "masini_schimb", label: "🚗 Auto Schimb", active: "bg-[#C98A2B] text-white border-[#C98A2B]", idle: "bg-amber-50 text-[#7A5316] border-amber-200" },
-  { key: "stagnate", label: "⏳ Stagnate", active: "bg-[#3B5166] text-white border-[#3B5166]", idle: "bg-blue-50 text-[#3B5166] border-blue-200" },
-  { key: "piese", label: "📦 Piese", active: "bg-[#7A5316] text-white border-[#7A5316]", idle: "bg-orange-50 text-[#7A5316] border-orange-200" },
-  { key: "neridicate", label: "📞 Neridicate", active: "bg-[#3E6B45] text-white border-[#3E6B45]", idle: "bg-emerald-50 text-[#3E6B45] border-emerald-200" },
-  { key: "accept_plata", label: "🛒 Accept", active: "bg-[#2C4160] text-white border-[#2C4160]", idle: "bg-slate-50 text-[#2C4160] border-slate-200" },
-  { key: "inactivitate", label: "⏱️ Inactive", active: "bg-[#7A5316] text-white border-[#7A5316]", idle: "bg-yellow-50 text-[#7A5316] border-yellow-200" },
+  { key: "toate", label: "Toate" },
+  ...ALERT_GROUPS.map((g) => ({ key: g.key, label: g.label })),
 ];
 
-const HUB_PILLS = [
-  { key: "toate", label: "Toate" },
-  { key: "blocate", label: "Blocate" },
-  { key: "piese", label: "Piese" },
-  { key: "neridicate", label: "Neridicate" },
-  { key: "stagnate", label: "Stagnate" },
-  { key: "accept_plata", label: "Accept" },
-  { key: "masini_schimb", label: "Auto schimb" },
-  { key: "inactivitate", label: "Inactive" },
+const HUB_PILLS = FILTER_CHIPS;
+
+const BRIEF_FOCUS_KEY = "workflow_brief_focus";
+const FOCUS_KEYS = new Set([
+  "air",
+  "piese",
+  "programat",
+  "lucru",
+  "accept",
+  "facturat",
+  "atentie",
+]);
+
+/** Filtre Atenție: stadii unde există alerte active. */
+const ATTENTION_STAGE_FILTERS = [
+  { key: "toate", label: "Toate", statusKey: null },
+  { key: "air", label: "AIR", statusKey: "deschidere" },
+  { key: "piese", label: "Piese", statusKey: "piese_comandate" },
+  { key: "programat", label: "Prog.", statusKey: "programat" },
+  { key: "lucru", label: "Repar.", statusKey: "in_lucru" },
+  { key: "accept", label: "AP", statusKey: "accept_plata" },
+  { key: "facturat", label: "Fact.", statusKey: "facturat" },
 ];
+
+/** Brief stage tiles — pipeline + Atenție (probleme). */
+const STAGE_FOCUS = {
+  air: {
+    title: "AIR",
+    hint: "Acord intrare în reparație.",
+    emptyTitle: "Niciun dosar AIR",
+    emptyHint: "Dosarele în acord de intrare apar aici.",
+    statusKey: "deschidere",
+    Icon: ClipboardCheck,
+  },
+  piese: {
+    title: "Piese",
+    hint: "Piese comandate — așteaptă livrare / programare.",
+    emptyTitle: "Niciun dosar pe piese",
+    emptyHint: "Dosarele cu piese comandate apar aici.",
+    statusKey: "piese_comandate",
+    Icon: Package,
+  },
+  programat: {
+    title: "Programări",
+    hint: "Mașini programate în atelier.",
+    emptyTitle: "Nicio programare",
+    emptyHint: "Dosarele cu status Programări apar aici.",
+    statusKey: "programat",
+    Icon: CalendarDays,
+  },
+  lucru: {
+    title: "Reparație",
+    hint: "Mașini aflate acum în reparație.",
+    emptyTitle: "Niciun dosar în reparație",
+    emptyHint: "Dosarele în reparație apar aici.",
+    statusKey: "in_lucru",
+    Icon: Wrench,
+  },
+  accept: {
+    title: "Accept plată",
+    hint: "AP = stadiul Accept plată — după reparație, înainte de facturare.",
+    emptyTitle: "Niciun dosar în Accept plată",
+    emptyHint: "Când un dosar ajunge în stadiul Accept plată (AP), apare aici.",
+    statusKey: "accept_plata",
+    Icon: BadgeCheck,
+  },
+  facturat: {
+    title: "Facturat",
+    hint: "Dosare facturate / închise operațional.",
+    emptyTitle: "Niciun dosar facturat",
+    emptyHint: "Dosarele facturate apar aici.",
+    statusKey: "facturat",
+    Icon: CheckCircle2,
+  },
+  atentie: {
+    title: "Atenție",
+    hint: "Întârzieri, piese, predare și plăți care cer reacție.",
+    emptyTitle: "Nimic care necesită atenție",
+    emptyHint: "Alertele operaționale apar aici.",
+    statusKey: null,
+    Icon: Ban,
+  },
+};
+
+function readStoredFocus() {
+  try {
+    const v = sessionStorage.getItem(BRIEF_FOCUS_KEY);
+    return FOCUS_KEYS.has(v) ? v : "atentie";
+  } catch {
+    return "atentie";
+  }
+}
+
+function claimStatusKey(claim) {
+  return getStatusDefinition(claim?.status).key;
+}
+
+function filterAlertsByStage(items, filterKey) {
+  const list = items || [];
+  if (!filterKey || filterKey === "toate") return list;
+  const def = ATTENTION_STAGE_FILTERS.find((f) => f.key === filterKey);
+  if (!def) return list;
+  if (def.statusKey) {
+    return list.filter((item) => claimStatusKey(item?.claim) === def.statusKey);
+  }
+  return list;
+}
+
+function buildAttentionStageChips(items) {
+  const list = items || [];
+  const chips = [{ key: "toate", label: "Toate", count: list.length }];
+  ATTENTION_STAGE_FILTERS.forEach((f) => {
+    if (f.key === "toate") return;
+    const count = filterAlertsByStage(list, f.key).length;
+    if (count > 0) chips.push({ key: f.key, label: f.label, count });
+  });
+  return chips;
+}
+
+function claimsForStatus(claims, statusKey) {
+  return (claims || []).filter((c) => !c.blocat && claimStatusKey(c) === statusKey);
+}
+
+function sortClaimsForFocus(rows, focusKey) {
+  const list = [...(rows || [])];
+  if (focusKey === "programat") {
+    return list.sort((a, b) =>
+      String(a.dataProgramare || "").localeCompare(String(b.dataProgramare || ""))
+    );
+  }
+  return list.sort((a, b) =>
+    String(b.dataSchimbareStatus || b.dataUltimeiActualizari || "").localeCompare(
+      String(a.dataSchimbareStatus || a.dataUltimeiActualizari || "")
+    )
+  );
+}
+
+/** Dată/oră + zile calendaristice de când dosarul e în stadiul curent. */
+function getStageSinceMeta(claim) {
+  return getSinceMeta(claim?.dataSchimbareStatus || claim?.dataDeschiderii || null);
+}
 
 function greetingForNow() {
   const h = new Date().getHours();
@@ -39,18 +179,40 @@ function greetingForNow() {
 
 export default function MobileBrief({
   claims,
+  listClaims = null,
   onOpen,
   onNew,
   onGoTab,
+  onGoCapture,
+  onOpenAlerts,
+  onOpenBlocked = null,
   pragRidicare,
   pragInactivitate = 7,
   alertBuckets = null,
   onPatchClaim,
   onNotify,
-  homeStyle = "list",
+  homeStyle = "inbox",
   atelierNume = "Dosare Daună",
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
+  const [focus, setFocus] = useState(readStoredFocus);
+  const [attentionFilter, setAttentionFilter] = useState("toate");
+  const [schedulingId, setSchedulingId] = useState(null);
+  const [editDate, setEditDate] = useState(todayISO);
+  const [editTime, setEditTime] = useState("09:00");
+  const [exitingIds, setExitingIds] = useState(() => new Set());
+  const [flashIds, setFlashIds] = useState(() => new Set());
+  const boardRef = useRef(null);
+  const EXIT_MS = 220;
+  const FLASH_MS = 480;
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(BRIEF_FOCUS_KEY, focus);
+    } catch {
+      /* ignore */
+    }
+  }, [focus]);
 
   const buckets = useMemo(
     () => alertBuckets || buildAlertBuckets(claims, { pragRidicare, pragInactivitate }),
@@ -58,158 +220,706 @@ export default function MobileBrief({
   );
 
   const { counts, totalAlertsCount, items } = buckets;
+  const blockedCount = counts.blocate || 0;
 
   const alertsList = useMemo(
     () => filterAlertItems(items, activeAlertTab),
     [items, activeAlertTab]
   );
 
-  const chipCount = (key) => (key === "toate" ? totalAlertsCount : counts[key] || 0);
+  const attentionStageChips = useMemo(() => buildAttentionStageChips(items), [items]);
+
+  useEffect(() => {
+    if (attentionFilter === "toate") return;
+    const stillValid = attentionStageChips.some((c) => c.key === attentionFilter);
+    if (!stillValid) setAttentionFilter("toate");
+  }, [attentionFilter, attentionStageChips]);
+
+  const attentionRows = useMemo(
+    () => filterAlertsByStage(items, attentionFilter),
+    [items, attentionFilter]
+  );
+  const attentionFilterMeta =
+    ATTENTION_STAGE_FILTERS.find((f) => f.key === attentionFilter) || ATTENTION_STAGE_FILTERS[0];
+
+  const chipCount = (key) =>
+    key === "toate" ? totalAlertsCount : countAlertsForGroup(counts, key);
+
+  const stageLists = useMemo(() => {
+    const list = claims || [];
+    return {
+      air: sortClaimsForFocus(claimsForStatus(list, "deschidere"), "air"),
+      piese: sortClaimsForFocus(claimsForStatus(list, "piese_comandate"), "piese"),
+      programat: sortClaimsForFocus(claimsForStatus(list, "programat"), "programat"),
+      lucru: sortClaimsForFocus(claimsForStatus(list, "in_lucru"), "lucru"),
+      accept: sortClaimsForFocus(claimsForStatus(list, "accept_plata"), "accept"),
+      facturat: sortClaimsForFocus(claimsForStatus(list, "facturat"), "facturat"),
+    };
+  }, [claims]);
+
+  const focusBoard = useMemo(() => {
+    const meta = STAGE_FOCUS[focus] || STAGE_FOCUS.atentie;
+    if (focus === "atentie") {
+      const filtered = attentionFilter !== "toate";
+      return {
+        kind: "alerts",
+        title: filtered ? `Atenție · ${attentionFilterMeta.label}` : meta.title,
+        hint: filtered
+          ? `Filtru: ${attentionFilterMeta.label} (${attentionRows.length})`
+          : meta.hint,
+        emptyTitle: filtered ? `Nimic pe ${attentionFilterMeta.label}` : meta.emptyTitle,
+        emptyHint: filtered
+          ? "Alege alt stadiu din filtre sau Toate."
+          : meta.emptyHint,
+        rows: attentionRows,
+      };
+    }
+    const rows = stageLists[focus] || [];
+    return {
+      kind: "claims",
+      title: meta.title,
+      hint: meta.hint,
+      emptyTitle: meta.emptyTitle,
+      emptyHint: meta.emptyHint,
+      rows,
+    };
+  }, [focus, stageLists, attentionRows, attentionFilter, attentionFilterMeta]);
+
+  const focusBoardCount = useMemo(() => {
+    if (focusBoard.kind !== "claims") return focusBoard.rows.length;
+    if (focus === "programat" || focus === "lucru") return countUniqueVehicles(focusBoard.rows);
+    return focusBoard.rows.length;
+  }, [focusBoard, focus]);
 
   const featured = alertsList[0] || items[0] || null;
 
   const ackAlert = async (e, claimId) => {
     e.stopPropagation();
     if (!onPatchClaim) return;
-    const ok = await onPatchClaim(claimId, { alerteAck: true });
-    onNotify?.(ok ? "Alerta marcată ca rezolvată." : "Eroare la marcarea alertei.", ok ? "success" : "error");
+    softHaptic(8);
+    const ok = await runWithExit(claimId, () =>
+      onPatchClaim(claimId, { alerteAck: true })
+    );
+    onNotify?.(
+      ok !== false
+        ? "Alertă ascunsă. Revine automat la următoarea schimbare de status."
+        : "Eroare la marcarea alertei.",
+      ok !== false ? "success" : "error"
+    );
   };
 
   const canAck = (type) =>
-    ["blocate", "neridicate", "accept_plata", "masini_schimb", "piese"].includes(type);
+    [
+      "neridicate",
+      "accept_plata",
+      "masini_schimb",
+      "piese",
+      "livrare_piese",
+      "stagnate",
+      "inactivitate",
+      "restante",
+    ].includes(type);
 
   const go = (tab) => {
     softHaptic(8);
     onGoTab?.(tab);
   };
 
-  const alertIconColor = (type) => {
-    switch (type) {
-      case "blocate": return "#F85149";
-      case "piese": return "#F0883E";
-      case "neridicate": return "#3FB950";
-      case "stagnate": return "#58A6FF";
-      case "accept_plata": return "#A371F7";
-      case "masini_schimb": return "#D29922";
-      case "inactivitate": return "#8B949E";
-      default: return "#58A6FF";
-    }
+  const pipelineTiles = [
+    { key: "air", label: "AIR", count: stageLists.air.length, tone: "steel" },
+    { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
+    { key: "programat", label: "Prog.", count: countUniqueVehicles(stageLists.programat), tone: "accent" },
+    { key: "lucru", label: "Repar.", count: countUniqueVehicles(stageLists.lucru), tone: "accent" },
+    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok", title: "AP — Accept plată" },
+    { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
+  ];
+
+  const shortcuts = [
+    { id: "capture", label: "Foto", Icon: Camera, action: () => go("capture") },
+    { id: "programari", label: "Prog.", Icon: CalendarDays, action: () => go("programari") },
+    { id: "dosare", label: "Toate", Icon: FolderOpen, action: () => go("dosare"), title: "Toate dosarele" },
+    { id: "new", label: "Nou", Icon: Plus, action: () => (onNew ? onNew() : go("dosare")) },
+  ];
+
+  const setBoardFocus = (next) => {
+    softHaptic(8);
+    setFocus(next);
+    setSchedulingId(null);
+    setExitingIds(new Set());
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const openAttentionAll = () => {
+    setAttentionFilter("toate");
+    setBoardFocus("atentie");
+  };
+
+  const applyAttentionFilter = (filterKey) => {
+    softHaptic(8);
+    setAttentionFilter(filterKey);
+    setFocus("atentie");
+    setSchedulingId(null);
+    setExitingIds(new Set());
+    requestAnimationFrame(() => {
+      boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  const renderAlertRow = (item) => {
+    const c = item.claim;
+    const phone = c.telefonClient || "";
+    const noteText = (item.noteSnippet || getLatestClaimNoteText(c, { maxLen: 72 }) || "").trim();
+    const reasonText = String(item.reason || "").trim();
+    const typeMeta = ALERT_TYPE_META[item.type];
+    const whyTitle = item.title || typeMeta?.label || "Alertă";
+    const whyLine = reasonText && reasonText.toLowerCase() !== whyTitle.toLowerCase()
+      ? `${whyTitle} · ${reasonText}`
+      : whyTitle;
+    const isExiting = exitingIds.has(c.id) || exitingIds.has(item.id);
+    const stageSince = getStageSinceMeta(c);
+    const metric = getAlertMetric(item);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
+    const showFactureaza = item.type === "accept_plata";
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
+
+    return (
+      <li key={item.id}>
+        <article
+          className={`app-alerte-row m-flow-card is-compact is-attention ${isExiting ? "is-exiting" : ""}`}
+          onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          {metric ? (
+            <div className="app-alerte-metric" title={metric.hint}>
+              <span className="app-alerte-metric-value">{metric.value}</span>
+              <span className="app-alerte-metric-unit">{metric.unit}</span>
+            </div>
+          ) : (
+            <div
+              className="app-alerte-metric is-icon"
+              title={whyTitle}
+            >
+              <AlertTriangle size={14} />
+            </div>
+          )}
+
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main">
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
+                </span>
+              ) : null}
+            </div>
+            <p className="m-brief-alerte-why" title={whyLine}>
+              {whyLine}
+            </p>
+            {noteText ? (
+              <p className="app-alerte-note" title={noteText}>
+                <span className="app-alerte-meta-label">Notă</span>
+                {noteText}
+              </p>
+            ) : null}
+          </div>
+
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
+            {showFactureaza ? (
+              <button
+                type="button"
+                className="app-alerte-btn-primary"
+                onClick={() => onOpen(c)}
+              >
+                AP
+              </button>
+            ) : null}
+            {onPatchClaim && canAck(item.type) ? (
+              <button
+                type="button"
+                className="app-alerte-btn-secondary"
+                onClick={(e) => ackAlert(e, c.id)}
+              >
+                Rezolvat
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </article>
+      </li>
+    );
+  };
+
+  const markExiting = (claimId) => {
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      next.add(claimId);
+      return next;
+    });
+  };
+
+  const clearExiting = (claimId) => {
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(claimId);
+      return next;
+    });
+  };
+
+  const flashRow = (claimId) => {
+    setFlashIds((prev) => {
+      const next = new Set(prev);
+      next.add(claimId);
+      return next;
+    });
+    window.setTimeout(() => {
+      setFlashIds((prev) => {
+        const next = new Set(prev);
+        next.delete(claimId);
+        return next;
+      });
+    }, FLASH_MS);
+  };
+
+  const runWithExit = async (claimId, action, { nextFocus } = {}) => {
+    markExiting(claimId);
+    await new Promise((resolve) => window.setTimeout(resolve, EXIT_MS));
+    const ok = await action();
+    clearExiting(claimId);
+    if (ok !== false && nextFocus) setFocus(nextFocus);
+    return ok;
+  };
+
+  const openCapture = (e, claimId) => {
+    e.stopPropagation();
+    softHaptic(8);
+    // Programări → folder recepție; Reparație → folder predare
+    const category =
+      focus === "programat" ? "receptie" : focus === "lucru" ? "predare" : null;
+    if (onGoCapture) onGoCapture(claimId, category);
+    else onGoTab?.("capture");
+  };
+
+  const markPartsArrived = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim) return;
+    softHaptic(8);
+    const next = !claim.pieseSosite;
+    const ok = await onPatchClaim(claim.id, { pieseSosite: next });
+    if (ok !== false) flashRow(claim.id);
+    onNotify?.(
+      ok === false
+        ? "Eroare la actualizare."
+        : next
+          ? "Piese marcate ca sosite — poți seta programarea."
+          : "Bifa „Piese sosite” a fost ștearsă.",
+      ok === false ? "error" : next ? "success" : "info"
+    );
+  };
+
+  const openScheduler = (e, claim) => {
+    e.stopPropagation();
+    softHaptic(6);
+    setEditDate(todayISO());
+    setEditTime("09:00");
+    setSchedulingId(claim.id);
+  };
+
+  const saveSchedule = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim || !editDate) return;
+    softHaptic(8);
+    const iso = `${editDate}T${editTime || "09:00"}:00`;
+    setSchedulingId(null);
+    const ok = await runWithExit(
+      claim.id,
+      () => onPatchClaim(claim.id, { dataProgramare: iso }),
+      { nextFocus: "programat" }
+    );
+    onNotify?.(
+      ok !== false
+        ? 'Dosar programat — mutat în „Programări".'
+        : "Eroare la programare.",
+      ok !== false ? "success" : "error"
+    );
+  };
+
+  const startRepair = async (e, claim) => {
+    e.stopPropagation();
+    if (!onPatchClaim) return;
+    softHaptic(8);
+    const ok = await runWithExit(
+      claim.id,
+      () => onPatchClaim(claim.id, { status: "in_lucru", adusaFizic: true }),
+      { nextFocus: "lucru" }
+    );
+    onNotify?.(
+      ok !== false
+        ? 'Dosar mutat în „Reparație".'
+        : "Eroare la actualizare.",
+      ok !== false ? "success" : "error"
+    );
+  };
+
+  const renderClaimRow = (c) => {
+    const phone = c.telefonClient || "";
+    const noteText = getLatestClaimNoteText(c, { maxLen: 72 });
+    const programareLabel = formatProgramareDate(c.dataProgramare);
+    const stageSince = getStageSinceMeta(c);
+    const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
+    const statusTitle = [
+      stageSince.title,
+      programareLabel ? `Programare ${programareLabel}` : "",
+    ].filter(Boolean).join(" · ");
+    const RowIcon = STAGE_FOCUS[focus]?.Icon || Wrench;
+    const stageAccent = getStageAccent(c.status);
+    const stShort = getStatusShortLabel(c.status);
+    const stFull = getStatusDefinition(c.status).label;
+    const showStartRepair = focus === "programat" && onPatchClaim && !c.blocat;
+    const showPartsArrived = focus === "piese" && onPatchClaim && !c.blocat;
+    const showSchedule =
+      focus === "piese" && onPatchClaim && !c.blocat && !c.dataProgramare;
+    const isScheduling = schedulingId === c.id;
+    const showFoto =
+      Boolean(onGoCapture || onGoTab) && (focus === "programat" || focus === "lucru");
+    const isExiting = exitingIds.has(c.id);
+    const isFlash = flashIds.has(c.id);
+    const subline = noteText || "";
+
+    return (
+      <li key={c.id}>
+        <article
+          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
+          onClick={() => onOpen(c)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen(c);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="app-alerte-metric is-icon" title={stFull}>
+            <RowIcon size={14} />
+          </div>
+          <div className="app-alerte-row-body min-w-0">
+            <div className="app-alerte-row-main" title={statusTitle || undefined}>
+              <DosarNumber
+                value={c.numarDosar}
+                onNotify={onNotify}
+                empty="fără nr."
+                className="app-alerte-dosar"
+              />
+              <span className="app-alerte-plate font-mono font-bold">
+                {c.numarInmatriculare || "—"}
+              </span>
+              <span className="app-alerte-status-chip" title={stFull}>
+                {stShort}
+              </span>
+              {c.blocat ? (
+                <span className="m-brief-claim-blocked" title={c.motivBlocare || "Blocat"}>
+                  B
+                </span>
+              ) : null}
+              {sinceBits.length ? (
+                <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+                  {sinceBits.join(" · ")}
+                </span>
+              ) : null}
+            </div>
+            {programareLabel ? (
+              <p className="m-brief-claim-date" title={`Programare ${programareLabel}`}>
+                {programareLabel}
+              </p>
+            ) : null}
+            {subline ? (
+              <p className="m-brief-alerte-why is-muted" title={subline}>
+                {subline}
+              </p>
+            ) : null}
+          </div>
+          <div
+            className="app-alerte-actions"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
+            {showFoto ? (
+              <button
+                type="button"
+                className="app-alerte-btn-ghost"
+                onClick={(e) => openCapture(e, c.id)}
+                aria-label={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
+                title={
+                  focus === "lucru"
+                    ? "Fotografiază în folderul Predare"
+                    : "Fotografiază în folderul Recepție"
+                }
+              >
+                <Camera size={13} />
+              </button>
+            ) : null}
+            {showPartsArrived ? (
+              <button
+                type="button"
+                className={`app-alerte-btn-sosite ${c.pieseSosite ? "is-on" : "is-off"}`}
+                onClick={(e) => markPartsArrived(e, c)}
+                aria-pressed={!!c.pieseSosite}
+                title={c.pieseSosite ? "Piese sosite — apasă ca să anulezi" : "Marchează piesele ca sosite"}
+              >
+                Sosite
+              </button>
+            ) : null}
+            {showSchedule && !isScheduling ? (
+              <button
+                type="button"
+                className="app-alerte-btn-primary"
+                onClick={(e) => openScheduler(e, c)}
+              >
+                Prog.
+              </button>
+            ) : null}
+            {showStartRepair ? (
+              <button
+                type="button"
+                className="app-alerte-btn-primary"
+                onClick={(e) => startRepair(e, c)}
+              >
+                Repar.
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="app-alerte-btn-open"
+              onClick={() => onOpen(c)}
+              aria-label="Deschide dosarul"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </article>
+        {isScheduling ? (
+          <div
+            className="m-brief-schedule"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="date"
+              value={editDate}
+              onChange={(e) => setEditDate(e.target.value)}
+              className="m-brief-schedule-input"
+            />
+            <input
+              type="time"
+              value={editTime}
+              onChange={(e) => setEditTime(e.target.value)}
+              className="m-brief-schedule-input"
+            />
+            <button
+              type="button"
+              className="m-brief-ghost-btn m-brief-action-primary"
+              onClick={(e) => saveSchedule(e, c)}
+            >
+              Salvează
+            </button>
+            <button
+              type="button"
+              className="m-brief-ghost-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSchedulingId(null);
+              }}
+            >
+              Anulează
+            </button>
+          </div>
+        ) : null}
+      </li>
+    );
   };
 
   if (homeStyle === "inbox") {
-    const shortcuts = [
-      { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-a)", action: () => go("capture") },
-      { id: "dosare", label: "Dosare", Icon: FolderOpen, color: "var(--m-hub-b)", action: () => go("dosare") },
-      { id: "programari", label: "Programări", Icon: CalendarDays, color: "var(--m-hub-c)", action: () => go("programari") },
-      { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-hub-d)", action: () => (onNew ? onNew() : go("dosare")) },
-    ];
-
     return (
-      <div className="m-inbox space-y-4 flex flex-col flex-1 min-h-0 pb-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold m-muted">{atelierNume}</p>
-            <h1 className="m-inbox-title mt-0.5">Brief</h1>
-          </div>
-          <span className="m-inbox-count">{totalAlertsCount} alerte</span>
-        </div>
+      <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
+        <header className="m-brief-hero">
+          <h1 className="m-brief-title">Brief</h1>
+        </header>
 
-        <section className="m-inbox-card">
-          <div className="m-inbox-section-label">Favorites</div>
-          <div className="m-inbox-favs">
-            {shortcuts.map((item, idx) => (
+        <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
+          {pipelineTiles.map((tile) => {
+            const active = focus === tile.key;
+            const Icon = STAGE_FOCUS[tile.key].Icon;
+            const empty = tile.count === 0;
+            return (
               <button
-                key={item.id}
+                key={tile.key}
                 type="button"
-                className={`m-inbox-row m-press ${idx < shortcuts.length - 1 ? "has-divider" : ""}`}
-                onClick={item.action}
+                className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""} ${empty ? "is-empty" : ""}`}
+                onClick={() => setBoardFocus(tile.key)}
+                aria-pressed={active}
+                title={tile.title || STAGE_FOCUS[tile.key]?.hint}
               >
-                <span className="m-inbox-icon" style={{ background: item.color }}>
-                  <item.Icon size={16} />
+                <span className="m-brief-tile-top">
+                  <span className="m-brief-tile-icon">
+                    <Icon size={13} strokeWidth={2.4} />
+                  </span>
+                  <span className="m-brief-tile-count">{tile.count}</span>
                 </span>
-                <span className="m-inbox-row-label">{item.label}</span>
-                <ChevronRight size={16} className="m-inbox-chevron" />
+                <span className="m-brief-tile-label">{tile.label}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </section>
 
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h2 className="m-inbox-section-label" style={{ margin: 0 }}>Inbox alerte</h2>
-            {onNew && (
-              <button type="button" className="m-inbox-ghost-btn" onClick={onNew}>
-                + Dosar
-              </button>
-            )}
+        <button
+          type="button"
+          className={`m-brief-attention m-press ${focus === "atentie" ? "is-active" : ""} ${totalAlertsCount > 0 ? "has-items" : ""}`}
+          onClick={openAttentionAll}
+          aria-pressed={focus === "atentie" && attentionFilter === "toate"}
+          title={STAGE_FOCUS.atentie.hint}
+        >
+          <span className="m-brief-attention-icon">
+            <Ban size={14} strokeWidth={2.4} />
+          </span>
+          <span className="m-brief-attention-copy">
+            <span className="m-brief-attention-title">Atenție</span>
+            <span className="m-brief-attention-hint">
+              {totalAlertsCount > 0
+                ? attentionFilter !== "toate" && focus === "atentie"
+                  ? `Filtru activ: ${attentionFilterMeta.label}`
+                  : "Întârzieri, piese, predare, plăți"
+                : "Nicio alertă activă"}
+            </span>
+          </span>
+          <span className="m-brief-attention-count">{totalAlertsCount}</span>
+        </button>
+
+        {blockedCount > 0 && onOpenBlocked ? (
+          <button
+            type="button"
+            className="m-brief-attention m-press has-items"
+            onClick={() => {
+              softHaptic(8);
+              onOpenBlocked();
+            }}
+            title="Dosare blocate — inventar separat de alerte"
+          >
+            <span className="m-brief-attention-icon">
+              <AlertTriangle size={14} strokeWidth={2.4} />
+            </span>
+            <span className="m-brief-attention-copy">
+              <span className="m-brief-attention-title">Blocate</span>
+              <span className="m-brief-attention-hint">Inventar — nu apar în alerte</span>
+            </span>
+            <span className="m-brief-attention-count">{blockedCount}</span>
+          </button>
+        ) : null}
+
+        <section
+          ref={boardRef}
+          className="m-brief-board space-y-2 flex-1 min-h-0 flex flex-col"
+          aria-live="polite"
+        >
+          <div className="m-brief-board-head">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <h2 className="m-brief-board-title">
+                  {focus === "accept" ? "Accept plată (AP)" : focusBoard.title}
+                </h2>
+                <span className="m-brief-board-count shrink-0">
+                  {focusBoardCount}
+                </span>
+              </div>
+              <p className="m-brief-board-hint">{focusBoard.hint}</p>
+            </div>
           </div>
 
-          <div className="m-hub-pills">
-            {HUB_PILLS.map((pill) => (
-              <button
-                key={pill.key}
-                type="button"
-                className={`m-hub-pill ${activeAlertTab === pill.key ? "is-active" : ""}`}
-                onClick={() => { softHaptic(8); setActiveAlertTab(pill.key); }}
-              >
-                {pill.label}
-                {chipCount(pill.key) > 0 ? ` · ${chipCount(pill.key)}` : ""}
-              </button>
-            ))}
-          </div>
+          {focus === "atentie" && attentionStageChips.length > 1 ? (
+            <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtrează alertele pe stadiu">
+              {attentionStageChips.map((chip) => {
+                const active = attentionFilter === chip.key;
+                return (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className={`m-brief-alert-stage-chip m-press ${active ? "is-active" : ""}`}
+                    onClick={() => applyAttentionFilter(chip.key)}
+                    aria-pressed={active}
+                  >
+                    <span>{chip.label}</span>
+                    <span className="m-brief-alert-stage-chip-count">{chip.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
 
-          <div className="m-inbox-card overflow-hidden">
-            {alertsList.length === 0 ? (
-              <div className="text-center py-8 px-4 space-y-2">
-                <CheckCircle2 size={26} className="mx-auto" style={{ color: "var(--m-hub-a)" }} />
-                <div className="font-bold text-[13px]">Inbox gol pe filtrul ăsta</div>
-                <p className="text-[11.5px] m-muted">Schimbă filtrul sau treci la Foto.</p>
+          <div key={focus} className="m-brief-panel m-brief-list m-brief-list-swap flex-1 overflow-hidden">
+            {focusBoard.rows.length === 0 ? (
+              <div className="m-brief-empty">
+                <CheckCircle2 size={26} className="mx-auto m-brief-empty-icon" />
+                <div className="font-bold text-[13px]">{focusBoard.emptyTitle}</div>
+                <p className="text-[11.5px] m-muted">{focusBoard.emptyHint}</p>
               </div>
             ) : (
-              alertsList.map((item, idx) => {
-                const c = item.claim;
-                const phone = c.telefonClient || "";
-                return (
-                  <div
-                    key={item.id}
-                    className={`m-inbox-alert ${idx < alertsList.length - 1 ? "has-divider" : ""}`}
-                  >
-                    <button type="button" className="m-inbox-alert-main m-press" onClick={() => onOpen(c)}>
-                      <span className="m-inbox-icon" style={{ background: alertIconColor(item.type) }}>
-                        <AlertTriangle size={14} />
-                      </span>
-                      <span className="min-w-0 flex-1 text-left">
-                        <span className="m-inbox-meta">
-                          {c.numarInmatriculare || "—"} · {c.numarDosar || "fără nr."}
-                        </span>
-                        <span className="m-inbox-alert-title">{item.title}</span>
-                        <span className="m-inbox-alert-reason">{item.reason}</span>
-                      </span>
-                      <ChevronRight size={16} className="m-inbox-chevron shrink-0" />
-                    </button>
-                    {phone && (
-                      <div className="m-inbox-alert-actions">
-                        <WhatsAppButton phone={phone} claim={c} size={12} />
-                        <a href={telLink(phone)} className="m-call-btn flex items-center gap-1 px-2.5 py-1 text-[10.5px] font-bold">
-                          <Phone size={11} /> Apel
-                        </a>
-                        {onPatchClaim && canAck(item.type) && (
-                          <button
-                            type="button"
-                            onClick={(e) => ackAlert(e, c.id)}
-                            className="m-inbox-ghost-btn"
-                          >
-                            Rezolvat
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              <ul className="app-alerte-rows m-brief-alerte-rows m-flow-list">
+                {focusBoard.kind === "claims"
+                  ? focusBoard.rows.map((c) => renderClaimRow(c))
+                  : focusBoard.rows.map((item) => renderAlertRow(item))}
+              </ul>
             )}
           </div>
         </section>
+
+        <nav className="m-brief-quick" aria-label="Acces rapid">
+          {shortcuts.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`m-brief-quick-btn m-press ${item.id === "dosare" ? "is-secondary" : ""}`}
+              onClick={item.action}
+              title={item.title || item.label}
+            >
+              <item.Icon size={14} strokeWidth={2.3} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
   }
@@ -268,8 +978,17 @@ export default function MobileBrief({
         <div className="m-hub-grid">
           {[
             { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
-            { id: "alerte", label: `Alerte (${totalAlertsCount})`, Icon: AlertTriangle, color: "var(--m-hub-b)", action: () => setActiveAlertTab("toate") },
-            { id: "dosare", label: "Dosare", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
+            {
+              id: "alerte",
+              label: `Alerte (${totalAlertsCount})`,
+              Icon: AlertTriangle,
+              color: "var(--m-hub-b)",
+              action: () => {
+                if (onOpenAlerts) onOpenAlerts(totalAlertsCount > 0 ? "depasite" : "toate");
+                else setActiveAlertTab("toate");
+              },
+            },
+            { id: "dosare", label: "Toate dosarele", Icon: List, color: "var(--m-hub-d)", action: () => go("dosare") },
             { id: "new", label: "Dosar nou", Icon: Plus, color: "var(--m-accent)", action: () => (onNew ? onNew() : go("dosare")), iconColor: "#000" },
           ].map((tile) => (
             <button key={tile.id} type="button" className="m-hub-tile" onClick={tile.action}>
@@ -283,7 +1002,7 @@ export default function MobileBrief({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="m-display font-extrabold text-[15px]">De urmărit</h2>
+            <h2 className="m-type-title">De urmărit</h2>
             <button type="button" className="text-[11px] font-bold m-accent-text" onClick={() => go("programari")}>
               Agenda →
             </button>
@@ -317,16 +1036,16 @@ export default function MobileBrief({
               return (
                 <div key={item.id} className="m-hub-card space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-extrabold text-[14px] uppercase">
+                    <span className="m-plate">
                       {c.numarInmatriculare || "—"}
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md truncate max-w-[55%]" style={{ background: "var(--m-surface-2)", color: "var(--m-muted)" }}>
+                    <span className="m-vehicle-model truncate max-w-[55%]">
                       {item.title}
                     </span>
                   </div>
                   <div className="text-[12px] font-semibold m-muted flex justify-between gap-2">
-                    <span className="truncate">{c.marcaModel || "Model neprecizat"}</span>
-                    <span className="font-mono text-[11px] shrink-0">Dosar: {c.numarDosar || "—"}</span>
+                    <span className="m-vehicle-model truncate">{c.marcaModel || "Model neprecizat"}</span>
+                    <span className="m-dosar-num shrink-0">{c.numarDosar || "—"}</span>
                   </div>
                   <div className="text-[11.5px] font-bold p-2 rounded-xl" style={{ background: "color-mix(in srgb, var(--m-danger) 16%, transparent)", color: "var(--m-danger)" }}>
                     {item.reason}
@@ -376,22 +1095,29 @@ export default function MobileBrief({
     );
   }
 
+  // Legacy list — keep for fallback
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px] font-bold">
-        {FILTER_CHIPS.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            onClick={() => setActiveAlertTab(chip.key)}
-            className={`w-full py-2 px-2 rounded-xl border text-center transition-all ${
-              activeAlertTab === chip.key ? `${chip.active} shadow-xs` : chip.idle
-            }`}
-          >
-            {chip.label} ({chipCount(chip.key)})
-          </button>
-        ))}
+    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[var(--app-text)] pb-4">
+      <div className="flex gap-1.5 overflow-x-auto scrollbar-none text-[11px] font-bold pb-0.5">
+        {FILTER_CHIPS.map((chip) => {
+          const n = chipCount(chip.key);
+          const active = activeAlertTab === chip.key;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => setActiveAlertTab(chip.key)}
+              className={`shrink-0 py-2 px-3 rounded-xl border text-center transition-all whitespace-nowrap ${
+                active
+                  ? "bg-[#2C4160] text-white border-[#2C4160] shadow-xs"
+                  : "bg-[var(--app-surface)] text-[var(--app-muted)] border-[var(--app-border)]"
+              }`}
+            >
+              {chip.label}
+              {n > 0 ? ` (${n})` : ""}
+            </button>
+          );
+        })}
       </div>
 
       <div className="space-y-2.5 flex-1 overflow-y-auto pr-0.5">
@@ -406,36 +1132,34 @@ export default function MobileBrief({
             const phone = c.telefonClient || "";
 
             return (
-              <div key={item.id} className="bg-white border border-[#DAD4C6] rounded-2xl p-3.5 shadow-sm space-y-2.5">
+              <div key={item.id} className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl p-3.5 shadow-sm space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono font-extrabold text-[14px] text-[#23282E] uppercase">
-                    {c.numarInmatriculare || "—"}
+                  <span className="m-brief-row-plate">
+                    <span className="m-plate">{c.numarInmatriculare || "—"}</span>
+                    <span className="m-dosar-num">{c.numarDosar || "—"}</span>
                   </span>
-                  <span className="text-[10px] font-bold bg-[#FAF8F5] border border-[#DAD4C6] px-2 py-0.5 rounded-md text-[#3B5166] truncate max-w-[55%]">
+                  <span className="text-[10px] font-bold bg-[var(--app-surface-2)] border border-[var(--app-border)] px-2 py-0.5 rounded-md text-[var(--app-text)] truncate max-w-[40%]">
                     {item.title}
                   </span>
                 </div>
 
-                <div className="text-[12px] font-semibold text-[#6B6558] flex justify-between gap-2">
-                  <span className="truncate">{c.marcaModel || "Model neprecizat"}</span>
-                  <span className="font-mono text-[11px] shrink-0">Dosar: {c.numarDosar || "—"}</span>
-                </div>
+                <div className="m-vehicle-model truncate">{c.marcaModel || "Model neprecizat"}</div>
 
                 <div className="text-[11.5px] font-bold text-[#B23A2E] bg-red-50/60 border border-red-100 p-2 rounded-xl">
                   {item.reason}
                 </div>
 
-                <div className="pt-2 border-t border-[#EFEAE1] flex items-center justify-between gap-2">
+                <div className="pt-2 border-t border-[var(--app-border)] flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     {phone && (
                       <>
                         <WhatsAppButton phone={phone} claim={c} size={12} />
-                          <a
-                            href={telLink(phone)}
-                            className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
-                          >
-                            <Phone size={12} /> Apel
-                          </a>
+                        <a
+                          href={telLink(phone)}
+                          className="m-call-btn flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold"
+                        >
+                          <Phone size={12} /> Apel
+                        </a>
                       </>
                     )}
                   </div>
@@ -445,7 +1169,7 @@ export default function MobileBrief({
                       <button
                         type="button"
                         onClick={(e) => ackAlert(e, c.id)}
-                        className="px-2.5 py-1.5 rounded-xl bg-[#EFEAE1] text-[#3B5166] text-[11px] font-bold"
+                        className="px-2.5 py-1.5 rounded-xl bg-[var(--app-surface-2)] text-[var(--app-text)] text-[11px] font-bold"
                       >
                         Rezolvat
                       </button>

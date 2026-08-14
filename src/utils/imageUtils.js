@@ -3,11 +3,11 @@
 // limita de mărime și să se încarce rapid chiar și pe 4G.
 
 async function loadBitmap(file) {
-  if (window.createImageBitmap) {
+  if (typeof window !== "undefined" && window.createImageBitmap) {
     try {
       return await createImageBitmap(file);
     } catch (err) {
-      // unele browsere nu pot decoda direct HEIC prin createImageBitmap — cădem pe <img>
+      // unele browsere nu pot decoda direct anumite formate — cădem pe <img>
     }
   }
   return await new Promise((resolve, reject) => {
@@ -25,7 +25,7 @@ async function loadBitmap(file) {
   });
 }
 
-export async function compressImage(file, { maxDim = 1600, quality = 0.82 } = {}) {
+export async function compressImage(file, { maxDim = 1800, quality = 0.80, format = "image/jpeg" } = {}) {
   if (!file || !file.type || !file.type.startsWith("image/")) return file;
 
   try {
@@ -42,16 +42,28 @@ export async function compressImage(file, { maxDim = 1600, quality = 0.82 } = {}
     canvas.width = targetW;
     canvas.height = targetH;
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      canvas.width = 0;
+      canvas.height = 0;
+      return file;
+    }
+
     ctx.drawImage(bitmap, 0, 0, targetW, targetH);
     if (typeof bitmap.close === "function") bitmap.close();
 
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, format, quality));
+
+    // Zero-memory canvas teardown pentru iOS WebKit / Safari PWA
+    canvas.width = 0;
+    canvas.height = 0;
+
     if (!blob || blob.size >= file.size) return file; // originalul era deja mic — nu merită înlocuit
 
-    const newName = (file.name || "poza").replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], newName, { type: "image/jpeg", lastModified: Date.now() });
+    const ext = format === "image/webp" ? ".webp" : ".jpg";
+    const newName = (file.name || "poza").replace(/\.[^.]+$/, "") + ext;
+    return new File([blob], newName, { type: format, lastModified: Date.now() });
   } catch (err) {
-    console.warn("Comprimare eșuată, se încarcă fotografia originală:", err);
+    console.warn("Comprimare eșuată, se folosește fișierul original:", err);
     return file;
   }
 }

@@ -1,0 +1,2478 @@
+/* Mobil — aceleași tokeni ca desktop (.app-shell), fără teme multiple */
+
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    background: var(--app-bg);
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
+
+  .mobile-shell.app-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .mobile-shell.app-shell button,
+  .mobile-shell.app-shell a,
+  .mobile-shell.app-shell input,
+  .mobile-shell.app-shell select {
+    touch-action: manipulation;
+  }
+}
+
+.mobile-shell.app-shell {
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--app-font-body);
+  --m-bg: var(--app-bg);
+  --m-surface: var(--app-surface);
+  --m-surface-2: var(--app-surface-2);
+  --m-text: var(--app-text);
+  --m-muted: var(--app-muted);
+  --m-border: var(--app-border);
+  --m-header: var(--app-chrome);
+  --m-header-text: var(--app-chrome-text);
+  --m-nav: var(--app-chrome);
+  --m-nav-text: var(--app-muted);
+  --m-nav-active: var(--app-accent);
+  --m-accent: var(--app-accent);
+  --m-accent-text: var(--app-accent-text);
+  --m-danger: var(--app-danger);
+  --m-radius: var(--app-radius-lg);
+  --m-radius-sm: var(--app-radius);
+  --m-shadow: none;
+  --m-font-body: var(--app-font-body);
+  --m-font-display: var(--app-font-display);
+  /* Mobile type scale — 5 steps; identity text = body (Acces rapid) */
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
+}
+
+.mobile-shell.app-shell .m-header-bar {
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .m-nav-bar {
+  background: var(--app-chrome);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .m-nav-item {
+  color: var(--app-muted);
+  border: 1.5px solid transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.mobile-shell.app-shell .m-nav-item.is-active {
+  color: var(--app-text-strong);
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-icon,
+.mobile-shell.app-shell .m-nav-item.is-active .m-nav-label {
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-nav-icon {
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-nav-item:active {
+  transform: none;
+}
+
+.mobile-shell.app-shell .m-content {
+  background: var(--app-bg);
+}
+
+.mobile-shell.app-shell .bg-white,
+.mobile-shell.app-shell .bg-\[\#FAF8F5\],
+.mobile-shell.app-shell .bg-\[\#FCFAF5\] {
+  background-color: var(--app-surface) !important;
+}
+
+.mobile-shell.app-shell .text-\[\#23282E\],
+.mobile-shell.app-shell .text-\[\#3B5166\] {
+  color: var(--app-text) !important;
+}
+
+.mobile-shell.app-shell .text-\[\#6B6558\],
+.mobile-shell.app-shell .text-\[\#8A8375\] {
+  color: var(--app-muted) !important;
+}
+
+.mobile-shell.app-shell .border-\[\#DAD4C6\],
+.mobile-shell.app-shell .border-\[\#EFEAE1\] {
+  border-color: var(--app-border) !important;
+}
+
+.mobile-shell.app-shell .m-coach-banner {
+  background: color-mix(in srgb, var(--app-accent) 10%, var(--app-surface));
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Bottom chrome: floating search pill (no tab nav) */
+.mobile-shell.app-shell {
+  --mobile-bottom-chrome: 3.6rem;
+  background: var(--app-bg);
+}
+
+.mobile-shell.app-shell .mobile-main {
+  padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
+}
+
+/* When fullscreen overlays own the screen, drop reserved search space */
+.mobile-shell.app-shell.is-chrome-hidden .mobile-main {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-shell.app-shell .mobile-main--no-header {
+  padding-top: calc(3.55rem + env(safe-area-inset-top, 0px));
+}
+
+/* Floating brand logo + nav menu (replaces fixed header) */
+.mobile-shell.app-shell .m-float-brand-wrap {
+  position: fixed;
+  top: calc(0.65rem + env(safe-area-inset-top, 0px));
+  left: 0.75rem;
+  z-index: 60;
+  max-width: min(18.5rem, calc(100vw - 1.5rem));
+}
+
+.mobile-shell.app-shell .m-float-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  padding: 0.28rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: var(--app-text);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--app-text) 10%, transparent);
+}
+
+.mobile-shell.app-shell .m-float-brand.is-open {
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-float-brand-mark {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.mobile-shell.app-shell .m-float-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-float-brand-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-float-menu {
+  margin-top: 0.45rem;
+  padding: 0.45rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 75%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(1.15);
+  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--app-text) 16%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
+
+.mobile-shell.app-shell .m-float-menu-label {
+  font-size: var(--m-type-micro);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  padding: 0.35rem 0.55rem 0.2rem;
+}
+
+.mobile-shell.app-shell .m-float-menu-meta {
+  font-size: var(--m-type-micro);
+  font-weight: 600;
+  color: var(--app-muted);
+  padding: 0.15rem 0.55rem 0.35rem;
+}
+
+.mobile-shell.app-shell .m-float-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.55rem;
+  border-radius: 0.7rem;
+  border: none;
+  background: transparent;
+  color: var(--app-text);
+  text-align: left;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-active {
+  background: var(--app-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 18%, transparent);
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-danger {
+  color: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-secondary {
+  color: var(--app-muted);
+  font-weight: 650;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-secondary .m-float-menu-icon {
+  opacity: 0.85;
+}
+
+.mobile-shell.app-shell .m-float-menu-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-float-menu-item.is-danger .m-float-menu-icon {
+  color: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-float-menu-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-float-menu-badge {
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--app-danger);
+  color: #fff;
+  font-size: var(--m-type-micro);
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-shell.app-shell .m-float-menu-divider {
+  height: 1px;
+  margin: 0.35rem 0.35rem;
+  background: var(--app-border);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-brand,
+html[data-app-theme="dark"] .mobile-shell.app-shell .m-float-menu {
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-float-menu {
+    transition: none;
+  }
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome {
+  background: var(--app-chrome);
+  border-top: 1px solid var(--app-border);
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+}
+
+/*
+ * Floating search like Cursor composer — only the pill, no bottom slab.
+ * Page content shows through; chrome itself is fully transparent.
+ */
+.mobile-shell.app-shell .mobile-bottom-chrome--float {
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+  padding: 0 0.75rem max(0.35rem, env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+  background: color-mix(in srgb, var(--app-surface) 82%, transparent);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, var(--app-border) 65%, transparent);
+  border-radius: 999px;
+  padding: 0.3rem 0.35rem;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--app-text) 14%, transparent);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.mobile-shell.app-shell .mobile-search-dock {
+  background: var(--app-chrome);
+  border-color: var(--app-border);
+}
+
+.mobile-shell.app-shell .mobile-search-input {
+  min-height: 2.85rem;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--app-text);
+}
+
+.mobile-shell.app-shell .mobile-search-input::placeholder {
+  color: var(--app-muted);
+  opacity: 0.85;
+}
+
+.mobile-shell.app-shell .mobile-search-input:focus {
+  border-color: transparent;
+  outline: none;
+}
+
+/* Login — același stil ca shell desktop */
+.app-login {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--app-chrome);
+  color: var(--app-text);
+  font-family: var(--app-font-body);
+  overflow: hidden;
+}
+
+.app-login-glow {
+  position: absolute;
+  inset: -20% auto auto 50%;
+  width: 520px;
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--app-accent) 18%, transparent), transparent 68%);
+  pointer-events: none;
+}
+
+.app-login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 24rem;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  padding: 1.35rem 1.25rem 1.2rem;
+}
+
+.app-login-logo {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+}
+
+.app-login-mark {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 60%, var(--app-border));
+}
+
+.app-login-title {
+  font-weight: 800;
+  font-size: var(--m-type-title, 1.05rem);
+  letter-spacing: -0.02em;
+  color: var(--app-text-strong);
+}
+
+.app-login-sub {
+  font-size: var(--m-type-meta, 0.75rem);
+  color: var(--app-muted);
+  font-weight: 600;
+}
+
+.app-login-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--m-type-micro, 0.65rem);
+  font-weight: 700;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-login-input {
+  width: 100%;
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  color: var(--app-text);
+  font-size: 16px; /* iOS: avoid auto-zoom on focus */
+  font-weight: 600;
+  padding: 0.7rem 0.85rem;
+  outline: none;
+}
+
+.app-login-input::placeholder {
+  color: var(--app-muted-2);
+}
+
+.app-login-input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 25%, transparent);
+}
+
+.app-login-error {
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 700;
+  color: var(--app-danger);
+  background: color-mix(in srgb, var(--app-danger) 12%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+  border-radius: var(--app-radius);
+  padding: 0.5rem 0.65rem;
+}
+
+.app-login-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: var(--app-radius);
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.app-login-submit:hover {
+  background: var(--app-accent-hover);
+}
+
+.app-login-submit:active {
+  transform: scale(0.98);
+}
+
+.app-login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.app-login-hint {
+  font-size: var(--m-type-meta, 0.75rem);
+  color: var(--app-muted);
+}
+
+/* Evidențiere rezultat căutare */
+@keyframes app-search-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-accent) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 55%, transparent);
+    border-color: var(--app-accent);
+  }
+}
+
+.app-shell .is-search-highlight {
+  animation: app-search-pulse 1.1s ease-in-out 4;
+  border-color: var(--app-accent) !important;
+}
+
+.app-shell .app-search-lg {
+  min-width: 22rem;
+  width: min(36rem, 42vw);
+}
+
+.photo-lightbox-scroller {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.photo-lightbox-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* —— Modale mobil (dark shell) —— */
+.m-themed-modal {
+  padding: 0 !important;
+  align-items: stretch !important;
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
+}
+
+.m-themed-modal .m-modal-panel {
+  background: var(--app-surface);
+  border: none;
+  border-radius: 0;
+  max-height: 100dvh;
+  height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Edge-to-edge; content pads safe-area itself — no bottom chrome slab */
+  padding-bottom: 0;
+}
+
+.m-themed-modal .m-modal-header {
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+  border-bottom: 1px solid var(--app-border);
+}
+
+.m-themed-modal .m-modal-header-icon {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.m-themed-modal .m-modal-body {
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+.m-themed-modal .app-mobile-label {
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  color: var(--app-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.m-themed-modal .app-mobile-input,
+.m-themed-modal select.app-mobile-input {
+  background: var(--app-bg);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  min-height: 2.75rem;
+}
+
+.m-themed-modal .app-mobile-input:focus,
+.m-themed-modal select.app-mobile-input:focus {
+  border-color: var(--app-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 25%, transparent);
+}
+
+.m-themed-modal .m-modal-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
+}
+
+.m-themed-modal .m-modal-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.m-themed-modal .m-modal-btn-secondary {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.m-themed-modal .m-modal-btn-secondary:hover {
+  background: var(--app-surface-muted);
+}
+
+/* Setări — taburi & conținut */
+.m-themed-modal .m-settings-tabs {
+  background: transparent;
+  border-color: transparent;
+}
+
+.m-themed-modal .m-settings-tab {
+  color: var(--app-muted);
+  border-color: transparent;
+}
+
+.m-themed-modal .m-settings-tab.is-active {
+  color: var(--app-accent);
+  border-color: transparent;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.m-themed-modal .m-settings-tab-badge {
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-settings-tab-badge.is-active {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.m-themed-modal .flex-1.min-h-0.overflow-y-auto {
+  background: var(--app-bg);
+}
+
+.m-themed-modal .bg-white,
+.m-themed-modal .bg-\[\#FAF8F5\] {
+  background: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text);
+}
+
+.m-themed-modal .text-\[\#23282E\],
+.m-themed-modal .text-\[\#3B5166\] {
+  color: var(--app-text) !important;
+}
+
+.m-themed-modal .text-\[\#6B6558\],
+.m-themed-modal .text-\[\#8A8375\] {
+  color: var(--app-muted) !important;
+}
+
+.m-themed-modal input,
+.m-themed-modal select,
+.m-themed-modal textarea {
+  background: var(--app-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.m-themed-modal input:focus,
+.m-themed-modal select:focus,
+.m-themed-modal textarea:focus {
+  border-color: var(--app-accent) !important;
+  outline: none;
+}
+
+.m-themed-modal .flex.items-center.justify-between.px-4.py-2\.5.bg-white.border-t {
+  background: var(--app-chrome) !important;
+  border-color: var(--app-border) !important;
+}
+
+.m-themed-modal .flex.items-center.justify-between.px-4.py-2\.5.bg-white.border-t button {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+/* Comutator temă — Setări */
+.m-themed-modal .m-theme-choice,
+.mobile-shell.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-theme-choice.is-active,
+.mobile-shell.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+  cursor: pointer;
+}
+
+.app-shell .m-theme-choice.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.app-shell .m-theme-choice:hover:not(.is-active) {
+  border-color: var(--app-muted);
+  color: var(--app-text);
+}
+
+/* Dosare — listă mobil */
+.mobile-shell.app-shell .m-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
+}
+
+.mobile-shell.app-shell .m-filter-pill {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+  font-size: var(--m-type-body);
+  font-weight: 700;
+}
+
+.mobile-shell.app-shell .m-filter-pill.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+.mobile-shell.app-shell .m-stack-badge {
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+  border: 1px solid color-mix(in srgb, var(--app-text-strong) 28%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-call-btn {
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  border-radius: 0.5rem;
+}
+
+.mobile-shell.app-shell .m-claim-card:hover {
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-capture-cat {
+  background: var(--app-surface-2);
+  border-color: var(--app-border);
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-capture-cat.is-active {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 42%, transparent);
+  color: var(--app-text-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 14%, transparent);
+}
+
+/* ── Mobile UI language (Brief + shared m-ui-* aliases) ── */
+
+.mobile-shell.app-shell .m-brief-hero,
+.mobile-shell.app-shell .m-ui-hero {
+  padding-top: 0.15rem;
+}
+
+.mobile-shell.app-shell .m-brief-kicker,
+.mobile-shell.app-shell .m-ui-kicker {
+  margin: 0;
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-brief-title {
+  margin: 0;
+  font-family: var(--app-font-display);
+  font-size: var(--m-type-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-ui-title {
+  margin: 0;
+  font-family: var(--app-font-display);
+  font-size: var(--m-type-page);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-ui-back {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--m-type-micro);
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-brief-count,
+.mobile-shell.app-shell .m-ui-count {
+  font-size: var(--m-type-meta);
+  font-weight: 700;
+  color: var(--app-muted);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-tiles,
+.mobile-shell.app-shell .m-ui-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.mobile-shell.app-shell .m-brief-tiles--stages {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile,
+.mobile-shell.app-shell .m-ui-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-height: 5.1rem;
+  padding: 0.75rem 0.8rem 0.7rem;
+  border-radius: 1.35rem;
+  border: 1px solid var(--app-border);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--app-surface) 88%, var(--app-bg)), var(--app-surface));
+  text-align: left;
+  color: var(--app-text);
+  transition: border-color 0.12s ease, transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact {
+  min-height: 0;
+  gap: 0.28rem;
+  padding: 0.5rem 0.55rem 0.48rem;
+  border-radius: 0.95rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-empty {
+  opacity: 0.55;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-empty.is-active {
+  opacity: 1;
+}
+
+.mobile-shell.app-shell .m-brief-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.is-compact .m-ui-tile-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-label {
+  font-size: var(--m-type-micro, 0.72rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-compact .m-brief-tile-count {
+  margin-top: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.mobile-shell.app-shell .m-brief-attention {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 1rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text);
+  text-align: left;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+}
+
+.mobile-shell.app-shell .m-brief-attention.has-items {
+  border-color: color-mix(in srgb, var(--app-danger) 35%, var(--app-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--app-danger) 10%, var(--app-surface)), var(--app-surface));
+}
+
+.mobile-shell.app-shell .m-brief-attention.is-active {
+  border-color: color-mix(in srgb, var(--app-danger) 55%, var(--app-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-danger) 18%, transparent);
+}
+
+.mobile-shell.app-shell .m-brief-attention-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-danger);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-attention-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mobile-shell.app-shell .m-brief-attention-title {
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--app-text-strong);
+  line-height: 1.15;
+}
+
+.mobile-shell.app-shell .m-brief-attention-hint {
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 600;
+  color: var(--app-muted);
+  line-height: 1.3;
+}
+
+.mobile-shell.app-shell .m-brief-attention-count {
+  font-family: var(--app-font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--app-text-strong);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-quick-btn.is-secondary {
+  color: var(--app-muted);
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.mobile-shell.app-shell .m-brief-quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  padding: 0.55rem 0.35rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text-strong);
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.mobile-shell.app-shell .m-brief-quick-btn:active {
+  transform: scale(0.97);
+}
+
+.mobile-shell.app-shell .m-brief-list-swap {
+  animation: m-brief-swap 0.18s ease;
+}
+
+@keyframes m-brief-swap {
+  from {
+    opacity: 0.35;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-brief-list-swap {
+    animation: none;
+  }
+}
+
+.mobile-shell.app-shell .m-brief-claim-blocked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.22rem;
+  border-radius: 0.3rem;
+  background: var(--app-danger);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-tile:active,
+.mobile-shell.app-shell .m-ui-tile:active {
+  transform: scale(0.98);
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-active,
+.mobile-shell.app-shell .m-ui-tile.is-active {
+  border-color: color-mix(in srgb, var(--app-text-strong) 45%, var(--app-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 12%, transparent);
+  background: var(--app-bg);
+}
+
+.mobile-shell.app-shell .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-steel .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-steel .m-ui-tile-icon {
+  background: #2C4160;
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-accent .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-accent .m-ui-tile-icon {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-danger .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-danger .m-ui-tile-icon {
+  background: var(--app-danger);
+}
+
+.mobile-shell.app-shell .m-brief-tile.tone-ok .m-brief-tile-icon,
+.mobile-shell.app-shell .m-ui-tile.tone-ok .m-ui-tile-icon {
+  background: #3E6B45;
+}
+
+.mobile-shell.app-shell .m-brief-tile-label,
+.mobile-shell.app-shell .m-ui-tile-label {
+  font-size: var(--m-type-meta);
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-tile.is-active .m-brief-tile-label,
+.mobile-shell.app-shell .m-ui-tile.is-active .m-ui-tile-label {
+  color: var(--app-text);
+}
+
+.mobile-shell.app-shell .m-brief-tile-count,
+.mobile-shell.app-shell .m-ui-tile-count {
+  margin-top: auto;
+  font-family: var(--app-font-display);
+  font-size: var(--m-type-page);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--app-text-strong);
+  line-height: 1;
+}
+
+.mobile-shell.app-shell .m-brief-panel,
+.mobile-shell.app-shell .m-ui-panel {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.mobile-shell.app-shell .m-brief-panel-label,
+.mobile-shell.app-shell .m-ui-panel-label {
+  font-size: var(--m-type-micro);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  padding: 0.65rem 0.85rem 0.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut,
+.mobile-shell.app-shell .m-brief-row-main,
+.mobile-shell.app-shell .m-ui-shortcut,
+.mobile-shell.app-shell .m-ui-row-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.72rem 0.85rem;
+  background: transparent;
+  border: none;
+  color: var(--app-text);
+  text-align: left;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut.has-divider,
+.mobile-shell.app-shell .m-brief-row.has-divider,
+.mobile-shell.app-shell .m-brief-claim-row.has-divider,
+.mobile-shell.app-shell .m-ui-shortcut.has-divider,
+.mobile-shell.app-shell .m-ui-row.has-divider,
+.mobile-shell.app-shell .m-ui-claim-row.has-divider {
+  border-bottom: 1px solid var(--app-border);
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-icon,
+.mobile-shell.app-shell .m-brief-row-icon,
+.mobile-shell.app-shell .m-ui-shortcut-icon,
+.mobile-shell.app-shell .m-ui-row-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #2C4160;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-icon,
+.mobile-shell.app-shell .m-ui-shortcut-icon {
+  background: color-mix(in srgb, var(--app-accent) 85%, #2C4160);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-row-icon.is-work,
+.mobile-shell.app-shell .m-ui-row-icon.is-work {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-brief-shortcut-label,
+.mobile-shell.app-shell .m-ui-shortcut-label {
+  flex: 1;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-brief-chevron,
+.mobile-shell.app-shell .m-ui-chevron {
+  color: var(--app-muted);
+  opacity: 0.7;
+}
+
+.mobile-shell.app-shell .m-brief-list,
+.mobile-shell.app-shell .m-ui-list {
+  overflow-y: auto;
+  max-height: min(58vh, 32rem);
+}
+
+.mobile-shell.app-shell .m-brief-board-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.mobile-shell.app-shell .m-brief-board-title {
+  margin: 0;
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-board-count {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--m-type-meta);
+  font-weight: 800;
+  color: var(--app-text-strong);
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-brief-board-hint {
+  margin: 0.28rem 0 0;
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 600;
+  color: var(--app-muted);
+  line-height: 1.35;
+}
+
+.mobile-shell.app-shell .m-brief-row-meta,
+.mobile-shell.app-shell .m-ui-row-meta {
+  display: block;
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  color: var(--app-muted);
+  letter-spacing: 0.01em;
+}
+
+.mobile-shell.app-shell .m-brief-row-title,
+.mobile-shell.app-shell .m-ui-row-title {
+  display: block;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  color: var(--app-text-strong);
+  margin-top: 0.1rem;
+  line-height: 1.25;
+}
+
+.mobile-shell.app-shell .m-brief-row-reason,
+.mobile-shell.app-shell .m-brief-row-note,
+.mobile-shell.app-shell .m-ui-row-reason,
+.mobile-shell.app-shell .m-ui-row-note {
+  display: block;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  color: var(--app-muted);
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+.mobile-shell.app-shell .m-brief-row-note,
+.mobile-shell.app-shell .m-ui-row-note {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.mobile-shell.app-shell .m-brief-row-actions,
+.mobile-shell.app-shell .m-ui-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.85rem 0.7rem 3.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-ghost-btn,
+.mobile-shell.app-shell .m-ui-ghost-btn {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.5rem;
+}
+
+.mobile-shell.app-shell .m-brief-action-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border-color: color-mix(in srgb, var(--app-accent) 40%, var(--app-border));
+  background: color-mix(in srgb, var(--app-accent) 14%, var(--app-surface));
+  color: var(--app-text-strong);
+}
+
+.mobile-shell.app-shell .m-brief-empty,
+.mobile-shell.app-shell .m-ui-empty {
+  text-align: center;
+  padding: 2rem 1.1rem;
+  space-y: 0.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-empty > * + *,
+.mobile-shell.app-shell .m-ui-empty > * + * {
+  margin-top: 0.35rem;
+}
+
+.mobile-shell.app-shell .m-brief-empty-icon,
+.mobile-shell.app-shell .m-ui-empty-icon {
+  color: #3E6B45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-brief-tile {
+    transition: none;
+  }
+}
+
+
+/* Shared panel padding variant (forms / rich cards) */
+.mobile-shell.app-shell .m-ui-panel-pad {
+  padding: 0.85rem;
+}
+
+.mobile-shell.app-shell .m-ui-panel-pad > .m-ui-panel-label:first-child,
+.mobile-shell.app-shell .m-ui-panel-pad > .m-brief-panel-label:first-child {
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+}
+
+.mobile-shell.app-shell .m-ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-time {
+  background: #2C4160;
+  border-color: #2C4160;
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-accent {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: var(--app-accent-text);
+}
+
+.mobile-shell.app-shell .m-ui-chip.is-danger {
+  background: var(--app-danger);
+  border-color: var(--app-danger);
+  color: #fff;
+}
+
+.mobile-shell.app-shell .m-ui-primary-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 1.15rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+  background: var(--app-chrome);
+  color: var(--app-chrome-text);
+}
+
+.mobile-shell.app-shell .m-ui-primary-cta:active {
+  transform: scale(0.98);
+}
+
+.mobile-shell.app-shell .m-ui-select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  text-align: left;
+}
+
+.mobile-shell.app-shell .m-ui-select-row.is-selected {
+  background: var(--app-bg);
+  border-color: color-mix(in srgb, var(--app-text-strong) 45%, var(--app-border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 12%, transparent);
+}
+
+.mobile-shell.app-shell .m-ui-hint {
+  border: 1px dashed var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-muted);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  font-size: var(--m-type-meta);
+  font-weight: 600;
+  text-align: center;
+}
+
+.mobile-shell.app-shell .m-sheet-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  box-shadow: none;
+}
+
+/* Claim sheet — floating cards outside mobile-shell */
+.m-claim-sheet.app-shell {
+  background: var(--app-bg);
+  color: var(--app-text);
+  --m-type-display: 1.5rem;
+  --m-type-page: 1.25rem;
+  --m-type-title: 1.05rem;
+  --m-type-body: 0.9rem;
+  --m-type-meta: 0.75rem;
+  --m-type-micro: 0.65rem;
+}
+
+.m-claim-sheet .m-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.65rem 0.85rem 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1.35rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 75%, transparent);
+  background: color-mix(in srgb, var(--app-chrome) 92%, transparent);
+  color: var(--app-chrome-text);
+  box-shadow: 0 8px 28px color-mix(in srgb, #000 18%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.m-claim-sheet .m-sheet-header-kicker {
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.m-claim-sheet .m-sheet-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, #fff 12%, transparent);
+  border: 1px solid color-mix(in srgb, #fff 14%, transparent);
+  color: inherit;
+}
+
+.m-claim-sheet .m-sheet-card {
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  border-radius: 1.25rem;
+  padding: 0.9rem;
+  box-shadow: 0 4px 18px color-mix(in srgb, #000 8%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.m-claim-sheet .m-sheet-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 9999px;
+  border: none;
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--app-accent) 28%, transparent);
+}
+
+.m-claim-sheet .m-sheet-cta:active {
+  transform: scale(0.98);
+}
+
+.m-claim-sheet .m-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-text);
+  font-size: var(--m-type-body);
+  font-weight: 800;
+}
+
+.m-claim-sheet .m-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem 0.85rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.mobile-shell.app-shell .m-claim-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 1rem;
+  box-shadow: none;
+}
+
+.mobile-shell.app-shell .m-claim-card:hover {
+  border-color: color-mix(in srgb, var(--app-text-strong) 35%, var(--app-border));
+}
+
+.mobile-shell.app-shell .m-header-bar {
+  box-shadow: none;
+  border-bottom: 1px solid var(--app-border);
+}
+
+/* Shared claim typography — plate / dosar / model = body (Acces rapid) */
+.m-plate {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--app-text-strong);
+  line-height: 1.25;
+}
+
+.m-dosar-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  color: var(--app-text-strong);
+  line-height: 1.25;
+}
+
+.m-vehicle-model {
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.mobile-shell.app-shell .m-brief-row-plate,
+.mobile-shell.app-shell .m-ui-row-plate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.65rem;
+}
+
+.mobile-shell.app-shell .m-brief-row-title.m-vehicle-model {
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+/* Brief claim rows — no model; compact identity + status */
+.mobile-shell.app-shell .m-brief-claim-row {
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  align-items: flex-start;
+}
+
+.mobile-shell.app-shell .m-brief-claim-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-brief-claim-body .m-brief-row-note {
+  margin-top: 0;
+}
+
+.mobile-shell.app-shell .m-brief-claim-identity {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobile-shell.app-shell .m-brief-claim-identity .m-plate,
+.mobile-shell.app-shell .m-brief-claim-identity .m-dosar-num {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-claim-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #3E6B45 16%, var(--app-surface));
+  color: #3E6B45;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-brief-claim-chip.is-ap {
+  background: color-mix(in srgb, #3E6B45 18%, var(--app-surface));
+  color: #2F6B4E;
+}
+
+.mobile-shell.app-shell .m-brief-row {
+  transition: opacity 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+
+.mobile-shell.app-shell .m-brief-row.is-exiting {
+  opacity: 0;
+  transform: translateY(-8px);
+  filter: blur(0.6px);
+  pointer-events: none;
+}
+
+.mobile-shell.app-shell .m-brief-row.is-flash {
+  animation: m-brief-flash 0.48s ease;
+}
+
+@keyframes m-brief-flash {
+  0% {
+    background: transparent;
+  }
+  35% {
+    background: color-mix(in srgb, var(--app-accent) 16%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-shell.app-shell .m-brief-row {
+    transition: none;
+  }
+
+  .mobile-shell.app-shell .m-brief-row.is-exiting {
+    opacity: 0.35;
+    transform: none;
+    filter: none;
+  }
+
+  .mobile-shell.app-shell .m-brief-row.is-flash {
+    animation: none;
+  }
+}
+
+.mobile-shell.app-shell .m-brief-claim-status {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 0.08rem;
+  flex: 0 0 auto;
+  max-width: 38%;
+  text-align: right;
+  font-size: var(--m-type-body);
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.15;
+  padding-top: 0.05rem;
+}
+
+.mobile-shell.app-shell .m-brief-schedule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.85rem 0.75rem 3.4rem;
+}
+
+.mobile-shell.app-shell .m-brief-schedule-input {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-2);
+  color: var(--app-text-strong);
+  border-radius: 0.5rem;
+  font-size: var(--m-type-micro);
+  font-weight: 700;
+  padding: 0.35rem 0.45rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-brief-action-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.mobile-shell.app-shell .m-brief-claim-status-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.mobile-shell.app-shell .m-brief-claim-date {
+  display: block;
+  margin: 0.05rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 800;
+  color: var(--app-accent);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-shell.app-shell .m-brief-claim-days {
+  font-size: var(--m-type-micro, 0.72rem);
+  font-weight: 700;
+  color: var(--app-muted);
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.mobile-shell.app-shell .m-brief-claim-appt {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--app-accent);
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+.mobile-shell.app-shell .m-fab-plus {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 55%, var(--app-border));
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  box-shadow: none;
+}
+
+.mobile-shell.app-shell .m-fab-plus:active {
+  transform: scale(0.96);
+}
+
+.mobile-shell.app-shell button.m-brief-count {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mobile-shell.app-shell .m-brief-alert-stage-filters {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 0.1rem 0.15rem;
+}
+
+.mobile-shell.app-shell .m-brief-alert-stage-filters::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-shell.app-shell .m-brief-alert-stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-muted);
+  font-size: var(--m-type-micro);
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.mobile-shell.app-shell .m-brief-alert-stage-chip.is-active {
+  color: var(--app-text-strong);
+  border-color: color-mix(in srgb, var(--app-text-strong) 28%, var(--app-border));
+  background: var(--app-bg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-text-strong) 10%, transparent);
+}
+
+.mobile-shell.app-shell .m-brief-alert-stage-chip-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  opacity: 0.85;
+}
+
+.mobile-shell.app-shell .m-brief-alerte-rows,
+.mobile-shell.app-shell .m-flow-list {
+  padding: 0.05rem 0.05rem 0.2rem;
+  gap: 0.35rem;
+}
+
+/* Shared compact flow card (Brief stages + Atenție + Dosare) */
+.mobile-shell.app-shell .m-flow-card.app-alerte-row,
+.mobile-shell.app-shell .m-flow-card,
+.mobile-shell.app-shell .m-brief-alerte-card.app-alerte-row {
+  --flow-accent: #3b5166;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.35rem 0.5rem;
+  padding: 0.42rem 0.5rem 0.4rem;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--app-border) 80%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 96%, transparent);
+  box-shadow:
+    0 2px 10px color-mix(in srgb, #000 6%, transparent),
+    inset 3px 0 0 var(--flow-accent);
+}
+
+.mobile-shell.app-shell .m-flow-card.stage-air { --flow-accent: #3b5166; }
+.mobile-shell.app-shell .m-flow-card.stage-piese { --flow-accent: #4a6fa5; }
+.mobile-shell.app-shell .m-flow-card.stage-programat { --flow-accent: #c98a2b; }
+.mobile-shell.app-shell .m-flow-card.stage-lucru { --flow-accent: #b8791e; }
+.mobile-shell.app-shell .m-flow-card.stage-accept { --flow-accent: #2f6b4e; }
+.mobile-shell.app-shell .m-flow-card.stage-facturat { --flow-accent: #3e6b45; }
+
+/* Atenție — accent roșu pe alertă, independent de stadiu */
+.mobile-shell.app-shell .m-flow-card.is-attention {
+  --flow-accent: var(--app-danger, #b23a2e);
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-metric,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-metric {
+  grid-row: 1 / span 2;
+  align-self: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 9999px;
+  padding: 0.12rem;
+  color: var(--flow-accent);
+  background: color-mix(in srgb, var(--flow-accent) 12%, var(--app-surface));
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-metric-value,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-metric-value {
+  font-size: 0.78rem;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-metric-unit,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-metric-unit {
+  font-size: 0.55rem;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-row-body,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-row-body {
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-row-main,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-row-main {
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-dosar,
+.mobile-shell.app-shell .m-flow-card .app-alerte-plate,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-dosar,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-plate,
+.mobile-shell.app-shell .m-flow-card .app-alerte-status-chip,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-status-chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-status-chip,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-status-chip {
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+}
+
+.mobile-shell.app-shell .m-brief-alerte-why {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--flow-accent, var(--app-text-strong));
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-flow-card.is-attention .m-brief-alerte-why {
+  color: var(--app-danger, #b23a2e);
+}
+
+.mobile-shell.app-shell .m-brief-alerte-why.is-muted {
+  color: var(--app-muted);
+  font-weight: 600;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-note,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-note {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-line-clamp: unset;
+  display: block;
+}
+
+.mobile-shell.app-shell .m-brief-alerte-since {
+  margin: 0 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--app-muted);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-actions,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-actions {
+  grid-column: 2;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  opacity: 1;
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  gap: 0.28rem;
+  width: auto;
+  border-top: none;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-ghost,
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-open,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-btn-ghost,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-btn-open {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 9999px;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-secondary,
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-primary,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-btn-secondary,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-btn-primary,
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-sosite {
+  padding: 0.18rem 0.5rem;
+  font-size: 0.62rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-sosite {
+  border: 1px solid transparent;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-sosite.is-off {
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 14%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, var(--app-danger, #b23a2e) 45%, transparent);
+  color: var(--app-danger, #b23a2e);
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-sosite.is-on {
+  background: color-mix(in srgb, #2f8f5b 22%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, #2f8f5b 55%, transparent);
+  color: #1f7a45;
+}
+
+.mobile-shell.app-shell .m-flow-card .app-alerte-btn-open,
+.mobile-shell.app-shell .m-brief-alerte-card .app-alerte-btn-open {
+  margin-left: 0;
+}
+
+.mobile-shell.app-shell .m-flow-card.is-exiting,
+.mobile-shell.app-shell .m-brief-alerte-card.is-exiting {
+  opacity: 0;
+  transform: translateX(12px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.mobile-shell.app-shell .m-flow-card.is-flash {
+  animation: m-brief-flash 0.48s ease;
+}
+
+.mobile-shell.app-shell .m-claim-card.m-flow-card,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card {
+  --flow-accent: #3b5166;
+  border-radius: 0.85rem;
+  padding: 0.55rem 0.65rem;
+  box-shadow:
+    0 2px 10px color-mix(in srgb, #000 6%, transparent),
+    inset 3px 0 0 var(--flow-accent);
+}
+
+.mobile-shell.app-shell .m-flow-card-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.mobile-shell.app-shell .m-flow-card-extra {
+  padding: 0.15rem 0.15rem 0.05rem 0.35rem;
+}
+
+/* Inline piese meta inside Toate dosarele cards */
+.mobile-shell.app-shell .m-flow-card.has-piese-meta {
+  align-items: flex-start;
+}
+
+.mobile-shell.app-shell .m-flow-card.has-piese-meta .app-alerte-actions {
+  padding-top: 0.1rem;
+}
+
+.mobile-shell.app-shell .m-piese-sosite-inline {
+  margin-top: 0.2rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem 0.4rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-dates {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--flow-accent, #4a6fa5) 8%, var(--app-surface, #fff));
+  border: 1px solid color-mix(in srgb, var(--flow-accent, #4a6fa5) 16%, transparent);
+  color: var(--app-muted, #6b7280);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip.is-editable {
+  cursor: pointer;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip.is-overdue {
+  color: var(--app-danger, #b42318);
+  border-color: color-mix(in srgb, var(--app-danger, #b42318) 35%, transparent);
+  background: color-mix(in srgb, var(--app-danger, #b42318) 8%, var(--app-surface, #fff));
+}
+
+.mobile-shell.app-shell .m-piese-inline-k {
+  color: inherit;
+  opacity: 0.75;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-size: 0.58rem;
+}
+
+.mobile-shell.app-shell .m-piese-inline-v {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--app-text-strong, #1a2330);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-shell.app-shell .m-piese-inline-chip.is-overdue .m-piese-inline-v {
+  color: inherit;
+}
+
+/* Keep native date UI hidden; show only compact text chip */
+.mobile-shell.app-shell .m-piese-inline-input-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  color-scheme: light;
+}
+
+.mobile-shell.app-shell .m-piese-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.35rem;
+  border: 1px solid color-mix(in srgb, #2f8f5b 28%, transparent);
+  background: color-mix(in srgb, #2f8f5b 8%, var(--app-surface, #fff));
+  color: #1f7a45;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mobile-shell.app-shell .m-piese-inline-check.is-checked {
+  background: color-mix(in srgb, #2f8f5b 18%, var(--app-surface, #fff));
+  border-color: color-mix(in srgb, #2f8f5b 45%, transparent);
+}
+
+.mobile-shell.app-shell .m-piese-inline-check.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mobile-shell.app-shell .m-piese-inline-checkbox {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin: 0;
+  accent-color: #2f8f5b;
+  cursor: inherit;
+  flex-shrink: 0;
+}
+
+.mobile-shell.app-shell .m-stack-group.m-flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0.45rem;
+}
+
+.mobile-shell.app-shell .m-flow-stack-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.15rem 0.1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mobile-shell.app-shell .m-stack-flow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-air,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-air { --flow-accent: #3b5166; }
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-piese,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-piese { --flow-accent: #4a6fa5; }
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-programat,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-programat { --flow-accent: #c98a2b; }
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-lucru,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-lucru { --flow-accent: #b8791e; }
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-accept,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-accept { --flow-accent: #2f6b4e; }
+.mobile-shell.app-shell .m-claim-card.m-flow-card.stage-facturat,
+.mobile-shell.app-shell .m-ui-panel.m-flow-card.stage-facturat { --flow-accent: #3e6b45; }
+
+.m-themed-modal .m-settings-tabs--pill {
+  margin: 0.75rem 0.75rem 0;
+  padding: 0.35rem;
+  gap: 0.25rem;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-surface-2) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab {
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  color: var(--app-muted);
+  background: transparent;
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab.is-active {
+  color: var(--app-accent-text);
+  background: var(--app-accent);
+  border-color: transparent;
+  border-radius: 999px;
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab-badge {
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab.is-active .m-settings-tab-badge,
+.m-themed-modal .m-settings-tabs--pill .m-settings-tab-badge.is-active {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  color: var(--app-accent-text);
+}
+
+/* Pill tab track — shared (ClaimModal desktop + Setări) */
+.m-settings-tabs--pill {
+  margin: 0.65rem 0.75rem 0;
+  padding: 0.3rem;
+  gap: 0.25rem;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-surface-2) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-settings-tabs--pill .m-settings-tab {
+  border-radius: 999px;
+  padding: 0.5rem 0.8rem;
+  color: var(--app-muted);
+  background: transparent;
+  border: none;
+}
+
+.m-settings-tabs--pill .m-settings-tab.is-active {
+  color: var(--app-accent-text);
+  background: var(--app-accent);
+  border-radius: 999px;
+}
+
+.m-settings-tabs--pill .m-settings-tab-badge {
+  background: color-mix(in srgb, var(--app-surface) 70%, transparent);
+  color: var(--app-muted);
+}
+
+.m-settings-tabs--pill .m-settings-tab.is-active .m-settings-tab-badge,
+.m-settings-tabs--pill .m-settings-tab-badge.is-active {
+  background: color-mix(in srgb, #fff 28%, transparent);
+  color: var(--app-accent-text);
+}
+
+.m-settings-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  color: var(--app-muted);
+}
+
+.m-settings-close:hover {
+  color: var(--app-text-strong);
+  background: var(--app-surface-muted);
+}
+
+.m-themed-modal .m-settings-close {
+  color: var(--app-muted);
+}
+
+.m-themed-modal .m-claim-footer {
+  background: color-mix(in srgb, var(--app-chrome) 94%, transparent) !important;
+  border-color: var(--app-border) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.m-themed-modal .bg-white.border.border-\[\#DAD4C6\].rounded-xl,
+.m-themed-modal .rounded-xl.border.border-\[\#DAD4C6\] {
+  border-radius: 1.15rem !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, #000 8%, transparent);
+}
+
+.m-claim-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-surface) 94%, transparent);
+}
+
+.m-claim-footer .m-claim-footer-btn {
+  border-radius: 9999px;
+}
+
+.m-claim-footer .m-claim-footer-primary {
+  border-radius: 9999px;
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border: none;
+}
+
+
+/* ── Mobile type scale utilities + Tailwind half-step collapse ── */
+.m-type-display {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-display, 1.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.m-type-page {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-page, 1.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.m-type-title {
+  font-family: var(--app-font-display, var(--m-font-display));
+  font-size: var(--m-type-title, 1.05rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.m-type-body {
+  font-size: var(--m-type-body, 0.9rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.m-type-meta {
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.m-type-micro {
+  font-size: var(--m-type-micro, 0.65rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/*
+  Collapse common arbitrary Tailwind px sizes into the 5-step scale
+  inside mobile surfaces. Keep 16px for search/inputs (iOS zoom).
+*/
+.mobile-shell.app-shell .text-\[8px\],
+.mobile-shell.app-shell .text-\[9px\],
+.mobile-shell.app-shell .text-\[9\.5px\],
+.mobile-shell.app-shell .text-\[10px\],
+.mobile-shell.app-shell .text-\[10\.5px\],
+.m-claim-sheet .text-\[8px\],
+.m-claim-sheet .text-\[9px\],
+.m-claim-sheet .text-\[9\.5px\],
+.m-claim-sheet .text-\[10px\],
+.m-claim-sheet .text-\[10\.5px\],
+.m-themed-modal .text-\[8px\],
+.m-themed-modal .text-\[9px\],
+.m-themed-modal .text-\[9\.5px\],
+.m-themed-modal .text-\[10px\],
+.m-themed-modal .text-\[10\.5px\] {
+  font-size: var(--m-type-micro) !important;
+}
+
+.mobile-shell.app-shell .text-\[11px\],
+.mobile-shell.app-shell .text-\[11\.5px\],
+.mobile-shell.app-shell .text-\[12px\],
+.mobile-shell.app-shell .text-\[12\.5px\],
+.m-claim-sheet .text-\[11px\],
+.m-claim-sheet .text-\[11\.5px\],
+.m-claim-sheet .text-\[12px\],
+.m-claim-sheet .text-\[12\.5px\],
+.m-themed-modal .text-\[11px\],
+.m-themed-modal .text-\[11\.5px\],
+.m-themed-modal .text-\[12px\],
+.m-themed-modal .text-\[12\.5px\] {
+  font-size: var(--m-type-meta) !important;
+}
+
+.mobile-shell.app-shell .text-\[13px\],
+.mobile-shell.app-shell .text-\[13\.5px\],
+.mobile-shell.app-shell .text-\[14px\],
+.mobile-shell.app-shell .text-\[15px\],
+.m-claim-sheet .text-\[13px\],
+.m-claim-sheet .text-\[13\.5px\],
+.m-claim-sheet .text-\[14px\],
+.m-claim-sheet .text-\[15px\],
+.m-themed-modal .text-\[13px\],
+.m-themed-modal .text-\[13\.5px\],
+.m-themed-modal .text-\[14px\],
+.m-themed-modal .text-\[15px\] {
+  font-size: var(--m-type-body) !important;
+}
+
+.mobile-shell.app-shell .text-\[18px\],
+.m-claim-sheet .text-\[18px\],
+.m-themed-modal .text-\[18px\] {
+  font-size: var(--m-type-page) !important;
+}
+
+/* Oversized plate/inputs → identity body (Acces rapid) */
+.mobile-shell.app-shell .text-\[22px\],
+.m-claim-sheet .text-\[22px\],
+.m-themed-modal .text-\[22px\] {
+  font-size: var(--m-type-body) !important;
+}
+
+.mobile-shell.app-shell .mobile-search-input.text-\[16px\],
+.m-themed-modal input.text-\[16px\],
+.m-themed-modal textarea.text-\[16px\],
+.m-claim-sheet input.text-\[16px\] {
+  font-size: 16px !important;
+}

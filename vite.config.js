@@ -7,16 +7,17 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "script", // Înregistrează automat Service Worker-ul în HTML fără import-uri speciale
-      includeAssets: ["icon-192.png", "icon-512.png"],
+      // Explicit registration in src/main.jsx reloads active clients after updates.
+      injectRegister: null,
+      includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Management Dosare Daune RCA/CASCO",
-        short_name: "Dosare Daună",
-        description: "Aplicație administrativă pentru managementul fluxului de dosare de daună RCA/CASCO.",
-        theme_color: "#23282E",
-        background_color: "#23282E",
+        name: "Workflow Daune 2.0",
+        short_name: "Daune 2.0",
+        description: "Recepție vehicule, inspecție foto, diagramă avarii și management dosare de daună.",
+        theme_color: "#0d1117",
+        background_color: "#0d1117",
         display: "standalone",
-        orientation: "portrait",
+        orientation: "any",
         start_url: "/",
         icons: [
           {
@@ -34,7 +35,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"],
+        cleanupOutdatedCaches: true,
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,json,woff,woff2}"],
         runtimeCaching: [
           {
             // OpenCV.js document-scan engine (~9MB) — cache after first load
@@ -78,13 +80,13 @@ export default defineConfig({
           if (!normalizedId.includes("/node_modules/")) return;
 
           const chunks = [
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:react|react-dom|scheduler)(?:\/|$)/, name: "vendor_react" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?xlsx(?:\/|$)/, name: "vendor_xlsx" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?jspdf(?:\/|\.|$)/, name: "vendor_jspdf" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:pdf-lib|@pdf-lib)(?:\/|$)/, name: "vendor_pdflib" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:jspdf|html2canvas|canvg|css-line-break|fast-png|utif2)(?:\/|\.|$)/, name: "vendor_pdf_export" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?recharts(?:\/|$)/, name: "vendor_recharts" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?lucide-react(?:\/|$)/, name: "vendor_icons" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?html2canvas(?:\/|$)/, name: "vendor_html2canvas" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?@supabase(?:\/|$)/, name: "vendor_supabase" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?supabase(?:\/|$)/, name: "vendor_supabase" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?@?supabase(?:\/|$)/, name: "vendor_supabase" },
           ];
 
           for (const chunk of chunks) {

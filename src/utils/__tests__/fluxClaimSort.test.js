@@ -1,0 +1,53 @@
+import { describe, it, expect } from "vitest";
+import { getFluxExportClaims, groupAndSortStageClaims } from "../fluxClaimSort";
+
+describe("fluxClaimSort", () => {
+  const claims = [
+    { id: "1", numarInmatriculare: "B111AAA", status: "deschidere", dataDeschiderii: "2026-08-01", dataSchimbareStatus: "2026-08-01", blocat: false },
+    { id: "2", numarInmatriculare: "B222BBB", status: "deschidere", dataDeschiderii: "2026-08-05", dataSchimbareStatus: "2026-08-05", blocat: true },
+    { id: "3", numarInmatriculare: "B333CCC", status: "piese_comandate", dataDeschiderii: "2026-08-03", dataSchimbareStatus: "2026-08-03", blocat: false },
+  ];
+
+  it("exports one stage when focusedStage is set", () => {
+    const exported = getFluxExportClaims(claims, { focusedStage: "deschidere" });
+    expect(exported).toHaveLength(2);
+    expect(exported.every((c) => c.status === "deschidere")).toBe(true);
+  });
+
+  it("exports all visible stages in pipeline order when unfiltered", () => {
+    const exported = getFluxExportClaims(claims, { focusedStage: null });
+    expect(exported).toHaveLength(3);
+    expect(exported[0].status).toBe("deschidere");
+    expect(exported[2].status).toBe("piese_comandate");
+  });
+
+  it("sorts blocked claims before others in the same stage when sortKey is alerte", () => {
+    const grouped = groupAndSortStageClaims(
+      claims.filter((c) => c.status === "deschidere"),
+      "alerte",
+      4,
+    );
+    const flat = grouped.flatMap(([, g]) => g);
+    expect(flat[0].id).toBe("2");
+  });
+
+  it("sorts by opening date descending when sortKey is deschidere (newest first)", () => {
+    const grouped = groupAndSortStageClaims(
+      claims.filter((c) => c.status === "deschidere"),
+      "deschidere",
+      4,
+    );
+    const flat = grouped.flatMap(([, g]) => g);
+    expect(flat.map((c) => c.id)).toEqual(["2", "1"]);
+  });
+
+  it("places newest groups left-first across mixed open dates", () => {
+    const mixed = [
+      { id: "a", numarInmatriculare: "B100AAA", status: "deschidere", dataDeschiderii: "2026-07-01" },
+      { id: "b", numarInmatriculare: "B200BBB", status: "deschidere", dataDeschiderii: "2026-08-10" },
+      { id: "c", numarInmatriculare: "B300CCC", status: "deschidere", dataDeschiderii: "2026-08-05" },
+    ];
+    const grouped = groupAndSortStageClaims(mixed, "deschidere", 4);
+    expect(grouped.map(([, g]) => g[0].id)).toEqual(["b", "c", "a"]);
+  });
+});

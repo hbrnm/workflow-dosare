@@ -1,40 +1,47 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
-import {
-  Layers, Sunrise, List, BarChart3, CalendarClock, Wallet, Download, Plus, Search,
-  AlertTriangle, PackageCheck, Loader2, SlidersHorizontal, X, Camera, ArrowUpDown, Filter, Settings, ShoppingCart, Clock, Bell, ChevronRight, LogOut, Sparkles, FileText, Smartphone
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "./supabaseClient";
-import { STATUSES, INSURERS } from "./constants/config";
-import { nowISO } from "./utils/dateUtils";
 import { useExportExcel } from "./hooks/useExportExcel";
-import { emptyClaim } from "./utils/claimUtils";
 import NotificationQueue from "./components/common/NotificationQueue";
 import UndoToast from "./components/common/UndoToast";
 import Login from "./components/auth/Login";
-import { lazyWithRetry } from "./utils/lazyWithRetry";
-const TablouPeFaze = lazyWithRetry(() => import("./components/views/FluxOperational"));
-const BriefZilnic = lazyWithRetry(() => import("./components/views/BriefZilnic"));
-const ClaimTable = lazyWithRetry(() => import("./components/views/ClaimTable"));
-const Dashboard = lazyWithRetry(() => import("./components/views/Dashboard"));
-const Programator = lazyWithRetry(() => import("./components/views/Programator"));
-const Rapoarte = lazyWithRetry(() => import("./components/views/Rapoarte"));
-const QuickCapture = lazyWithRetry(() => import("./components/views/QuickCapture"));
-const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
-const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
-const SetariModal = lazyWithRetry(() => import("./components/modals/SetariModal"));
-const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
-const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
-const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
+import Signup from "./components/auth/Signup";
+import RecoveryPassword from "./components/auth/RecoveryPassword";
 import CommandPalette from "./components/common/CommandPalette";
+import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import OnboardingModal from "./components/common/OnboardingModal";
+import SetariModal from "./components/modals/SetariModal";
+import { lazyWithRetry } from "./utils/lazyWithRetry";
+import { dismissOnboarding } from "./utils/onboardingPrefs";
+import { ROLES, resolveUserRole, canCreateClaim } from "./constants/roles";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
 import { useClaimModal } from "./hooks/useClaimModal";
 import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
-import { darkenHex } from "./constants/branding";
-import { loadMobileThemeId, saveMobileThemeId } from "./constants/mobileThemes";
+import { useAtelier } from "./hooks/useAtelier";
+import { useDayNightTheme } from "./hooks/useDayNightTheme";
+import { normalizeBilling } from "./constants/billing";
+import { getSearchHighlightIds } from "./utils/searchUtils";
+import { isCompactMobileViewport } from "./utils/viewport";
+import { useMobileBackStack } from "./hooks/useMobileBackStack";
+
+// Desktop Layout Components
+import DesktopSidebar from "./components/layout/DesktopSidebar";
+import DesktopHeader from "./components/layout/DesktopHeader";
+import DesktopFilterBar from "./components/layout/DesktopFilterBar";
+import DesktopMobileDock from "./components/layout/DesktopMobileDock";
+import AppViewRouter from "./components/layout/AppViewRouter";
+import AppModalsLayer from "./components/layout/AppModalsLayer";
+
+// Lazy Mobile Shell & Modals
+const MobileAppLayout = lazyWithRetry(() => import("./components/mobile/MobileAppLayout"));
+const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileClaimSheet"));
+const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
+const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
+const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -50,15 +57,19 @@ export default function App() {
     }
   });
 
-  const [dosareSubView, setDosareSubView] = useState("flux"); // "flux" | "brief" | "list"
-
-  const [isMobileScreen, setIsMobileScreen] = useState(() => {
+  const [dosareSubView, setDosareSubView] = useState(() => {
     try {
-      return window.innerWidth < 768;
+      const saved = localStorage.getItem("workflow_dosare_sub_view");
+      if (saved === "flux" || saved === "brief" || saved === "list") return saved;
     } catch (err) {
-      return false;
+      /* ignore */
     }
+    return "brief";
   });
+  const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
+
+  const [isMobileScreen, setIsMobileScreen] = useState(() => isCompactMobileViewport());
+  const [lockMobileShell, setLockMobileShell] = useState(false);
 
   const [displayMode, setDisplayMode] = useState(() => {
     try {
@@ -67,50 +78,29 @@ export default function App() {
       return null;
     }
   });
+  const [isAiModalOpenHeader, setIsAiModalOpenHeader] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const activeMode = displayMode || (isMobileScreen ? "mobile" : "desktop");
-
-  const toggleDisplayMode = (mode) => {
-    setDisplayMode(mode);
-    try {
-      localStorage.setItem("workflow_dosare_display_mode", mode);
-    } catch (err) {
-      console.warn("Failed saving display mode to localStorage", err);
-    }
-  };
-
-  const [mobileThemeId, setMobileThemeId] = useState(() => loadMobileThemeId());
-  const handleMobileThemeChange = useCallback((id) => {
-    setMobileThemeId(id);
-    saveMobileThemeId(id);
-  }, []);
-
-  useEffect(() => {
-    try {
-      document.documentElement.dataset.mtheme = mobileThemeId || "atelier";
-    } catch {
-      /* ignore */
-    }
-    return () => {
-      try {
-        delete document.documentElement.dataset.mtheme;
-      } catch {
-        /* ignore */
-      }
-    };
-  }, [mobileThemeId]);
+  const activeMode =
+    displayMode || (isMobileScreen || lockMobileShell ? "mobile" : "desktop");
 
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [navHovered, setNavHovered] = useState(false);
+  const [authScreen, setAuthScreen] = useState("login"); // "login" | "signup"
 
-  const { session, authLoading, setSession, handleLogout } = useAuth();
+  const {
+    session,
+    authLoading,
+    setSession,
+    handleLogout: authLogout,
+    passwordRecovery,
+    clearPasswordRecovery,
+  } = useAuth();
 
   useEffect(() => {
     try {
@@ -123,17 +113,92 @@ export default function App() {
     }
   }, [view]);
 
-  const showNotice = useCallback((message, type = "success") => setNotice({ message, type }), []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("workflow_dosare_sub_view", dosareSubView);
+    } catch (err) {
+      console.warn("Unable to persist dosare sub-view", err);
+    }
+  }, [dosareSubView]);
+
+  const handleSwitchView = useCallback((target) => {
+    if (target === "brief" || target === "flux" || target === "list") {
+      setView("dosare");
+      setDosareSubView(target);
+      return;
+    }
+    setView(target);
+  }, []);
+
+  const showNotice = useCallback((message, type = "success", extras = {}) => {
+    setNotice({ message, type, ...extras });
+  }, []);
+
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(
+    () => typeof navigator !== "undefined" && navigator.onLine === false
+  );
+
+  useEffect(() => {
+    const on = () => setIsOffline(false);
+    const off = () => setIsOffline(true);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, []);
 
   const {
-    claims,
-    loading,
-    loadAll,
-    saveClaim,
-    deleteClaim,
-    patchClaim,
-    moveToStatus,
-  } = useClaims(session, showNotice);
+    atelierId,
+    atelier,
+    tenancyReady,
+    billing,
+    memberCount,
+    memberships,
+    activeRole,
+    switchAtelier,
+    refresh: refreshAtelier,
+  } = useAtelier(session, {});
+
+  const startStripeCheckout = useCallback(async (id) => {
+    const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+      body: { atelierId: id, origin: window.location.origin },
+    });
+    if (error || data?.error) {
+      throw new Error(data?.error || error?.message || "Checkout eșuat");
+    }
+    if (data?.url) window.location.href = data.url;
+  }, []);
+
+  const startStripePortal = useCallback(async (id) => {
+    const { data, error } = await supabase.functions.invoke("create-portal-session", {
+      body: { atelierId: id, origin: window.location.origin },
+    });
+    if (error || data?.error) {
+      throw new Error(data?.error || error?.message || "Portal eșuat");
+    }
+    if (data?.url) window.location.href = data.url;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const billingFlag = params.get("billing");
+    if (billingFlag === "success") {
+      showNotice("Abonament activat. Mulțumim!", "success");
+      refreshAtelier();
+      params.delete("billing");
+      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
+    } else if (billingFlag === "cancel") {
+      showNotice("Checkout anulat.", "info");
+      params.delete("billing");
+      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
+    }
+  }, [showNotice, refreshAtelier]);
 
   const {
     capacitateZilnica,
@@ -142,38 +207,108 @@ export default function App() {
     adminEmails,
     usersList,
     customInsurers,
-    branding,
+    branding: settingsBranding,
+    billingSettings,
+    manoperaTarife,
     saveUsersAndAdmins,
     saveInsurers,
     saveCapacitate,
     savePragRidicare,
     savePragInactivitate,
-    saveBranding,
+    saveTermeneAlertaStatus,
+    termeneAlertaStatus,
+    saveBranding: saveBrandingBase,
     uploadBrandingLogo,
+    saveBilling,
+    saveManoperaTarife,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
-  } = useSettings(session, showNotice);
+  } = useSettings(session, showNotice, {
+    atelierId,
+    atelierSlug: atelier?.slug || null,
+  });
 
-  useEffect(() => {
-    if (!branding?.accentColor) return;
-    document.documentElement.style.setProperty("--brand-accent", branding.accentColor);
-  }, [branding?.accentColor]);
+  const saveBranding = useCallback(
+    async (next) => {
+      const ok = await saveBrandingBase(next);
+      if (ok !== false) refreshAtelier();
+      return ok;
+    },
+    [saveBrandingBase, refreshAtelier]
+  );
+
+  const branding = useMemo(() => {
+    if (tenancyReady && atelier) {
+      const cachedIsColdDefault =
+        settingsBranding?.atelierNume === "Dosare Daună" &&
+        settingsBranding?.atelierShort === "WD" &&
+        !settingsBranding?.logoUrl &&
+        atelier.nume &&
+        atelier.nume !== "Dosare Daună";
+      if (cachedIsColdDefault) {
+        return {
+          atelierNume: atelier.nume,
+          atelierShort: atelier.short || "WD",
+          logoUrl: atelier.logo_url || "",
+        };
+      }
+      return {
+        atelierNume: settingsBranding?.atelierNume || atelier.nume || "Dosare Daună",
+        atelierShort: settingsBranding?.atelierShort || atelier.short || "WD",
+        logoUrl: settingsBranding?.logoUrl || atelier.logo_url || "",
+      };
+    }
+    return settingsBranding;
+  }, [tenancyReady, atelier, settingsBranding]);
+
+  const effectiveBilling = useMemo(() => {
+    if (tenancyReady && atelier) return billing;
+    return normalizeBilling({
+      ...billingSettings,
+      memberCount: memberCount || usersList.length,
+    });
+  }, [tenancyReady, atelier, billing, billingSettings, memberCount, usersList.length]);
+
+  const {
+    claims,
+    loading,
+    loadError,
+    loadAll,
+    saveClaim,
+    deleteClaim,
+    patchClaim,
+    moveToStatus,
+  } = useClaims(session, showNotice, { atelierId });
+
+  useDayNightTheme();
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
 
+  const myRole = useMemo(
+    () => resolveUserRole(myEmail, { adminEmails, usersList }),
+    [myEmail, adminEmails, usersList]
+  );
+  const myRoleLabel = ROLES[myRole]?.label || myRole;
+  const userCanCreate = canCreateClaim(myRole) && effectiveBilling.canCreateClaim;
+
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
+    if (activeRole === "admin") return true;
+    if (myRole === "admin") return true;
     const fromAdmins = adminEmails.some((e) => e.toLowerCase() === myEmail.toLowerCase());
     const fromUsers = usersList.some(
       (u) => u.email?.toLowerCase() === myEmail.toLowerCase() && u.role === "admin"
     );
     if (fromAdmins || fromUsers) return true;
-    // Bootstrap: primul setup când nu există încă utilizatori configurați
-    if (usersList.length === 0 && adminEmails.length === 0) return true;
+    if (memberCount === 1 && atelierId) return true;
+    if (Array.isArray(usersList) && usersList.length === 1) {
+      const only = usersList[0];
+      if (String(only?.email || "").toLowerCase() === myEmail.toLowerCase()) return true;
+    }
     return false;
-  }, [myEmail, adminEmails, usersList]);
+  }, [myEmail, myRole, adminEmails, usersList, activeRole, memberCount, atelierId]);
 
   const {
     search,
@@ -196,6 +331,7 @@ export default function App() {
     insurers,
     userClaims,
     filteredClaims,
+    stageClaims,
     activeFilterCount,
   } = useClaimFilters({
     claims,
@@ -206,10 +342,23 @@ export default function App() {
     pragInactivitate,
   });
 
+  const highlightClaimIds = useMemo(
+    () => getSearchHighlightIds(userClaims, search),
+    [userClaims, search]
+  );
+
   const {
     buckets: alertBuckets,
     totalAlertsCount,
+    blockedCount,
   } = useAlerts(userClaims, pragRidicare, pragInactivitate);
+
+  const openBlockedClaims = useCallback(() => {
+    setOnlyBlocked(true);
+    setFilterStatus("toate");
+    setDosareSubView("list");
+    setView("dosare");
+  }, [setOnlyBlocked, setFilterStatus]);
 
   const {
     modalClaim,
@@ -228,11 +377,12 @@ export default function App() {
     closeQuickCapture,
     quickCreateOpen,
     closeQuickCreate,
+    quickCreateDefaults,
   } = useClaimModal(showNotice);
 
-  // Mobile field sheet (thin claim view) — full ClaimModal only via "Detalii complete"
   const [fieldClaimId, setFieldClaimId] = useState(null);
   const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+  const [mobileTab, setMobileTab] = useState("brief");
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -243,7 +393,62 @@ export default function App() {
     setFieldClaimId(null);
   }, []);
 
-  // Global Ctrl+K / Cmd+K keyboard shortcut listener for CommandPalette search
+  const resetShellToBrief = useCallback(() => {
+    closeSettings();
+    closeAlerts();
+    closeClaimModal();
+    closeQuickCreate();
+    closeQuickCapture();
+    setFieldClaimId(null);
+    setIsCommandPaletteOpen(false);
+    setView("dosare");
+    setDosareSubView("brief");
+    setMobileTab("brief");
+    try {
+      localStorage.setItem("workflow_dosare_active_view", "dosare");
+      localStorage.setItem("workflow_dosare_sub_view", "brief");
+      const path = `${window.location.pathname}${window.location.search || ""}`;
+      window.history.replaceState({ view: "dosare", modalOpen: false }, "", path);
+    } catch (err) {
+      console.warn("Unable to reset navigation shell", err);
+    }
+  }, [
+    closeSettings,
+    closeAlerts,
+    closeClaimModal,
+    closeQuickCreate,
+    closeQuickCapture,
+  ]);
+
+  const handleLogout = useCallback(async () => {
+    resetShellToBrief();
+    await authLogout();
+  }, [authLogout, resetShellToBrief]);
+
+  useEffect(() => {
+    if (session || authLoading) return;
+    if (setariOpen || alerteModalTab || modalClaim || quickCreateOpen || quickCaptureOpen || fieldClaimId) {
+      resetShellToBrief();
+    } else if (typeof window !== "undefined" && window.location.hash) {
+      try {
+        const path = `${window.location.pathname}${window.location.search || ""}`;
+        window.history.replaceState({ view: "dosare", modalOpen: false }, "", path);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [
+    session,
+    authLoading,
+    setariOpen,
+    alerteModalTab,
+    modalClaim,
+    quickCreateOpen,
+    quickCaptureOpen,
+    fieldClaimId,
+    resetShellToBrief,
+  ]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -271,73 +476,112 @@ export default function App() {
     };
   }, []);
 
-  // Suport navigare buton Back din browser (History API)
   const isNavigatingHistoryRef = useRef(false);
 
-  const handleSetViewWithHistory = useCallback((newView, pushToHistory = true) => {
-    setView(newView);
-    if (pushToHistory && !isNavigatingHistoryRef.current) {
-      window.history.pushState({ view: newView, modalOpen: false }, "", `#${newView}`);
+  const {
+    goTab: handleMobileTabChange,
+    requestClose,
+    openClaimFromAlerts,
+    replaceClaimWithField,
+  } = useMobileBackStack({
+    enabled: activeMode === "mobile",
+    setMobileTab,
+    flags: {
+      modalClaim,
+      fieldClaimId,
+      alerteModalTab,
+      setariOpen,
+      quickCreateOpen,
+      quickCaptureOpen,
+    },
+    api: {
+      closeClaim: closeClaimModal,
+      closeField: closeFieldClaim,
+      closeAlerts,
+      closeSettings,
+      closeQuickCreate,
+      closeQuickCapture,
+      openAlerts,
+      openSettings,
+      openField: (id) => setFieldClaimId(id),
+      openClaim: openExisting,
+      openQuickCreate: () => openNew(),
+    },
+  });
+
+  const requestCloseAlerts = useCallback(() => requestClose("alerte"), [requestClose]);
+  const requestCloseSettings = useCallback(() => {
+    if (activeMode === "mobile") {
+      requestClose("setari");
+      return;
     }
-  }, [setView]);
+    closeSettings();
+  }, [activeMode, requestClose, closeSettings]);
+  const requestCloseClaimModal = useCallback(() => requestClose("claim"), [requestClose]);
+  const requestCloseFieldClaim = useCallback(() => requestClose("field"), [requestClose]);
+  const requestCloseQuickCreate = useCallback(() => requestClose("quickCreate"), [requestClose]);
 
   useEffect(() => {
+    if (activeMode === "mobile") return undefined;
     const handlePopState = (event) => {
       isNavigatingHistoryRef.current = true;
-      if (modalClaim) {
-        closeClaimModal();
-      } else if (fieldClaimId) {
-        closeFieldClaim();
-      } else if (setariOpen) {
-        closeSettings();
-      } else if (quickCaptureOpen) {
-        closeQuickCapture();
-      } else if (event.state && event.state.view) {
-        setView(event.state.view);
-      } else {
-        const hash = window.location.hash.replace("#", "");
-        if (hash && ["brief", "flux", "list", "programator", "dashboard", "rapoarte"].includes(hash)) {
-          setView(hash);
-        }
-      }
-      setTimeout(() => {
+      if (modalClaim) closeClaimModal();
+      else if (alerteModalTab) closeAlerts();
+      else if (quickCreateOpen) closeQuickCreate();
+      else if (quickCaptureOpen) closeQuickCapture();
+      else if (event.state?.view) setView(event.state.view);
+      window.setTimeout(() => {
         isNavigatingHistoryRef.current = false;
       }, 50);
     };
-
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [modalClaim, closeClaimModal, fieldClaimId, closeFieldClaim, setariOpen, closeSettings, quickCaptureOpen, closeQuickCapture, setView]);
+  }, [
+    activeMode,
+    modalClaim,
+    closeClaimModal,
+    alerteModalTab,
+    closeAlerts,
+    quickCreateOpen,
+    closeQuickCreate,
+    quickCaptureOpen,
+    closeQuickCapture,
+    setView,
+  ]);
 
-  // Deschidere modal / field sheet — stare în istoric pentru Back
   useEffect(() => {
+    if (activeMode === "mobile") return;
     if (modalClaim && !isNavigatingHistoryRef.current) {
-      window.history.pushState(
-        { view, modalOpen: true, claimId: modalClaim.id },
-        "",
-        `#claim-${modalClaim.id || "nou"}`
-      );
+      try {
+        window.history.pushState(
+          { view, modalOpen: true, claimId: modalClaim.id },
+          "",
+          `#claim-${modalClaim.id || "nou"}`
+        );
+      } catch {
+        /* ignore */
+      }
     }
-  }, [modalClaim, view]);
+  }, [activeMode, modalClaim, view]);
 
   useEffect(() => {
-    if (fieldClaimId && !modalClaim && !isNavigatingHistoryRef.current) {
-      window.history.pushState(
-        { view, fieldSheet: true, claimId: fieldClaimId },
-        "",
-        `#field-${fieldClaimId}`
-      );
+    if (activeMode === "mobile") return;
+    if (alerteModalTab && !isNavigatingHistoryRef.current) {
+      try {
+        window.history.pushState({ view, overlay: "alerte" }, "", `#alerte-${alerteModalTab}`);
+      } catch {
+        /* ignore */
+      }
     }
-  }, [fieldClaimId, modalClaim, view]);
+  }, [activeMode, alerteModalTab, view]);
 
-  // Administrator can edit ALL claims in the system; Operators can edit their own (by ID or Email) or legacy claims
   const canEdit = useCallback(
     (c) => {
       if (!c) return false;
       if (isAdmin) return true;
       if (myId && c.createdBy === myId) return true;
       if (myEmail && c.createdByEmail && c.createdByEmail.toLowerCase() === myEmail.toLowerCase()) return true;
-      if (!c.createdBy && !c.createdByEmail) return true; // Legacy claims without owner
+      if (!c.createdBy && !c.createdByEmail) return true;
       return false;
     },
     [myId, myEmail, isAdmin]
@@ -349,7 +593,9 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  useEffect(() => { if (session) loadAll(); }, [loadAll, session]);
+  useEffect(() => {
+    if (session) loadAll();
+  }, [loadAll, session]);
 
   const handleChangePassword = async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -361,10 +607,15 @@ export default function App() {
     const result = await saveClaim(claim, options);
     setSaving(false);
     if (!result?.success) return result;
-    if (activeMode === "mobile" && claim?.id) {
-      setFieldClaimId(claim.id);
+    if (options.openProgramator && claim?.dataProgramare) {
+      setProgramatorFocusDate(String(claim.dataProgramare).slice(0, 10));
+      setView("programator");
     }
-    closeClaimModal();
+    if (activeMode === "mobile" && claim?.id) {
+      replaceClaimWithField(claim.id);
+    } else {
+      closeClaimModal();
+    }
     closeQuickCreate();
     return result;
   };
@@ -373,8 +624,8 @@ export default function App() {
     deleteClaim(id, canEdit, {
       onUndoToast: (item) => setUndoToastItem(item),
     });
-    closeClaimModal();
-    if (fieldClaimId === id) closeFieldClaim();
+    requestCloseClaimModal();
+    if (fieldClaimId === id) requestCloseFieldClaim();
   };
 
   const handleMoveToStatus = (claim, newStatusKey) => {
@@ -387,23 +638,75 @@ export default function App() {
     return patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
   };
 
-  const { exportExcel } = useExportExcel(userClaims);
+  const handleOpenClaim = useCallback((claimOrRef) => {
+    if (!claimOrRef) return;
+    const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
+    const fresh = id ? claims.find((c) => c.id === id) : null;
+    openExisting(fresh || claimOrRef);
+  }, [claims, openExisting]);
 
-  const viewLabels = {
-    brief: "Brief Zilnic",
-    flux: "Flux Operațional",
-    list: "Listă Dosare",
-    programator: "Programări Atelier",
-    dashboard: "Statistici & KPI",
-    rapoarte: "Raport Financiar",
-  };
+  const clearSearch = useCallback(() => setSearch(""), [setSearch]);
+
+  const handleSearchSelectMobile = useCallback(
+    (claim) => {
+      clearSearch();
+      openMobileClaim(claim);
+    },
+    [clearSearch, openMobileClaim]
+  );
+
+  const activeModalClaim = useMemo(() => {
+    if (!modalClaim?.id) return modalClaim;
+    return claims.find((c) => c.id === modalClaim.id) || modalClaim;
+  }, [claims, modalClaim]);
+
+  const { exportExcel, exportPdf } = useExportExcel(userClaims);
 
   if (authLoading) {
-    return <div className="min-h-screen bg-[#010409] flex items-center justify-center text-[#8B949E] gap-2"><Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...</div>;
+    return (
+      <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center text-[var(--app-muted)] gap-2">
+        <Loader2 className="animate-spin" size={20} /> Se verifică sesiunea...
+      </div>
+    );
+  }
+  if (session && passwordRecovery) {
+    return (
+      <RecoveryPassword
+        branding={branding}
+        onDone={() => {
+          clearPasswordRecovery();
+          showNotice("Parola a fost actualizată. Poți continua.", "success");
+        }}
+      />
+    );
   }
   if (!session) {
-    return <Login branding={branding} onLoginSuccess={(s) => setSession(s)} />;
+    if (authScreen === "signup") {
+      return (
+        <Signup
+          branding={branding}
+          onBackToLogin={() => setAuthScreen("login")}
+          onSuccess={(s) => {
+            setAuthScreen("login");
+            dismissOnboarding();
+            setSession(s);
+          }}
+        />
+      );
+    }
+    return (
+      <Login
+        branding={branding}
+        onGoSignup={() => setAuthScreen("signup")}
+        onLoginSuccess={(s) => setSession(s)}
+      />
+    );
   }
+
+  const dismissTour = () => {
+    dismissOnboarding();
+    setOnboardingOpen(false);
+  };
 
   if (activeMode === "mobile") {
     const fieldClaim = fieldClaimId ? claims.find((c) => c.id === fieldClaimId) : null;
@@ -412,47 +715,167 @@ export default function App() {
       <ErrorBoundary>
         <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
-        <Suspense fallback={<div className="h-screen bg-[#1C2127] text-white flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...</div>}>
+        {!modalClaim && !fieldClaim && (
+          <SearchResultsOverlay
+            query={search}
+            claims={userClaims}
+            onSelect={handleSearchSelectMobile}
+            onClear={clearSearch}
+            onNotify={showNotice}
+          />
+        )}
+        <OnboardingModal
+          open={onboardingOpen}
+          onDismiss={dismissTour}
+          onCreateClaim={userCanCreate ? () => openNew() : null}
+          roleLabel={myRoleLabel}
+        />
+
+        <Suspense
+          fallback={
+            <div className="h-screen bg-[var(--app-surface)] text-white flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin" size={18} /> Se încarcă modul mobil...
+            </div>
+          }
+        >
           <MobileAppLayout
-            claims={claims}
+            claims={userClaims}
+            loading={loading}
+            loadError={loadError}
+            onRetryLoad={loadAll}
+            isOffline={isOffline}
             session={session}
             userEmail={myEmail}
+            isAdmin={isAdmin}
+            roleLabel={myRoleLabel}
+            totalClaimsCount={claims.length}
             onOpenClaim={openMobileClaim}
-            onNewClaim={openNew}
+            onNewClaim={userCanCreate ? openNew : null}
             onPatchClaim={handlePatchClaim}
             canEditFn={canEdit}
             onNotify={showNotice}
             onLogout={handleLogout}
             onOpenSettings={openSettings}
+            onOpenAlerts={openAlerts}
+            memberships={memberships}
+            activeAtelierId={atelierId}
+            onSwitchAtelier={async (id) => {
+              const ok = await switchAtelier(id);
+              if (ok) showNotice("Atelier schimbat.", "success");
+            }}
             pragRidicare={pragRidicare}
             pragInactivitate={pragInactivitate}
             alertBuckets={alertBuckets}
             totalAlertsCount={totalAlertsCount}
+            blockedCount={blockedCount}
             branding={branding}
-            onSwitchToDesktop={() => toggleDisplayMode("desktop")}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
-            themeId={mobileThemeId}
+            search={search}
+            setSearch={setSearch}
+            highlightClaimIds={highlightClaimIds}
+            onMobileShellLockChange={setLockMobileShell}
+            hideBottomChrome={Boolean(
+              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen
+            )}
+            mobileTab={mobileTab}
+            onMobileTabChange={handleMobileTabChange}
           />
         </Suspense>
+
+        {alerteModalTab && (
+          <Suspense fallback={null}>
+            <AlerteModal
+              claims={userClaims}
+              alertBuckets={alertBuckets}
+              initialTab={alerteModalTab}
+              pragRidicare={pragRidicare}
+              pragInactivitate={pragInactivitate}
+              onClose={requestCloseAlerts}
+              onOpenClaim={openClaimFromAlerts}
+              onPatchClaim={handlePatchClaim}
+              onNotify={showNotice}
+            />
+          </Suspense>
+        )}
+
+        {setariOpen && (
+          <Suspense
+            fallback={
+              <div className="fixed inset-0 z-[9200] flex items-center justify-center bg-black/30 text-white gap-2">
+                <Loader2 className="animate-spin" size={18} /> Se încarcă setările…
+              </div>
+            }
+          >
+            <ErrorBoundary onReset={requestCloseSettings}>
+              <SetariModal
+                claims={claims}
+                capacitateZilnica={capacitateZilnica}
+                pragRidicare={pragRidicare}
+                pragInactivitate={pragInactivitate}
+                termeneAlertaStatus={termeneAlertaStatus}
+                onSaveTermeneAlertaStatus={saveTermeneAlertaStatus}
+                onSaveCapacitate={saveCapacitate}
+                onSavePrag={savePragRidicare}
+                onSavePragInactivitate={savePragInactivitate}
+                insurersList={customInsurers}
+                onSaveInsurers={saveInsurers}
+                branding={branding}
+                onSaveBranding={saveBranding}
+                onUploadBrandingLogo={uploadBrandingLogo}
+                onClose={requestCloseSettings}
+                onNotify={showNotice}
+                userEmail={myEmail}
+                onSignOut={handleLogout}
+                isAdmin={isAdmin}
+                usersList={usersList}
+                onAddUser={handleAddUser}
+                onDeleteUser={handleDeleteUser}
+                onToggleAdminRole={handleToggleAdminRole}
+                onChangePassword={handleChangePassword}
+                billing={effectiveBilling}
+                onSaveBilling={saveBilling}
+                manoperaTarife={manoperaTarife}
+                onSaveManoperaTarife={saveManoperaTarife}
+                tenancyReady={tenancyReady}
+                atelierId={atelierId}
+                atelierSlug={atelier?.slug || null}
+                onStripeCheckout={startStripeCheckout}
+                onStripePortal={startStripePortal}
+                onDataChanged={loadAll}
+              />
+            </ErrorBoundary>
+          </Suspense>
+        )}
+
+        {quickCreateOpen && (
+          <Suspense fallback={null}>
+            <QuickCreateClaimModal
+              isOpen={quickCreateOpen}
+              onClose={requestCloseQuickCreate}
+              onSave={handleSave}
+              onNotify={showNotice}
+              allClaims={claims}
+              initialStatus={quickCreateDefaults?.status}
+              initialDataProgramare={quickCreateDefaults?.dataProgramare}
+            />
+          </Suspense>
+        )}
 
         {fieldClaim && !modalClaim && (
           <Suspense fallback={null}>
             <MobileClaimSheet
               claim={fieldClaim}
-              onClose={closeFieldClaim}
-              onOpenFull={(c) => {
-                // Full editor on top of sheet; closing modal returns to sheet
-                openExisting(c);
-              }}
+              onClose={requestCloseFieldClaim}
+              onOpenFull={(c) => openExisting(c)}
               onPatch={handlePatchClaim}
               onMoveToStatus={handleMoveToStatus}
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
-              themeId={mobileThemeId}
+              userEmail={myEmail}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
-                closeFieldClaim();
+                requestCloseFieldClaim();
               }}
             />
           </Suspense>
@@ -461,61 +884,28 @@ export default function App() {
         {modalClaim && (
           <Suspense fallback={null}>
             <ClaimModal
-              claim={modalClaim}
-              isNew={!modalClaim.numarDosar}
+              claim={activeModalClaim}
+              isNew={!activeModalClaim?.numarDosar}
               onSave={handleSave}
+              onPatch={handlePatchClaim}
               onDelete={handleDelete}
-              onClose={closeClaimModal}
+              onClose={requestCloseClaimModal}
               onNotify={showNotice}
-              onJumpTo={(c) => { closeClaimModal(); setTimeout(() => openMobileClaim(c), 150); }}
+              onJumpTo={(c) => {
+                closeClaimModal();
+                setTimeout(() => openMobileClaim(c), 150);
+              }}
               onSaveAndProgram={(c) => handleSave(c, { openProgramator: true })}
               insurersList={customInsurers}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
+              readOnly={
+                Array.isArray(claims) &&
+                claims.some((c) => c && c.id === activeModalClaim?.id) &&
+                !canEdit(activeModalClaim)
+              }
               allClaims={claims}
               adminEmails={adminEmails}
-              themeId={mobileThemeId}
-            />
-          </Suspense>
-        )}
-
-        {quickCreateOpen && (
-          <Suspense fallback={null}>
-            <QuickCreateClaimModal
-              isOpen={quickCreateOpen}
-              onClose={closeQuickCreate}
-              onSave={handleSave}
-              themeId={mobileThemeId}
-            />
-          </Suspense>
-        )}
-
-        {setariOpen && (
-          <Suspense fallback={null}>
-            <SetariModal
-              claims={claims}
-              capacitateZilnica={capacitateZilnica}
-              pragRidicare={pragRidicare}
-              pragInactivitate={pragInactivitate}
-              onSaveCapacitate={saveCapacitate}
-              onSavePrag={savePragRidicare}
-              onSavePragInactivitate={savePragInactivitate}
-              insurersList={customInsurers}
-              onSaveInsurers={saveInsurers}
-              branding={branding}
-              onSaveBranding={saveBranding}
-              onUploadBrandingLogo={uploadBrandingLogo}
-              onClose={closeSettings}
-              onNotify={showNotice}
               userEmail={myEmail}
-              onSignOut={handleLogout}
-              isAdmin={isAdmin}
-              usersList={usersList}
-              onAddUser={handleAddUser}
-              onDeleteUser={handleDeleteUser}
-              onToggleAdminRole={handleToggleAdminRole}
-              onChangePassword={handleChangePassword}
-              mobileThemeId={mobileThemeId}
-              onMobileThemeChange={handleMobileThemeChange}
+              manoperaTarife={manoperaTarife}
             />
           </Suspense>
         )}
@@ -524,576 +914,231 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex bg-[#F5F2EB] overflow-hidden relative font-sans">
+    <div className="h-[100dvh] flex app-shell overflow-hidden relative font-sans">
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
-      {/* --- DESKTOP FLOATING LEFT SIDEBAR DOCK --- */}
-      <aside className={`hidden md:flex flex-col ${navHovered ? "w-[220px]" : "w-[68px]"} transition-all duration-300 ease-in-out bg-[#1C2127] text-white shrink-0 z-30 shadow-2xl border-r border-white/10 overflow-hidden`}>
+      <OnboardingModal
+        open={onboardingOpen}
+        onDismiss={dismissTour}
+        onCreateClaim={userCanCreate ? () => openNew() : null}
+        desktopUi
+        roleLabel={myRoleLabel}
+      />
 
-        {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
-        <button
-          type="button"
-          onClick={() => {
-            setView("dosare");
-            setDosareSubView("brief");
-          }}
-          className="h-14 flex items-center justify-center border-b border-white/10 shrink-0 hover:bg-white/10 transition-colors w-full cursor-pointer"
-          title="Revenire la ecranul principal (Brief Zilnic)"
-        >
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white text-[13.5px] shadow-md shrink-0 active:scale-95 transition-transform overflow-hidden"
-            style={{
-              background: branding?.logoUrl
-                ? "#fff"
-                : `linear-gradient(135deg, ${branding?.accentColor || "#C98A2B"}, ${darkenHex(branding?.accentColor || "#C98A2B")})`,
-            }}
-            title={branding?.atelierNume || "Dosare Daună"}
-          >
-            {branding?.logoUrl ? (
-              <img src={branding.logoUrl} alt="" className="w-full h-full object-contain" />
-            ) : (
-              branding?.atelierShort || "WD"
-            )}
-          </div>
-        </button>
+      {/* Desktop Minimal Sidebar */}
+      <DesktopSidebar
+        branding={branding}
+        view={view}
+        setView={setView}
+        setDosareSubView={setDosareSubView}
+        userClaimsCount={userClaims.length}
+        setariOpen={setariOpen}
+        openSettings={openSettings}
+        memberships={memberships}
+        atelierId={atelierId}
+        userEmail={myEmail}
+        switchAtelier={switchAtelier}
+        showNotice={showNotice}
+        handleLogout={handleLogout}
+      />
 
-        {/* Main Navigation Items (Extindere automată doar la trecerea mouse-ului pe această porțiune) */}
-        <div
-          onMouseEnter={() => setNavHovered(true)}
-          onMouseLeave={() => setNavHovered(false)}
-          className="flex-1 py-4 px-2 space-y-1.5 overflow-y-auto overflow-x-hidden scrollbar-none"
-        >
-          {[
-            { id: "dosare", label: "Dosare & Flux", icon: Layers, badge: userClaims.length },
-            { id: "programator", label: "Programări", icon: CalendarClock },
-            { id: "dashboard", label: "Statistici & Rapoarte", icon: BarChart3 },
-          ].map(({ id, label, icon: Icon, badge }) => {
-            const active = view === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setView(id)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
-                  active
-                    ? "bg-[#C98A2B] text-white font-bold shadow-md"
-                    : "text-white/70 hover:text-white hover:bg-white/10"
-                }`}
-                title={label}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon size={20} className="shrink-0" />
-                  <span className={`transition-all duration-200 whitespace-nowrap ${navHovered ? "opacity-100 max-w-[120px]" : "opacity-0 max-w-0 overflow-hidden"}`}>
-                    {label}
-                  </span>
-                </div>
-                {badge !== undefined && (
-                  <span className={`text-[10px] font-black bg-white/20 px-1.5 py-0.2 rounded-full transition-opacity duration-200 ${navHovered ? "opacity-100" : "opacity-0"}`}>
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      {/* Main Workspace Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden app-workspace">
+        {/* Desktop Header */}
+        <DesktopHeader
+          view={view}
+          dosareSubView={dosareSubView}
+          setDosareSubView={setDosareSubView}
+          setOnlyBlocked={setOnlyBlocked}
+          totalAlertsCount={totalAlertsCount}
+          blockedCount={blockedCount}
+          search={search}
+          setSearch={setSearch}
+          setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+          userCanCreate={userCanCreate}
+          myRole={myRole}
+          myRoleLabel={myRoleLabel}
+          openNew={openNew}
+          setIsAiModalOpenHeader={setIsAiModalOpenHeader}
+          openAlerts={openAlerts}
+          openBlockedClaims={openBlockedClaims}
+        />
 
-        {/* Bottom Profile & Settings Dock */}
-        <div className="p-2 shrink-0 space-y-1 border-t border-white/10">
-          <button
-            onClick={() => openSettings()}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 text-[12.5px] font-semibold transition-all"
-            title="Centru Setări"
-          >
-            <div className="w-6 h-6 rounded-full bg-[#C98A2B] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
-              {myEmail ? myEmail.charAt(0).toUpperCase() : "U"}
-            </div>
-            <span className={`transition-all duration-200 truncate max-w-[120px] ${navHovered ? "opacity-100" : "opacity-0"}`}>
-              {myEmail}
-            </span>
-          </button>
-        </div>
-      </aside>
+        {/* Desktop Advanced Filter Bar */}
+        <DesktopFilterBar
+          view={view}
+          showFilterPanel={showFilterPanel}
+          setShowFilterPanel={setShowFilterPanel}
+          activeFilterCount={activeFilterCount}
+          filterTip={filterTip}
+          setFilterTip={setFilterTip}
+          filterAsigurator={filterAsigurator}
+          setFilterAsigurator={setFilterAsigurator}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          insurers={insurers}
+          resetFilters={resetFilters}
+        />
 
-      {/* --- RIGHT MAIN WORKSPACE CANVAS --- */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Responsive mobile fallback dock & filter sheet in desktop mode */}
+        <DesktopMobileDock
+          view={view}
+          setView={setView}
+          activeFilterCount={activeFilterCount}
+          mobileSort={mobileSort}
+          setMobileSort={setMobileSort}
+          mobileFilterSheetOpen={mobileFilterSheetOpen}
+          setMobileFilterSheetOpen={setMobileFilterSheetOpen}
+          openQuickCapture={openQuickCapture}
+          search={search}
+          setSearch={setSearch}
+          filterTip={filterTip}
+          setFilterTip={setFilterTip}
+          onlyBlocked={onlyBlocked}
+          setOnlyBlocked={setOnlyBlocked}
+          filterAsigurator={filterAsigurator}
+          setFilterAsigurator={setFilterAsigurator}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          insurers={insurers}
+          resetFilters={resetFilters}
+          filteredClaimsCount={filteredClaims.length}
+        />
 
-        {/* Top Breadcrumb & Action Header */}
-        <header className="relative h-14 bg-white border-b border-[#E0D9CC] px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
-
-          {/* Left Navigation / Segmented Switch */}
-          <div className="flex items-center gap-2 text-[13px]">
-            {(view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              <div className="flex items-center bg-[#EFEAE1] border border-[#DAD4C6] p-0.5 rounded-xl shadow-2xs font-extrabold text-[11.5px]">
-                <button
-                  type="button"
-                  onClick={() => setDosareSubView("flux")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    dosareSubView === "flux"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
-                  }`}
-                >
-                  <Layers size={13} />
-                  <span>Tablou Flux</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDosareSubView("brief")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    dosareSubView === "brief"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
-                  }`}
-                >
-                  <Sunrise size={13} />
-                  <span>Brief Alerte</span>
-                  {totalAlertsCount > 0 && (
-                    <span className="bg-[#B23A2E] text-white text-[9.5px] px-1.5 py-0.2 rounded-full font-mono">
-                      {totalAlertsCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setDosareSubView("list")}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    dosareSubView === "list"
-                      ? "bg-[#C98A2B] text-white shadow-xs"
-                      : "text-[#6B6558] hover:text-[#23282E]"
-                  }`}
-                >
-                  <List size={13} />
-                  <span>Tabel Dosare</span>
-                </button>
-              </div>
-            ) : (
-              <span className="font-extrabold text-[#C98A2B] bg-[#FAF8F5] border border-[#DAD4C6] px-3 py-1 rounded-xl text-[13px]">
-                {viewLabels[view] || "Aplicație"}
-              </span>
-            )}
-          </div>
-
-          {/* UNIFIED PERFECT SEARCH BAR IN MAIN HEADER */}
-          <div className="hidden lg:flex items-center absolute left-1/2 -translate-x-1/2">
-            <div className="relative w-80">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Caută după nr. auto, client, dosar..."
-                className="w-full pl-9 pr-16 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#23282E] placeholder-[#8A8375] focus:bg-white focus:border-[#C98A2B] text-[12.5px] transition-all shadow-2xs font-medium focus:outline-none"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    className="p-0.5 rounded-full hover:bg-gray-200 text-[#8A8375]"
-                    title="Șterge căutarea"
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsCommandPaletteOpen(true)}
-                  className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.5 rounded text-[#3B5166] hover:bg-[#E2DBCF]"
-                  title="Deschide Paleta de Comenzi (Ctrl+K)"
-                >
-                  Ctrl+K
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Header Actions */}
-          <div className="flex items-center gap-2">
-            {(displayMode === "desktop" || (displayMode === null && !isMobileScreen)) && (
-              <button
-                type="button"
-                onClick={() => toggleDisplayMode("mobile")}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[#3B5166] text-[12px] font-bold hover:bg-[#EFEAE1] transition-all"
-                title="Comută la modul mobil"
-              >
-                <Smartphone size={14} />
-                <span className="hidden sm:inline">Mobil</span>
-              </button>
-            )}
-            <button
-              onClick={() => openQuickCapture()}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#DAD4C6] bg-white text-[#3B5166] text-[13px] font-bold hover:bg-[#FAF8F5] shadow-sm transition-all active:scale-95"
-              title="Captură rapidă poze & scan documente"
-            >
-              <Camera size={16} className="text-[#C98A2B]" /> <span>Poze &amp; Doc</span>
-            </button>
-            <button
-              onClick={() => openNew()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] shadow-sm transition-all active:scale-95"
-            >
-              <Plus size={16} /> <span>Dosar nou</span>
-            </button>
-
-            {/* UNIFIED SUPER CENTRU DE ALERTE BUTTON */}
-            {totalAlertsCount > 0 && (
-              <button
-                onClick={() => openAlerts("depasite")}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12.5px] font-extrabold bg-[#B23A2E] text-white shadow-sm hover:bg-[#922D24] active:scale-95 transition-all animate-pulse"
-                title="Deschide Centrul de Alerte"
-              >
-                <Bell size={14} className="fill-white" />
-                <span>{totalAlertsCount} Alerte</span>
-              </button>
-            )}
-
-          </div>
-        </header>
-
-        {/* DESKTOP FILTER DROPDOWNS BAR */}
-        {!["brief", "programator", "flux", "dosare"].includes(view) && (
-          <div className="hidden md:block px-4 py-2 bg-white border-b border-[#E0D9CC] shrink-0 z-10">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowFilterPanel((open) => !open)}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors ${showFilterPanel || activeFilterCount ? "border-[#3B5166] bg-[#EEF1F3] text-[#2C4160]" : "border-[#DAD4C6] bg-[#FAF8F5] text-[#6B6558] hover:bg-[#EFEAE1]"}`}
-              >
-                <SlidersHorizontal size={14} />
-                <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre avansate"}</span>
-              </button>
-            </div>
-            {showFilterPanel && (
-              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-[#DAD4C6] bg-[#FAF8F5] p-2.5">
-                <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Tip asigurare</span>
-                  <select className="in min-w-[130px]" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
-                    <option value="toate">Toate</option><option value="CASCO">CASCO</option><option value="RCA">RCA</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Asigurător</span>
-                  <select className="in min-w-[190px]" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
-                    <option value="toti">Toți asigurătorii</option>
-                    {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-[10px] font-semibold text-[#6B6558]">Status</span>
-                  <select className="in min-w-[190px]" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                    <option value="toate">Toate statusurile</option>
-                    {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-                  </select>
-                </label>
-                {activeFilterCount > 0 && <button type="button" onClick={resetFilters} className="flex items-center gap-1 px-2 py-1.5 text-[11px] font-semibold text-[#B23A2E] hover:underline"><X size={13} /> Resetează</button>}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* DECATHLON STYLE SUB-HEADER ON MOBILE: Sticky Filter & Sort Buttons */}
-        <div className="grid grid-cols-2 gap-px bg-white/10 border-t border-white/10 text-white md:hidden text-[12px] font-bold">
-          <button
-            onClick={() => setMobileFilterSheetOpen(true)}
-            className={`flex items-center justify-center gap-2 py-2.5 transition-colors ${activeFilterCount > 0 ? "bg-[#C98A2B] text-white" : "bg-[#1C2127] text-white"}`}
-          >
-            <Filter size={14} className="text-white" />
-            <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtrează"}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setMobileSort((prev) => prev === "recent" ? "status" : prev === "status" ? "numar" : prev === "numar" ? "client" : "recent");
-            }}
-            className="flex items-center justify-center gap-2 py-2.5 bg-[#1C2127] active:bg-[#2C333D] transition-colors border-l border-white/10"
-          >
-            <ArrowUpDown size={14} className="text-[#C98A2B]" />
-            <span className="truncate">
-              {mobileSort === "recent" ? "Recente" : mobileSort === "status" ? "Status" : mobileSort === "numar" ? "Nr. dosar" : "Client"}
-            </span>
-          </button>
-        </div>
-
-        {/* MAIN WORKSPACE CANVAS VIEW AREA */}
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă vizualizarea...</div>}>
-          <main className={`flex-1 min-h-0 p-2 sm:p-4 pb-20 md:pb-4 ${(view === "flux" || view === "programator") ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
-            {loading ? (
-              <div className="flex-1 flex items-center justify-center text-[#8A8375] gap-2"><Loader2 className="animate-spin" size={18} /> Se încarcă dosarele...</div>
-            ) : (view === "dosare" || view === "flux" || view === "brief" || view === "list") ? (
-              dosareSubView === "brief" ? (
-                <BriefZilnic
-                  claims={userClaims}
-                  onOpen={openExisting}
-                  onMoveToStatus={handleMoveToStatus}
-                  onDuplicate={duplicateClaim}
-                  canEditFn={canEdit}
-                  pragRidicare={pragRidicare}
-                  pragInactivitate={pragInactivitate}
-                  alertBuckets={alertBuckets}
-                  onSelectStatusFilter={(statusKey) => {
-                    setFilterStatus(statusKey);
-                    setDosareSubView("list");
-                  }}
-                />
-              ) : dosareSubView === "list" ? (
-                <ClaimTable claims={filteredClaims} onOpen={openExisting} onDelete={handleDelete} canEditFn={canEdit} />
-              ) : (
-                <TablouPeFaze
-                  claims={filteredClaims}
-                  onOpen={openExisting}
-                  onMoveToStatus={handleMoveToStatus}
-                  onTogglePieseSosite={(claim, val) => handlePatchClaim(claim.id, { pieseSosite: val })}
-                  onScheduleFromPiese={async (claim, iso) => {
-                    const ok = await handlePatchClaim(claim.id, { dataProgramare: iso });
-                    if (ok !== false) {
-                      showNotice(
-                        `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
-                        "success"
-                      );
-                    }
-                    return ok;
-                  }}
-                  onAddInStatus={openNew}
-                  onDuplicate={duplicateClaim}
-                  canEditFn={canEdit}
-                  pragRidicare={pragRidicare}
-                  quickFilter={fluxFilter}
-                  setQuickFilter={setFluxFilter}
-                />
-              )
-            ) : view === "dashboard" ? (
-              <Dashboard claims={filteredClaims} onOpen={openExisting} pragRidicare={pragRidicare} />
-            ) : view === "programator" ? (
-              <Programator claims={claims} onOpen={openExisting} onPatch={(id, patch) => handlePatchClaim(id, patch)} canEditFn={canEdit} capacitate={capacitateZilnica} onSetCapacitate={saveCapacitate} onAddInStatus={openNew} />
-            ) : (
-              <Rapoarte claims={filteredClaims} onPatch={handlePatchClaim} canEditFn={canEdit} />
-            )}
-          </main>
-        </Suspense>
+        {/* Views Canvas Router */}
+        <AppViewRouter
+          view={view}
+          setView={setView}
+          dosareSubView={dosareSubView}
+          setDosareSubView={setDosareSubView}
+          loading={loading}
+          loadError={loadError}
+          isOffline={isOffline}
+          loadAll={loadAll}
+          claims={claims}
+          userClaims={userClaims}
+          filteredClaims={filteredClaims}
+          stageClaims={stageClaims}
+          highlightClaimIds={highlightClaimIds}
+          userCanCreate={userCanCreate}
+          isAdmin={isAdmin}
+          myRoleLabel={myRoleLabel}
+          openNew={openNew}
+          openExisting={openExisting}
+          handleOpenClaim={handleOpenClaim}
+          duplicateClaim={duplicateClaim}
+          handleDelete={handleDelete}
+          handlePatchClaim={handlePatchClaim}
+          handleMoveToStatus={handleMoveToStatus}
+          canEdit={canEdit}
+          pragRidicare={pragRidicare}
+          pragInactivitate={pragInactivitate}
+          alertBuckets={alertBuckets}
+          showNotice={showNotice}
+          openBlockedClaims={openBlockedClaims}
+          setFilterStatus={setFilterStatus}
+          onlyBlocked={onlyBlocked}
+          setOnlyBlocked={setOnlyBlocked}
+          openAlerts={openAlerts}
+          capacitateZilnica={capacitateZilnica}
+          saveCapacitate={saveCapacitate}
+          programatorFocusDate={programatorFocusDate}
+        />
       </div>
 
-      {/* --- DECATHLON FLOATING CURVED BOTTOM DOCK (MOBILE NAV BAR) --- */}
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 md:hidden w-[92%] max-w-sm">
-        <div className="bg-[#1C2127]/95 backdrop-blur-md border border-white/20 shadow-2xl rounded-full px-4 py-2 grid grid-cols-[1fr_auto_1fr_1fr] gap-3 text-white items-center">
-          {[
-            { id: "dosare", label: "Dosare", icon: Layers },
-            { id: "quickCapture", label: "Scan/Foto", icon: Camera, isAction: true },
-            { id: "programator", label: "Programat", icon: CalendarClock },
-            { id: "dashboard", label: "Statistici", icon: BarChart3 },
-          ].map(({ id, label, icon: Icon, isAction }) => {
-            const active = view === id;
-            if (isAction) {
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => openQuickCapture()}
-                  className="col-span-1 flex items-center justify-center p-3 rounded-full bg-gradient-to-tr from-[#C98A2B] to-[#E5A84B] text-white shadow-lg -mt-5 border-[3px] border-[#1C2127] active:scale-95 transition-transform"
-                  title="Captură rapidă foto & scanner cameră"
-                >
-                  <Icon size={20} />
-                  <span className="text-[8.5px] font-black tracking-tight uppercase mt-0.5">Scan</span>
-                </button>
-              );
-            }
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setView(id)}
-                className={`flex flex-col items-center justify-center px-2 py-1 rounded-full transition-all min-w-0 ${
-                  active
-                    ? "bg-[#C98A2B] text-white font-bold"
-                    : "text-white/70 hover:text-white"
-                }`}
-              >
-                <Icon size={18} strokeWidth={active ? 2.5 : 2} />
-                <span className="text-[9.5px] font-semibold tracking-tight mt-0.5">{label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* --- DECATHLON MOBILE BOTTOM SHEET FILTERS --- */}
-      {mobileFilterSheetOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end justify-center md:hidden">
-          <div className="bg-[#FCFAF5] w-full rounded-t-2xl border-t border-[#DAD4C6] p-4 space-y-4 max-h-[85vh] overflow-y-auto animate-in slide-in-from-bottom duration-200">
-            <div className="w-12 h-1.5 bg-[#DAD4C6] rounded-full mx-auto" />
-
-            <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-              <h3 className="font-bold text-[15px] text-[#23282E] flex items-center gap-2">
-                <Filter size={16} className="text-[#C98A2B]" /> Filtrează Dosarele
-              </h3>
-              <button onClick={() => setMobileFilterSheetOpen(false)} className="p-1 rounded-full text-[#8A8375] hover:bg-[#EFEAE1]">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Căutare text</label>
-              <div className="relative">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A8375]" />
-                <input
-                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#DAD4C6] text-[14px] bg-white"
-                  placeholder="Nr. dosar, client, nr. auto, VIN..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Tip asigurare</label>
-                <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterTip} onChange={(e) => setFilterTip(e.target.value)}>
-                  <option value="toate">Toate</option>
-                  <option value="CASCO">CASCO</option>
-                  <option value="RCA">RCA</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Doar Blocat</label>
-                <button
-                  type="button"
-                  onClick={() => setOnlyBlocked((v) => !v)}
-                  className={`w-full p-2.5 rounded-lg border text-[13px] font-semibold text-center transition-colors ${onlyBlocked ? "bg-[#B23A2E] text-white border-[#B23A2E]" : "bg-white text-[#3B5166] border-[#DAD4C6]"}`}
-                >
-                  {onlyBlocked ? "⚠️ Blocat DA" : "Toate"}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Asigurător</label>
-              <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterAsigurator} onChange={(e) => setFilterAsigurator(e.target.value)}>
-                <option value="toti">Toți asigurătorii</option>
-                {insurers.map((insurer) => <option key={insurer} value={insurer}>{insurer}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-bold text-[#6B6558] uppercase mb-1">Status Dosar</label>
-              <select className="w-full p-2.5 rounded-lg border border-[#DAD4C6] text-[13px] bg-white font-semibold" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                <option value="toate">Toate statusurile</option>
-                {STATUSES.map((s) => <option key={s.key} value={s.key}>{String(s.num).padStart(2, "0")}. {s.label}</option>)}
-              </select>
-            </div>
-
-            <div className="flex gap-2 pt-2 border-t border-[#DAD4C6]">
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={() => { resetFilters(); setSearch(""); }}
-                  className="flex-1 py-3 rounded-xl border border-[#B23A2E] text-[#B23A2E] text-[13px] font-bold hover:bg-red-50 text-center"
-                >
-                  Resetează
-                </button>
-              )}
-              <button
-                onClick={() => setMobileFilterSheetOpen(false)}
-                className="flex-1 py-3 rounded-xl bg-[#C98A2B] text-white text-[13px] font-bold hover:bg-[#B37A22] text-center shadow-md"
-              >
-                Aplică Filtre ({filteredClaims.length} dosare)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODALS & OVERLAYS --- */}
-      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 text-white">Se încarcă...</div>}>
-        {modalClaim && (
-          <ErrorBoundary key={modalClaim.id || "new-claim"} onReset={closeClaimModal}>
-            <ClaimModal
-              claim={modalClaim}
-              onClose={closeClaimModal}
-              onSave={handleSave}
-              onDelete={handleDelete}
-              readOnly={Array.isArray(claims) && claims.some((c) => c && c.id === modalClaim?.id) && !canEdit(modalClaim)}
-              allClaims={claims}
-              insurersList={customInsurers}
-              onJumpTo={openExisting}
-              onNotify={showNotice}
-              themeId={mobileThemeId}
-            />
-          </ErrorBoundary>
-        )}
-
-        {alerteModalTab && (
-          <AlerteModal
-            claims={userClaims}
-            alertBuckets={alertBuckets}
-            initialTab={alerteModalTab}
-            pragRidicare={pragRidicare}
-            pragInactivitate={pragInactivitate}
-            onClose={closeAlerts}
-            onOpenClaim={openExisting}
-            onPatchClaim={handlePatchClaim}
-            onNotify={showNotice}
-            themeId={mobileThemeId}
-          />
-        )}
-
-        {setariOpen && (
-          <SetariModal
-            claims={claims}
-            capacitateZilnica={capacitateZilnica}
-            pragRidicare={pragRidicare}
-            pragInactivitate={pragInactivitate}
-            insurersList={customInsurers}
-            onSaveInsurers={saveInsurers}
-            onSaveCapacitate={saveCapacitate}
-            onSavePrag={savePragRidicare}
-            onSavePragInactivitate={savePragInactivitate}
-            branding={branding}
-            onSaveBranding={saveBranding}
-            onUploadBrandingLogo={uploadBrandingLogo}
-            onClose={closeSettings}
-            onNotify={showNotice}
-            userEmail={myEmail}
-            onSignOut={handleLogout}
-            isAdmin={isAdmin}
-            usersList={usersList}
-            onAddUser={handleAddUser}
-            onDeleteUser={handleDeleteUser}
-            onToggleAdminRole={handleToggleAdminRole}
-            onChangePassword={handleChangePassword}
-            mobileThemeId={mobileThemeId}
-            onMobileThemeChange={handleMobileThemeChange}
-          />
-        )}
-
-        {quickCreateOpen && (
-          <QuickCreateClaimModal
-            isOpen={quickCreateOpen}
-            onClose={closeQuickCreate}
-            onSave={handleSave}
-            themeId={mobileThemeId}
-          />
-        )}
-
-        {quickCaptureOpen && (
-          <QuickCapture
-            claims={claims}
-            onClose={closeQuickCapture}
-            onPatch={handlePatchClaim}
-            canEditFn={canEdit}
-            onNotify={showNotice}
-          />
-        )}
-      </Suspense>
+      {/* Modals & Overlays Layer */}
+      <AppModalsLayer
+        alerteModalTab={alerteModalTab}
+        userClaims={userClaims}
+        alertBuckets={alertBuckets}
+        pragRidicare={pragRidicare}
+        pragInactivitate={pragInactivitate}
+        requestCloseAlerts={requestCloseAlerts}
+        handleOpenClaim={handleOpenClaim}
+        handlePatchClaim={handlePatchClaim}
+        showNotice={showNotice}
+        setariOpen={setariOpen}
+        requestCloseSettings={requestCloseSettings}
+        claims={claims}
+        capacitateZilnica={capacitateZilnica}
+        saveCapacitate={saveCapacitate}
+        savePragRidicare={savePragRidicare}
+        savePragInactivitate={savePragInactivitate}
+        termeneAlertaStatus={termeneAlertaStatus}
+        saveTermeneAlertaStatus={saveTermeneAlertaStatus}
+        customInsurers={customInsurers}
+        saveInsurers={saveInsurers}
+        branding={branding}
+        saveBranding={saveBranding}
+        uploadBrandingLogo={uploadBrandingLogo}
+        myEmail={myEmail}
+        handleLogout={handleLogout}
+        isAdmin={isAdmin}
+        usersList={usersList}
+        handleAddUser={handleAddUser}
+        handleDeleteUser={handleDeleteUser}
+        handleToggleAdminRole={handleToggleAdminRole}
+        handleChangePassword={handleChangePassword}
+        effectiveBilling={effectiveBilling}
+        saveBilling={saveBilling}
+        manoperaTarife={manoperaTarife}
+        saveManoperaTarife={saveManoperaTarife}
+        tenancyReady={tenancyReady}
+        atelierId={atelierId}
+        atelier={atelier}
+        startStripeCheckout={startStripeCheckout}
+        startStripePortal={startStripePortal}
+        loadAll={loadAll}
+        quickCreateOpen={quickCreateOpen}
+        requestCloseQuickCreate={requestCloseQuickCreate}
+        handleSave={handleSave}
+        quickCreateDefaults={quickCreateDefaults}
+        modalClaim={modalClaim}
+        activeModalClaim={activeModalClaim}
+        requestCloseClaimModal={requestCloseClaimModal}
+        handleDelete={handleDelete}
+        canEdit={canEdit}
+        openExisting={openExisting}
+        quickCaptureOpen={quickCaptureOpen}
+        closeQuickCapture={closeQuickCapture}
+        isAiModalOpenHeader={isAiModalOpenHeader}
+        setIsAiModalOpenHeader={setIsAiModalOpenHeader}
+        openNew={openNew}
+      />
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        claims={claims}
-        onOpenClaim={openExisting}
-        onSwitchView={setView}
-        onOpenNewClaim={openNew}
-        onOpenQuickCapture={openQuickCapture}
+        claims={userClaims}
+        initialQuery={search}
+        onQueryChange={setSearch}
+        onOpenClaim={(claim) => {
+          clearSearch();
+          handleOpenClaim(claim);
+        }}
+        onSwitchView={(id) => {
+          clearSearch();
+          handleSwitchView(id);
+        }}
+        onOpenNewClaim={
+          userCanCreate
+            ? () => {
+                clearSearch();
+                openNew();
+              }
+            : undefined
+        }
+        onOpenQuickCapture={() => {
+          clearSearch();
+          openQuickCapture();
+        }}
+        onOpenAiScan={() => {
+          clearSearch();
+          setIsAiModalOpenHeader(true);
+        }}
         onExportExcel={exportExcel}
+        onExportPdf={exportPdf}
       />
     </div>
   );

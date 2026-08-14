@@ -1,19 +1,41 @@
-import React, { useState, useMemo, useEffect } from "react";
-import {
-  X, Settings, User, Building, Database, Bell, Wrench, Download,
-  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock, Palette
-} from "lucide-react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { INSURERS, STATUSES } from "../../constants/config";
-import * as XLSX from "xlsx";
 import { todayISO } from "../../utils/dateUtils";
-import MobileThemePicker from "../mobile/MobileThemePicker";
-import "../../styles/mobileThemes.css";
+import {
+  modalOverlayClass,
+  modalOverlayProps,
+  modalPanelClass,
+} from "../common/modalShellClasses";
+import {
+  loadThemePreference,
+  THEME_PREF_EVENT,
+} from "../../utils/themePrefs";
+import ConfirmDialog from "../common/ConfirmDialog";
+import AppButton from "../common/AppButton";
+import { normalizeBilling } from "../../constants/billing";
+import { supabase } from "../../supabaseClient";
+import { downloadAtelierGdprExport, wipeAtelierDosare } from "../../utils/gdprExport";
+import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
+import { normalizeManoperaTarife, DEFAULT_MANOPERA_TARIFE } from "../../constants/manoperaTarife";
+
+// Sub-components
+import SettingsHeader from "./settings/SettingsHeader";
+import SettingsNav from "./settings/SettingsNav";
+import SettingsGeneralTab from "./settings/SettingsGeneralTab";
+import SettingsInsurersTab from "./settings/SettingsInsurersTab";
+import SettingsAiTab from "./settings/SettingsAiTab";
+import SettingsAppearanceTab from "./settings/SettingsAppearanceTab";
+import SettingsBackupTab from "./settings/SettingsBackupTab";
+import SettingsGdprTab from "./settings/SettingsGdprTab";
+import SettingsAccountTab from "./settings/SettingsAccountTab";
 
 export default function SetariModal({
   claims = [],
   capacitateZilnica,
   pragRidicare,
   pragInactivitate = 7,
+  termeneAlertaStatus = {},
+  onSaveTermeneAlertaStatus,
   onSaveCapacitate,
   onSavePrag,
   onSavePragInactivitate,
@@ -32,26 +54,88 @@ export default function SetariModal({
   onDeleteUser,
   onToggleAdminRole,
   onChangePassword,
-  mobileThemeId = "atelier",
-  onMobileThemeChange,
+  desktopUi = false,
+  billing = null,
+  onSaveBilling = null,
+  manoperaTarife: manoperaTarifeProp = null,
+  onSaveManoperaTarife = null,
+  tenancyReady = false,
+  atelierId = null,
+  atelierSlug = null,
+  onStripeCheckout = null,
+  onStripePortal = null,
+  onDataChanged = null,
 }) {
-  const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza"
+  const billingView = useMemo(
+    () =>
+      billing ||
+      normalizeBilling({
+        memberCount: usersList.length,
+        seatLimit: 10,
+        plan: "trial",
+      }),
+    [billing, usersList.length]
+  );
+  const [seatDraft, setSeatDraft] = useState(billingView.seatLimit);
+  const [savingBilling, setSavingBilling] = useState(false);
+  const [stripeBusy, setStripeBusy] = useState(false);
+
+  useEffect(() => {
+    setSeatDraft(billingView.seatLimit);
+  }, [billingView.seatLimit]);
+
+  const [settingsSection, setSettingsSection] = useState("atelier"); // "atelier" | "cont"
+  const [activeTab, setActiveTab] = useState("general"); // "general" | "asiguratori" | "notificari" | "profil" | "diagnoza" | "date" | "ai"
+  const [pendingDeleteEmail, setPendingDeleteEmail] = useState(null);
+  const [geminiApiKeySetting, setGeminiApiKeySetting] = useState(() => localStorage.getItem("gemini_api_key") || "");
+
+  const clearPendingDelete = useCallback(() => setPendingDeleteEmail(null), []);
+  const ignoreSettingsEscape = useCallback(() => Boolean(pendingDeleteEmail), [pendingDeleteEmail]);
+  useModalEscape(onClose, {
+    ignore: ignoreSettingsEscape,
+    onIgnored: clearPendingDelete,
+  });
+  const backdropProps = overlayBackdropCloseProps(desktopUi, onClose);
+  const [gdprExporting, setGdprExporting] = useState(false);
+  const [wipeSlugConfirm, setWipeSlugConfirm] = useState("");
+  const [wipeBusy, setWipeBusy] = useState(false);
 
   // Form states
   const [capacitate, setCapacitate] = useState(capacitateZilnica || 3);
   const [prag, setPrag] = useState(pragRidicare || 3);
   const [inactivitateDays, setInactivitateDays] = useState(pragInactivitate || 7);
+  const [alertDaysByStatus, setAlertDaysByStatus] = useState(() => {
+    const initial = {};
+    STATUSES.forEach((s) => {
+      initial[s.key] = termeneAlertaStatus[s.key] ?? s.alertDays ?? 3;
+    });
+    return initial;
+  });
   const [tvaDefault, setTvaDefault] = useState(21);
+  const [manoperaTarifeDraft, setManoperaTarifeDraft] = useState(() =>
+    normalizeManoperaTarife(manoperaTarifeProp || DEFAULT_MANOPERA_TARIFE)
+  );
   const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
-  const [visualPulseEnabled, setVisualPulseEnabled] = useState(true);
-  const [compactCards, setCompactCards] = useState(false);
   const [saving, setSaving] = useState(false);
   const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "Dosare Daună");
   const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
   const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
-  const [accentColor, setAccentColor] = useState(brandingProp?.accentColor || "#C98A2B");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [themePref, setThemePref] = useState(() => loadThemePreference());
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserRole, setNewUserRole] = useState("receptioner");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [myNewPassword, setMyNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    if (manoperaTarifeProp) {
+      setManoperaTarifeDraft(normalizeManoperaTarife(manoperaTarifeProp));
+    }
+  }, [manoperaTarifeProp]);
 
   useEffect(() => {
     if (initialInsurersList && initialInsurersList.length > 0) {
@@ -59,24 +143,35 @@ export default function SetariModal({
     }
   }, [initialInsurersList]);
 
+  const brandingNume = brandingProp?.atelierNume;
+  const brandingShort = brandingProp?.atelierShort;
+  const brandingLogo = brandingProp?.logoUrl;
   useEffect(() => {
-    if (!brandingProp) return;
-    setAtelierNume(brandingProp.atelierNume || "Dosare Daună");
-    setAtelierShort(brandingProp.atelierShort || "WD");
-    setLogoUrl(brandingProp.logoUrl || "");
-    setAccentColor(brandingProp.accentColor || "#C98A2B");
-  }, [brandingProp]);
+    if (brandingNume == null && brandingShort == null && brandingLogo == null) return;
+    setAtelierNume(brandingNume || "Dosare Daună");
+    setAtelierShort(brandingShort || "WD");
+    setLogoUrl(brandingLogo || "");
+  }, [brandingNume, brandingShort, brandingLogo]);
 
-  // New user management states
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("operator"); // "operator" | "admin"
-  const [newUserPassword, setNewUserPassword] = useState("");
-  const [creatingUser, setCreatingUser] = useState(false);
+  useEffect(() => {
+    const onThemeChange = () => setThemePref(loadThemePreference());
+    window.addEventListener(THEME_PREF_EVENT, onThemeChange);
+    return () => window.removeEventListener(THEME_PREF_EVENT, onThemeChange);
+  }, []);
 
-  // Password change states for current logged-in user
-  const [myNewPassword, setMyNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [updatingPassword, setUpdatingPassword] = useState(false);
+  useEffect(() => {
+    setAlertDaysByStatus((prev) => {
+      const next = { ...prev };
+      STATUSES.forEach((s) => {
+        if (termeneAlertaStatus[s.key] != null) {
+          next[s.key] = termeneAlertaStatus[s.key];
+        } else if (next[s.key] == null) {
+          next[s.key] = s.alertDays ?? 3;
+        }
+      });
+      return next;
+    });
+  }, [termeneAlertaStatus]);
 
   // Statistics
   const totalPoze = useMemo(() => claims.reduce((acc, c) => acc + (c.poze?.length || 0), 0), [claims]);
@@ -84,6 +179,10 @@ export default function SetariModal({
 
   const handleSaveConfig = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate salva setările atelierului.", "error");
+      return;
+    }
     setSaving(true);
     try {
       if (capacitate !== capacitateZilnica) {
@@ -95,16 +194,35 @@ export default function SetariModal({
       if (inactivitateDays !== pragInactivitate && onSavePragInactivitate) {
         await onSavePragInactivitate(Number(inactivitateDays));
       }
+      if (onSaveTermeneAlertaStatus) {
+        const overrides = {};
+        STATUSES.forEach((s) => {
+          const val = Number(alertDaysByStatus[s.key]);
+          if (!Number.isNaN(val) && val > 0) {
+            overrides[s.key] = val;
+          }
+        });
+        await onSaveTermeneAlertaStatus(overrides);
+      }
       if (onSaveInsurers) {
         await onSaveInsurers(insurersList);
       }
+      if (onSaveManoperaTarife) {
+        await onSaveManoperaTarife(manoperaTarifeDraft);
+      }
       if (onSaveBranding) {
-        await onSaveBranding({
+        const ok = await onSaveBranding({
           atelierNume,
           atelierShort,
           logoUrl,
-          accentColor,
         });
+        if (ok === false) {
+          onNotify(
+            "Branding-ul nu s-a putut salva. Verifică rolul de admin, migrarea 37 sau edge function update-atelier-settings.",
+            "error"
+          );
+          return;
+        }
       }
       onNotify("Setările și branding-ul au fost salvate cu succes!", "success");
       onClose();
@@ -157,6 +275,10 @@ export default function SetariModal({
   };
 
   const exportFullBackupJSON = () => {
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate descărca backup-ul.", "error");
+      return;
+    }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(claims, null, 2));
     const downloadAnchor = document.createElement("a");
     downloadAnchor.setAttribute("href", dataStr);
@@ -165,6 +287,92 @@ export default function SetariModal({
     downloadAnchor.click();
     downloadAnchor.remove();
     onNotify("Backup-ul JSON al dosarelor a fost descărcat.", "success");
+  };
+
+  const handleGdprExport = async () => {
+    if (!isAdmin) {
+      onNotify("Doar administratorul poate exporta datele GDPR.", "error");
+      return;
+    }
+    if (!atelierId) {
+      onNotify("Selectează un atelier activ, apoi reîncearcă.", "warning");
+      return;
+    }
+    setGdprExporting(true);
+    try {
+      const { filename, summary } = await downloadAtelierGdprExport(supabase, atelierId, {
+        slug: atelierSlug || brandingProp?.atelierShort,
+      });
+      onNotify(
+        `Export GDPR descărcat (${filename}): ${summary.dosare} dosare, ${summary.membri} membri, ${summary.arhiva} arhivate.`,
+        "success"
+      );
+    } catch (err) {
+      onNotify(err?.message || "Export GDPR eșuat. Rulează migrarea 34 în Supabase.", "error");
+    } finally {
+      setGdprExporting(false);
+    }
+  };
+
+  const handleWipeAtelier = async () => {
+    if (!isAdmin || !atelierId) return;
+    setWipeBusy(true);
+    try {
+      const result = await wipeAtelierDosare(supabase, atelierId, wipeSlugConfirm);
+      setWipeSlugConfirm("");
+      onNotify(
+        `Date șterse: ${result?.dosare_sterse ?? 0} dosare (arhivate + fișiere Storage curățate).`,
+        "success"
+      );
+      if (typeof onDataChanged === "function") await onDataChanged();
+    } catch (err) {
+      onNotify(err?.message || "Ștergerea a eșuat. Rulează migrarea 34.", "error");
+    } finally {
+      setWipeBusy(false);
+    }
+  };
+
+  const handleSaveSeats = async (e) => {
+    e.preventDefault();
+    if (!onSaveBilling || !isAdmin) return;
+    setSavingBilling(true);
+    try {
+      const ok = await onSaveBilling({
+        plan: billingView.plan === "past_due" ? "trial" : billingView.plan,
+        seatLimit: Number(seatDraft) || 10,
+        trialEndsAt: billingView.trialEndsAt,
+      });
+      if (ok !== false) onNotify("Limita de locuri actualizată.", "success");
+    } finally {
+      setSavingBilling(false);
+    }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!onStripeCheckout || !atelierId) {
+      onNotify("Configurează Stripe (create-checkout-session) sau rulează migrarea 29.", "warning");
+      return;
+    }
+    setStripeBusy(true);
+    try {
+      await onStripeCheckout(atelierId);
+    } catch (err) {
+      onNotify(err?.message || "Nu am putut deschide Checkout.", "error");
+    } finally {
+      setStripeBusy(false);
+    }
+  };
+
+  const handleStripePortal = async () => {
+    if (!onStripePortal || !atelierId) return;
+    setStripeBusy(true);
+    try {
+      await onStripePortal(atelierId);
+    } catch (err) {
+      onNotify(err?.message || "Nu am putut deschide portalul de facturare.", "error");
+    } finally {
+      setStripeBusy(false);
+    }
   };
 
   const handleAddUserSubmit = async (e) => {
@@ -176,6 +384,15 @@ export default function SetariModal({
     }
     if (!newUserPassword || newUserPassword.trim().length < 6) {
       onNotify("Setează o parolă inițială de cel puțin 6 caractere pentru utilizator.", "error");
+      return;
+    }
+    if (!billingView.canInvite) {
+      onNotify(
+        billingView.overSeatLimit
+          ? `Limita de locuri (${billingView.seatLimit}) e atinsă. Mărește seat limit sau scoate un membru.`
+          : "Planul curent nu permite invitații noi.",
+        "error"
+      );
       return;
     }
     setCreatingUser(true);
@@ -219,685 +436,185 @@ export default function SetariModal({
   };
 
   return (
-    <div className="m-themed-modal fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto" data-mtheme={mobileThemeId || "atelier"}>
-      <div className="m-modal-panel bg-[#FCFAF5] w-full max-w-4xl rounded-xl shadow-2xl border border-[#DAD4C6] flex flex-col max-h-[92vh] overflow-hidden">
+    <div
+      className={modalOverlayClass(desktopUi)}
+      {...modalOverlayProps(desktopUi)}
+      {...backdropProps}
+    >
+      <div
+        className={modalPanelClass(
+          desktopUi,
+          "app-fixed-shell-modal w-full max-w-4xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] overflow-hidden bg-[var(--app-surface)]"
+        )}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {/* Header — doar desktop */}
+        <SettingsHeader
+          desktopUi={desktopUi}
+          userEmail={userEmail}
+          isAdmin={isAdmin}
+          onClose={onClose}
+        />
 
-        {/* Header cu ecuson Utilizator */}
-        <div className="m-modal-header flex items-center justify-between px-4 py-3 bg-[#1C2127] text-white shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="m-modal-header-icon w-9 h-9 rounded-xl bg-gradient-to-br from-[#C98A2B] to-[#A36C1D] flex items-center justify-center text-white font-bold text-[14px] shadow-sm">
-              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-bold text-[15.5px] tracking-wide" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Centrul de Administrare &amp; Setări
-                </h2>
-                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[#C98A2B]/20 text-[#F3D9A8] border border-[#C98A2B]/50" : "bg-white/10 text-white/80 border border-white/20"}`}>
-                  {isAdmin ? "★ Administrator" : "Operator"}
-                </span>
-              </div>
-              <p className="text-[11px] text-white/60">Conectat ca: <span className="text-white font-semibold">{userEmail || "Neautentificat"}</span></p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-[#DAD4C6] bg-[#FAF8F5] px-3 pt-2 gap-1 shrink-0 overflow-x-auto">
-          {[
-            { id: "general", label: "Parametri Generali", icon: Wrench },
-            { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
-            { id: "notificari", label: "Afișare & Alerte", icon: Bell },
-            { id: "profil", label: "Profil Utilizator", icon: User },
-            { id: "diagnoza", label: "Diagnoză & Backup", icon: Database },
-          ].map(({ id, label, icon: Icon, badge }) => {
-            const active = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-1.5 px-3 py-2.5 text-[12px] font-bold border-b-2 transition-all whitespace-nowrap ${
-                  active
-                    ? "border-[#C98A2B] text-[#C98A2B] bg-white rounded-t-lg shadow-xs"
-                    : "border-transparent text-[#6B6558] hover:text-[#23282E]"
-                }`}
-              >
-                <Icon size={15} />
-                <span>{label}</span>
-                {badge !== undefined && (
-                  <span className={`px-1.5 py-0.2 text-[10px] font-black rounded-full ${active ? "bg-[#C98A2B] text-white" : "bg-[#DAD4C6] text-[#23282E]"}`}>
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Atelier vs Cont navigation */}
+        <SettingsNav
+          desktopUi={desktopUi}
+          settingsSection={settingsSection}
+          setSettingsSection={setSettingsSection}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          insurersCount={insurersList.length}
+          onClose={onClose}
+        />
 
         {/* Content Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-4">
-
+        <div className="app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-5 pb-5 space-y-4">
           {/* TAB 1: PARAMETRI GENERALI & ATELIER */}
           {activeTab === "general" && (
-            <form onSubmit={handleSaveConfig} className="space-y-4">
-              {/* Identitate atelier / white-label */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Building size={16} className="text-[#C98A2B]" /> Identitate atelier (white-label)
-                </h3>
-                <p className="text-[11.5px] text-[#8A8375]">
-                  Numele, inițialele, logo-ul și culoarea apar în header, login, PDF și mesaje WhatsApp.
-                  {isAdmin ? "" : " Doar administratorul poate salva permanent în cloud."}
-                </p>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1C2127] text-white">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
-                  ) : (
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px]"
-                      style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}cc)` }}
-                    >
-                      {(atelierShort || "WD").slice(0, 3)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-[14px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {atelierNume || "Dosare Daună"}
-                    </div>
-                    <div className="text-[11px] text-white/60">Previzualizare header</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Nume atelier</label>
-                    <input
-                      type="text"
-                      value={atelierNume}
-                      onChange={(e) => setAtelierNume(e.target.value)}
-                      disabled={!isAdmin}
-                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-semibold bg-white disabled:opacity-60"
-                      placeholder="ex. AutoService Popescu"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Inițiale (max 4)</label>
-                    <input
-                      type="text"
-                      value={atelierShort}
-                      onChange={(e) => setAtelierShort(e.target.value.slice(0, 4).toUpperCase())}
-                      disabled={!isAdmin}
-                      maxLength={4}
-                      className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] font-mono font-extrabold bg-white disabled:opacity-60 uppercase"
-                      placeholder="WD"
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[12px] font-bold text-[#23282E]">URL logo (public)</label>
-                    <div className="flex flex-wrap gap-2">
-                      <input
-                        type="url"
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        disabled={!isAdmin}
-                        className="flex-1 min-w-[180px] p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-semibold bg-white disabled:opacity-60"
-                        placeholder="https://… sau lasă gol pentru inițiale"
-                      />
-                      {isAdmin && onUploadBrandingLogo && (
-                        <label className="px-3 py-2 rounded-lg bg-[#FAF8F5] border border-[#DAD4C6] text-[12px] font-bold cursor-pointer hover:bg-[#EFEAE1]">
-                          {uploadingLogo ? "Se încarcă…" : "Încarcă fișier"}
-                          <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} disabled={uploadingLogo} />
-                        </label>
-                      )}
-                      {logoUrl && isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => setLogoUrl("")}
-                          className="px-3 py-2 rounded-lg border border-[#DAD4C6] text-[12px] font-bold text-[#B23A2E]"
-                        >
-                          Șterge logo
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[#23282E]">Culoare accent</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        disabled={!isAdmin}
-                        className="w-12 h-10 rounded-lg border border-[#DAD4C6] bg-white disabled:opacity-60"
-                      />
-                      <input
-                        type="text"
-                        value={accentColor}
-                        onChange={(e) => setAccentColor(e.target.value)}
-                        disabled={!isAdmin}
-                        className="flex-1 p-2 border border-[#DAD4C6] rounded-lg text-[12px] font-mono font-bold bg-white disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Wrench size={16} className="text-[#C98A2B]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Prag mașini neridicate */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
-                      Prag alertă mașini neridicate (zile)
-                    </label>
-                    <p className="text-[11px] text-[#8A8375]">
-                      După câte zile de la finalizarea reparației se declanșează alerta pentru mașinile neridicate.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
-                        value={prag}
-                        onChange={(e) => setPrag(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">zile de la finalizare</span>
-                    </div>
-                  </div>
-
-                  {/* NOUL PRAG: Alertă dosare fără activitate (inactivitate) */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E] flex items-center gap-1.5">
-                      <Clock size={15} className="text-[#C98A2B]" /> Prag alertă dosare fără activitate (inactivitate)
-                    </label>
-                    <p className="text-[11px] text-[#8A8375]">
-                      Semnalează dosarele deschise în care NU a existat nicio modificare, schimbare de status sau notă nouă timp de X zile.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <select
-                        className="p-2 border border-[#DAD4C6] rounded-lg font-bold text-[13.5px] bg-white focus:border-[#C98A2B]"
-                        value={inactivitateDays}
-                        onChange={(e) => setInactivitateDays(Number(e.target.value))}
-                      > 
-                        <option value={1}>1 zi fără activitate</option>
-                        <option value={2}>2 zile fără activitate</option>
-                        <option value={3}>3 zile fără activitate</option>
-                        <option value={5}>5 zile fără activitate</option>
-                        <option value={7}>7 zile fără activitate (implicit)</option>
-                        <option value={10}>10 zile fără activitate</option>
-                        <option value={14}>14 zile (2 săptămâni)</option>
-                        <option value={30}>30 zile (1 lună)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Capacitate zilnică programator */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
-                      Capacitate maximă programări pe zi
-                    </label>
-                    <p className="text-[11px] text-[#8A8375]">
-                      Limita de dosare ce pot fi programate într-o singură zi în calendarul service-ului.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
-                        value={capacitate}
-                        onChange={(e) => setCapacitate(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">mașini / zi</span>
-                    </div>
-                  </div>
-
-                  {/* TVA Implicit */}
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[#23282E]">
-                      Cotă TVA implicită (%)
-                    </label>
-                    <p className="text-[11px] text-[#8A8375]">
-                      Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="w-24 p-2 border border-[#DAD4C6] rounded-lg font-bold text-[15px] bg-white text-center focus:border-[#C98A2B]"
-                        value={tvaDefault}
-                        onChange={(e) => setTvaDefault(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[#6B6558]">% TVA</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-1.5 px-6 py-2.5 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
-                >
-                  <CheckCircle2 size={16} /> Salvează Parametrii
-                </button>
-              </div>
-            </form>
+            <SettingsGeneralTab
+              isAdmin={isAdmin}
+              handleSaveConfig={handleSaveConfig}
+              saving={saving}
+              atelierNume={atelierNume}
+              setAtelierNume={setAtelierNume}
+              atelierShort={atelierShort}
+              setAtelierShort={setAtelierShort}
+              logoUrl={logoUrl}
+              setLogoUrl={setLogoUrl}
+              uploadingLogo={uploadingLogo}
+              handleLogoFile={handleLogoFile}
+              onUploadBrandingLogo={onUploadBrandingLogo}
+              prag={prag}
+              setPrag={setPrag}
+              inactivitateDays={inactivitateDays}
+              setInactivitateDays={setInactivitateDays}
+              capacitate={capacitate}
+              setCapacitate={setCapacitate}
+              alertDaysByStatus={alertDaysByStatus}
+              setAlertDaysByStatus={setAlertDaysByStatus}
+              tvaDefault={tvaDefault}
+              setTvaDefault={setTvaDefault}
+              manoperaTarifeDraft={manoperaTarifeDraft}
+              setManoperaTarifeDraft={setManoperaTarifeDraft}
+            />
           )}
 
           {/* TAB 2: MANAGEMENT ASIGURĂTORI */}
           {activeTab === "asiguratori" && (
-            <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                  <h3 className="font-bold text-[14px] text-[#23282E] flex items-center gap-2">
-                    <Building size={16} className="text-[#C98A2B]" /> Nomenclator Asigurători ({insurersList.length})
-                  </h3>
-                  <span className="text-[11px] text-[#8A8375] font-semibold">Lista societăților de asigurare</span>
-                </div>
-
-                {/* Adăugare Asigurător Nou (doar pentru Admins) */}
-                {isAdmin ? (
-                  <div className="flex gap-2">
-                    <input
-                      className="flex-1 px-3 py-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-[#FAF8F5] focus:bg-white"
-                      placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
-                      value={newInsurer}
-                      onChange={(e) => setNewInsurer(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddInsurer(); } }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddInsurer}
-                      className="flex items-center gap-1 px-4 py-2 bg-[#3B5166] text-white rounded-lg text-[12.5px] font-bold hover:bg-[#2C4160]"
-                    >
-                      <Plus size={15} /> Adaugă
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[11.5px] text-[#8A8375] bg-[#FAF8F5] p-2.5 rounded-lg border border-[#DAD4C6]">
-                    🔒 Lista societăților de asigurare este gestionată de Administrator.
-                  </p>
-                )}
-
-                {/* Grilă Asigurători */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
-                  {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((ins) => (
-                    <div key={ins} className="flex items-center justify-between bg-[#FAF8F5] border border-[#DAD4C6] rounded-lg px-3 py-2 text-[12.5px]">
-                      <span className="font-semibold text-[#23282E] truncate">{ins}</span>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInsurer(ins)}
-                          className="text-[#8A8375] hover:text-[#B23A2E] p-1 transition-colors"
-                          title="Șterge din listă"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SettingsInsurersTab
+              isAdmin={isAdmin}
+              insurersList={insurersList}
+              newInsurer={newInsurer}
+              setNewInsurer={setNewInsurer}
+              handleAddInsurer={handleAddInsurer}
+              handleRemoveInsurer={handleRemoveInsurer}
+            />
           )}
 
-          {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
+          {/* TAB 3: AGENT AI */}
+          {activeTab === "ai" && (
+            <SettingsAiTab
+              geminiApiKeySetting={geminiApiKeySetting}
+              setGeminiApiKeySetting={setGeminiApiKeySetting}
+              onNotify={onNotify}
+            />
+          )}
+
+          {/* TAB 4: NOTIFICĂRI & PREFERINȚE VIZUALE */}
           {activeTab === "notificari" && (
-            <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Bell size={16} className="text-[#C98A2B]" /> Preferințe Notificări &amp; Vizualizare
-                </h3>
-
-                <div className="space-y-3">
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
-                    <div>
-                      <span className="block text-[13px] font-bold text-[#23282E]">Evidențiere pulsantă pentru alertele critice</span>
-                      <span className="block text-[11px] text-[#8A8375]">Butoanele din antet vor lumina pulsatoriu când există întârzieri pe etapă</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={visualPulseEnabled}
-                      onChange={(e) => setVisualPulseEnabled(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C98A2B]"
-                    />
-                  </div>
-
-                  <div className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl p-3.5 flex items-center justify-between">
-                    <div>
-                      <span className="block text-[13px] font-bold text-[#23282E]">Mod afișare compact pe mobil</span>
-                      <span className="block text-[11px] text-[#8A8375]">Reduce spațierea pe ecran pentru a afișa mai multe dosare simultan</span>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={compactCards}
-                      onChange={(e) => setCompactCards(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C98A2B]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {typeof onMobileThemeChange === "function" && (
-                <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-3">
-                  <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                    <Palette size={16} className="text-[#C98A2B]" /> Temă mobilă
-                  </h3>
-                  <p className="text-[11.5px] text-[#8A8375]">
-                    Schimbă culorile, fonturile, icoanele și layout-ul barei de navigare pe telefon.
-                    Se aplică imediat în modul mobil.
-                  </p>
-                  <MobileThemePicker
-                    currentId={mobileThemeId}
-                    onSelect={(id) => {
-                      onMobileThemeChange(id);
-                      onNotify?.("Tema mobilă a fost actualizată", "success");
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            <SettingsAppearanceTab
+              themePref={themePref}
+              setThemePref={setThemePref}
+            />
           )}
 
-          {/* TAB 4: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
+          {/* TAB 5: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
           {activeTab === "profil" && (
-            <div className="space-y-4">
-              {/* Informații Cont Curent */}
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <User size={16} className="text-[#C98A2B]" /> Detalii Cont &amp; Securitate
-                  </span>
-                  <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${isAdmin ? "bg-[#C98A2B] text-white" : "bg-[#3B5166] text-white"}`}>
-                    {isAdmin ? "Rol: ADMINISTRATOR (Acces Total)" : "Rol: OPERATOR (Dosare Proprii)"}
-                  </span>
-                </h3>
-
-                <div className="space-y-3">
-                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] text-[#8A8375] font-bold uppercase block">Adresă de e-mail conectată</span>
-                      <span className="font-mono font-bold text-[14px] text-[#23282E]">{userEmail || "—"}</span>
-                      <span className="text-[11.5px] text-[#6B6558] block mt-0.5">
-                        {isAdmin ? "🔑 Poți edita, modifica și șterge orice dosar din sistem." : "🔒 Poți edita și șterge doar dosarele create de tine."}
-                      </span>
-                    </div>
-                    <span className="px-2.5 py-1 bg-[#3E6B45]/15 text-[#3E6B45] font-bold text-[11px] rounded-md">
-                      ✓ Cont Activ
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[13px] font-bold text-[#23282E]">Deconectare din cont</span>
-                      <span className="text-[11px] text-[#8A8375] block">Închide sesiunea curentă în condiții de siguranță</span>
-                    </div>
-                    {onSignOut && (
-                      <button
-                        type="button"
-                        onClick={onSignOut}
-                        className="px-4 py-1.5 bg-[#B23A2E] text-white text-[12px] font-bold rounded-lg hover:bg-[#922D24] transition-colors"
-                      >
-                        Delogare
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Formular Schimbare Parolă Cont (Disponibil pentru toți utilizatorii) */}
-                <form onSubmit={handleChangePasswordSubmit} className="p-4 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl space-y-3 pt-3">
-                  <div>
-                    <h4 className="font-bold text-[13px] text-[#23282E] flex items-center gap-1.5">
-                      <Key size={15} className="text-[#C98A2B]" /> Schimbă Parola Contului Tău
-                    </h4>
-                    <p className="text-[11px] text-[#8A8375]">
-                      Setează o parolă nouă confidențială după conectarea inițială.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Parolă Nouă</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder="Parola nouă (min. 6 caractere)..."
-                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
-                        value={myNewPassword}
-                        onChange={(e) => setMyNewPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#6B6558] mb-1">Confirmare Parolă Nouă</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder="Reintroduceți parola nouă..."
-                        className="w-full p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white focus:border-[#C98A2B]"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updatingPassword || !myNewPassword}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#3B5166] hover:bg-[#2C4160] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all disabled:opacity-50"
-                    >
-                      <Key size={14} /> {updatingPassword ? "Se actualizează..." : "Actualizează Parola"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă Exclusiv pentru Administratori) */}
-              {isAdmin && (
-                <div className="bg-white border border-[#C98A2B]/40 rounded-xl p-4 space-y-4 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-[#DAD4C6] pb-2">
-                    <div>
-                      <h3 className="font-extrabold text-[14.5px] text-[#23282E] flex items-center gap-2">
-                        <Shield size={17} className="text-[#C98A2B]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
-                      </h3>
-                      <p className="text-[11px] text-[#6B6558]">
-                        Adaugă membri noi, setează parola inițială, oferă drepturi de Administrator sau elimină conturi din organizație
-                      </p>
-                    </div>
-                  </div>
-
-                {/* Formular Adăugare Utilizator Nou */}
-                <form onSubmit={handleAddUserSubmit} className="bg-[#FBF3E6] border border-[#C98A2B]/30 rounded-xl p-3.5 space-y-3">
-                  <h4 className="font-bold text-[13px] text-[#7A5316] flex items-center gap-1.5">
-                    <Plus size={15} /> Adaugă Utilizator Nou
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="email"
-                      required
-                      placeholder="E-mail utilizator (ex: coleg@service.ro)..."
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                    />
-
-                    <select
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-bold text-[#23282E] focus:border-[#C98A2B]"
-                      value={newUserRole}
-                      onChange={(e) => setNewUserRole(e.target.value)}
-                    >
-                      <option value="operator">Operator (Doar dosare proprii)</option>
-                      <option value="admin">★ Administrator (Acces total)</option>
-                    </select>
-
-                    <input
-                      type="password"
-                      placeholder="Parolă inițială (opțional)..."
-                      className="p-2 border border-[#DAD4C6] rounded-lg text-[13px] bg-white font-medium focus:border-[#C98A2B]"
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={creatingUser}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#C98A2B] hover:bg-[#B37A22] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <Plus size={15} /> {creatingUser ? "Se adaugă..." : "Adaugă Utilizator"}
-                    </button>
-                  </div>
-                </form>
-
-                {/* Lista Utilizatori Existenți */}
-                <div className="space-y-2 pt-1">
-                  <h4 className="font-bold text-[12.5px] text-[#23282E]">Membri Înregistrați ({usersList.length}):</h4>
-                  {usersList.length === 0 ? (
-                    <div className="p-4 text-center text-[12px] text-[#8A8375] bg-[#FAF8F5] rounded-xl border border-[#DAD4C6]">
-                      Niciun utilizator suplimentar configurat încă.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[#EFEAE1] border border-[#DAD4C6] rounded-xl overflow-hidden bg-white">
-                      {usersList.map((u) => {
-                        const isCurrent = u.email?.toLowerCase() === userEmail?.toLowerCase();
-                        const isUserAdmin = u.role === "admin";
-
-                        return (
-                          <div key={u.email} className="p-3 flex items-center justify-between gap-2 hover:bg-[#FCFAF5]">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] text-white ${isUserAdmin ? "bg-[#C98A2B]" : "bg-[#3B5166]"}`}>
-                                {u.email ? u.email.charAt(0).toUpperCase() : "U"}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono font-bold text-[13px] text-[#23282E]">{u.email}</span>
-                                  {isCurrent && (
-                                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#EFEAE1] text-[#3B5166]">
-                                      Tu (Cont Curent)
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[11px] text-[#8A8375] block">
-                                  Rol: <strong className={isUserAdmin ? "text-[#C98A2B]" : "text-[#3B5166]"}>{isUserAdmin ? "Administrator (Editare toate dosarele)" : "Operator (Editează doar propriile dosare)"}</strong>
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Schimbare rol Admin / Operator */}
-                              {onToggleAdminRole && (
-                                <button
-                                  type="button"
-                                  onClick={() => onToggleAdminRole(u.email)}
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
-                                    isUserAdmin
-                                      ? "bg-[#EEF1F3] text-[#3B5166] border-[#DAD4C6] hover:bg-gray-200"
-                                      : "bg-[#FBF3E6] text-[#7A5316] border-[#C98A2B]/40 hover:bg-[#F3D9A8]"
-                                  }`}
-                                  title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
-                                >
-                                  <Key size={13} />
-                                  <span>{isUserAdmin ? "Devino Operator" : "★ Fă Administrator"}</span>
-                                </button>
-                              )}
-
-                              {/* Ștergere utilizator */}
-                              {onDeleteUser && (
-                                <button
-                                  type="button"
-                                  disabled={isCurrent}
-                                  onClick={() => onDeleteUser(u.email)}
-                                  className="p-1.5 text-[#8A8375] hover:text-[#B23A2E] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                                  title={isCurrent ? "Nu te poți șterge pe tine însuți" : "Șterge utilizator"}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-              )}
-            </div>
+            <SettingsAccountTab
+              userEmail={userEmail}
+              isAdmin={isAdmin}
+              onSignOut={onSignOut}
+              myNewPassword={myNewPassword}
+              setMyNewPassword={setMyNewPassword}
+              confirmNewPassword={confirmNewPassword}
+              setConfirmNewPassword={setConfirmNewPassword}
+              updatingPassword={updatingPassword}
+              handleChangePasswordSubmit={handleChangePasswordSubmit}
+              usersList={usersList}
+              newUserEmail={newUserEmail}
+              setNewUserEmail={setNewUserEmail}
+              newUserRole={newUserRole}
+              setNewUserRole={setNewUserRole}
+              newUserPassword={newUserPassword}
+              setNewUserPassword={setNewUserPassword}
+              creatingUser={creatingUser}
+              handleAddUserSubmit={handleAddUserSubmit}
+              onToggleAdminRole={onToggleAdminRole}
+              setPendingDeleteEmail={setPendingDeleteEmail}
+              billingView={billingView}
+              tenancyReady={tenancyReady}
+              atelierId={atelierId}
+              stripeBusy={stripeBusy}
+              handleStripeCheckout={handleStripeCheckout}
+              handleStripePortal={handleStripePortal}
+              seatDraft={seatDraft}
+              setSeatDraft={setSeatDraft}
+              savingBilling={savingBilling}
+              handleSaveSeats={handleSaveSeats}
+              onSaveBilling={onSaveBilling}
+            />
           )}
 
-          {/* TAB 5: DIAGNOZĂ & BACKUP DATA */}
+          {/* TAB 6: DIAGNOZĂ & BACKUP DATA */}
           {activeTab === "diagnoza" && (
-            <div className="space-y-4">
-              <div className="bg-white border border-[#DAD4C6] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[#23282E] border-b border-[#DAD4C6] pb-2 flex items-center gap-2">
-                  <Database size={16} className="text-[#3B5166]" /> Diagnostic Sistem &amp; Stocare Cloud
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Total Dosare</span>
-                    <span className="block font-extrabold text-[20px] text-[#23282E]">{claims.length}</span>
-                  </div>
-
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Fotografii Salvate</span>
-                    <span className="block font-extrabold text-[20px] text-[#C98A2B]">{totalPoze}</span>
-                  </div>
-
-                  <div className="p-3 bg-[#FAF8F5] border border-[#DAD4C6] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[#8A8375]">Documente Atașate</span>
-                    <span className="block font-extrabold text-[20px] text-[#3B5166]">{totalDocumente}</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-[#DAD4C6]">
-                  <h4 className="font-bold text-[13px] text-[#23282E] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
-                  <p className="text-[11px] text-[#8A8375] mb-3">
-                    Descarcă o copie de siguranță completă a tuturor dosarelor și istoricului din aplicație în format JSON.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={exportFullBackupJSON}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#2C4160] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors"
-                  >
-                    <Download size={15} /> Descarcă Backup Complet (.json)
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsBackupTab
+              isAdmin={isAdmin}
+              claims={claims}
+              totalPoze={totalPoze}
+              totalDocumente={totalDocumente}
+              exportFullBackupJSON={exportFullBackupJSON}
+            />
           )}
 
+          {/* TAB 7: DATE & CONFIDENȚIALITATE */}
+          {activeTab === "date" && (
+            <SettingsGdprTab
+              isAdmin={isAdmin}
+              atelierId={atelierId}
+              atelierSlug={atelierSlug}
+              gdprExporting={gdprExporting}
+              handleGdprExport={handleGdprExport}
+              wipeSlugConfirm={wipeSlugConfirm}
+              setWipeSlugConfirm={setWipeSlugConfirm}
+              wipeBusy={wipeBusy}
+              handleWipeAtelier={handleWipeAtelier}
+            />
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-t border-[#DAD4C6] shrink-0 text-[12px]">
-          <span className="text-[#8A8375]">{atelierNume || "Workflow Dosare"} · setări v1.5</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg border border-[#C7C0B0] font-semibold text-[#4A443A] hover:bg-[#EFEAE1]"
-          >
+        <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--app-surface-2)] border-t border-[var(--app-border)] shrink-0 text-[12px]">
+          <span className="text-[var(--app-muted)]">{atelierNume || "Workflow Dosare"} · setări</span>
+          <AppButton variant="secondary" onClick={onClose}>
             Închide
-          </button>
+          </AppButton>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDeleteEmail)}
+        desktopUi={desktopUi}
+        title="Șterge utilizatorul?"
+        message={`„${pendingDeleteEmail}" va fi scos din echipă. Contul Auth poate rămâne — nu se poate reconecta în app fără a fi reinvitat.`}
+        confirmLabel="Șterge"
+        danger
+        onCancel={() => setPendingDeleteEmail(null)}
+        onConfirm={async () => {
+          const email = pendingDeleteEmail;
+          setPendingDeleteEmail(null);
+          if (email && onDeleteUser) await onDeleteUser(email);
+        }}
+      />
     </div>
   );
 }

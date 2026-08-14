@@ -23,6 +23,7 @@ export function useAlerts(userClaims = [], pragRidicare, pragInactivitate) {
     inactiveCount: buckets.counts.inactivitate,
     loanerOverdueCount: buckets.counts.masini_schimb,
     partsUnscheduledCount: buckets.counts.piese,
+    deliveryOverdueCount: buckets.counts.livrare_piese,
     totalAlertsCount: buckets.totalAlertsCount,
   };
 }

@@ -1,0 +1,560 @@
+/* ── Desktop dark shell (Cursor-like) ── */
+
+.app-shell {
+  background: var(--app-bg, #0a0a0a);
+  color: var(--app-text, #ededed);
+  font-family: var(--app-font-body, "Inter", system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-chrome {
+  background: var(--app-chrome, #0a0a0a);
+  color: var(--app-chrome-text, #ededed);
+}
+
+.app-sidebar {
+  background: var(--app-chrome, #0a0a0a);
+  color: var(--app-chrome-text, #ededed);
+  border-right: 1px solid var(--app-border, #2a2a2a);
+}
+
+.app-surface {
+  background: var(--app-surface, #141414);
+  border-color: var(--app-border, #2a2a2a);
+}
+
+.app-surface-2 {
+  background: var(--app-surface-2, #1a1a1a);
+}
+
+.app-accent-bg {
+  background: var(--app-accent, #c98a2b);
+  color: var(--app-accent-text, #fff);
+}
+
+.app-accent-bg:hover {
+  background: var(--app-accent-hover, #b37a22);
+}
+
+.app-accent-text {
+  color: var(--app-accent, #c98a2b);
+}
+
+.app-accent-ring:focus-visible {
+  outline: 2px solid var(--app-accent, #c98a2b);
+  outline-offset: 2px;
+}
+
+.app-header {
+  background: var(--app-bg, #0a0a0a);
+  border-color: var(--app-border-soft, #222);
+}
+
+.app-segment-track {
+  background: var(--app-surface, #141414);
+  border-color: var(--app-border, #2a2a2a);
+  border-radius: 999px;
+}
+
+.app-segment-active {
+  background: var(--app-surface-muted, #242424);
+  color: var(--app-text-strong, #fff);
+  border-radius: 999px;
+}
+
+.app-display {
+  font-family: var(--app-font-display, "Inter", system-ui, sans-serif);
+}
+
+.app-card {
+  background: var(--app-surface, #141414);
+  border: 1px solid var(--app-border, #2a2a2a);
+  border-radius: var(--app-radius, 8px);
+}
+
+.app-muted {
+  color: var(--app-muted, #8a8a8a);
+}
+
+.app-breadcrumb {
+  color: var(--app-muted, #8a8a8a);
+  font-size: 13px;
+}
+
+.app-breadcrumb strong {
+  color: var(--app-text, #ededed);
+  font-weight: 600;
+}
+
+.app-nav-btn {
+  color: var(--app-chrome-muted, #737373);
+  border-radius: var(--app-radius, 8px);
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-nav-btn:hover {
+  background: var(--app-surface-2, #1a1a1a);
+  color: var(--app-chrome-text, #ededed);
+}
+
+.app-nav-btn.is-active {
+  background: var(--app-surface-muted, #242424);
+  color: var(--app-text-strong, #fff);
+}
+
+.app-workspace {
+  background: var(--app-bg, #0a0a0a);
+}
+
+.app-modal-overlay {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.app-modal-panel {
+  background: var(--app-surface, #141414);
+  border: 1px solid var(--app-border, #2a2a2a);
+  border-radius: var(--app-radius-lg, 12px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+}
+
+/* Large modals (Dosar / Alerte / Setări): fixed shell; only body scrolls */
+.app-shell .app-modal-panel.app-fixed-shell-modal {
+  height: min(92vh, 100%);
+  max-height: 92vh;
+}
+
+.app-shell .app-modal-panel.app-fixed-shell-modal:has(.app-claim-modal-body) {
+  height: min(94vh, 100%);
+  max-height: 94vh;
+}
+
+.app-shell .app-fixed-shell-body,
+.app-shell .app-claim-modal-body {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.app-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--app-surface, #141414);
+  color: var(--app-text, #ededed);
+  border-bottom: 1px solid var(--app-border-soft, #222);
+}
+
+.app-modal-btn-primary {
+  background: var(--app-accent, #c98a2b);
+  color: var(--app-accent-text, #fff);
+}
+
+.app-modal-btn-primary:hover {
+  background: var(--app-accent-hover, #b37a22);
+}
+
+.app-modal-btn-secondary {
+  background: var(--app-surface-2, #1a1a1a);
+  color: var(--app-text, #ededed);
+  border: 1px solid var(--app-border, #2a2a2a);
+}
+
+.app-shell .app-search {
+  background: var(--app-surface, #141414);
+  border: 1px solid var(--app-border, #2a2a2a);
+  color: var(--app-text, #ededed);
+}
+
+.app-shell .app-search:focus {
+  border-color: var(--app-muted, #8a8a8a);
+  background: var(--app-surface-2, #1a1a1a);
+  outline: none;
+}
+
+.app-shell .app-kbd {
+  background: var(--app-surface-muted, #242424);
+  color: var(--app-muted, #8a8a8a);
+  border: 1px solid var(--app-border, #2a2a2a);
+}
+
+.in {
+  border-color: var(--app-border, #2a2a2a);
+  color: var(--app-text, #ededed);
+  background: var(--app-surface, #141414);
+}
+
+.in:focus {
+  outline-color: var(--app-accent, #c98a2b);
+}
+
+/* Remap Tailwind hardcodat în workspace desktop */
+.app-shell .bg-white { background-color: var(--app-surface) !important; }
+.app-shell .bg-\[\#FAF8F5\],
+.app-shell .bg-\[\#FCFAF5\],
+.app-shell .bg-\[\#F4F1EA\],
+.app-shell .bg-\[\#F3F2EE\] { background-color: var(--app-surface-2) !important; }
+.app-shell .bg-\[\#EFEAE1\],
+.app-shell .bg-\[\#E2DBCF\] { background-color: var(--app-surface-muted) !important; }
+.app-shell .bg-\[\#FFFBFB\],
+.app-shell .bg-\[\#FBEAE9\],
+.app-shell .bg-\[\#FCF3DF\] { background-color: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface)) !important; }
+.app-shell .text-\[\#23282E\],
+.app-shell .text-\[\#1B2430\],
+.app-shell .text-\[\#3B5166\],
+.app-shell .text-\[\#5B6572\] { color: var(--app-text) !important; }
+.app-shell .text-\[\#6B6558\],
+.app-shell .text-\[\#8A8375\],
+.app-shell .text-\[\#A69F91\] { color: var(--app-muted) !important; }
+.app-shell .text-\[\#C98A2B\] { color: var(--app-accent) !important; }
+.app-shell .text-\[\#D6473F\],
+.app-shell .text-\[\#B23A2E\] { color: var(--app-danger) !important; }
+.app-shell .border-\[\#DAD4C6\],
+.app-shell .border-\[\#E0D9CC\],
+.app-shell .border-\[\#E4E1D9\],
+.app-shell .border-\[\#EFEAE1\] { border-color: var(--app-border) !important; }
+.app-shell .bg-\[\#C98A2B\] { background-color: var(--app-accent) !important; color: var(--app-accent-text) !important; }
+.app-shell .bg-\[\#1C2127\],
+.app-shell .bg-\[\#1B2430\] { background-color: var(--app-surface-muted) !important; color: var(--app-text) !important; }
+.app-shell .hover\:bg-\[\#B37A22\]:hover { background-color: var(--app-accent-hover) !important; }
+.app-shell .hover\:bg-gray-200:hover,
+.app-shell .hover\:bg-\[\#F3F2EE\]:hover,
+.app-shell .hover\:bg-\[\#E2DBCF\]:hover { background-color: var(--app-surface-muted) !important; }
+.app-shell .focus\:border-\[\#C98A2B\]:focus { border-color: var(--app-accent) !important; }
+.app-shell .focus\:bg-white:focus { background-color: var(--app-surface-2) !important; }
+.app-shell input,
+.app-shell select,
+.app-shell textarea {
+  background-color: var(--app-surface);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: var(--app-muted-2);
+}
+.app-shell input:focus,
+.app-shell select:focus,
+.app-shell textarea:focus {
+  border-color: var(--app-muted);
+  background-color: var(--app-surface-2);
+}
+
+/* ── Confort vizual (GitHub-like: contrast redus, fără strident) ── */
+.app-shell {
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.app-shell .font-extrabold {
+  font-weight: 600;
+}
+
+.app-shell [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+.app-shell .hover\:shadow-md:hover,
+.app-shell .hover\:shadow-sm:hover {
+  box-shadow: none !important;
+}
+
+.app-shell .scrollbar-thin {
+  scrollbar-color: var(--app-border) transparent;
+}
+
+.app-shell .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+}
+
+/* ── Shared buttons ── */
+.app-shell .app-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: var(--app-btn-height, 2rem);
+  min-height: var(--app-btn-height, 2rem);
+  padding: 0 0.75rem;
+  border-radius: var(--app-radius, 8px);
+  border: 1px solid transparent;
+  font-size: var(--app-type-xs, 0.75rem);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+}
+
+.app-shell .app-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.app-shell .app-btn-primary {
+  background: var(--app-accent);
+  color: var(--app-accent-text);
+  border-color: var(--app-accent);
+}
+
+.app-shell .app-btn-primary:hover:not(:disabled) {
+  background: var(--app-accent-hover);
+  border-color: var(--app-accent-hover);
+}
+
+.app-shell .app-btn-secondary {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  border-color: var(--app-border);
+}
+
+.app-shell .app-btn-secondary:hover:not(:disabled) {
+  background: var(--app-surface-muted);
+}
+
+.app-shell .app-btn-danger {
+  background: color-mix(in srgb, var(--app-danger) 75%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+  border-color: color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+}
+
+.app-shell .app-btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-danger) 65%, var(--app-surface-muted));
+}
+
+.app-shell .app-btn-ghost {
+  background: transparent;
+  color: var(--app-muted);
+  border-color: transparent;
+}
+
+.app-shell .app-btn-ghost:hover:not(:disabled) {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+.app-shell .app-btn-icon {
+  width: var(--app-btn-height, 2rem);
+  padding: 0;
+  background: transparent;
+  color: var(--app-muted);
+  border-color: var(--app-border);
+}
+
+.app-shell .app-btn-icon:hover:not(:disabled) {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+}
+
+.app-shell .app-btn-lg {
+  height: var(--app-btn-height-lg, 2.5rem);
+  min-height: var(--app-btn-height-lg, 2.5rem);
+  font-size: var(--app-type-sm, 0.8125rem);
+  padding: 0 1rem;
+}
+
+/* Type scale helpers */
+.app-shell .app-type-xs { font-size: var(--app-type-xs); }
+.app-shell .app-type-sm { font-size: var(--app-type-sm); }
+.app-shell .app-type-md { font-size: var(--app-type-md); }
+.app-shell .app-type-lg { font-size: var(--app-type-lg); }
+.app-shell .app-type-xl { font-size: var(--app-type-xl); }
+
+/* Unified empty states */
+.app-shell .app-empty {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  font-size: var(--app-type-sm);
+  color: var(--app-muted);
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-2);
+}
+
+/* Loading skeletons */
+.app-shell .app-skeleton-line,
+.app-shell .app-skeleton-row,
+.app-shell .app-skeleton-card {
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 0%,
+    var(--app-surface-2) 45%,
+    var(--app-surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: app-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.app-shell .app-skeleton-card {
+  border: 1px solid var(--app-border-soft);
+}
+
+@keyframes app-skeleton-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .app-skeleton-line,
+  .app-shell .app-skeleton-row,
+  .app-shell .app-skeleton-card {
+    animation: none;
+  }
+}
+
+/* Header CTA pair — shared box model so Dosar nou / Alerte match */
+.app-shell .app-header-action-btn {
+  box-sizing: border-box;
+  height: 2rem;
+  min-height: 2rem;
+  min-width: 7.5rem;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+
+.app-shell .app-prog-slot-free {
+  color: var(--app-muted);
+  font-style: italic;
+  font-size: var(--app-type-sm);
+  padding: 0.125rem 0 0.125rem 0.375rem;
+  user-select: none;
+}
+
+.app-shell .app-alert-btn {
+  background: color-mix(in srgb, var(--app-danger) 75%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+  border-color: color-mix(in srgb, var(--app-danger) 45%, var(--app-border));
+}
+
+.app-shell .app-alert-btn:hover {
+  background: color-mix(in srgb, var(--app-danger) 65%, var(--app-surface-muted));
+}
+
+.app-shell .app-flux-phase-header {
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  border-bottom: 1px solid var(--app-border-soft);
+}
+
+.app-shell .app-flux-phase-header[data-phase="start"] {
+  border-top: 2px solid #388bfd;
+}
+
+.app-shell .app-flux-phase-header[data-phase="eval"] {
+  border-top: 2px solid #539bf5;
+}
+
+.app-shell .app-flux-phase-header[data-phase="lucru"] {
+  border-top: 2px solid color-mix(in srgb, var(--app-accent) 70%, var(--app-border));
+}
+
+.app-shell .app-flux-phase-header[data-phase="final"] {
+  border-top: 2px solid var(--app-success);
+}
+
+.app-shell .app-flux-phase-count {
+  background: var(--app-surface-muted);
+  color: var(--app-muted);
+}
+
+.app-shell .app-flux-card {
+  box-shadow: none;
+}
+
+.app-shell .app-flux-card:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-brief-panel,
+.app-shell .app-flux-column,
+.app-shell .app-prog-panel,
+.app-shell .app-table-wrap {
+  border-color: var(--app-border-soft);
+}
+
+.app-shell .app-prog-cal-cell.is-over,
+.app-shell .app-prog-cal-cell.is-full,
+.app-shell .app-prog-cal-cell.is-ok {
+  background: var(--app-surface);
+}
+
+.app-shell .app-prog-cal-cell.is-over:hover,
+.app-shell .app-prog-cal-cell.is-full:hover,
+.app-shell .app-prog-cal-cell.is-ok:hover {
+  background: var(--app-surface-2);
+}
+
+.app-shell .app-prog-cal-badge.is-over {
+  background: color-mix(in srgb, var(--app-danger) 70%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-cal-badge.is-full {
+  background: color-mix(in srgb, var(--app-accent) 60%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-prog-cal-badge.is-ok {
+  background: color-mix(in srgb, var(--app-success) 50%, var(--app-surface-muted));
+  color: var(--app-text-strong);
+}
+
+.app-shell .app-flux-chip .w-2.h-2.rounded-full {
+  opacity: 0.75;
+}
+
+.app-shell .app-brief-status-ok,
+.app-shell .app-brief-status-alert {
+  font-weight: 500;
+}
+
+.app-shell .app-table-row.is-alt {
+  background: transparent;
+}
+
+.app-shell .app-table-row:hover {
+  background: var(--app-surface-muted) !important;
+}
+
+/* Pill-uri mai discrete în tabel */
+.app-shell span.inline-flex.bg-\[\#3B5166\],
+.app-shell span.inline-flex.bg-\[\#C98A2B\] {
+  background: var(--app-surface-muted) !important;
+  color: var(--app-muted) !important;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.app-shell span.inline-flex.bg-\[\#C98A2B\] {
+  color: color-mix(in srgb, var(--app-accent) 80%, var(--app-text)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Overlays / toasts may sit outside .app-shell (e.g. mobile root siblings). */
+  .animate-in {
+    animation: none !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .undo-toast-undo,
+  .undo-toast-undo:hover,
+  .undo-toast-undo:active {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .undo-toast-progress {
+    transition: none !important;
+  }
+}

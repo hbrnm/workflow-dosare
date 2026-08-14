@@ -1,188 +1,242 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
-  Clock, Bell, Phone, ChevronDown, ChevronUp
+  Bell, Phone, ChevronDown, ChevronUp
 } from "lucide-react";
-import { PIPELINE_PHASES, STATUSES, getStatusDefinition, isPieseComandateStatus } from "../../constants/config";
-import { daysBetween, telLink } from "../../utils/dateUtils";
-import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
+import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
+import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
+import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline, getDaysInStage } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
+import DosarNumber from "../common/DosarNumber";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
+import StageTabLabel from "../common/StageTabLabel";
+import { glossaryTitle } from "../../constants/glossary";
+import FluxHeaderBar from "../common/FluxHeaderBar";
+import {
+  isSearchHighlighted,
+  groupHasSearchHighlight,
+  scrollToFirstHighlight,
+} from "../../utils/searchUtils";
+import { groupAndSortStageClaims, getClaimStageDays, getFluxExportClaims } from "../../utils/fluxClaimSort";
+import { downloadClaimsList } from "../../utils/exportClaimsList";
+import { copyClaimNumber } from "../../utils/copyClaimNumber";
+import { buildStatusCounts } from "../../utils/plateSchedule";
 
-// Culori oficiale per fază din redesign
-const PHASE_COLOR_MAP = {
-  start: { bg: "#1E2A44", soft: "#E9EBF1" },
-  eval:  { bg: "#2E5C8A", soft: "#E7EEF5" },
-  lucru: { bg: "#B8791E", soft: "#FBF0DE" },
-  final: { bg: "#2F6B4E", soft: "#E7F1EC" },
-};
+const STAGE_SORT_KEY = "deschidere";
 
-const PART_OVERDUE_DAYS = 4; // prag alertă piese comandate fără confirmare
-
-const SHORT_STATUS_LABELS = {
-  deschidere: "1.Acord",
-  reconstatare: "2.Reconst",
-  accept_plata: "3.Accept",
-  piese_comandate: "4.Piese",
-  programat: "5.Progr",
-  in_lucru: "6.Lucru",
-  gata_de_ridicare: "7.Gata",
-  predat_client: "8.Predat",
-  facturat: "9.Fact",
-};
+// Culori oficiale per fază — sursă unică config.js
 
 // ---------------------------------------------------------------------------
-// KANBAN CARD REDESIGN (OPTIMIZAT COMPACT PE VERTICALĂ)
+// KANBAN CARD — vizual minimal, funcții păstrate (status, piese, contact)
 // ---------------------------------------------------------------------------
-export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEdit, pragRidicare }) {
+export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEdit, pragRidicare, onNotify, hideStatusSelect = false, isSearchHighlight = false }) {
   const statusDef = getStatusDefinition(claim.status);
-  const days = daysBetween(claim.dataSchimbareStatus);
+  const days = getDaysInStage(claim);
   const overdue = isStageOverdue(claim);
-  const phaseColorHex = PHASE_COLOR_MAP[statusDef.phase]?.bg || "#1E2A44";
+  const alertThreshold = getClaimAlertDays(claim);
+  const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
 
-  const currentStatusKey = statusDef.key;
-  const currentIndex = Math.max(0, STATUSES.findIndex((s) => s.key === currentStatusKey));
+  let agingClass = "app-flux-aging";
+  if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";
+  if (days > 5 || overdue || claim.blocat) agingClass = "app-flux-aging is-danger";
 
-  let agingClass = "text-[#5B6572]";
-  if (days >= 3 && days <= 5) agingClass = "bg-[#FCF3DF] text-[#D69A1E]";
-  if (days > 5 || overdue || claim.blocat) agingClass = "bg-[#FBEAE9] text-[#D6473F]";
+  const pieseAlertDays = getStatusAlertDays("piese_comandate");
+  const isPartOverdue = isPartsOrderOverdue(claim, pieseAlertDays);
+  const termenDepasit = isDeliveryDeadlineOverdue(claim);
 
-  const isPartOverdue = (claim.status === "piese_comandate" || currentStatusKey === "piese_comandate") && !claim.pieseSosite && days > PART_OVERDUE_DAYS;
+  const alertLine = isPartOverdue
+    ? termenDepasit
+      ? `Livrare +${getDaysPastDeliveryDeadline(claim)}z`
+      : `Piese ${days}z`
+    : null;
+
+  const scheduleLabel =
+    claim.status === "programat" && claim.dataProgramare
+      ? formatProgramareShort(claim.dataProgramare)
+      : "";
+  const stageSince = getSinceMeta(claim.dataSchimbareStatus || claim.dataDeschiderii || null);
+  const stageSinceLabel = stageSince.dateTimeLabel ? `În etapă din ${stageSince.dateTimeLabel}` : "";
+  const blockedReason = String(claim.motivBlocare || claim.motivBlocat || "").trim();
+  const ageTitle = scheduleLabel
+    ? `Programat ${scheduleLabel}${overdue ? ` · +${days}z peste dată` : ""}`
+    : `${days} zile în stadiu · prag ${alertThreshold} zile${stageSinceLabel ? ` · ${stageSinceLabel}` : ""}`;
 
   return (
     <div
       id={`claim-card-${claim.id}`}
       draggable={true}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c" && claim.numarDosar) {
+          e.preventDefault();
+          e.stopPropagation();
+          copyClaimNumber(claim.numarDosar, onNotify);
+        }
+      }}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`card group relative bg-white border rounded-xl p-2.5 shadow-xs transition-all duration-150 cursor-pointer select-none space-y-1.5 hover:shadow-md ${
-        claim.blocat || overdue
-          ? "border-[#EAC3C0] bg-gradient-to-b from-[#FBEAE9]/60 to-white"
-          : "border-[#E4E1D9] hover:border-[#1B2430]"
-      }`}
+      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
+        claim.blocat || overdue ? "is-alert" : ""
+      } ${isSearchHighlight ? "is-search-highlight" : ""}`}
+      style={{ borderLeftColor: phaseColorHex }}
     >
-      {/* 1. TOP ROW: Nr. Înmatriculare + Asigurare Badge + Vehicul */}
-      <div className="flex items-center justify-between gap-1 flex-wrap">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-bold text-[13px] text-[#1B2430] tracking-tight group-hover:text-[#B8791E] transition-colors truncate">
-            {claim.numarInmatriculare || "FĂRĂ NR."}
-          </span>
-          {claim.numarDosar && (
-            <span className="text-[10px] font-mono text-[#8A8375]" title={`Dosar #${claim.numarDosar}`}>
-              #{claim.numarDosar}
+      {/* Rând 1: identificare + vechime */}
+      <div className="flex items-center justify-between gap-2 flex-1">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate drop-shadow-sm">
+              {claim.numarInmatriculare || "FĂRĂ NR."}
             </span>
-          )}
-          {/* Tip asigurare — discret, doar relevant vizual */}
-          <span
-            className={`text-[9px] font-bold px-1 py-0.2 rounded ${
-              claim.tipAsigurare === "CASCO"
-                ? "bg-[#F4E3C6] text-[#8A5A0E]"
-                : "text-[#8A8375]"  
-            }`}
-          >
-            {claim.tipAsigurare || "RCA"}
-          </span>
-        </div>
-        <span className="text-[11px] text-[#5B6572] font-medium truncate max-w-[110px]" title={claim.marcaModel || claim.client}>
-          {claim.marcaModel || claim.client || "—"}
-        </span>
-      </div>
-
-      {/* 2. BARA VIZUALĂ DE PROGRES & SELEKTOR UNIC DE STADIU */}
-      <div className="space-y-1 my-0.5" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-0.5 h-1.5 w-full bg-[#E4E1D9] rounded-full overflow-hidden p-0.5 my-0.5">
-          {STATUSES.map((s, idx) => {
-            const isDone = idx < currentIndex;
-            const isCurrent = idx === currentIndex;
-            return (
-              <div
-                key={s.key}
-                className="h-full flex-1 rounded-xs transition-all"
-                style={{
-                  backgroundColor: isDone || isCurrent ? phaseColorHex : "#D1CDC0",
-                  opacity: isCurrent ? 1 : isDone ? 0.75 : 0.35,
-                }}
+            {claim.numarDosar && (
+              <DosarNumber
+                value={claim.numarDosar}
+                onNotify={onNotify}
+                className="text-[10px] font-mono text-[var(--app-muted)] hover:text-[var(--app-accent)] shrink-0"
               />
-            );
-          })}
-        </div>
-
-        <div className="text-[10.5px] font-bold text-[#1B2430] flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-[#5B6572] font-semibold">{statusDef.num}/9</span> ·
-            <select
-              value={claim.status}
-              onChange={(e) => {
-                e.stopPropagation();
-                onMoveToStatus(claim, e.target.value);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#FAF8F5] border border-[#DAD4C6] rounded-md px-2 py-0.5 font-extrabold text-[#1B2430] text-[11px] cursor-pointer hover:bg-white focus:outline-none transition-colors shadow-2xs"
-              title="Alege stadiul dosarului din listă"
-            >
-              {STATUSES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.num}. {s.label}
-                </option>
-              ))}
-            </select>
+            )}
+            {claim.tipAsigurare === "CASCO" && (
+              <span className="text-[8px] font-bold uppercase px-1 rounded app-flux-casco">C</span>
+            )}
+            {claim.blocat && (
+              <span className="text-[8px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
+            )}
           </div>
-
-          {claim.blocat && <span className="text-[#D6473F] text-[9.5px] font-extrabold">🛑 BLOCAT</span>}
+          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={claim.client || claim.marcaModel}>
+            {claim.client || claim.marcaModel || "—"}
+          </p>
+          {stageSinceLabel ? (
+            <p className="text-[10px] text-[var(--app-muted)] truncate leading-4" title={stageSinceLabel}>
+              {stageSinceLabel}
+            </p>
+          ) : null}
         </div>
-      </div>
-
-      {/* 3. CHECKBOX INTERACTIV PIESE SOSITE (+ Programare) */}
-      {isPieseComandateStatus(claim.status) && (
-        <MobilePieseSositeRow
-          claim={claim}
-          canEdit={canEdit}
-          compact
-          onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
-          onSchedule={onScheduleFromPiese}
-        />
-      )}
-
-      {/* 4. PART OVERDUE ALERT BANNER ON CARD */}
-      {isPartOverdue && (
-        <div className="flex items-center gap-1 bg-[#FBEAE9] text-[#8C2E28] text-[10px] font-extrabold px-1.5 py-0.5 rounded-md border border-[#EFC3C0]">
-          <Bell size={10} className="shrink-0 animate-bounce" />
-          <span>Fără confirmare sosire ({days} zile)</span>
-        </div>
-      )}
-
-      {/* 5. FOOTER CURAT: AGING + APEL & WHATSAPP */}
-      <div className="flex items-center justify-between pt-1 border-t border-[#E4E1D9]/60 text-[10px]">
-        <span className={`font-bold px-1.5 py-0.2 rounded flex items-center gap-1 ${agingClass}`}>
-          <Clock size={10} /> {days} zile
+        <span
+          className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+          title={ageTitle}
+        >
+          {scheduleLabel || `${days}z`}
         </span>
-
-        {claim.telefonClient && (
-          <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-            <a
-              href={telLink(claim.telefonClient)}
-              onClick={(e) => e.stopPropagation()}
-              title={`Sună clientul: ${claim.telefonClient}`}
-              className="p-1 rounded bg-[#EFEAE1] hover:bg-[#3B5166] text-[#3B5166] hover:text-white transition-colors"
-            >
-              <Phone size={11} />
-            </a>
-            <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
-          </div>
-        )}
       </div>
 
+      {/* Stadiu — ascuns când cardul e deja în secțiunea etapei */}
+      {!hideStatusSelect && (
+      <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+        <select
+          value={claim.status}
+          onChange={(e) => onMoveToStatus(claim, e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full rounded-md px-2 py-1 font-bold text-[11px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+          title="Schimbă stadiul dosarului"
+        >
+          {STATUSES.map((s) => (
+            <option key={s.key} value={s.key} title={s.label}>
+              {String(s.num).padStart(2, "0")}. {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      )}
+
+      {/* Alertă piese — o linie */}
+      {alertLine && (
+        <p className="mt-1.5 text-[10px] font-bold text-[var(--app-danger)] truncate flex items-center gap-1">
+          <Bell size={10} className="shrink-0" />
+          {alertLine}
+        </p>
+      )}
+      {claim.blocat && blockedReason ? (
+        <p className="mt-1 text-[10px] font-semibold text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+          Motiv blocare: {blockedReason}
+        </p>
+      ) : null}
+
+      {/* Piese comandate — bloc funcțional compact */}
+      {isPieseComandateStatus(claim.status) && (
+        <div className="mt-1.5 app-flux-piese-inline">
+          <MobilePieseSositeRow
+            claim={claim}
+            canEdit={canEdit}
+            layout="inline"
+            onToggle={(c, val) => onTogglePieseSosite?.(c, val)}
+            onSchedule={onScheduleFromPiese}
+            onPatchDates={onPatchPieseDates}
+          />
+        </div>
+      )}
+
+      {/* Contact — vizibil la hover */}
+      {claim.telefonClient && (
+        <div
+          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <a
+            href={telLink(claim.telefonClient)}
+            onClick={(e) => e.stopPropagation()}
+            title={`Sună: ${claim.telefonClient}`}
+            className="app-flux-contact-btn p-1 rounded-md transition-colors"
+          >
+            <Phone size={11} />
+          </a>
+          <WhatsAppButton phone={claim.telefonClient} claim={claim} size={10} />
+        </div>
+      )}
     </div>
   );
 }
 
-function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, canEditFn, pragRidicare }) {
+function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimIds) {
+  return groupAndSortStageClaims(stageClaims, STAGE_SORT_KEY, pieseAlertDays).map(([groupKey, groupClaims]) => (
+    <div key={groupKey} className="min-w-0 h-full">
+      <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} highlightClaimIds={highlightClaimIds} hideStatusSelect {...props} />
+    </div>
+  ));
+}
+
+function getClaimAgingMeta(claim) {
+  const days = getDaysInStage(claim);
+  const overdue = isStageOverdue(claim);
+  let agingClass = "app-flux-aging";
+  if (days >= 3 && days <= 5) agingClass = "app-flux-aging is-warn";
+  if (days > 5 || overdue || claim.blocat) agingClass = "app-flux-aging is-danger";
+  const scheduleLabel =
+    claim.status === "programat" && claim.dataProgramare
+      ? formatProgramareShort(claim.dataProgramare)
+      : "";
+  return {
+    days,
+    agingClass,
+    alertThreshold: getClaimAlertDays(claim),
+    overdue,
+    scheduleLabel,
+    badgeText: scheduleLabel || `${days}z`,
+    badgeTitle: scheduleLabel
+      ? `Programat ${scheduleLabel}${overdue ? ` · +${days}z peste dată` : ""}`
+      : `${days} zile (cel mai vechi) · prag ${getClaimAlertDays(claim)} zile`,
+  };
+}
+
+function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, onTogglePieseSosite, onScheduleFromPiese, onPatchPieseDates, canEditFn, pragRidicare, onNotify, hideStatusSelect, highlightClaimIds }) {
   const [expanded, setExpanded] = useState(false);
+  const groupHighlighted = groupHasSearchHighlight(groupClaims, highlightClaimIds);
+
+  useEffect(() => {
+    if (groupHighlighted) setExpanded(true);
+  }, [groupHighlighted]);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
-  const brand = first.marcaModel || first.client || "";
+  const subline = first.marcaModel || first.client || "";
+  const statusDef = getStatusDefinition(first.status);
+  const phaseColorHex = getPhaseColumnColors(statusDef.phase).bg;
+  const groupHasAlert = groupClaims.some((c) => c.blocat || isStageOverdue(c));
+  const leadClaim = groupClaims.reduce((best, c) => {
+    const bestDays = getClaimStageDays(best);
+    const cDays = getClaimStageDays(c);
+    return cDays > bestDays ? c : best;
+  }, first);
+  const { days, agingClass, alertThreshold, badgeText, badgeTitle } = getClaimAgingMeta(leadClaim);
 
   if (groupClaims.length === 1) {
     return (
@@ -192,52 +246,45 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         onMoveToStatus={onMoveToStatus}
         onTogglePieseSosite={onTogglePieseSosite}
         onScheduleFromPiese={onScheduleFromPiese}
+        onPatchPieseDates={onPatchPieseDates}
         canEdit={canEditFn(first)}
         pragRidicare={pragRidicare}
+        onNotify={onNotify}
+        hideStatusSelect={hideStatusSelect}
+        isSearchHighlight={isSearchHighlighted(first.id, highlightClaimIds)}
       />
     );
   }
 
-  return (
-    <div className="border-2 border-[#1B2430]/30 rounded-xl p-1.5 bg-[#F4F6F8] space-y-1.5 shadow-xs">
-      {/* Header Comasat Interactiv */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between bg-white p-2 rounded-lg border border-[#E4E1D9] hover:border-[#1B2430] cursor-pointer select-none transition-colors"
-        title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate cele 3 dosare comasate"}
-      >
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-extrabold text-[13px] text-[#1B2430] uppercase">
-            🚗 {plate}
-          </span>
-          <span className="text-[11px] text-[#5B6572] font-semibold truncate max-w-[120px]">
-            {brand}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="bg-[#B8791E] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-2xs">
-            {groupClaims.length} dosare
-          </span>
-          <span className="text-[#1B2430] font-bold text-[12px] flex items-center gap-0.5">
-            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-          </span>
-        </div>
-      </div>
-
-      {/* Când este restrâns */}
-      {!expanded && (
-        <div
-          onClick={() => setExpanded(true)}
-          className="bg-white/80 border border-dashed border-[#E4E1D9] p-2 rounded-lg text-[11px] text-[#1B2430] font-bold text-center flex items-center justify-center gap-1 cursor-pointer hover:bg-white transition-colors"
+  if (expanded) {
+    return (
+      <div className="app-flux-stack-expanded space-y-1">
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className={`app-flux-card app-flux-stack-card w-full border-l-[3px] rounded-lg p-2 text-left transition-colors ${groupHasAlert ? "is-alert" : ""}`}
+          style={{ borderLeftColor: phaseColorHex }}
+          title="Restrânge dosarele"
         >
-          <span>Apasă pentru a deschide cele {groupClaims.length} dosare comasate</span>
-          <ChevronDown size={13} />
-        </div>
-      )}
-
-      {/* Când este extins */}
-      {expanded && (
-        <div className="space-y-1.5 pt-1 border-t border-[#1B2430]/15">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
+                  {plate}
+                </span>
+                <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                  {groupClaims.length} dosare
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5">
+                {subline || "—"}
+                {badgeText && leadClaim.status === "programat" ? ` · ${badgeText}` : ""}
+              </p>
+            </div>
+            <ChevronUp size={14} className="shrink-0 text-[var(--app-muted)] mt-0.5" />
+          </div>
+        </button>
+        <div className="space-y-1">
           {groupClaims.map((c) => (
             <PhaseCardRedesign
               key={c.id}
@@ -246,13 +293,52 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
               onMoveToStatus={onMoveToStatus}
               onTogglePieseSosite={onTogglePieseSosite}
               onScheduleFromPiese={onScheduleFromPiese}
+              onPatchPieseDates={onPatchPieseDates}
               canEdit={canEditFn(c)}
               pragRidicare={pragRidicare}
+              onNotify={onNotify}
+              hideStatusSelect={hideStatusSelect}
+              isSearchHighlight={isSearchHighlighted(c.id, highlightClaimIds)}
             />
           ))}
         </div>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setExpanded(true)}
+      className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
+      style={{ borderLeftColor: phaseColorHex }}
+      title={`${groupClaims.length} dosare — click pentru detalii`}
+    >
+      <div className="flex items-center justify-between gap-2 flex-1">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1 min-w-0 flex-wrap">
+            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
+              {plate}
+            </span>
+            <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+              ×{groupClaims.length}
+            </span>
+          </div>
+          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={subline}>
+            {subline || "—"}
+          </p>
+        </div>
+        <div className="shrink-0 flex items-center gap-1">
+          <span
+            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+            title={badgeTitle}
+          >
+            {badgeText}
+          </span>
+          <ChevronDown size={14} className="text-[var(--app-muted)]" />
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -265,251 +351,181 @@ export default function TablouPeFazeRedesign({
   onMoveToStatus,
   onTogglePieseSosite,
   onScheduleFromPiese,
+  onPatchPieseDates,
   onAddInStatus,
   onDuplicate,
   canEditFn,
   pragRidicare,
-  quickFilter,
-  setQuickFilter
+  onNotify,
+  highlightClaimIds = null,
 }) {
-  const [selectedSubStatus, setSelectedSubStatus] = useState(null);
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
+  const [focusedStage, setFocusedStage] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
+  const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
-  // Dosare cu piese întârziate (peste pragul de zile fără confirmare de sosire)
+  useEffect(() => {
+    if (!highlightClaimIds?.size) return;
+    setFocusedStage(null);
+    const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-card"), 120);
+    return () => window.clearTimeout(t);
+  }, [highlightClaimIds]);
+
   const overduePartClaims = useMemo(() => {
-    return claims.filter((c) => c.status === "piese_comandate" && !c.pieseSosite && daysBetween(c.dataSchimbareStatus) > PART_OVERDUE_DAYS);
+    return claims.filter((c) => isPartsOrderOverdue(c, pieseAlertDays));
+  }, [claims, pieseAlertDays]);
+
+  const overdueDeliveryClaims = useMemo(() => {
+    return claims.filter(isDeliveryDeadlineOverdue);
   }, [claims]);
 
-  // Alerte și grupări dosare
-  const attentionClaims = useMemo(() => claims.filter((c) => isStageOverdue(c) || c.blocat), [claims]);
-  const inLucruClaims = useMemo(() => claims.filter((c) => c.status === "in_lucru"), [claims]);
-  const programateClaims = useMemo(() => claims.filter((c) => c.status === "programat"), [claims]);
+  const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
-  const filteredClaims = useMemo(() => {
-    let list = claims;
+  const cardProps = {
+    onOpen,
+    onMoveToStatus,
+    onTogglePieseSosite,
+    onScheduleFromPiese,
+    onPatchPieseDates,
+    canEditFn,
+    pragRidicare,
+    onNotify,
+    hideStatusSelect: true,
+  };
 
-    // Filtru rapid din chips
-    if (quickFilter === "atentie") list = attentionClaims;
-    else if (quickFilter === "piese") list = overduePartClaims;
-    else if (quickFilter === "programate") list = programateClaims;
-    else if (quickFilter === "lucru") list = inLucruClaims;
-
-    // Filtru sub-etapă
-    if (selectedSubStatus) {
-      list = list.filter((c) => c.status === selectedSubStatus);
+  const visibleStages = useMemo(() => {
+    if (focusedStage) {
+      return STATUSES.filter((s) => s.key === focusedStage);
     }
+    return STATUSES.filter((s) => claims.some((c) => c.status === s.key));
+  }, [focusedStage, claims]);
 
-    return list;
-  }, [claims, quickFilter, selectedSubStatus, attentionClaims, overduePartClaims, programateClaims, inLucruClaims]);
+  const exportClaims = useMemo(
+    () => getFluxExportClaims(claims, { focusedStage, sortKey: STAGE_SORT_KEY, pieseAlertDays }),
+    [claims, focusedStage, pieseAlertDays],
+  );
+
+  const handleDownloadList = async (format) => {
+    await downloadClaimsList(exportClaims, { focusedStage, format });
+  };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-2.5 font-sans text-[#1B2430]">
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]">
 
       {/* 1. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (
-        <div className="flex items-center justify-between gap-3 bg-[#FBEAE9] border border-[#EFC3C0] rounded-xl p-2.5 text-[12px] text-[#8C2E28] shadow-xs">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px]">🔔</span>
-            <span>
-              <b>{overduePartClaims.length} dosare</b> peste pragul de <b>{PART_OVERDUE_DAYS} zile</b> fără confirmare de sosire piese:
-            </span>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {overduePartClaims.map((c) => (
-                <span key={c.id} className="bg-white border border-[#EFC3C0] px-2 py-0.5 rounded-full font-mono font-bold text-[11px] text-[#1B2430]">
-                  {c.numarInmatriculare || "—"} · {daysBetween(c.dataSchimbareStatus)}z
-                </span>
-              ))}
-            </div>
+        <div className="app-flux-alert-banner flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[12px]">
+          <span>
+            <b>{overduePartClaims.length}</b> dosare cu piese de verificat
+            {overdueDeliveryClaims.length > 0 && (
+              <> · <b>{overdueDeliveryClaims.length}</b> termen livrare depășit</>
+            )}
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {focusedStage !== "piese_comandate" && (
+              <button
+                type="button"
+                onClick={() => setFocusedStage("piese_comandate")}
+                className="text-[11px] font-bold px-2 py-0.5 rounded-md border"
+              >
+                Vezi etapa
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setDismissAlertBanner(true)}
+              className="hover:opacity-80 p-1 rounded-md font-bold"
+              aria-label="Închide"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setDismissAlertBanner(true)}
-            className="text-[#8C2E28] hover:bg-[#EFC3C0]/40 p-1 rounded-md text-[13px] font-bold"
-          >
-            ✕
-          </button>
         </div>
       )}
 
-      {/* 2. CONTROL STRIP & CHIPS FILTRARE */}
-      <div className="flex items-center justify-between gap-2.5 flex-wrap bg-white border border-[#E4E1D9] rounded-xl p-2 shadow-2xs">
-        {/* Chips de filtrare rapidă */}
-        <div className="flex items-center gap-2 flex-wrap text-[12px] font-semibold">
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "atentie" ? "toate" : "atentie")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "atentie" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#D6473F]" />
-            <span>Atenție</span>
-            <span className="opacity-70">({attentionClaims.length})</span>
-          </button>
+      {/* Etape — aceeași bandă ca în Tabel */}
+      <FluxHeaderBar
+        statusCounts={statusCounts}
+        focusedStage={focusedStage}
+        onFocusStage={setFocusedStage}
+        exportCount={exportClaims.length}
+        onExport={handleDownloadList}
+      />
 
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "piese" ? "toate" : "piese")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "piese" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#D69A1E]" />
-            <span>Piese întârziate</span>
-            <span className="opacity-70">({overduePartClaims.length})</span>
-          </button>
+      {/* Board vertical — secțiuni etapă, grid responsive */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin space-y-4 pb-2">
+        {visibleStages.length === 0 ? (
+          <div className="app-empty">
+            Niciun dosar pentru filtrele selectate.
+          </div>
+        ) : (
+          visibleStages.map((status) => {
+            const stageClaims = claims.filter((c) => c.status === status.key);
+            const totalAll = statusCounts[status.key] || 0;
+            const phaseAccent = getPhaseColumnColors(status.phase).bg;
+            const isDragTarget = dragOverStage === status.key;
 
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "programate" ? "toate" : "programate")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "programate" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#2E5C8A]" />
-            <span>Programate</span>
-            <span className="opacity-70">({programateClaims.length})</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setQuickFilter(quickFilter === "lucru" ? "toate" : "lucru")}
-            className={`px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
-              quickFilter === "lucru" ? "bg-[#1B2430] text-white border-[#1B2430]" : "bg-white border-[#E4E1D9] text-[#1B2430] hover:bg-[#F3F2EE]"
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#2F6B4E]" />
-            <span>În lucru</span>
-            <span className="opacity-70">({inLucruClaims.length})</span>
-          </button>
-
-          {selectedSubStatus && (
-            <button
-              type="button"
-              onClick={() => setSelectedSubStatus(null)}
-              className="px-2.5 py-0.5 rounded-full bg-[#D6473F] text-white font-bold text-[11px]"
-            >
-              Filtru sub-etapă ✕
-            </button>
-          )}
-        </div>
-
-        {/* Legendă Timp în Fază */}
-        <div className="ml-auto hidden xl:flex items-center gap-3 text-[11px] text-[#5B6572] font-semibold">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#2F8F5B]" /> sub 2z
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#D69A1E]" /> 2–4z
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-xs bg-[#D6473F]" /> peste 4z
-          </span>
-        </div>
-      </div>
-
-      {/* 3. VIZUALIZARE KANBAN BOARD */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 flex-1 min-h-0 overflow-y-auto xl:overflow-hidden">
-        {PIPELINE_PHASES.map((phase) => {
-          const phaseClaims = filteredClaims.filter((c) => phase.statuses.includes(c.status));
-          const phaseColors = PHASE_COLOR_MAP[phase.key] || { bg: "#1E2A44" };
-
-          return (
-            <div
-              key={phase.key}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                const claimId = e.dataTransfer.getData("text/plain");
-                if (claimId && onMoveToStatus) {
-                  const claim = claims.find((cl) => cl.id === claimId);
-                  if (claim) onMoveToStatus(claim, phase.statuses[0]);
-                }
-              }}
-              className="bg-white border border-[#E4E1D9] rounded-2xl overflow-hidden flex flex-col h-auto md:h-full shadow-2xs"
-            >
-              {/* Header Coloană Fază */}
-              <div
-                className="p-3 text-white shrink-0"
-                style={{ background: phaseColors.bg }}
-              >
-                <div className="flex items-center justify-between font-extrabold text-[14px]">
-                  <span>{phase.label}</span>
-                  <span className="bg-white/20 px-2 py-0.5 rounded-full text-[11.5px] font-mono">
-                    {phaseClaims.length}
-                  </span>
-                </div>
-                <div className="text-[11px] opacity-85 mt-0.5 leading-tight">
-                  {phase.description}
-                </div>
-              </div>
-
-              {/* Sub-steps Pills inside Phase Header */}
-              <div className="flex items-center gap-1 flex-wrap p-2 bg-black/5 border-b border-[#E4E1D9]">
-                {phase.statuses.map((stKey) => {
-                  const stDef = getStatusDefinition(stKey);
-                  const stCount = filteredClaims.filter((c) => c.status === stKey).length;
-                  const isActive = selectedSubStatus === stKey;
-
-                  return (
-                    <button
-                      key={stKey}
-                      type="button"
-                      onClick={() => setSelectedSubStatus(isActive ? null : stKey)}
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-all ${
-                        isActive
-                          ? "bg-[#1B2430] text-white border-[#1B2430]"
-                          : "bg-white/80 text-[#5B6572] border-[#E4E1D9] hover:bg-white"
-                      }`}
-                    >
-                      {stDef.num}. {stDef.label} {stCount > 0 ? `(${stCount})` : ""}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Zona cu cardurile din coloană Comasate pe Vehicul */}
-              <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin">
-                {(() => {
-                  const groupedMap = new Map();
-                  phaseClaims.forEach((c) => {
-                    const plate = (c.numarInmatriculare || "").trim().toUpperCase();
-                    const key = plate && plate.length > 2 ? `${plate}_${c.status}` : c.id;
-                    if (!groupedMap.has(key)) groupedMap.set(key, []);
-                    groupedMap.get(key).push(c);
-                  });
-
-                  const groups = Array.from(groupedMap.entries());
-
-                  if (groups.length === 0) {
-                    return (
-                      <div className="border-1.5 border-dashed border-[#E4E1D9] rounded-xl p-5 text-center text-[#5B6572] text-[12px] italic my-auto">
-                        Niciun dosar în această fază
-                      </div>
-                    );
+            return (
+              <section
+                key={status.key}
+                id={`flux-stage-${status.key}`}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(status.key);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverStage(status.key);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) {
+                    setDragOverStage((prev) => (prev === status.key ? null : prev));
                   }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverStage(null);
+                  const claimId = e.dataTransfer.getData("text/plain");
+                  if (claimId && onMoveToStatus) {
+                    const claim = claims.find((cl) => cl.id === claimId);
+                    if (claim) onMoveToStatus(claim, status.key);
+                  }
+                }}
+                className={`app-flux-stage-section rounded-xl overflow-hidden ${isDragTarget ? "is-drag-over" : ""}`}
+                style={{ "--flux-phase-accent": phaseAccent }}
+              >
+                <div
+                  className="app-flux-stage-header flex flex-wrap items-center justify-between gap-2 p-2 border-b border-[var(--app-border-soft)]"
+                  style={{ borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
+                >
+                  <StageTabLabel
+                    num={status.num}
+                    label={status.label}
+                    count={totalAll}
+                    title={glossaryTitle(status.key)}
+                    className="flex-1 min-w-0 pointer-events-none"
+                  />
+                  {stageClaims.length > 0 && (
+                    <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
+                      Cele mai noi → stânga
+                    </span>
+                  )}
+                </div>
 
-                  return groups.map(([groupKey, groupClaims]) => (
-                    <StackedPhaseCardGroup
-                      key={groupKey}
-                      groupKey={groupKey}
-                      groupClaims={groupClaims}
-                      onOpen={onOpen}
-                      onMoveToStatus={onMoveToStatus}
-                      onTogglePieseSosite={onTogglePieseSosite}
-                      onScheduleFromPiese={onScheduleFromPiese}
-                      canEditFn={canEditFn}
-                      pragRidicare={pragRidicare}
-                    />
-                  ));
-                })()}
-              </div>
-            </div>
-          );
-        })}
+                {stageClaims.length === 0 ? (
+                  <div className="app-flux-stage-drop m-2 py-6 border border-dashed rounded-lg text-center text-[11px] text-[var(--app-muted)]">
+                    Niciun dosar aici · trage un card sau schimbă etapa din dosar
+                  </div>
+                ) : (
+                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 items-stretch auto-rows-fr">
+                    {renderClaimGroups(stageClaims, cardProps, pieseAlertDays, highlightClaimIds)}
+                  </div>
+                )}
+              </section>
+            );
+          })
+        )}
       </div>
 
     </div>

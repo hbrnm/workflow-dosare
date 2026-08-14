@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   CalendarClock, PackageCheck, ChevronLeft, ChevronRight, Clock, Plus
 } from "lucide-react";
@@ -6,6 +6,11 @@ import {
   todayISO, daysBetween
 } from "../../utils/dateUtils";
 import { isProgramatorClaim } from "../../constants/config";
+import { getProgramareChipClass } from "../../utils/programareStatus";
+import { groupClaimsByPlate, countUniqueVehicles } from "../../utils/plateSchedule";
+import { isPartsArrivedUnscheduled } from "../../utils/alertUtils";
+import ProgramatorClaimCard from "./ProgramatorClaimCard";
+import ProgramareNeonorataModal from "../modals/ProgramareNeonorataModal";
 
 export const SLOTURI_ORARE = [
   "08:00 - 08:30",
@@ -68,20 +73,20 @@ function checkMasinaSchimbConflict(claims, currentId, masinaSchimb, dateStr) {
 /* Pending alert banner — dosare piese_sosite fără dată programată          */
 /* ───────────────────────────────────────────────────────────────────────── */
 function PendingBanner({ claims, onOpen }) {
-  const pending = useMemo(() =>
-    claims.filter((c) => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare),
+  const pending = useMemo(
+    () => claims.filter(isPartsArrivedUnscheduled),
     [claims]
   );
   if (pending.length === 0) return null;
 
   return (
-    <div className="bg-[#FBF3E6] border border-[#C98A2B]/40 rounded-lg p-3">
+    <div className="app-prog-pending-banner rounded-lg p-3">
       <div className="flex items-center gap-2 mb-2">
-        <PackageCheck size={15} className="text-[#C98A2B]" />
-        <span className="text-[12px] font-bold text-[#7A5316]">
+        <PackageCheck size={15} className="text-[var(--app-accent)]" />
+        <span className="text-[12px] font-bold">
           {pending.length} dosar{pending.length > 1 ? "e" : ""} cu piese sosite — neprogramat{pending.length > 1 ? "e" : ""}
         </span>
-        <span className="ml-auto text-[10.5px] text-[#7A5316] font-medium">
+        <span className="ml-auto text-[10.5px] font-medium">
           Deschide dosarul pentru a programa data și ora
         </span>
       </div>
@@ -90,11 +95,11 @@ function PendingBanner({ claims, onOpen }) {
           <button
             key={c.id}
             onClick={() => onOpen(c)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#C98A2B]/40 rounded-lg text-[10.5px] font-semibold text-[#7A5316] hover:bg-[#FBF3E6] hover:border-[#C98A2B] transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10.5px] font-semibold transition-colors"
           >
             <CalendarClock size={11} />
             {c.numarDosar} · {c.client || c.numarInmatriculare}
-            <span className="text-[#8A8375] font-normal">{daysBetween(c.dataSchimbareStatus)}z</span>
+            <span className="text-[var(--app-muted)] font-normal">{daysBetween(c.dataSchimbareStatus)}z</span>
           </button>
         ))}
       </div>
@@ -107,15 +112,67 @@ function PendingBanner({ claims, onOpen }) {
 /* ───────────────────────────────────────────────────────────────────────── */
 const WEEKDAYS_RO = ["Duminică", "Luni", "Marți", "Miercuri", "Joi", "Vineri", "Sâmbătă"];
 
-export default function Programator({ claims, onOpen, onPatch, canEditFn, capacitate, onSetCapacitate, onAddInStatus }) {
+export default function Programator({
+  claims,
+  onOpen,
+  onPatch,
+  canEditFn,
+  capacitate,
+  onSetCapacitate,
+  onAddInStatus,
+  initialDate = null,
+  onNotify,
+}) {
   const today = new Date();
-  const [activeDateStr, setActiveDateStr] = useState(() => todayISO());
+  const [activeDateStr, setActiveDateStr] = useState(() => initialDate || todayISO());
   const [weekOffset, setWeekOffset] = useState(0);
   const [capInput, setCapInput] = useState(capacitate || 5);
+  
+  useEffect(() => {
+    if (!initialDate) return;
+    setActiveDateStr(initialDate);
+    setWeekOffset(0);
+  }, [initialDate]);
   
   // State for scheduling a specific slot
   const [activeSlotForScheduling, setActiveSlotForScheduling] = useState(null);
   const [selectingFromArrived, setSelectingFromArrived] = useState(false);
+  const [neonorataClaim, setNeonorataClaim] = useState(null);
+
+  const handleMarkNeonorata = (claim) => {
+    if (onPatch) {
+      onPatch(claim.id, { programareStatus: "neonorata" });
+    }
+    setNeonorataClaim(claim);
+  };
+
+  const handleCloseNeonorataModal = () => {
+    const claimId = neonorataClaim?.id;
+    if (claimId && onPatch) {
+      const current = claims.find((c) => c.id === claimId);
+      if (current?.programareStatus === "neonorata") {
+        onPatch(claimId, { programareStatus: null });
+      }
+    }
+    setNeonorataClaim(null);
+  };
+
+  const handleCancelProgramare = async (claim) => {
+    if (onPatch) {
+      await onPatch(claim.id, { dataProgramare: null, programareStatus: null });
+    }
+    setNeonorataClaim(null);
+  };
+
+  const handleRescheduleProgramare = async (claim, iso) => {
+    if (onPatch) {
+      await onPatch(claim.id, { dataProgramare: iso, programareStatus: null });
+    }
+    setNeonorataClaim(null);
+    const day = iso.slice(0, 10);
+    setActiveDateStr(day);
+    setWeekOffset(0);
+  };
 
   const prevWeek = () => {
     setWeekOffset(prev => prev - 1);
@@ -174,6 +231,11 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims, activeDateStr]);
 
+  const activeDayVehicleCount = useMemo(
+    () => countUniqueVehicles(activeDayClaims),
+    [activeDayClaims]
+  );
+
   const upcomingClaims = useMemo(() => {
     const today = todayISO();
     return claims
@@ -181,14 +243,19 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       .sort((a, b) => (a.dataProgramare || "").localeCompare(b.dataProgramare || ""));
   }, [claims]);
 
+  const upcomingByPlate = useMemo(
+    () => groupClaimsByPlate(upcomingClaims),
+    [upcomingClaims]
+  );
+
   const activeDayFormatted = useMemo(() => {
     if (!activeDateStr) return "";
     return activeDateStr.split("-").reverse().join(".");
   }, [activeDateStr]);
 
-  // Arrived claims that do not have dateProgramare yet
+  // Arrived claims that do not have dateProgramare yet (and not already in service)
   const arrivedClaims = useMemo(() => {
-    return claims.filter(c => (c.pieseSosite || c.status === "piese_sosite") && !c.dataProgramare);
+    return claims.filter(isPartsArrivedUnscheduled);
   }, [claims]);
 
   const dateRangeLabel = useMemo(() => {
@@ -280,49 +347,56 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
   return (
     <div className="flex-1 min-h-0 flex flex-col space-y-3 overflow-hidden">
       {/* Header */}
-      <div className="bg-white rounded-xl border border-[#DAD4C6] px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="app-prog-panel app-prog-panel-header rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="text-[15px] font-bold text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            <CalendarClock size={16} className="inline mr-1.5 text-[#3B5166] mb-0.5" />
+          <div className="text-[15px] font-bold text-[var(--app-text-strong)]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <CalendarClock size={16} className="inline mr-1.5 text-[var(--app-muted)] mb-0.5" />
             Programator Service
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-[var(--app-muted)]">
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#2F8F5B]" /> Onorată</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#D6473F]" /> Neonorată</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-[#E7EEF5] border border-[#2E5C8A]/30" /> Neconfirmată</span>
           </div>
           
           {/* Calendar controls */}
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={prevWeek}
-              className="p-1.5 rounded border border-[#DAD4C6] text-[#3B5166] transition-colors hover:bg-[#EFEAE1]"
+              className="app-prog-nav-btn p-1.5 rounded transition-colors"
               title="Săptămâna anterioară"
+              aria-label="Săptămâna anterioară"
             >
               <ChevronLeft size={15} />
             </button>
-            <button onClick={handleSetToday} className="px-3 py-1 rounded bg-[#3B5166] text-white font-semibold text-[11.5px] hover:bg-[#2C4160] transition-colors">
+            <button type="button" onClick={handleSetToday} className="app-prog-nav-today px-3 py-1 rounded font-semibold text-[11.5px] transition-colors">
               Mergi la azi
             </button>
-            <button onClick={nextWeek} className="p-1.5 rounded hover:bg-[#EFEAE1] border border-[#DAD4C6] text-[#3B5166] transition-colors" title="Săptămâna următoare">
+            <button type="button" onClick={nextWeek} className="app-prog-nav-btn p-1.5 rounded transition-colors" title="Săptămâna următoare" aria-label="Săptămâna următoare">
               <ChevronRight size={15} />
             </button>
-            <span className="font-bold text-[#23282E] text-[12.5px] ml-1 bg-[#FAF8F5] px-2 py-1 rounded border border-[#DAD4C6]">
+            <span className="app-prog-range font-bold text-[12.5px] ml-1 px-2 py-1 rounded">
               Interval: {dateRangeLabel}
             </span>
           </div>
         </div>
 
         {/* Capacity Input */}
-        <div className="flex items-center gap-2 text-[11.5px] bg-[#FAF8F5] px-3 py-1.5 rounded-lg border border-[#DAD4C6]">
-          <Clock size={13} className="text-[#6B6558]" />
-          <span className="text-[#6B6558] font-medium">Capacitate zilnică:</span>
+        <div className="app-prog-capacity flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg">
+          <Clock size={13} className="text-[var(--app-muted)]" />
+          <span className="font-medium">Capacitate zilnică:</span>
           <input
             type="number"
             min={1} max={30}
-            className="w-11 border border-[#DAD4C6] rounded px-1.5 py-0.5 text-center font-bold text-[#23282E] bg-white text-[11.5px]"
+            className="w-11 rounded px-1.5 py-0.5 text-center font-bold text-[11.5px]"
             value={capInput}
             onChange={(e) => setCapInput(Number(e.target.value) || 1)}
           />
-          <span className="text-[#6B6558]">mașini/zi</span>
+          <span>mașini/zi</span>
           <button
             onClick={() => onSetCapacitate && onSetCapacitate(capInput)}
-            className="px-2.5 py-0.5 bg-[#3B5166] text-white rounded text-[11px] font-semibold hover:bg-[#2C4160] transition-colors"
+            className="app-prog-nav-today px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors"
           >
             Salvează
           </button>
@@ -335,18 +409,19 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       </div>
 
       {/* Listă viitoare — aceeași logică ca pe mobil */}
-      {upcomingClaims.length > 0 && (
-        <div className="shrink-0 bg-white border border-[#DAD4C6] rounded-xl px-3 py-2.5 shadow-sm">
+      {upcomingByPlate.length > 0 && (
+        <div className="shrink-0 app-prog-upcoming rounded-xl px-3 py-2.5">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="text-[12px] font-extrabold text-[#23282E]">
-              Programări viitoare ({upcomingClaims.length})
+            <div className="text-[12px] font-extrabold text-[var(--app-text-strong)]">
+              Programări viitoare ({upcomingByPlate.length} mașini)
             </div>
-            <div className="text-[10.5px] text-[#8A8375] font-medium">
+            <div className="text-[10.5px] text-[var(--app-muted)] font-medium">
               Click pe o mașină ca să sari la ziua ei în calendar
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 max-h-[88px] overflow-y-auto">
-            {upcomingClaims.map((c) => {
+            {upcomingByPlate.map((group) => {
+              const c = group[0];
               const day = c.dataProgramare.slice(0, 10);
               const time = c.dataProgramare.slice(11, 16) || "08:00";
               const isActive = day === activeDateStr;
@@ -355,16 +430,16 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                   key={c.id}
                   type="button"
                   onClick={() => jumpToProgramare(c)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-colors ${
-                    isActive
-                      ? "bg-[#3B5166] text-white border-[#3B5166]"
-                      : "bg-[#FAF8F5] text-[#3B5166] border-[#DAD4C6] hover:border-[#C98A2B] hover:bg-[#FBF3E6]"
+                  className={`app-prog-upcoming-chip flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
+                    isActive ? "is-active" : ""
                   }`}
-                  title={`${c.client || ""} · ${c.marcaModel || ""} · dosar ${c.numarDosar || "—"}`}
+                  title={`${c.client || ""} · ${c.marcaModel || ""} · ${group.length > 1 ? `${group.length} dosare` : `dosar ${c.numarDosar || "—"}`}`}
                 >
                   <span className="font-mono">{day.slice(8, 10)}/{day.slice(5, 7)} {time}</span>
                   <span className="uppercase font-mono">{c.numarInmatriculare || "—"}</span>
-                  {c.numarDosar ? <span className="opacity-70">#{c.numarDosar}</span> : null}
+                  {group.length > 1 ? (
+                    <span className="opacity-70">×{group.length}</span>
+                  ) : c.numarDosar ? <span className="opacity-70">#{c.numarDosar}</span> : null}
                 </button>
               );
             })}
@@ -376,37 +451,36 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_450px] gap-3 items-stretch">
         
         {/* Rolling Calendar Grid */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+        <div className="app-prog-panel rounded-xl overflow-hidden flex flex-col h-full">
           {/* Days names */}
-          <div className="grid grid-cols-7 text-center bg-[#FAF8F5] border-b border-[#EFEAE1]">
+          <div className="app-prog-cal-header grid grid-cols-7 text-center">
             {headers.map((d, i) => (
-              <span key={`${d}-${i}`} className="text-[13.5px] font-bold text-[#6B6558] py-2.5">{d}</span>
+              <span key={`${d}-${i}`} className="text-[13.5px] font-bold py-2.5">{d}</span>
             ))}
           </div>
 
-          {/* Days cells — toate zilele din fereastra rolling (nu ascunde luna următoare) */}
-          <div className="grid grid-cols-7 auto-rows-fr gap-px bg-[#DAD4C6] flex-grow flex-1">
+          {/* Days cells */}
+          <div className="app-prog-cal-grid grid grid-cols-7 auto-rows-fr gap-px flex-grow flex-1">
             {calendarCells.map((cell, idx) => {
               const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
-              const total = dayClaims.length;
+              const total = countUniqueVehicles(dayClaims);
               const isSelected = activeDateStr === cell.iso;
               const isToday = cell.iso === todayISO();
               const crossesMonth =
                 idx > 0 && calendarCells[idx - 1] && calendarCells[idx - 1].monthNum !== cell.monthNum;
-              
-              let capClass = crossesMonth ? "bg-[#FAF8F5] text-[#23282E]" : "bg-white text-[#23282E]";
-              let badgeColor = "bg-[#FAF8F5] text-[#6B6558]";
-              
+
+              let capState = "";
+              let badgeState = "";
               if (total > 0) {
                 if (total > capacitate) {
-                  capClass = "bg-[#B23A2E]/5 hover:bg-[#B23A2E]/10";
-                  badgeColor = "bg-[#B23A2E] text-white";
+                  capState = "is-over";
+                  badgeState = "is-over";
                 } else if (total === capacitate) {
-                  capClass = "bg-[#C98A2B]/5 hover:bg-[#C98A2B]/10";
-                  badgeColor = "bg-[#C98A2B] text-white";
+                  capState = "is-full";
+                  badgeState = "is-full";
                 } else {
-                  capClass = "bg-[#3E6B45]/5 hover:bg-[#3E6B45]/10";
-                  badgeColor = "bg-[#3E6B45] text-white";
+                  capState = "is-ok";
+                  badgeState = "is-ok";
                 }
               }
 
@@ -423,14 +497,14 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                     e.dataTransfer.dropEffect = "move";
                   }}
                   onDragEnter={(e) => {
-                    e.currentTarget.classList.add("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.add("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                   }}
                   onDragLeave={(e) => {
-                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.remove("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                   }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    e.currentTarget.classList.remove("ring-2", "ring-[#C98A2B]", "ring-inset");
+                    e.currentTarget.classList.remove("ring-2", "ring-[var(--app-accent)]", "ring-inset");
                     const claimId = e.dataTransfer.getData("text/plain");
                     if (claimId && onPatch) {
                       const claim = claims.find(cl => cl.id === claimId);
@@ -440,49 +514,54 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
                       }
                     }
                   }}
-                  className={`p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
-                    isSelected ? "ring-2 ring-[#3B5166] z-10" : ""
-                  } ${capClass}`}
+                  className={`app-prog-cal-cell p-1 flex flex-col justify-between cursor-pointer transition-all min-h-[4.75rem] ${
+                    crossesMonth ? "is-alt-month" : ""
+                  } ${isSelected ? "is-selected" : ""} ${isToday ? "is-today" : ""} ${capState}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-[14px] font-mono font-bold px-1.5 py-0.5 rounded ${isToday ? "bg-[#C98A2B] text-white" : "text-[#23282E]"}`}>
+                    <span className={`app-prog-cal-date text-[14px] font-mono font-bold px-1.5 py-0.5 rounded`}>
                       {cell.iso.slice(8, 10)}/{cell.iso.slice(5, 7)}
                     </span>
                     {total > 0 && (
-                      <span className={`text-[12.5px] font-bold px-1.5 py-0.5 rounded-full ${badgeColor}`}>
+                      <span className={`app-prog-cal-badge text-[12.5px] font-bold px-1.5 py-0.5 rounded-full ${badgeState}`}>
                         {total}
                       </span>
                     )}
                   </div>
-                  {/* Micro list of cars */}
-                  <div className="mt-1.5 space-y-1 text-[12px] font-semibold text-[#3B5166] font-mono leading-none truncate max-w-full">
-                    {dayClaims.slice(0, total > 5 ? 4 : 5).map(c => (
-                      <div
-                        key={c.id}
-                        draggable={true}
-                        onDragStart={(e) => {
-                          e.stopPropagation();
-                          e.dataTransfer.setData("text/plain", c.id);
-                          e.dataTransfer.effectAllowed = "move";
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDateStr(cell.iso);
-                          setActiveSlotForScheduling(null);
-                          setSelectingFromArrived(false);
-                          if (onOpen) onOpen(c);
-                        }}
-                        className="truncate cursor-pointer hover:text-[#C98A2B] hover:underline active:opacity-60 transition-colors"
-                        title="Click pentru a deschide dosarul · Trage pentru a muta în altă zi"
-                      >
-                        🚗 {c.numarInmatriculare || "FĂRĂ NR."}{c.numarDosar ? ` (#${c.numarDosar})` : ""}
-                      </div>
-                    ))}
-                    {total > 5 && (
-                      <div className="text-[11px] text-[#8A8375] font-normal italic pl-3">
-                        +{total - 4} altele
-                      </div>
-                    )}
+                  {/* Compact chips — comasate pe nr. înmatriculare */}
+                  <div className="mt-1 flex flex-wrap gap-0.5 content-start min-h-[1.25rem]">
+                    {groupClaimsByPlate(dayClaims).map((group) => {
+                      const lead = group[0];
+                      const time = lead.dataProgramare?.slice(11, 16) || "";
+                      const plate = (lead.numarInmatriculare || "—").slice(-7);
+                      const stacked = group.length > 1;
+                      const title = stacked
+                        ? `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"} ×${group.length}: ${group.map((c) => `#${c.numarDosar || "?"}`).join(", ")}`
+                        : `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"}${lead.numarDosar ? ` (#${lead.numarDosar})` : ""} · ${lead.client || ""}`;
+                      return (
+                        <button
+                          key={stacked ? `g-${lead.numarInmatriculare}-${lead.id}` : lead.id}
+                          type="button"
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            e.dataTransfer.setData("text/plain", lead.id);
+                            e.dataTransfer.effectAllowed = "move";
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveDateStr(cell.iso);
+                            setActiveSlotForScheduling(null);
+                            setSelectingFromArrived(false);
+                            if (onOpen) onOpen(lead);
+                          }}
+                          className={`app-prog-chip max-w-[62px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)}`}
+                          title={title}
+                        >
+                          {stacked ? `${plate}×${group.length}` : plate}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -491,11 +570,11 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
         </div>
 
         {/* Sidebar Details Panel broken down by Hourly Slots */}
-        <div className="bg-white border border-[#DAD4C6] rounded-xl p-3.5 shadow-sm space-y-3 flex flex-col h-full min-h-0">
-          <div className="border-b border-[#EFEAE1] pb-2 flex items-center justify-between shrink-0">
+        <div className="app-prog-panel rounded-xl p-3.5 space-y-3 flex flex-col h-full min-h-0">
+          <div className="app-prog-sidebar-header pb-2 flex items-center justify-between shrink-0">
             <div>
-              <div className="text-[15px] font-bold text-[#23282E]">Programări: {activeDayFormatted}</div>
-              <div className="text-[12.5px] text-[#8A8375]">{activeDayClaims.length}/{capacitate} programate</div>
+              <div className="text-[15px] font-bold text-[var(--app-text-strong)]">Programări: {activeDayFormatted}</div>
+              <div className="text-[12.5px] text-[var(--app-muted)]">{activeDayVehicleCount}/{capacitate} programate (mașini)</div>
             </div>
             
             {/* Quick Share / Print tools */}
@@ -503,7 +582,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
               <button
                 onClick={handleCopyList}
                 disabled={activeDayClaims.length === 0}
-                className="px-2 py-1 rounded bg-[#EEF5EE] border border-[#3E6B45]/30 hover:bg-[#D3E8D5] text-[#3E6B45] text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="app-prog-tool-wa px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Copiază textul programului pentru WhatsApp"
               >
                 💬 WhatsApp
@@ -511,7 +590,7 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
               <button
                 onClick={handlePrintList}
                 disabled={activeDayClaims.length === 0}
-                className="px-2 py-1 rounded bg-[#3B5166] hover:bg-[#2C4160] text-white text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="app-prog-tool-print px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Printează programul zilei"
               >
                 🖨️ Tipărește
@@ -520,161 +599,204 @@ export default function Programator({ claims, onOpen, onPatch, canEditFn, capaci
           </div>
 
           {/* Slots List (Scrollable) */}
-          <div className="flex-1 overflow-y-auto min-h-0 pr-1 divide-y divide-[#EFEAE1]/60 scrollbar-thin">
-            {SLOTURI_ORARE.map(slot => {
-              const items = activeDayClaims.filter(c => getSlotForIso(c.dataProgramare) === slot);
-              const hasItems = items.length > 0;
-              const isSchedulingThisSlot = activeSlotForScheduling === slot;
+          <div className="flex-1 overflow-y-auto min-h-0 pr-1 divide-y divide-[var(--app-border)]/60 scrollbar-thin">
+            {(() => {
+              const groupedSlots = [];
+              let currentRange = null;
 
-              return (
-                <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
-                  <div className="flex items-center justify-between text-[12.5px] font-mono text-[#8A8375] mb-1 font-bold">
-                    <span>{slot}</span>
-                    {!isSchedulingThisSlot && (
+              SLOTURI_ORARE.forEach((slot) => {
+                const items = activeDayClaims.filter((c) => getSlotForIso(c.dataProgramare) === slot);
+                const hasItems = items.length > 0;
+                const isScheduling = activeSlotForScheduling === slot;
+
+                if (hasItems || isScheduling) {
+                  if (currentRange) {
+                    groupedSlots.push(currentRange);
+                    currentRange = null;
+                  }
+                  groupedSlots.push({ type: "slot", slot, items, hasItems, isScheduling });
+                } else {
+                  if (!currentRange) {
+                    currentRange = {
+                      type: "range",
+                      startSlot: slot,
+                      endSlot: slot,
+                      slots: [slot],
+                    };
+                  } else {
+                    currentRange.slots.push(slot);
+                    currentRange.endSlot = slot;
+                  }
+                }
+              });
+
+              if (currentRange) {
+                groupedSlots.push(currentRange);
+              }
+
+              return groupedSlots.map((entry) => {
+                if (entry.type === "range") {
+                  const isSingle = entry.slots.length === 1;
+                  const label = isSingle
+                    ? entry.startSlot
+                    : `${entry.startSlot.split(" - ")[0]} – ${entry.endSlot.split(" - ")[1]}`;
+
+                  return (
+                    <div
+                      key={entry.startSlot}
+                      onClick={() => {
+                        setActiveSlotForScheduling(entry.slots[0]);
+                        setSelectingFromArrived(false);
+                      }}
+                      className="group py-2 px-3 my-1 rounded-lg border border-dashed border-[var(--app-border)]/60 hover:border-[var(--app-accent)] hover:bg-[var(--app-surface-2)] transition-all cursor-pointer flex items-center justify-between text-[12px] select-none"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-[var(--app-muted)]">{label}</span>
+                        <span className="text-[10.5px] font-semibold text-[var(--app-muted)] bg-[var(--app-surface-muted)] px-2 py-0.5 rounded-full">
+                          {isSingle ? "Liber" : `${entry.slots.length} sloturi libere`}
+                        </span>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setActiveSlotForScheduling(slot);
-                          setSelectingFromArrived(false);
-                        }}
-                        className="text-[#C98A2B] hover:text-[#7A5316] font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                        className="text-[11px] font-bold text-[var(--app-accent)] opacity-80 group-hover:opacity-100 hover:underline"
                       >
                         + Programează
                       </button>
-                    )}
-                  </div>
-
-                  {hasItems ? (
-                    <div className="space-y-1">
-                      {items.map(c => {
-                        const conflict = checkMasinaSchimbConflict(claims, c.id, c.masinaSchimb, c.dataProgramare || "");
-                        return (
-                          <div
-                            key={c.id}
-                            onClick={() => onOpen(c)}
-                            draggable={true}
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData("text/plain", c.id);
-                              e.dataTransfer.effectAllowed = "move";
-                            }}
-                            className="p-1.5 border border-[#DAD4C6] rounded-lg hover:border-[#3B5166] cursor-pointer transition-all bg-[#FAF8F5] text-[13px] flex flex-col hover:shadow-2xs active:opacity-60"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-mono font-bold text-[#3B5166] uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
-                                {c.numarDosar && (
-                                  <span className="text-[10px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
-                                    #{c.numarDosar}
-                                  </span>
-                                )}
-                                <span className="text-[#8A8375] shrink-0">·</span>
-                                <span className="font-bold text-[#23282E] truncate">{c.client || "—"}</span>
-                              </div>
-                              <span className="text-[11.5px] text-[#6B6558] font-semibold truncate shrink-0 max-w-[150px]">{c.marcaModel || "—"}</span>
-                            </div>
-                            {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
-                              <div className="text-[11.5px] text-[#6B6558] border-t border-[#EFEAE1]/60 pt-1.5 mt-1.5 truncate flex items-center gap-1">
-                                <span className="text-[#8A8375]">⚙️</span>
-                                <span className="truncate">{c.ceEsteDeReparat}</span>
-                              </div>
-                            )}
-                            {c.masinaSchimb && (
-                              <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1.5 w-max flex items-center gap-1 ${conflict ? "bg-[#F9E3E1] text-[#B23A2E]" : "bg-[#FBF3E6] text-[#7A5316]"}`}>
-                                🚗 Auto Schimb: {c.masinaSchimb}
-                                {conflict && <span>⚠️ Conflict!</span>}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
                     </div>
-                  ) : isSchedulingThisSlot ? (
-                    <div className="bg-[#FDFCF9] border border-[#DAD4C6] rounded-lg p-2.5 space-y-2 text-[11px] shadow-xs">
-                      <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-1">
-                        <span className="font-bold text-[#3B5166]">Programează la {slot.split(" - ")[0]}</span>
+                  );
+                }
+
+                const { slot, items, hasItems, isScheduling } = entry;
+                return (
+                  <div key={slot} className="group py-2.5 first:pt-0 last:pb-0">
+                    <div className="flex items-center justify-between text-[12.5px] font-mono text-[var(--app-muted)] mb-1 font-bold">
+                      <span>{slot}</span>
+                      {!isScheduling && (
                         <button
                           type="button"
                           onClick={() => {
-                            setActiveSlotForScheduling(null);
+                            setActiveSlotForScheduling(slot);
                             setSelectingFromArrived(false);
                           }}
-                          className="text-[#8A8375] hover:text-[#23282E] font-bold"
+                          className="app-prog-slot-add font-bold transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                         >
-                          ✕
+                          + Programează
                         </button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveSlotForScheduling(null);
-                            if (onAddInStatus) {
-                              onAddInStatus("programat", makeIsoFromSlot(activeDateStr, slot));
-                            }
-                          }}
-                          className="py-1.5 rounded border border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-center font-bold text-[#23282E] shadow-2xs transition-colors"
-                        >
-                          📄 Dosar Nou
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectingFromArrived(prev => !prev)}
-                          className={`py-1.5 rounded border text-center font-bold shadow-2xs transition-colors ${selectingFromArrived ? "bg-[#3B5166] text-white border-[#3B5166]" : "border-[#DAD4C6] bg-white hover:bg-[#FAF8F5] text-[#23282E]"}`}
-                        >
-                          📦 Piese Sosite
-                        </button>
-                      </div>
-
-                      {selectingFromArrived && (
-                        <div className="space-y-1 mt-2 max-h-[140px] overflow-y-auto border border-[#DAD4C6] rounded bg-white p-1.5 scrollbar-thin">
-                          {arrivedClaims.length === 0 ? (
-                            <div className="text-[10px] text-[#8A8375] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
-                          ) : (
-                            arrivedClaims.map(c => (
-                              <button
-                                key={c.id}
-                                type="button"
-                                onClick={() => {
-                                  if (onPatch) {
-                                    onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
-                                    setActiveSlotForScheduling(null);
-                                    setSelectingFromArrived(false);
-                                  }
-                                }}
-                                className="w-full text-left p-1 rounded hover:bg-[#FAF8F5] border-b border-[#EFEAE1]/50 text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
-                              >
-                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                  <span className="font-mono text-[#3B5166] font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
-                                  {c.numarDosar && (
-                                    <span className="text-[9.5px] font-mono font-bold bg-[#EFEAE1] px-1.5 py-0.2 rounded text-[#3B5166] shrink-0" title={`Dosar #${c.numarDosar}`}>
-                                      #{c.numarDosar}
-                                    </span>
-                                  )}
-                                  {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
-                                    <>
-                                      <span className="text-[#8A8375] shrink-0">·</span>
-                                      <span className="text-[#6B6558] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
-                                    </>
-                                  )}
-                                </div>
-                                <span className="text-[#8A8375] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
-                              </button>
-                            ))
-                          )}
-                        </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="text-[12.5px] text-[#C2BCB0] italic py-0.5 pl-1.5 select-none">Liber</div>
-                  )}
-                </div>
-              );
-            })}
+
+                    {hasItems ? (
+                      <div className="space-y-1">
+                        {groupClaimsByPlate(items).map((group) => (
+                          <ProgramatorClaimCard
+                            key={group.length > 1 ? `stack-${group[0].id}` : group[0].id}
+                            claim={group[0]}
+                            groupClaims={group.length > 1 ? group : null}
+                            claims={claims}
+                            onOpen={onOpen}
+                            onPatch={onPatch}
+                            canEdit={canEditFn}
+                            onMarkNeonorata={handleMarkNeonorata}
+                            checkMasinaSchimbConflict={checkMasinaSchimbConflict}
+                            onNotify={onNotify}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="app-prog-schedule-popover rounded-lg p-2.5 space-y-2 text-[11px]">
+                        <div className="app-prog-schedule-popover-header flex items-center justify-between pb-1">
+                          <span className="font-bold">Programează la {slot.split(" - ")[0]}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveSlotForScheduling(null);
+                              setSelectingFromArrived(false);
+                            }}
+                            className="text-[var(--app-muted)] hover:text-[var(--app-text-strong)] font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveSlotForScheduling(null);
+                              if (onAddInStatus) {
+                                onAddInStatus("programat", makeIsoFromSlot(activeDateStr, slot));
+                              }
+                            }}
+                            className="app-prog-action py-1.5 rounded text-center font-bold transition-colors"
+                          >
+                            Dosar nou
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectingFromArrived(prev => !prev)}
+                            className={`app-prog-action py-1.5 rounded text-center font-bold transition-colors ${selectingFromArrived ? "is-active" : ""}`}
+                          >
+                            Piese sosite
+                          </button>
+                        </div>
+
+                        {selectingFromArrived && (
+                          <div className="app-prog-arrived-list space-y-1 mt-2 max-h-[140px] overflow-y-auto rounded p-1.5 scrollbar-thin">
+                            {arrivedClaims.length === 0 ? (
+                              <div className="text-[10px] text-[var(--app-muted)] italic text-center py-4">Niciun dosar în așteptare cu piese sosite.</div>
+                            ) : (
+                              arrivedClaims.map(c => (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (onPatch) {
+                                      onPatch(c.id, { dataProgramare: makeIsoFromSlot(activeDateStr, slot) });
+                                      setActiveSlotForScheduling(null);
+                                      setSelectingFromArrived(false);
+                                    }
+                                  }}
+                                  className="w-full text-left p-1 rounded border-b text-[10px] flex items-center justify-between font-semibold gap-2 min-w-0"
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span className="font-mono font-bold uppercase shrink-0">{c.numarInmatriculare || "FĂRĂ NR."}</span>
+                                    {c.numarDosar && (
+                                      <span className="text-[9.5px] font-mono font-bold bg-[var(--app-surface-muted)] px-1.5 py-0.2 rounded shrink-0" title={`Dosar #${c.numarDosar}`}>
+                                        #{c.numarDosar}
+                                      </span>
+                                    )}
+                                    {c.ceEsteDeReparat && c.ceEsteDeReparat.trim() !== "—" && (
+                                      <>
+                                        <span className="text-[var(--app-muted)] shrink-0">·</span>
+                                        <span className="text-[var(--app-muted)] font-normal truncate" title={c.ceEsteDeReparat}>{c.ceEsteDeReparat}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  <span className="text-[var(--app-muted)] truncate shrink-0 max-w-[100px] font-normal">{c.client || "—"}</span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
       </div>
+
+      {neonorataClaim && (
+        <ProgramareNeonorataModal
+          claim={claims.find((c) => c.id === neonorataClaim.id) || neonorataClaim}
+          onClose={handleCloseNeonorataModal}
+          onCancel={handleCancelProgramare}
+          onReschedule={handleRescheduleProgramare}
+        />
+      )}
     </div>
   );
 }

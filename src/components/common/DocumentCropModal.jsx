@@ -9,6 +9,7 @@ import {
   analyzeImageQuality,
   recommendedJpegQuality,
 } from "../../utils/documentScanner";
+import { useModalEscape } from "../../hooks/useModalEscape";
 
 /**
  * Editor tip CamScanner: 4 colțuri + Pro mode auto (lumină / blur / contrast).
@@ -29,6 +30,8 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
   const [detecting, setDetecting] = useState(true);
   const stageRef = useRef(null);
   const [viewSize, setViewSize] = useState({ w: 1, h: 1 });
+
+  useModalEscape(onClose);
 
   useEffect(() => {
     if (!imageSrc) return;
@@ -224,6 +227,7 @@ export default function DocumentCropModal({ imageSrc, onConfirm, onClose, initia
           <button
             type="button"
             onClick={onClose}
+            aria-label="Închide"
             className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10"
           >
             <X className="w-5 h-5" />

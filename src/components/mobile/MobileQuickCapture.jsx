@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
-  Camera, Upload, FileText, Search, Loader2, Car, ImageIcon,
+  Camera, Upload, FileText, Loader2, Car, ImageIcon,
   CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
   Eye, FileCheck, RefreshCw, Check, ChevronDown
 } from "lucide-react";
@@ -14,24 +14,30 @@ import { categoryLabel } from "../../utils/scanUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import LiveDocumentScanner from "../common/LiveDocumentScanner";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import PhotoLightbox from "../common/PhotoLightbox";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
+import { isSearchHighlighted } from "../../utils/searchUtils";
 
 export default function MobileQuickCapture({
   claims,
+  searchQuery = "",
   onOpen,
   onNew,
   onPatch,
   canEditFn,
   onNotify,
   focusClaimId = null,
+  focusCaptureCategory = null,
   onFocusClaimConsumed,
+  highlightClaimIds = null,
+  onMobileShellLockChange,
 }) {
-  const [query, setQuery] = useState("");
   const [selectedClaimId, setSelectedClaimId] = useState(() => loadLastCaptureClaimId());
   const [uploading, setUploading] = useState(false);
   const [scanSession, setScanSession] = useState(null); // { pages: [dataUrl], fileName }
-  const [previewMedia, setPreviewMedia] = useState(null); // URL imagine previzualizată la marire
+  const [previewMediaIndex, setPreviewMediaIndex] = useState(null);
   const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [liveCameraStream, setLiveCameraStream] = useState(null);
   const [cameraCategory, setCameraCategory] = useState("receptie");
   const [showLiveScanner, setShowLiveScanner] = useState(false);
   const [scanCropQueue, setScanCropQueue] = useState([]); // dataURLs waiting for corner edit (galerie)
@@ -46,13 +52,33 @@ export default function MobileQuickCapture({
     if (!focusClaimId) return;
     setSelectedClaimId(focusClaimId);
     saveLastCaptureClaimId(focusClaimId);
+    if (focusCaptureCategory === "receptie" || focusCaptureCategory === "predare" || focusCaptureCategory === "reconstatare") {
+      setCameraCategory(focusCaptureCategory);
+    }
     setShowLiveCamera(true);
     onFocusClaimConsumed?.();
-  }, [focusClaimId, onFocusClaimConsumed]);
+  }, [focusClaimId, focusCaptureCategory, onFocusClaimConsumed]);
 
   useEffect(() => {
     if (selectedClaimId) saveLastCaptureClaimId(selectedClaimId);
   }, [selectedClaimId]);
+
+  // Prevent App from switching to desktop shell on landscape rotate while capture UI is open.
+  useEffect(() => {
+    const locked =
+      showLiveCamera ||
+      showLiveScanner ||
+      Boolean(activeScanCrop) ||
+      previewMediaIndex != null;
+    onMobileShellLockChange?.(locked);
+    return () => onMobileShellLockChange?.(false);
+  }, [
+    showLiveCamera,
+    showLiveScanner,
+    activeScanCrop,
+    previewMediaIndex,
+    onMobileShellLockChange,
+  ]);
 
   // Drop stale last-claim if it no longer exists / isn't editable
   useEffect(() => {
@@ -80,21 +106,33 @@ export default function MobileQuickCapture({
 
   // Rezultate căutare
   const searchResults = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return recentClaims;
-    return editableClaims.filter((c) =>
-      (c.numarDosar || "").toLowerCase().includes(q) ||
-      (c.client || "").toLowerCase().includes(q) ||
-      (c.numarInmatriculare || "").toLowerCase().includes(q) ||
-      (c.vin || "").toLowerCase().includes(q)
-    ).slice(0, 25);
-  }, [editableClaims, query, recentClaims]);
+    if (!searchQuery.trim()) return recentClaims;
+    return editableClaims.slice(0, 25);
+  }, [editableClaims, recentClaims, searchQuery]);
 
   // Dosarul selectat curent (up-to-date cu ultimele poze/documente)
   const selectedClaim = useMemo(() => {
     if (!selectedClaimId) return null;
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
+
+  const openLiveCamera = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      setLiveCameraStream(stream);
+      setShowLiveCamera(true);
+    } catch (error) {
+      console.warn("Camera live nu a putut fi pornită:", error);
+    }
+  };
 
   // URL-uri semnate proaspete pentru thumbnails (cele din DB expiră)
   const [displayPoze, setDisplayPoze] = useState([]);
@@ -129,40 +167,41 @@ export default function MobileQuickCapture({
   }, [mediaFingerprint]);
 
   // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
-  const handleMobilePhotoCapture = async (fileList, categorie = "generale", targetInputRef = null) => {
+  const handleMobilePhotoCapture = async (fileInputData, categorie = "generale") => {
     if (!selectedClaim) {
       onNotify("Selectează mai întâi un dosar din listă.", "error");
       return;
     }
-    const files = Array.from(fileList || []);
-    if (files.length === 0) return; // Utilizatorul a închis camera -> se oprește bucla automat
+    const files = Array.isArray(fileInputData)
+      ? fileInputData
+      : fileInputData instanceof FileList
+      ? Array.from(fileInputData)
+      : fileInputData
+      ? [fileInputData]
+      : [];
 
-    // Redeschide camera nativă imediat pentru poza următoare
-    if (targetInputRef && targetInputRef.current) {
-      setTimeout(() => {
-        try {
-          targetInputRef.current.click();
-        } catch (err) {
-          console.warn("Auto-reopen camera error:", err);
-        }
-      }, 350);
-    }
+    if (files.length === 0) return;
 
     setUploading(true);
     try {
       const noiPoze = [];
-      for (const file of files) {
-        if (file.size > MAX_UPLOAD_SIZE_BYTES) continue;
-        const compressed = await compressImage(file);
+      for (const rawFile of files) {
+        let compressed = rawFile;
+        try {
+          compressed = await compressImage(rawFile);
+        } catch (e) {
+          console.warn("Comprimare eșuată în mobil, se transmite fișierul brut:", e);
+        }
         const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
-        const itemWithCat = typeof uploaded === "object" ? { ...uploaded, categoria: categorie } : { url: uploaded, categoria: categorie };
+        const itemWithCat = typeof uploaded === "object"
+          ? { ...uploaded, categoria: categorie || "generale" }
+          : { url: uploaded, categoria: categorie || "generale" };
         noiPoze.push(itemWithCat);
       }
 
       if (noiPoze.length > 0) {
-        const currentPoze = selectedClaim.poze || [];
-        const updatedPoze = [...noiPoze, ...currentPoze];
-        await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
+        await onPatch(selectedClaim.id, { appendPoze: noiPoze }, { canEditFn });
+        onNotify(`${noiPoze.length} fotografie(i) salvată(e) pe dosarul ${selectedClaim.numarInmatriculare}`, "success");
       }
     } catch (err) {
       onNotify("Eroare la încărcare poză: " + err.message, "error");
@@ -193,9 +232,7 @@ export default function MobileQuickCapture({
       }
 
       if (noiDocs.length > 0) {
-        const currentDocs = selectedClaim.documente || [];
-        const updatedDocs = [...noiDocs, ...currentDocs];
-        await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
+        await onPatch(selectedClaim.id, { appendDocumente: noiDocs }, { canEditFn });
         onNotify(`📄 ${noiDocs.length} document(e) atașat(e) pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
       }
     } catch (err) {
@@ -297,8 +334,7 @@ export default function MobileQuickCapture({
       const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
 
       const uploadedDoc = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, pdfFile, "documente");
-      const currentDocs = selectedClaim.documente || [];
-      await onPatch(selectedClaim.id, { documente: [uploadedDoc, ...currentDocs] }, { canEditFn });
+      await onPatch(selectedClaim.id, { appendDocumente: [uploadedDoc] }, { canEditFn });
 
       setScanSession(null);
       onNotify(`📄 Documentul scanat „${fileName}” a fost atașat pe dosar!`, "success");
@@ -329,8 +365,9 @@ export default function MobileQuickCapture({
         }
       }
 
-      const updatedPoze = currentPoze.filter((_, i) => i !== idx);
-      await onPatch(selectedClaim.id, { poze: updatedPoze }, { canEditFn });
+      if (targetItem) {
+        await onPatch(selectedClaim.id, { removePoze: [targetItem] }, { canEditFn });
+      }
       onNotify("Fotografia a fost ștearsă din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
@@ -360,8 +397,9 @@ export default function MobileQuickCapture({
         }
       }
 
-      const updatedDocs = currentDocs.filter((_, i) => i !== idx);
-      await onPatch(selectedClaim.id, { documente: updatedDocs }, { canEditFn });
+      if (targetItem) {
+        await onPatch(selectedClaim.id, { removeDocumente: [targetItem] }, { canEditFn });
+      }
       onNotify("Documentul a fost șters din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea documentului: " + err.message, "error");
@@ -371,76 +409,87 @@ export default function MobileQuickCapture({
   };
 
   return (
-    <div className="space-y-3 flex flex-col flex-1 min-h-0 text-[#23282E] pb-4">
+    <div className="m-ui space-y-3.5 flex flex-col flex-1 min-h-0 pb-12">
       
-      {/* 1. SELECTARE & CĂUTARE DOSAR */}
-      <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-extrabold text-[14px] text-[#23282E]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Dosar pentru foto
-          </h2>
-          {onNew && (
+      {/* 1. HEADER CU SPAȚIERE SIGURĂ PENTRU BUTONUL MENIU FLOATING */}
+      <div className="flex items-center justify-between gap-3 pl-12 pr-1 pt-1 min-h-[44px]">
+        <div className="min-w-0">
+          <h1 className="text-[17px] font-black text-[var(--app-text-strong)] tracking-tight truncate" style={{ fontFamily: "var(--app-font-display)" }}>
+            Captură Foto &amp; Doc
+          </h1>
+          <p className="text-[11px] text-[var(--app-muted)] font-medium truncate">
+            Selectează dosarul pentru fotografiere
+          </p>
+        </div>
+        {onNew && (
+          <button
+            type="button"
+            onClick={() => { softHaptic(8); onNew(); }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[var(--app-accent)] text-[var(--app-accent-text)] rounded-xl text-[12px] font-extrabold shadow-sm active:scale-95 transition-transform shrink-0"
+            aria-label="Dosar nou"
+            title="Dosar nou"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Nou</span>
+          </button>
+        )}
+      </div>
+
+      {/* 2. CARD DOSAR ACTIV SELECTAT */}
+      {selectedClaim ? (
+        <div className="bg-gradient-to-r from-[var(--app-surface-2)] to-[var(--app-surface)] border-2 border-[var(--app-accent)]/50 rounded-2xl p-3.5 shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] flex items-center justify-center font-black text-[14px] shrink-0 shadow-xs">
+              <Car size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-black text-[15px] text-[var(--app-text-strong)] tracking-wide">
+                  {selectedClaim.numarInmatriculare || "FĂRĂ NR."}
+                </span>
+                <span className="text-[10.5px] font-mono text-[var(--app-muted)] bg-[var(--app-surface-2)] px-2 py-0.5 rounded-md border border-[var(--app-border)] font-bold">
+                  {selectedClaim.numarDosar || "Fără dosar"}
+                </span>
+              </div>
+              <div className="text-[11.5px] text-[var(--app-muted)] truncate font-semibold mt-0.5">
+                {selectedClaim.client || selectedClaim.marcaModel || "Dosar selectat activ"}
+              </div>
+            </div>
+          </div>
+          {onOpen && (
             <button
               type="button"
-              onClick={() => { softHaptic(8); onNew(); }}
-              className="m-press flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#C98A2B] text-white text-[11.5px] font-extrabold shadow-sm"
+              onClick={() => onOpen(selectedClaim)}
+              className="px-3.5 py-2 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-text-strong)] rounded-xl text-[12px] font-bold shrink-0 flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all"
             >
-              <Plus size={14} /> Dosar
+              <span>Deschide</span>
+              <ArrowRight size={13} />
             </button>
           )}
         </div>
+      ) : (
+        <div className="p-3.5 bg-[var(--app-surface-2)]/60 border border-dashed border-[var(--app-border)] rounded-2xl text-center">
+          <p className="text-[12px] text-[var(--app-muted)] font-semibold">
+            Alege un dosar din lista de mai jos pentru a începe captura
+          </p>
+        </div>
+      )}
 
-        {selectedClaim && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[10px] text-[#3E6B45] font-bold bg-green-50 border border-green-200 px-2 py-0.5 rounded-md flex items-center gap-1 min-w-0">
-              <Check size={11} className="shrink-0" />
-              <span className="truncate">Selectat: {selectedClaim.numarInmatriculare || selectedClaim.numarDosar}</span>
-            </span>
-            {onOpen && (
-              <button
-                type="button"
-                onClick={() => onOpen(selectedClaim)}
-                className="m-press text-[10.5px] font-extrabold text-[#3B5166] shrink-0"
-              >
-                Deschide
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Căutare tactilă */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-2.5 text-[#8A8375]" />
-          <input
-            type="text"
-            className="w-full pl-9 pr-8 py-2 border border-[#DAD4C6] rounded-xl text-[13px] font-bold bg-[#FAF8F5] focus:bg-white focus:outline-hidden"
-            placeholder="Caută nr. dosar sau nr. auto..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button onClick={() => setQuery("")} className="absolute right-2.5 top-2.5 text-[#8A8375]">
-              <X size={15} />
-            </button>
-          )}
+      {/* 3. LISTĂ SELECTARE DOSAR */}
+      <div className="m-ui-panel m-ui-panel-pad space-y-2">
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)] flex items-center justify-between pb-1 border-b border-[var(--app-border)]">
+          <span>Dosare recente</span>
+          <span className="text-[10px] font-mono font-bold text-[var(--app-muted)]">
+            {searchResults.length} disponibile
+          </span>
         </div>
 
-        {/* Listă cu afișare: Stânga (Număr Dosar) | Dreapta (Număr Înmatriculare) */}
-        <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 px-2 space-y-2">
-              <p className="text-[12px] text-[#8A8375] font-semibold">
-                {query.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
+              <p className="text-[12px] m-muted font-semibold">
+                {searchQuery.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
               </p>
-              {onNew && (
-                <button
-                  type="button"
-                  onClick={() => { softHaptic(8); onNew(); }}
-                  className="m-press inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold"
-                >
-                  <Plus size={14} /> Creează dosar nou
-                </button>
-              )}
             </div>
           ) : (
             searchResults.map((c) => {
@@ -448,31 +497,34 @@ export default function MobileQuickCapture({
               return (
                 <div
                   key={c.id}
+                  id={`mobile-claim-${c.id}`}
                   onClick={() => selectClaim(c.id)}
-                  className={`m-press p-2.5 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-[#2C4160] text-white border-[#2C4160] shadow-sm"
-                      : "bg-[#FAF8F5] text-[#23282E] border-[#DAD4C6] hover:bg-gray-100"
-                  }`}
+                      ? "bg-[var(--app-accent)]/10 border-[var(--app-accent)] shadow-xs"
+                      : "bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border-[var(--app-border)]"
+                  } ${!isSelected && isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
-                  {/* STÂNGA: NUMĂR DOSAR + MARCA MODEL (O SINGURĂ LINIE FLUIDĂ) */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className={`shrink-0 whitespace-nowrap font-mono text-[11.5px] font-extrabold px-2 py-0.5 rounded-lg border ${
-                      isSelected ? "bg-white/20 border-white/30 text-white" : "bg-white border-[#DAD4C6] text-[#3B5166]"
-                    }`}>
-                      Dosar: {c.numarDosar || "Fără nr."}
+                    <span className={`font-mono text-[12px] font-black ${isSelected ? "text-[var(--app-accent)]" : "text-[var(--app-text-strong)]"}`}>
+                      {c.numarDosar || "Fără nr."}
                     </span>
-                    <span className={`text-[11px] font-semibold truncate ${isSelected ? "text-white/80" : "text-[#6B6558]"}`}>
-                      {c.marcaModel || ""}
-                    </span>
+                    {c.client && (
+                      <span className="text-[11px] text-[var(--app-muted)] truncate max-w-[120px]">
+                        · {c.client}
+                      </span>
+                    )}
                   </div>
 
-                  {/* DREAPTA: NUMĂR ÎNMATRICULARE (O SINGURĂ LINIE FLUIDĂ) */}
-                  <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                    <span className={`font-mono font-extrabold text-[12.5px] uppercase ${isSelected ? "text-white" : "text-[#23282E]"}`}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-[12.5px] font-black text-[var(--app-text-strong)] bg-[var(--app-surface-2)] px-2 py-0.5 rounded-md border border-[var(--app-border)]">
                       {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
-                    {isSelected && <CheckCircle2 size={16} className="text-[#F3D9A8]" />}
+                    {isSelected ? (
+                      <CheckCircle2 size={17} className="text-[var(--app-accent)] shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-[var(--app-border)] shrink-0 opacity-40" />
+                    )}
                   </div>
                 </div>
               );
@@ -481,65 +533,69 @@ export default function MobileQuickCapture({
         </div>
       </div>
 
-      {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
-      {!selectedClaim && (
-        <div className="rounded-xl border border-dashed border-[#DAD4C6] bg-[#FAF8F5] px-3 py-2.5 text-[11.5px] font-semibold text-[#6B6558] text-center">
-          Selectează un dosar de mai sus ca să fotografiezi.
-        </div>
-      )}
-      <div className={`bg-white rounded-2xl border p-3.5 shadow-sm space-y-3 transition-opacity ${selectedClaim ? "border-[#DAD4C6]" : "border-[#DAD4C6]/60 opacity-60 pointer-events-none"}`}>
+      {/* 4. ACȚIUNE PRINCIPALĂ: categorie + Studio Shutter */}
+      <div className={`m-ui-panel m-ui-panel-pad space-y-3 transition-opacity ${selectedClaim ? "" : "opacity-60 pointer-events-none"}`}>
         
         {uploading && (
-          <div className="flex items-center justify-center gap-2 p-2 bg-[#FAF8F5] border border-[#C98A2B]/40 rounded-xl text-[12px] font-bold text-[#C98A2B]">
-            <Loader2 size={16} className="animate-spin" /> Se încarcă...
+          <div className="flex items-center justify-center gap-2 p-2.5 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
+            <Loader2 size={16} className="animate-spin" /> Se încarcă și se optimizează...
           </div>
         )}
 
         <div className="space-y-3">
-          {/* Selector categorie (nu deschide camera) */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Selector Categorie Segmented */}
+          <div className="bg-[var(--app-surface-2)] p-1 rounded-xl border border-[var(--app-border)] grid grid-cols-3 gap-1">
             {[
-              { key: "receptie", label: "Recepție", active: "bg-[#C98A2B] text-white border-[#C98A2B]" },
-              { key: "reconstatare", label: "Reconstatare", active: "bg-[#3B5166] text-white border-[#3B5166]" },
-              { key: "predare", label: "Predare", active: "bg-[#3E6B45] text-white border-[#3E6B45]" },
-            ].map((cat) => (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setCameraCategory(cat.key)}
-                className={`py-2 px-1 rounded-xl border text-[11.5px] font-extrabold transition-all ${
-                  cameraCategory === cat.key
-                    ? cat.active + " shadow-sm"
-                    : "bg-[#FAF8F5] text-[#6B6558] border-[#DAD4C6]"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+              { key: "receptie", label: "Recepție" },
+              { key: "reconstatare", label: "Reconstatare" },
+              { key: "predare", label: "Predare" },
+            ].map((cat) => {
+              const isActive = cameraCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCameraCategory(cat.key)}
+                  className={`py-2 px-1 rounded-lg text-[11.5px] font-black transition-all text-center ${
+                    isActive
+                      ? "bg-[var(--app-surface)] text-[var(--app-text-strong)] shadow-xs border border-[var(--app-border)]"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Declanșator principal */}
+          {/* Declanșator principal Stil Studio */}
           <button
             type="button"
-            onClick={() => { softHaptic(12); setShowLiveCamera(true); }}
-            className="m-press w-full flex flex-col items-center justify-center gap-2 py-5 rounded-2xl bg-[#1C2127] text-white shadow-md active:scale-[0.98] transition-transform"
-            title="Deschide camera"
+            onClick={() => { softHaptic(12); openLiveCamera(); }}
+            className="w-full relative overflow-hidden group p-5 bg-gradient-to-b from-[var(--app-surface)] to-[var(--app-surface-2)] border-2 border-[var(--app-accent)]/40 hover:border-[var(--app-accent)] rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            title="Deschide camera live"
           >
-            <Camera size={32} className="text-[#C98A2B]" />
-            <span className="text-[15px] font-extrabold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Fotografiază
-            </span>
-            <span className="text-[11px] font-semibold text-white/60 capitalize">{cameraCategory}</span>
+            <div className="w-14 h-14 rounded-2xl bg-[var(--app-accent)]/15 border border-[var(--app-accent)]/30 flex items-center justify-center text-[var(--app-accent)] group-hover:scale-110 transition-transform">
+              <Camera size={28} />
+            </div>
+            <div className="text-center">
+              <span className="text-[16px] font-black text-[var(--app-text-strong)] block" style={{ fontFamily: "var(--app-font-display)" }}>
+                Fotografiază
+              </span>
+              <span className="text-[11px] font-semibold text-[var(--app-muted)] capitalize">
+                Secțiune activă: <strong className="text-[var(--app-accent)] font-black">{cameraCategory}</strong>
+              </span>
+            </div>
           </button>
 
           {/* Mai mult: Scan Acte / Galerie */}
-          <div className="border-t border-[#EFEAE1] pt-2">
+          <div className="border-t border-[var(--app-border)] pt-1">
             <button
               type="button"
               onClick={() => setShowMoreActions((v) => !v)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold text-[#6B6558]"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold m-muted"
             >
-              Mai mult
+              <span>Mai multe opțiuni (Scan Acte, Galerie)</span>
               <ChevronDown size={14} className={`transition-transform ${showMoreActions ? "rotate-180" : ""}`} />
             </button>
 
@@ -548,18 +604,18 @@ export default function MobileQuickCapture({
                 <button
                   type="button"
                   onClick={openLiveDocumentScanner}
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  className="m-ui-select-row justify-center gap-1.5 font-extrabold text-[11.5px]"
                   title="Scanner documente"
                 >
-                  <FileText size={16} className="text-[#C98A2B]" />
+                  <FileText size={16} className="text-[var(--app-accent)]" />
                   <span>Scan Acte</span>
                 </button>
 
                 <label
-                  className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-[#FAF8F5] border border-[#DAD4C6] text-[#3B5166] rounded-xl cursor-pointer font-extrabold text-[11.5px] hover:bg-gray-100 shadow-2xs"
+                  className="m-ui-select-row justify-center gap-1.5 font-extrabold text-[11.5px] cursor-pointer"
                   title="Alege Poze din Galerie sau Fișiere PDF"
                 >
-                  <ImageIcon size={16} className="text-[#3B5166]" />
+                  <ImageIcon size={16} />
                   <span>Galerie / PDF</span>
                   <input
                     type="file"
@@ -582,25 +638,25 @@ export default function MobileQuickCapture({
         </div>
       </div>
 
-      {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT (CU POSIBILITATE DE ȘTERGERE) */}
+      {/* 5. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT */}
       {selectedClaim && (
-        <div className="bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
-          <div className="flex items-center justify-between border-b border-[#EFEAE1] pb-2">
-            <h3 className="font-extrabold text-[13px] text-[#23282E] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              <FileCheck size={16} className="text-[#3E6B45]" /> Fișiere Atașate pe {selectedClaim.numarInmatriculare}
+        <div className="m-ui-panel m-ui-panel-pad space-y-3">
+          <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
+            <h3 className="font-extrabold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "var(--app-font-display)" }}>
+              <FileCheck size={16} className="text-[var(--app-accent)]" /> Fișiere pe {selectedClaim.numarInmatriculare}
             </h3>
-            <span className="text-[10.5px] font-bold text-[#8A8375] font-mono">
+            <span className="m-ui-chip">
               {(displayPoze.length || selectedClaim.poze?.length || 0)} poze · {(displayDocs.length || selectedClaim.documente?.length || 0)} doc
             </span>
           </div>
 
           {/* GALERIE THUMBNAILS POZE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5">
-            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📸 Fotografii Daună / Vehicul ({displayPoze.length})
+            <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
+              Fotografii ({displayPoze.length})
             </span>
             {displayPoze.length === 0 ? (
-              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+              <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Nicio fotografie atașată încă.
               </div>
             ) : (
@@ -610,8 +666,8 @@ export default function MobileQuickCapture({
                   return (
                     <div
                       key={p.path || p.id || idx}
-                      onClick={() => setPreviewMedia(p.url || p)}
-                      className="relative aspect-square rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100 group cursor-pointer shadow-2xs"
+                      onClick={() => setPreviewMediaIndex(idx)}
+                      className="relative aspect-square rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-muted)] group cursor-pointer shadow-2xs"
                     >
                       <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
                       
@@ -633,6 +689,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeletePhoto(e, idx)}
                         className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
                         title="Șterge fotografia"
+                        aria-label="Șterge fotografia"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -644,12 +701,12 @@ export default function MobileQuickCapture({
           </div>
 
           {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
-          <div className="space-y-1.5 pt-2 border-t border-[#EFEAE1]">
-            <span className="text-[10.5px] font-bold text-[#6B6558] uppercase tracking-wider block">
-              📄 Documente Acte ({displayDocs.length})
+          <div className="space-y-1.5 pt-2 border-t border-[var(--app-border)]">
+            <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
+              Documente ({displayDocs.length})
             </span>
             {displayDocs.length === 0 ? (
-              <div className="text-[11px] text-[#8A8375] italic bg-[#FAF8F5] p-3 rounded-xl text-center border border-dashed border-[#DAD4C6]">
+              <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Niciun document PDF atașat.
               </div>
             ) : (
@@ -657,15 +714,15 @@ export default function MobileQuickCapture({
                 {displayDocs.map((doc, idx) => (
                   <div
                     key={doc.path || doc.id || idx}
-                    className="flex items-center justify-between p-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[11.5px] font-semibold text-[#23282E]"
+                    className="flex items-center justify-between p-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[11.5px] font-semibold text-[var(--app-text)]"
                   >
                     <a
                       href={doc.url || doc}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[#23282E]"
+                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[var(--app-text)]"
                     >
-                      <FileText size={15} className="text-[#3B5166] shrink-0" />
+                      <FileText size={15} className="text-[var(--app-text)] shrink-0" />
                       <span className="truncate">{doc.name || doc.nume || `Document_${idx + 1}.pdf`}</span>
                     </a>
 
@@ -674,7 +731,7 @@ export default function MobileQuickCapture({
                         href={doc.url || doc}
                         target="_blank"
                         rel="noreferrer"
-                        className="p-1 text-[#8A8375] hover:text-[#3B5166]"
+                        className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)]"
                         title="Vizualizează"
                       >
                         <Eye size={15} />
@@ -686,6 +743,7 @@ export default function MobileQuickCapture({
                         onClick={(e) => handleDeleteDocument(e, idx)}
                         className="p-1 bg-[#B23A2E]/10 hover:bg-[#B23A2E] text-[#B23A2E] hover:text-white rounded-lg transition-colors"
                         title="Șterge documentul"
+                        aria-label="Șterge documentul"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -705,7 +763,7 @@ export default function MobileQuickCapture({
           {/* Header Modal Scanare */}
           <div className="flex items-center justify-between border-b border-white/15 pb-3 shrink-0">
             <div className="flex items-center gap-2">
-              <FileText size={20} className="text-[#C98A2B]" />
+              <FileText size={20} className="text-[var(--app-accent)]" />
               <h3 className="font-extrabold text-[15px] text-white">
                 Scanare Documente ({scanSession.pages.length} pagini)
               </h3>
@@ -737,6 +795,7 @@ export default function MobileQuickCapture({
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
                       className="absolute top-2 right-2 bg-[#B23A2E] text-white p-1.5 rounded-lg shadow-md"
                       title="Șterge pagina"
+                      aria-label="Șterge pagina"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -756,11 +815,11 @@ export default function MobileQuickCapture({
                 onClick={() => setShowLiveScanner(true)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold transition-colors"
               >
-                <Camera size={18} className="text-[#C98A2B]" />
+                <Camera size={18} className="text-[var(--app-accent)]" />
                 <span>Scanner live</span>
               </button>
               <label className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[13px] font-extrabold cursor-pointer transition-colors">
-                <ImageIcon size={18} className="text-[#C98A2B]" />
+                <ImageIcon size={18} className="text-[var(--app-accent)]" />
                 <span>Din galerie</span>
                 <input
                   type="file"
@@ -798,7 +857,7 @@ export default function MobileQuickCapture({
                 type="button"
                 onClick={handleSaveScanPDF}
                 disabled={uploading || scanSession.pages.length === 0}
-                className="flex-1 py-3 rounded-xl bg-[#C98A2B] hover:bg-[#B37A22] text-white font-extrabold text-[13px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-accent-text)] font-extrabold text-[13px] flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50"
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : "Salvează PDF pe Dosar"}
               </button>
@@ -808,29 +867,25 @@ export default function MobileQuickCapture({
         </div>
       )}
 
-      {/* OVERLAY PREVIZUALIZARE MĂRITĂ IMAGINE (Punctul 12 - Buton X vizibil) */}
-      {previewMedia && (
-        <div
-          className="fixed inset-0 z-[10000] bg-black/90 flex flex-col items-center justify-center p-4 backdrop-blur-xs"
-          onClick={() => setPreviewMedia(null)}
-        >
-          <button
-            onClick={() => setPreviewMedia(null)}
-            className="absolute top-4 right-4 text-white bg-black/60 hover:bg-[#B23A2E] p-2.5 rounded-full transition-colors shadow-lg z-10"
-            title="Închide previzualizarea"
-          >
-            <X size={24} />
-          </button>
-          <img src={previewMedia} alt="Previzualizare" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
-        </div>
+      {/* Galerie fullscreen — swipe între poze */}
+      {previewMediaIndex != null && displayPoze.length > 0 && (
+        <PhotoLightbox
+          items={displayPoze}
+          startIndex={previewMediaIndex}
+          onClose={() => setPreviewMediaIndex(null)}
+        />
       )}
 
       {/* MODAL CAMERĂ LIVE STIL IPHONE/SAMSUNG (ZERO BUTOANE DE OK) */}
       {showLiveCamera && selectedClaim && (
         <LiveStreamCameraModal
           initialCategorie={cameraCategory}
+          initialStream={liveCameraStream}
           onSavePhoto={handleMobilePhotoCapture}
-          onClose={() => setShowLiveCamera(false)}
+          onClose={() => {
+            setShowLiveCamera(false);
+            setLiveCameraStream(null);
+          }}
         />
       )}
 

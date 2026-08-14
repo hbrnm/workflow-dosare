@@ -8,6 +8,8 @@ import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
 import { refreshStorageUrls } from "../../utils/claimUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
+import PhotoLightbox from "../common/PhotoLightbox";
+import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 
 /**
@@ -23,7 +25,7 @@ export default function MobileClaimSheet({
   canEdit,
   onNotify,
   onCapturePhotos,
-  themeId = "atelier",
+  userEmail = "",
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -34,6 +36,7 @@ export default function MobileClaimSheet({
   const [statusOpen, setStatusOpen] = useState(false);
   const [photos, setPhotos] = useState(() => (Array.isArray(claim?.poze) ? claim.poze : []));
   const [docs, setDocs] = useState(() => (Array.isArray(claim?.documente) ? claim.documente : []));
+  const [previewIndex, setPreviewIndex] = useState(null);
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -112,7 +115,8 @@ export default function MobileClaimSheet({
   const handleAddNote = async () => {
     const text = noteDraft.trim();
     if (!text || readOnly) return;
-    const entry = { id: uid(), data: nowISO(), text };
+    const author = String(userEmail || "").trim() || null;
+    const entry = { id: uid(), data: nowISO(), text, ...(author ? { author } : {}) };
     setNoteDraft("");
     setSaving(true);
     try {
@@ -127,13 +131,12 @@ export default function MobileClaimSheet({
 
   return (
     <div
-      className="m-claim-sheet fixed inset-0 z-[9000] bg-[#EFEAE1] flex flex-col text-[#23282E] font-sans"
-      data-mtheme={themeId}
+      className="m-claim-sheet app-shell fixed inset-0 z-[9100] flex flex-col font-sans"
+      style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
     >
-      {/* Header */}
-      <header className="bg-[#1C2127] text-white px-3.5 py-3 flex items-center justify-between shrink-0 shadow-md border-b border-white/10">
+      <header className="m-sheet-header shrink-0">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wider text-white/50 font-bold">
+          <div className="m-sheet-header-kicker">
             {claim.numarDosar ? `Dosar ${claim.numarDosar}` : "Fără nr. dosar"}
           </div>
           <input
@@ -143,51 +146,54 @@ export default function MobileClaimSheet({
             onBlur={handleBlurPlate}
             disabled={readOnly}
             placeholder="NR. AUTO"
-            className="w-full bg-transparent font-mono font-extrabold text-[22px] text-white tracking-wide outline-none placeholder:text-white/30 disabled:opacity-80"
-            style={{ fontFamily: "'Space Grotesk', monospace" }}
+            className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
+            style={{ color: "inherit" }}
           />
+          <ClaimAuditMeta claim={claim} compact className="mt-1" />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-          {saving && <Loader2 size={16} className="animate-spin text-[#C98A2B]" />}
+          {saving && <Loader2 size={16} className="animate-spin text-[var(--app-accent)]" />}
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+            className="m-sheet-close"
             aria-label="Închide"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 pb-28">
+      <div className="m-sheet-body">
         {/* Status */}
-        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm">
+        <section className="m-sheet-card">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => !readOnly && setStatusOpen((v) => !v)}
               disabled={readOnly}
+              aria-expanded={statusOpen}
+              aria-label="Schimbă status"
               className="flex items-center gap-2 min-w-0 flex-1 text-left disabled:opacity-80"
             >
               <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: phaseColors.bar }}
               />
-              <span className="font-extrabold text-[14px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <span className="font-extrabold text-[14px] truncate" style={{ fontFamily: "var(--app-font-display)" }}>
                 {statusDef.label}
               </span>
-              {!readOnly && <ChevronRight size={16} className={`text-[#8A8375] shrink-0 transition-transform ${statusOpen ? "rotate-90" : ""}`} />}
+              {!readOnly && <ChevronRight size={16} className={`m-brief-chevron shrink-0 transition-transform ${statusOpen ? "rotate-90" : ""}`} />}
             </button>
             {claim.marcaModel && (
-              <span className="text-[11px] font-semibold text-[#6B6558] truncate max-w-[40%] flex items-center gap-1">
+              <span className="text-[11px] font-semibold m-muted truncate max-w-[40%] flex items-center gap-1">
                 <Car size={12} /> {claim.marcaModel}
               </span>
             )}
           </div>
 
           {statusOpen && (
-            <div className="m-status-menu mt-3 space-y-1 max-h-52 overflow-y-auto border-t border-[#EFEAE1] pt-2">
+            <div className="m-status-menu mt-3 space-y-1 max-h-52 overflow-y-auto border-t border-[var(--app-border)] pt-2">
               {STATUSES.map((s) => {
                 const active = s.key === statusDef.key;
                 return (
@@ -195,7 +201,7 @@ export default function MobileClaimSheet({
                     key={s.key}
                     type="button"
                     onClick={() => handleStatusChange(s.key)}
-                    className={`m-status-option w-full text-left px-3 py-2 rounded-xl text-[13px] font-bold transition-colors ${
+                    className={`m-status-option w-full text-left px-3 py-2 rounded-full text-[13px] font-bold transition-colors ${
                       active ? "is-active" : ""
                     }`}
                   >
@@ -207,7 +213,7 @@ export default function MobileClaimSheet({
           )}
 
           {isPieseComandateStatus(claim.status) && (
-            <div className="mt-3 pt-3 border-t border-[#EFEAE1]">
+            <div className="mt-3 pt-3 border-t border-[var(--app-border)]">
               <MobilePieseSositeRow
                 claim={claim}
                 canEdit={!readOnly}
@@ -236,9 +242,9 @@ export default function MobileClaimSheet({
         </section>
 
         {/* Client + phone */}
-        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-3">
+        <section className="m-sheet-card space-y-3">
           <div className="flex items-center gap-2">
-            <User size={15} className="text-[#8A8375] shrink-0" />
+            <User size={15} className="m-muted shrink-0" />
             <input
               type="text"
               value={client}
@@ -246,11 +252,11 @@ export default function MobileClaimSheet({
               onBlur={handleBlurClient}
               disabled={readOnly}
               placeholder="Nume client"
-              className="flex-1 min-w-0 bg-transparent font-bold text-[14px] outline-none placeholder:text-[#A69F91] disabled:opacity-80"
+              className="flex-1 min-w-0 bg-transparent font-bold text-[14px] outline-none placeholder:opacity-40 disabled:opacity-80"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Phone size={15} className="text-[#8A8375] shrink-0" />
+            <Phone size={15} className="m-muted shrink-0" />
             <input
               type="tel"
               value={phone}
@@ -258,14 +264,15 @@ export default function MobileClaimSheet({
               onBlur={handleBlurPhone}
               disabled={readOnly}
               placeholder="Telefon"
-              className="flex-1 min-w-0 bg-transparent font-mono font-bold text-[14px] outline-none placeholder:text-[#A69F91] disabled:opacity-80"
+              className="flex-1 min-w-0 bg-transparent font-mono font-bold text-[14px] outline-none placeholder:opacity-40 disabled:opacity-80"
             />
             {phone.trim() && (
               <div className="flex items-center gap-1.5 shrink-0">
                 <a
                   href={telLink(phone)}
-                  className="m-call-btn p-2"
+                  className="m-call-btn p-2 rounded-full"
                   title="Sună"
+                  aria-label="Sună"
                 >
                   <Phone size={16} />
                 </a>
@@ -280,11 +287,11 @@ export default function MobileClaimSheet({
           <button
             type="button"
             onClick={() => onMoveToStatus?.(claim, nextStatus.key)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-[#C98A2B] text-white shadow-md active:scale-[0.98] transition-transform"
+            className="m-sheet-cta"
           >
             <div className="text-left min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-white/80">Pas următor</div>
-              <div className="font-extrabold text-[15px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pas următor</div>
+              <div className="font-extrabold text-[15px] truncate" style={{ fontFamily: "var(--app-font-display)" }}>
                 {nextStatus.label}
               </div>
             </div>
@@ -293,25 +300,25 @@ export default function MobileClaimSheet({
         )}
 
         {/* Photos strip */}
-        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
+        <section className="m-sheet-card space-y-2.5">
           <div className="flex items-center justify-between">
-            <h3 className="font-extrabold text-[13px] flex items-center gap-1.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              <Camera size={15} className="text-[#C98A2B]" />
+            <h3 className="font-extrabold text-[13px] flex items-center gap-1.5" style={{ fontFamily: "var(--app-font-display)" }}>
+              <Camera size={15} className="text-[var(--app-accent)]" />
               Poze ({photos.length})
             </h3>
-            <span className="text-[11px] font-bold text-[#8A8375] flex items-center gap-1">
+            <span className="m-ui-chip flex items-center gap-1">
               <FileText size={12} /> {docs.length} doc
             </span>
           </div>
 
           {photos.length === 0 ? (
-            <div className="text-center py-4 px-2 border border-dashed border-[#DAD4C6] rounded-xl bg-[#FAF8F5] space-y-2">
-              <p className="text-[12px] text-[#8A8375] font-semibold">Nicio poză încă pe acest dosar.</p>
+            <div className="m-ui-hint space-y-2">
+              <p>Nicio poză încă pe acest dosar.</p>
               {onCapturePhotos && !readOnly && (
                 <button
                   type="button"
                   onClick={() => onCapturePhotos(claim)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold active:scale-[0.98]"
+                  className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-extrabold active:scale-[0.98]"
                 >
                   <Camera size={14} /> Fotografiază acum
                 </button>
@@ -320,15 +327,15 @@ export default function MobileClaimSheet({
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {photos.slice(0, 12).map((p, idx) => (
-                <a
+                <button
                   key={idx}
-                  href={p.url || p}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-20 h-20 shrink-0 rounded-xl overflow-hidden border border-[#DAD4C6] bg-gray-100"
+                  type="button"
+                  onClick={() => setPreviewIndex(idx)}
+                  aria-label={`Vezi poza ${idx + 1}`}
+                  className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
                 >
                   <img src={p.url || p} alt="" className="w-full h-full object-cover" />
-                </a>
+                </button>
               ))}
             </div>
           )}
@@ -337,7 +344,7 @@ export default function MobileClaimSheet({
             <button
               type="button"
               onClick={() => onCapturePhotos(claim)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FAF8F5] border border-[#DAD4C6] text-[12.5px] font-extrabold text-[#3B5166] active:bg-[#EFEAE1] active:scale-[0.98]"
+              className="m-sheet-link"
             >
               <Camera size={16} /> Adaugă poze
             </button>
@@ -345,16 +352,21 @@ export default function MobileClaimSheet({
         </section>
 
         {/* Quick note */}
-        <section className="m-sheet-card bg-white rounded-2xl border border-[#DAD4C6] p-3.5 shadow-sm space-y-2.5">
-          <h3 className="font-extrabold text-[13px]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <section className="m-sheet-card space-y-2.5">
+          <h3 className="font-extrabold text-[13px]" style={{ fontFamily: "var(--app-font-display)" }}>
             Notiță rapidă
           </h3>
           {latestNote && (
-            <div className="text-[12px] text-[#6B6558] bg-[#FAF8F5] rounded-xl px-3 py-2 border border-[#EFEAE1]">
-              <div className="text-[10px] font-bold text-[#8A8375] mb-0.5">
+            <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-2xl px-3 py-2 border border-[var(--app-border)]">
+              <div className="text-[10px] font-bold mb-0.5 opacity-80">
                 {fmtDateTime(latestNote.data)}
+                {latestNote.author ? (
+                  <span className="ml-1.5 font-semibold text-[var(--app-text)]">
+                    · {latestNote.author}
+                  </span>
+                ) : null}
               </div>
-              <div className="line-clamp-3">{latestNote.text}</div>
+              <div className="line-clamp-3 text-[var(--app-text)]">{latestNote.text}</div>
             </div>
           )}
           {!readOnly && (
@@ -370,13 +382,13 @@ export default function MobileClaimSheet({
                   }
                 }}
                 placeholder="Adaugă notiță…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[#DAD4C6] bg-[#FAF8F5] text-[13px] font-semibold outline-none focus:bg-white"
+                className="flex-1 min-w-0 px-3 py-2 rounded-full border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[13px] font-semibold outline-none focus:bg-[var(--app-surface)]"
               />
               <button
                 type="button"
                 onClick={handleAddNote}
                 disabled={!noteDraft.trim()}
-                className="px-3 py-2 rounded-xl bg-[#1C2127] text-white text-[12px] font-extrabold disabled:opacity-40"
+                className="m-btn-primary px-3.5 py-2 rounded-full text-[12px] font-extrabold disabled:opacity-40"
               >
                 Adaugă
               </button>
@@ -384,16 +396,23 @@ export default function MobileClaimSheet({
           )}
         </section>
 
-        {/* Open full modal */}
         <button
           type="button"
           onClick={() => onOpenFull?.(claim)}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-[#DAD4C6] bg-white text-[13px] font-extrabold text-[#3B5166] shadow-sm"
+          className="m-sheet-link"
         >
           <ExternalLink size={15} />
           Detalii complete
         </button>
       </div>
+
+      {previewIndex != null && photos.length > 0 && (
+        <PhotoLightbox
+          items={photos}
+          startIndex={previewIndex}
+          onClose={() => setPreviewIndex(null)}
+        />
+      )}
     </div>
   );
 }
