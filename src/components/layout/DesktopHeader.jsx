@@ -1,5 +1,5 @@
 import React from "react";
-import { Layers, Sunrise, List, Search, X, Plus, Sparkles, Bell, Ban } from "lucide-react";
+import { Layers, Sunrise, List, Search, X, Plus, Bell, Ban } from "lucide-react";
 import AppButton from "../common/AppButton";
 import { ROLES } from "../../constants/roles";
 
@@ -141,24 +141,13 @@ export default function DesktopHeader({
       {/* Right Header Actions */}
       <div className="flex items-center gap-2">
         {userCanCreate ? (
-          <>
-            <AppButton
-              variant="primary"
-              onClick={() => openNew()}
-              className="app-header-action-btn"
-            >
-              <Plus size={14} /> <span>Dosar nou</span>
-            </AppButton>
-            <button
-              type="button"
-              onClick={() => setIsAiModalOpenHeader(true)}
-              className="app-header-action-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-[12px] font-bold transition-all cursor-pointer shadow-sm"
-              title="Scanează și extrage automat datele din deviz/PV"
-            >
-              <Sparkles size={14} className="text-indigo-400 animate-pulse" />
-              <span className="hidden sm:inline">Scanează Document</span>
-            </button>
-          </>
+          <AppButton
+            variant="primary"
+            onClick={() => openNew()}
+            className="app-header-action-btn"
+          >
+            <Plus size={14} /> <span>Dosar nou</span>
+          </AppButton>
         ) : (
           <span
             className="app-type-xs text-[var(--app-muted)] px-2 hidden sm:inline"
