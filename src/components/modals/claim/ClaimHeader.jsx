@@ -73,8 +73,8 @@ export default function ClaimHeader({
               </span>
             )}
           </div>
-          <span className={`text-[10px] font-mono flex items-center gap-1 truncate ${desktopUi ? "text-[var(--app-muted)]" : "text-[var(--app-muted-2)]"}`}>
-            <Car size={10} className="shrink-0 opacity-70" />
+          <span className={`text-[10.5px] font-mono font-medium flex items-center gap-1.5 truncate ${desktopUi ? "text-slate-700 dark:text-slate-300" : "text-white/90"}`}>
+            <Car size={11} className="shrink-0 text-slate-500 dark:text-slate-400" />
             <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
           </span>
           {!isNew && (

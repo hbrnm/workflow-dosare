@@ -337,7 +337,7 @@ export default function ClaimGeneralTab({
 
           {/* Status Label */}
           <div className="flex items-center justify-between text-[11.5px] pt-0.5">
-            <span className="text-[10px] text-[var(--app-muted)] font-medium">
+            <span className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
               Etapa {Math.max(1, STATUSES.findIndex((s) => s.key === getStatusDefinition(form.status).key) + 1)} din {STATUSES.length} — click pe segment pentru a schimba
             </span>
 

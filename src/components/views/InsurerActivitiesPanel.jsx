@@ -145,7 +145,7 @@ export default function InsurerActivitiesPanel({
             Gestiune Deconturi &amp; AIR
           </span>
         </div>
-        <p className="text-[11px] text-[var(--app-muted)]">
+        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">
           Filtrare rapidă pe dosare după stadiul birocratic la asigurător
         </p>
       </div>
@@ -156,24 +156,24 @@ export default function InsurerActivitiesPanel({
         <div
           className={`rounded-xl border p-3 flex flex-col justify-between transition-all cursor-pointer ${
             selectedSubCategory === "dauneTotale"
-              ? "border-amber-500 bg-amber-500/10 shadow-sm"
-              : "border-amber-500/30 bg-amber-500/5 hover:border-amber-500/60"
+              ? "border-amber-500 bg-amber-500/20 shadow-md ring-2 ring-amber-500/30"
+              : "border-amber-400/60 bg-amber-50/60 dark:bg-amber-950/20 hover:border-amber-500"
           }`}
           onClick={() => toggleSubCategory("dauneTotale")}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-amber-500" />
-              <span className="text-xs font-bold text-amber-700 dark:text-amber-300">
+              <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-extrabold text-amber-950 dark:text-amber-200">
                 Daune totale
               </span>
             </div>
-            <div className="flex items-center gap-1.5 font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200">
+            <div className="flex items-center gap-1.5 font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-100 border border-amber-400/60">
               <span>Σ</span>
               <span>{categories.dauneTotale.length}</span>
             </div>
           </div>
-          <p className="text-[11px] text-[var(--app-muted)] mt-3">
+          <p className="text-[11.5px] font-medium text-slate-700 dark:text-slate-300 mt-3">
             {categories.dauneTotale.length === 0
               ? "Nicio daună totală identificată."
               : `${categories.dauneTotale.length} dosare cu avarii majore / depășire prag.`}
@@ -181,15 +181,15 @@ export default function InsurerActivitiesPanel({
         </div>
 
         {/* CARD 2: ÎN LUCRU */}
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 flex flex-col justify-between">
+        <div className="rounded-xl border border-emerald-400/60 bg-emerald-50/60 dark:bg-emerald-950/20 p-3 flex flex-col justify-between">
           <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
             <div className="flex items-center gap-2">
-              <Wrench size={16} className="text-emerald-500" />
-              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <Wrench size={16} className="text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-extrabold text-emerald-950 dark:text-emerald-200">
                 În lucru
               </span>
             </div>
-            <div className="flex items-center gap-1 font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-200">
+            <div className="flex items-center gap-1 font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-950 dark:bg-emerald-900/80 dark:text-emerald-100 border border-emerald-400/60">
               <span>Σ</span>
               <span>{categories.inLucru.total}</span>
             </div>
@@ -199,14 +199,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("lucru_cereri")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "lucru_cereri"
-                  ? "bg-emerald-500/20 font-bold text-emerald-800 dark:text-emerald-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-emerald-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/50 font-semibold"
               }`}
             >
               <span>Cereri de despăgubire</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-emerald-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "lucru_cereri"
+                    ? "bg-white/25 text-white"
+                    : "bg-emerald-100 text-emerald-950 dark:bg-emerald-900/80 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700"
+                }`}
+              >
                 {categories.inLucru.cereriDespagubire.length}
               </span>
             </button>
@@ -214,14 +220,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("lucru_accept")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "lucru_accept"
-                  ? "bg-emerald-500/20 font-bold text-emerald-800 dark:text-emerald-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-emerald-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/50 font-semibold"
               }`}
             >
               <span>Accept de plată</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-emerald-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "lucru_accept"
+                    ? "bg-white/25 text-white"
+                    : "bg-emerald-100 text-emerald-950 dark:bg-emerald-900/80 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-700"
+                }`}
+              >
                 {categories.inLucru.acceptPlata.length}
               </span>
             </button>
@@ -229,15 +241,15 @@ export default function InsurerActivitiesPanel({
         </div>
 
         {/* CARD 3: ÎN AȘTEPTARE */}
-        <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 flex flex-col justify-between">
+        <div className="rounded-xl border border-sky-400/60 bg-sky-50/60 dark:bg-sky-950/20 p-3 flex flex-col justify-between">
           <div className="flex items-center justify-between pb-2 border-b border-sky-500/20">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-sky-500" />
-              <span className="text-xs font-bold text-sky-700 dark:text-sky-300">
+              <Clock size={16} className="text-sky-600 dark:text-sky-400" />
+              <span className="text-xs font-extrabold text-sky-950 dark:text-sky-200">
                 În așteptare
               </span>
             </div>
-            <div className="flex items-center gap-1 font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-800 dark:text-sky-200">
+            <div className="flex items-center gap-1 font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-200 text-sky-950 dark:bg-sky-900/80 dark:text-sky-100 border border-sky-400/60">
               <span>Σ</span>
               <span>{categories.inAsteptare.total}</span>
             </div>
@@ -247,14 +259,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("ast_cereri")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "ast_cereri"
-                  ? "bg-sky-500/20 font-bold text-sky-800 dark:text-sky-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-sky-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-sky-100/60 dark:hover:bg-sky-950/50 font-semibold"
               }`}
             >
               <span>Cereri de despăgubire</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-sky-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "ast_cereri"
+                    ? "bg-white/25 text-white"
+                    : "bg-sky-100 text-sky-950 dark:bg-sky-900/80 dark:text-sky-100 border border-sky-300 dark:border-sky-700"
+                }`}
+              >
                 {categories.inAsteptare.cereriDespagubire.length}
               </span>
             </button>
@@ -262,14 +280,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("ast_reconstatari")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "ast_reconstatari"
-                  ? "bg-sky-500/20 font-bold text-sky-800 dark:text-sky-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-sky-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-sky-100/60 dark:hover:bg-sky-950/50 font-semibold"
               }`}
             >
               <span>Reconstatări</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-sky-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "ast_reconstatari"
+                    ? "bg-white/25 text-white"
+                    : "bg-sky-100 text-sky-950 dark:bg-sky-900/80 dark:text-sky-100 border border-sky-300 dark:border-sky-700"
+                }`}
+              >
                 {categories.inAsteptare.reconstatari.length}
               </span>
             </button>
@@ -277,14 +301,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("ast_air")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "ast_air"
-                  ? "bg-sky-500/20 font-bold text-sky-800 dark:text-sky-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-sky-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-sky-100/60 dark:hover:bg-sky-950/50 font-semibold"
               }`}
             >
               <span>AIR (Acord Intrare Reparație)</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-sky-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "ast_air"
+                    ? "bg-white/25 text-white"
+                    : "bg-sky-100 text-sky-950 dark:bg-sky-900/80 dark:text-sky-100 border border-sky-300 dark:border-sky-700"
+                }`}
+              >
                 {categories.inAsteptare.air.length}
               </span>
             </button>
@@ -292,14 +322,20 @@ export default function InsurerActivitiesPanel({
             <button
               type="button"
               onClick={() => toggleSubCategory("ast_accept")}
-              className={`w-full flex items-center justify-between px-2 py-1 rounded-lg transition-colors text-left ${
+              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-all text-left ${
                 selectedSubCategory === "ast_accept"
-                  ? "bg-sky-500/20 font-bold text-sky-800 dark:text-sky-200"
-                  : "hover:bg-[var(--app-surface-muted)] text-[var(--app-text)]"
+                  ? "bg-sky-600 text-white font-bold shadow-sm"
+                  : "text-slate-800 dark:text-slate-200 hover:bg-sky-100/60 dark:hover:bg-sky-950/50 font-semibold"
               }`}
             >
               <span>Accept de plată</span>
-              <span className="font-mono font-bold text-[11px] px-1.5 py-0.2 rounded-full bg-sky-500/20">
+              <span
+                className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded-full ${
+                  selectedSubCategory === "ast_accept"
+                    ? "bg-white/25 text-white"
+                    : "bg-sky-100 text-sky-950 dark:bg-sky-900/80 dark:text-sky-100 border border-sky-300 dark:border-sky-700"
+                }`}
+              >
                 {categories.inAsteptare.acceptPlata.length}
               </span>
             </button>
@@ -309,18 +345,18 @@ export default function InsurerActivitiesPanel({
 
       {/* Lista detaliată a dosarelor pentru sub-categoria selectată */}
       {selectedSubCategory && (
-        <div className="mt-3 p-3 rounded-xl bg-[var(--app-surface-muted)] border border-[var(--app-border)] space-y-2">
-          <div className="flex items-center justify-between pb-1.5 border-b border-[var(--app-border)]">
-            <h4 className="font-bold text-xs text-[var(--app-text-strong)] flex items-center gap-1.5">
+        <div className="mt-3 p-3 rounded-xl bg-slate-100/90 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 space-y-2 shadow-sm">
+          <div className="flex items-center justify-between pb-1.5 border-b border-slate-200 dark:border-slate-800">
+            <h4 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
               <span>Dosare selectate:</span>
-              <span className="font-mono px-2 py-0.5 rounded bg-[var(--app-surface)] text-[var(--app-accent)] font-semibold">
+              <span className="font-mono px-2.5 py-0.5 rounded-full bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-bold">
                 {activeList.length} dosare
               </span>
             </h4>
             <button
               type="button"
               onClick={() => setSelectedSubCategory(null)}
-              className="text-xs text-[var(--app-muted)] hover:text-[var(--app-text)] font-semibold"
+              className="text-xs text-slate-700 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100 font-bold transition-colors cursor-pointer"
             >
               Închide lista ×
             </button>
