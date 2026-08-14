@@ -156,6 +156,7 @@ export default function AppViewRouter({
             ) : (
               <TablouPeFaze
                 claims={onlyBlocked ? filteredClaims : stageClaims}
+                onOpen={openExisting}
                 onOpenClaim={handleOpenClaim}
                 onMoveToStatus={handleMoveToStatus}
                 onTogglePieseSosite={(claim, val) =>
