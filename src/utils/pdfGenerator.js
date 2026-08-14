@@ -849,11 +849,15 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   const asiguratPagubit = sd(parties.proprietar || claim?.client, "—");
   const dataEveniment = claim?.dataEveniment ? fmtDate(claim.dataEveniment) : fmtDate(claim?.dataDeschiderii || todayISO());
 
-  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client, "—");
-  const cnpCui = sd(claim?.cnp || claim?.cui || claim?.clientCui, "—");
-  const domiciliu = sd(claim?.adresaClient || claim?.adresa || claim?.localitateClient, "—");
-  const telefon = sd(claim?.telefonClient, "—");
-  const ciDetails = sd(claim?.actIdentitate || (claim?.serieCI ? `CI seria ${claim.serieCI} nr. ${claim.numarCI}` : "CI seria ____ nr. ________"));
+  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client, "…………………………………………");
+  const cnpDisplay = claim?.cnp ? sd(claim.cnp) : "…………………………………………";
+  const domDisplay = (claim?.adresaClient || claim?.adresa || claim?.localitateClient)
+    ? sd(claim?.adresaClient || claim?.adresa || claim?.localitateClient)
+    : "……………………………………………………………………………………………………………………";
+  const telDisplay = claim?.telefonClient ? sd(claim.telefonClient) : "…………………………";
+  const ciDisplay = claim?.serieCI
+    ? `CI seria ${sd(claim.serieCI)} nr. ${sd(claim.numarCI || "……………………")}`
+    : (claim?.actIdentitate ? sd(claim.actIdentitate) : "CI seria ……… nr. ……………………");
   
   const isCompany = parties.asCompanyOwner || isCompanyClientName(parties.proprietar);
   const hasDelegat = parties.hasSeparateDelegat;
@@ -954,16 +958,16 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   y += rowH + 6;
 
   // ==========================================
-  // 3. PARAGRAF DECLARANT
+  // 3. PARAGRAF DECLARANT (Spațiu mărit pentru completare de mână)
   // ==========================================
   doc.setFont("times", "normal");
   doc.setFontSize(9.2);
   doc.setTextColor(0);
 
-  const declarantIntro = `Subsemnatul(a) ${subsemnatul}, CNP ${cnpCui} domiciliat(a) in str ${domiciliu} TEL ${telefon}, cu actul de identitate ${ciDetails} in calitate de:`;
+  const declarantIntro = `Subsemnatul(a) ${subsemnatul}, CNP ${cnpDisplay}, domiciliat(a) in str. ${domDisplay}, TEL ${telDisplay}, cu actul de identitate ${ciDisplay}, in calitate de:`;
   const declLines = doc.splitTextToSize(sd(declarantIntro), contentW);
   doc.text(declLines, margin, y);
-  y += declLines.length * 4.6 + 1;
+  y += declLines.length * 5.2 + 1.5;
 
   // Calitate bife
   drawCheckbox(margin, y, !hasDelegat && !isCompany);
