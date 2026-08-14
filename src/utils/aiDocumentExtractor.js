@@ -2,12 +2,12 @@ import { sanitizeClaim, emptyClaim, parseNumber } from "./claimModel";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
 
 /**
- * Prompt-ul de sistem structurat pentru Gemini AI pentru a analiza documente de daună auto
+ * Prompt-ul de sistem structurat pentru Modele AI pentru a analiza documente de daună auto
  * (Devize Audatex, Eurotax, DAT, Procese Verbale de Constatare, Cereri de despăgubire, Facturi, Taloane etc.)
  */
 export const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `Ești un asistent expert în procesarea și analiza documentelor de daună auto din România (devize Audatex, Eurotax, DAT, procese verbale de constatare daune, cereri de despăgubire, certificate de înmatriculare/taloane, facturi de piese, chitanțe).
 
-Analizează documentul atașat (imagine sau PDF) și extrage toate datele disponibile în următorul format JSON strict. Dacă o informație nu este găsită în document, returnează null sau string gol.
+Analizează documentul atașat (text, imagine sau PDF) și extrage toate datele disponibile în următorul format JSON strict. Dacă o informație nu este găsită în document, returnează null sau string gol.
 
 Formatul JSON de returnat trebuie să aibă exact această structură:
 {
@@ -305,28 +305,91 @@ export function mapExtractedJsonToClaim(extracted) {
 }
 
 /**
- * Apelează direct Google Gemini API cu cheia configurată
+ * Motor 1: Parser Local Specializat Audatex / DAT / Eurotax (0 cost, 0 API Key, 100% offline)
+ */
+export async function extractClaimDataWithLocalAudatexEngine(file) {
+  const { parseEstimateFile } = await import("./audatexImportFile");
+  const { applyEstimateValuesToClaim } = await import("./audatexApply");
+
+  const parsed = await parseEstimateFile(file);
+  if (!parsed || !parsed.values) {
+    throw new Error("Nu s-au putut extrage date din fișier cu parserul local.");
+  }
+
+  const base = emptyClaim();
+  const populated = applyEstimateValuesToClaim(base, parsed.values, {
+    operations: parsed.operations || [],
+    applyOperations: true,
+    replaceOperations: true,
+    importMeta: {
+      fileName: file.name,
+      importedAt: new Date().toISOString(),
+      source: "local_audatex_engine",
+    },
+  });
+
+  return {
+    claimPartial: sanitizeClaim(populated),
+    tipDocument: "Deviz Audatex / DAT (Parser Specializat)",
+    extractedRaw: parsed,
+  };
+}
+
+/**
+ * Motor 2: Google Gemini 2.0 Flash / 1.5 Flash (Direct REST API)
  */
 export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam = "gemini-2.0-flash") {
   if (!apiKey) {
-    throw new Error("Cheia API Google Gemini lipsește. Introduceți cheia în căsuța dedicată sau în Setări.");
+    throw new Error("Cheia API Google Gemini lipsește. Introduceți cheia în căsuța dedicată.");
   }
 
-  const base64Data = await fileToBase64(file);
   const fileName = (file && file.name ? file.name : "").toLowerCase();
   const rawType = (file && file.type ? file.type : "").toLowerCase();
+  const isPdf = fileName.endsWith(".pdf") || rawType.includes("pdf");
 
-  let mimeType = "application/pdf";
-  if (rawType && rawType.includes("/")) {
-    mimeType = rawType;
-  } else if (fileName.endsWith(".png")) {
-    mimeType = "image/png";
-  } else if (fileName.endsWith(".webp")) {
-    mimeType = "image/webp";
-  } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-    mimeType = "image/jpeg";
-  } else if (fileName.endsWith(".pdf")) {
-    mimeType = "application/pdf";
+  // Pentru PDF-uri, încercăm mai întâi să extragem textul nativ direct
+  let extractedPdfText = "";
+  if (isPdf) {
+    try {
+      const { parseEstimateFile } = await import("./audatexImportFile");
+      const parsed = await parseEstimateFile(file);
+      extractedPdfText = parsed?.rawPreview || "";
+    } catch {
+      // Fallback la date binare base64 dacă PDF-ul este scanat
+    }
+  }
+
+  let bodyParts = [];
+  if (extractedPdfText && extractedPdfText.length > 80) {
+    // Trimitere text nativ extras (100% fiabil, nu depinde de randarea vizuală a PDF-ului)
+    bodyParts = [
+      { text: `${SYSTEM_PROMPT_ROMANIAN_CLAIMS}\n\nConținut text extras din documentul PDF (${file.name}):\n\n${extractedPdfText}` }
+    ];
+  } else {
+    // Trimitere binară multimodală (pentru imagini sau PDF-uri scanate)
+    const base64Data = await fileToBase64(file);
+    let mimeType = "application/pdf";
+    if (rawType && rawType.includes("/")) {
+      mimeType = rawType;
+    } else if (fileName.endsWith(".png")) {
+      mimeType = "image/png";
+    } else if (fileName.endsWith(".webp")) {
+      mimeType = "image/webp";
+    } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+      mimeType = "image/jpeg";
+    }
+
+    bodyParts = [
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: base64Data,
+        },
+      },
+      {
+        text: SYSTEM_PROMPT_ROMANIAN_CLAIMS,
+      },
+    ];
   }
 
   const modelEndpoints = [
@@ -338,21 +401,7 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
   ];
 
   const body = {
-    contents: [
-      {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Data,
-            },
-          },
-          {
-            text: SYSTEM_PROMPT_ROMANIAN_CLAIMS,
-          },
-        ],
-      },
-    ],
+    contents: [{ parts: bodyParts }],
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.1,
@@ -407,6 +456,132 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
   }
 
   throw lastError || new Error("Procesarea cu Gemini API a eșuat pe toate modelele.");
+}
+
+/**
+ * Motor 3: OpenAI GPT-4o / GPT-4o-mini (cu cheie OpenAI sk-...)
+ */
+export async function extractClaimDataWithOpenAIDirect(file, apiKey, modelParam = "gpt-4o-mini") {
+  if (!apiKey) {
+    throw new Error("Cheia API OpenAI lipsește. Introduceți cheia sk-... în formular.");
+  }
+
+  const fileName = (file && file.name ? file.name : "").toLowerCase();
+  const isPdf = fileName.endsWith(".pdf") || file.type?.includes("pdf");
+  let contentPayload;
+
+  if (isPdf) {
+    let pdfText = "";
+    try {
+      const { parseEstimateFile } = await import("./audatexImportFile");
+      const parsed = await parseEstimateFile(file);
+      pdfText = parsed?.rawPreview || "";
+    } catch {
+      // ignore
+    }
+
+    if (pdfText && pdfText.length > 50) {
+      contentPayload = [
+        { type: "text", text: `${SYSTEM_PROMPT_ROMANIAN_CLAIMS}\n\nConținut text extras din PDF:\n${pdfText}` }
+      ];
+    } else {
+      const base64Data = await fileToBase64(file);
+      contentPayload = [
+        { type: "text", text: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
+        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Data}` } }
+      ];
+    }
+  } else {
+    const base64Data = await fileToBase64(file);
+    const mime = file.type || "image/jpeg";
+    contentPayload = [
+      { type: "text", text: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
+      { type: "image_url", image_url: { url: `data:${mime};base64,${base64Data}` } }
+    ];
+  }
+
+  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey.trim()}`,
+    },
+    body: JSON.stringify({
+      model: modelParam || "gpt-4o-mini",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
+        { role: "user", content: contentPayload },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Eroare OpenAI API (${resp.status}): ${errText}`);
+  }
+
+  const data = await resp.json();
+  const textOutput = data.choices?.[0]?.message?.content;
+  if (!textOutput) throw new Error("Răspuns vid de la OpenAI.");
+
+  const extractedRaw = JSON.parse(textOutput);
+  return mapExtractedJsonToClaim(extractedRaw);
+}
+
+/**
+ * Pipeline Hibrid Inteligent: Încearcă automat cel mai bun motor disponibil
+ */
+export async function extractClaimDataHybrid(file, { apiKey = "", engine = "auto", supabaseClient = null } = {}) {
+  const fileName = (file && file.name ? file.name : "").toLowerCase();
+  const isPdfOrSheet =
+    fileName.endsWith(".pdf") ||
+    fileName.endsWith(".xml") ||
+    fileName.endsWith(".xlsx") ||
+    fileName.endsWith(".csv");
+
+  // 1. Dacă motorul ales este Local Audatex sau dacă suntem pe Auto și nu există cheie API introdusă
+  if (engine === "local" || (engine === "auto" && isPdfOrSheet && !apiKey.trim())) {
+    try {
+      return await extractClaimDataWithLocalAudatexEngine(file);
+    } catch (localErr) {
+      if (engine === "local") throw localErr;
+      // Dacă a eșuat pe auto, continuă spre celelalte motoare
+    }
+  }
+
+  // 2. Dacă motorul este OpenAI sau cheia începe cu 'sk-'
+  if (engine === "openai" || apiKey.trim().startsWith("sk-")) {
+    return await extractClaimDataWithOpenAIDirect(file, apiKey.trim());
+  }
+
+  // 3. Dacă avem cheie Gemini introdusă
+  if (apiKey.trim()) {
+    return await extractClaimDataWithGeminiDirect(file, apiKey.trim());
+  }
+
+  // 4. Dacă avem Supabase Edge Function
+  if (supabaseClient) {
+    try {
+      return await extractClaimDataWithSupabaseEdge(file, supabaseClient);
+    } catch (edgeErr) {
+      // Încercare finală cu motorul local dacă fișierul este PDF
+      if (isPdfOrSheet) {
+        return await extractClaimDataWithLocalAudatexEngine(file);
+      }
+      throw edgeErr;
+    }
+  }
+
+  // 5. Fallback final: Motor local dacă e PDF
+  if (isPdfOrSheet) {
+    return await extractClaimDataWithLocalAudatexEngine(file);
+  }
+
+  throw new Error(
+    "Selectați un motor AI sau introduceți o cheie API (Google Gemini sau OpenAI) pentru a analiza imaginea."
+  );
 }
 
 /**

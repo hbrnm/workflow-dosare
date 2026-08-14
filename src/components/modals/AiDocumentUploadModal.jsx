@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Sparkles, Upload, FileText, CheckCircle2, AlertCircle, Loader2, ArrowRight, X } from "lucide-react";
-import { extractClaimDataWithGeminiDirect, extractClaimDataWithSupabaseEdge } from "../../utils/aiDocumentExtractor";
+import { Sparkles, Upload, FileText, CheckCircle2, AlertCircle, Loader2, ArrowRight, X, Cpu, Zap, Globe } from "lucide-react";
+import { extractClaimDataHybrid } from "../../utils/aiDocumentExtractor";
 import { supabase } from "../../supabaseClient";
 
 export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted, initialClaimData }) {
@@ -11,9 +11,10 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [editableClaim, setEditableClaim] = useState(null);
-  const [geminiApiKey, setGeminiApiKey] = useState(
-    () => localStorage.getItem("gemini_api_key") || import.meta.env.VITE_GEMINI_API_KEY || ""
-  );
+  const [engine, setEngine] = useState("auto"); // "auto" | "local" | "gemini" | "openai"
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem("gemini_api_key") || localStorage.getItem("openai_api_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
+  });
 
   if (!isOpen) return null;
 
@@ -40,45 +41,39 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
 
     setLoading(true);
     setError(null);
-    setStepText("Încărcare și pregătire document...");
+    setStepText("Analiză și extragere date din document...");
 
-    const effectiveKey = (geminiApiKey || "").trim();
+    const effectiveKey = (apiKey || "").trim();
 
     try {
-      let extractedData;
-
-      // Salvăm cheia API dacă a fost introdusă manual
       if (effectiveKey) {
-        localStorage.setItem("gemini_api_key", effectiveKey);
-      }
-
-      // Dacă avem cheie API Gemini introdusă sau configurată, apelăm direct
-      if (effectiveKey) {
-        setStepText("Agentul AI (Gemini 2.0 Flash) analizează documentul...");
-        extractedData = await extractClaimDataWithGeminiDirect(file, effectiveKey);
-      } else if (supabase) {
-        // Altfel încercăm Supabase Edge Function dacă este deployată
-        setStepText("Agentul AI analizează documentul prin Supabase Edge Function...");
-        try {
-          extractedData = await extractClaimDataWithSupabaseEdge(file, supabase);
-        } catch (edgeErr) {
-          console.warn("Edge function fallback:", edgeErr);
-          throw new Error(
-            "Supabase Edge Function nu este activă sau configurată pe server. Introduceți o cheie gratuită Google Gemini API în câmpul de mai sus pentru procesare directă și instantanee din browser."
-          );
+        if (effectiveKey.startsWith("sk-")) {
+          localStorage.setItem("openai_api_key", effectiveKey);
+        } else {
+          localStorage.setItem("gemini_api_key", effectiveKey);
         }
-      } else {
-        throw new Error(
-          "Introduceți o cheie Google Gemini API în câmpul de mai sus pentru a analiza documente."
-        );
       }
+
+      if (engine === "local") {
+        setStepText("Procesare cu motorul local specializat Audatex / DAT...");
+      } else if (engine === "openai" || effectiveKey.startsWith("sk-")) {
+        setStepText("Procesare multimodală cu OpenAI GPT-4o...");
+      } else {
+        setStepText("Procesare inteligentă (Parser Local + Gemini AI)...");
+      }
+
+      const extractedData = await extractClaimDataHybrid(file, {
+        apiKey: effectiveKey,
+        engine,
+        supabaseClient: supabase,
+      });
 
       setStepText("Structurare și populare date dosar...");
       setResult(extractedData);
       setEditableClaim(extractedData.claimPartial);
     } catch (err) {
       console.error(err);
-      setError(err.message || "Eroare la procesarea documentului cu AI.");
+      setError(err.message || "Eroare la procesarea documentului.");
     } finally {
       setLoading(false);
       setStepText("");
@@ -103,9 +98,9 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
             </div>
             <div>
               <h3 className="font-semibold text-lg text-slate-100 flex items-center gap-2">
-                Agent AI - Extragere Date Document
+                Agent Extragere Date Documente
                 <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-normal">
-                  Multimodal
+                  Multi-Motor
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
@@ -123,6 +118,66 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
 
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+          {/* Selector Motor Extragere */}
+          {!result && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <Cpu className="w-4 h-4 text-indigo-400" />
+                Selectează Motorul de Procesare:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEngine("auto")}
+                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
+                    engine === "auto"
+                      ? "bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-sm"
+                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <Zap className="w-4 h-4 text-indigo-400" />
+                  <span>Automat (Hibrid)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEngine("local")}
+                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
+                    engine === "local"
+                      ? "bg-emerald-600/20 border-emerald-500 text-emerald-200 shadow-sm"
+                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span>Parser Audatex (Offline)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEngine("gemini")}
+                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
+                    engine === "gemini"
+                      ? "bg-sky-600/20 border-sky-500 text-sky-200 shadow-sm"
+                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-sky-400" />
+                  <span>Google Gemini 2.0</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEngine("openai")}
+                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
+                    engine === "openai"
+                      ? "bg-purple-600/20 border-purple-500 text-purple-200 shadow-sm"
+                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <Globe className="w-4 h-4 text-purple-400" />
+                  <span>OpenAI GPT-4o</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* File Upload Zone */}
           {!result && (
             <div
@@ -144,7 +199,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                 type="file"
                 id="ai-doc-upload"
                 className="hidden"
-                accept=".pdf,image/*"
+                accept=".pdf,.xml,.xlsx,.csv,image/*"
                 onChange={handleFileChange}
               />
               <label htmlFor="ai-doc-upload" className="cursor-pointer block">
@@ -170,7 +225,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                         Trage fișierul aici sau <span className="text-indigo-400">răsfoiește</span>
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        Suportă fișiere PDF (Devize, PV-uri) și imagini (JPG, PNG) de orice dimensiune
+                        Suportă PDF (Devize Audatex/DAT/Eurotax), XML, Excel sau imagini (taloane, PV-uri, facturi)
                       </p>
                     </div>
                   </div>
@@ -179,32 +234,47 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
             </div>
           )}
 
-          {/* Configurare Cheie API Opțională */}
-          {!result && (
+          {/* Configurare Cheie API (Dacă motorul selectat o cere sau pentru AI) */}
+          {!result && engine !== "local" && (
             <div className="p-4 bg-slate-950/40 rounded-xl border border-slate-800/80 space-y-2">
               <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                <label htmlFor="gemini-api-key-input">
-                  Cheie Google Gemini API (pentru extragere automată direct din browser):
+                <label htmlFor="api-key-input">
+                  Cheie API ({engine === "openai" ? "OpenAI sk-..." : "Google Gemini AIzaSy..."}):
                 </label>
-                <a
-                  href="https://aistudio.google.com/app/apikey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 underline text-[11px] font-normal"
-                >
-                  Obține cheie gratuită AI Studio &rarr;
-                </a>
+                {engine === "gemini" || engine === "auto" ? (
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 underline text-[11px] font-normal"
+                  >
+                    Obține cheie gratuită Gemini &rarr;
+                  </a>
+                ) : (
+                  <a
+                    href="https://platform.openai.com/api-keys"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-purple-400 hover:text-purple-300 underline text-[11px] font-normal"
+                  >
+                    Obține cheie OpenAI &rarr;
+                  </a>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <input
-                  id="gemini-api-key-input"
+                  id="api-key-input"
                   type="password"
-                  placeholder="Lipește cheia AIzaSy... (se salvează local în browser)"
-                  value={geminiApiKey}
-                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  placeholder={
+                    engine === "openai"
+                      ? "sk-proj-... (salvată local)"
+                      : "AIzaSy... (sau lăsați gol pentru Parserul Local)"
+                  }
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
                   className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
                 />
-                {geminiApiKey ? (
+                {apiKey ? (
                   <span className="px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Salvată
                   </span>
@@ -218,7 +288,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
             <div className="p-6 bg-indigo-950/20 border border-indigo-500/20 rounded-xl text-center space-y-3">
               <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto" />
               <p className="font-medium text-indigo-200">{stepText}</p>
-              <p className="text-xs text-slate-400">Agentul AI extrage vehiculul, avariile, piesele și valorile financiare...</p>
+              <p className="text-xs text-slate-400">Extragem automat vehiculul, piesele, manopera și valorile devizului...</p>
             </div>
           )}
 
@@ -229,6 +299,9 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
               <div>
                 <p className="font-semibold">Procesarea a eșuat</p>
                 <p className="text-xs opacity-90 mt-1">{error}</p>
+                <p className="text-[11px] text-slate-400 mt-2">
+                  Sfat: Puteți comuta motorul pe <strong>„Parser Audatex (Offline)”</strong> pentru procesare instantă directă a PDF-urilor fără cheie API.
+                </p>
               </div>
             </div>
           )}
@@ -241,7 +314,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                   <CheckCircle2 className="w-6 h-6 text-emerald-400 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-emerald-300 text-sm">
-                      Date extrase cu succes de Agentul AI!
+                      Date extrase cu succes!
                     </h4>
                     <p className="text-xs text-emerald-400/80">
                       Document identificat: <strong>{result.tipDocument}</strong>
@@ -263,159 +336,185 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 {/* Date Vehicul */}
                 <div className="p-4 bg-slate-950/50 rounded-xl border border-slate-800 space-y-3">
-                  <h5 className="font-semibold text-indigo-400 border-b border-slate-800 pb-2">
-                    🚗 Date Vehicul
+                  <h5 className="font-medium text-slate-300 border-b border-slate-800 pb-2">
+                    Date Identificare Vehicul & Client
                   </h5>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nr. Înmatriculare</label>
-                    <input
-                      type="text"
-                      value={editableClaim.numarInmatriculare || ""}
-                      onChange={(e) => setEditableClaim({ ...editableClaim, numarInmatriculare: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">VIN (Serie Șasiu)</label>
-                    <input
-                      type="text"
-                      value={editableClaim.vin || ""}
-                      onChange={(e) => setEditableClaim({ ...editableClaim, vin: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100 uppercase"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
                     <div>
-                      <label className="text-slate-400 block mb-1">Marcă</label>
+                      <label className="text-slate-400 text-[11px]">Nr. Înmatriculare:</label>
                       <input
                         type="text"
-                        value={editableClaim.marca || ""}
-                        onChange={(e) => setEditableClaim({ ...editableClaim, marca: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
+                        value={editableClaim.numarInmatriculare || ""}
+                        onChange={(e) =>
+                          setEditableClaim({ ...editableClaim, numarInmatriculare: e.target.value })
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono"
                       />
                     </div>
                     <div>
-                      <label className="text-slate-400 block mb-1">Model</label>
+                      <label className="text-slate-400 text-[11px]">Serie Șasiu (VIN):</label>
                       <input
                         type="text"
-                        value={editableClaim.model || ""}
-                        onChange={(e) => setEditableClaim({ ...editableClaim, model: e.target.value })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
+                        value={editableClaim.vin || ""}
+                        onChange={(e) =>
+                          setEditableClaim({ ...editableClaim, vin: e.target.value })
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Marcă:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.marca || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, marca: e.target.value })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Model:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.model || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, model: e.target.value })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-[11px]">Client / Proprietar:</label>
+                      <input
+                        type="text"
+                        value={editableClaim.client || ""}
+                        onChange={(e) =>
+                          setEditableClaim({ ...editableClaim, client: e.target.value })
+                        }
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Date Dosar & Asigurător */}
+                {/* Date Dosar & Financiare */}
                 <div className="p-4 bg-slate-950/50 rounded-xl border border-slate-800 space-y-3">
-                  <h5 className="font-semibold text-indigo-400 border-b border-slate-800 pb-2">
-                    📋 Date Dosar & Asigurător
+                  <h5 className="font-medium text-slate-300 border-b border-slate-800 pb-2">
+                    Date Dosar & Valori Deviz
                   </h5>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Asigurător</label>
-                    <input
-                      type="text"
-                      value={editableClaim.asigurator || ""}
-                      onChange={(e) => setEditableClaim({ ...editableClaim, asigurator: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nr. Dosar Asigurător</label>
-                    <input
-                      type="text"
-                      value={editableClaim.nrDosarAsigurator || ""}
-                      onChange={(e) => setEditableClaim({ ...editableClaim, nrDosarAsigurator: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Nume Client / Păgubit</label>
-                    <input
-                      type="text"
-                      value={editableClaim.client || ""}
-                      onChange={(e) => setEditableClaim({ ...editableClaim, client: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                    />
-                  </div>
-                </div>
-
-                {/* Date Financiare */}
-                <div className="p-4 bg-slate-950/50 rounded-xl border border-slate-800 space-y-3 md:col-span-2">
-                  <h5 className="font-semibold text-indigo-400 border-b border-slate-800 pb-2">
-                    💰 Valori Financiare Deviz
-                  </h5>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div>
-                      <label className="text-slate-400 block mb-1">Total Deviz (RON)</label>
-                      <input
-                        type="number"
-                        value={editableClaim.valoareDevizAudatex || 0}
-                        onChange={(e) => setEditableClaim({ ...editableClaim, valoareDevizAudatex: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                      />
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Nr. Dosar Service:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.numarDosar || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, numarDosar: e.target.value })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Asigurător:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.asigurator || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, asigurator: e.target.value })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Total Deviz fără TVA (RON):</label>
+                        <input
+                          type="number"
+                          value={editableClaim.valoareDevizAudatex || ""}
+                          onChange={(e) =>
+                            setEditableClaim({
+                              ...editableClaim,
+                              valoareDevizAudatex: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-semibold"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Total Piese fără TVA (RON):</label>
+                        <input
+                          type="number"
+                          value={editableClaim.valoarePieseAudatex || ""}
+                          onChange={(e) =>
+                            setEditableClaim({
+                              ...editableClaim,
+                              valoarePieseAudatex: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="text-slate-400 block mb-1">Total Piese (RON)</label>
-                      <input
-                        type="number"
-                        value={editableClaim.valoarePieseAudatex || 0}
-                        onChange={(e) => setEditableClaim({ ...editableClaim, valoarePieseAudatex: parseFloat(e.target.value) || 0 })}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-1">Manoperă Tinichigerie</label>
-                      <input
-                        type="number"
-                        value={editableClaim.financiar?.manoperaTinichigerie || 0}
+                      <label className="text-slate-400 text-[11px]">Avarii / Descriere:</label>
+                      <textarea
+                        rows={2}
+                        value={editableClaim.ceEsteDeReparat || ""}
                         onChange={(e) =>
-                          setEditableClaim({
-                            ...editableClaim,
-                            financiar: { ...editableClaim.financiar, manoperaTinichigerie: parseFloat(e.target.value) || 0 },
-                          })
+                          setEditableClaim({ ...editableClaim, ceEsteDeReparat: e.target.value })
                         }
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-1">Manoperă Vopsitorie</label>
-                      <input
-                        type="number"
-                        value={editableClaim.financiar?.manoperaVopsitorie || 0}
-                        onChange={(e) =>
-                          setEditableClaim({
-                            ...editableClaim,
-                            financiar: { ...editableClaim.financiar, manoperaVopsitorie: parseFloat(e.target.value) || 0 },
-                          })
-                        }
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-100"
+                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 resize-none"
                       />
                     </div>
                   </div>
                 </div>
-
-                {/* Lista Operățiuni / Piese Detectate */}
-                {editableClaim.operatiuni && editableClaim.operatiuni.length > 0 && (
-                  <div className="p-4 bg-slate-950/50 rounded-xl border border-slate-800 space-y-2 md:col-span-2">
-                    <h5 className="font-semibold text-indigo-400 border-b border-slate-800 pb-2">
-                      🛠️ Operățiuni & Piese Detectate ({editableClaim.operatiuni.length})
-                    </h5>
-                    <div className="max-h-36 overflow-y-auto space-y-1.5 pr-2">
-                      {editableClaim.operatiuni.map((op, idx) => (
-                        <div key={op.id || idx} className="flex items-center justify-between bg-slate-900/80 px-3 py-1.5 rounded border border-slate-800 text-xs">
-                          <span className="text-slate-200 font-medium">{op.piesa}</span>
-                          <div className="flex gap-2 text-[11px]">
-                            {op.inl && <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">Înlocuit</span>}
-                            {op.rev && <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">Vopsit</span>}
-                            {op.rep && <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">Reparat</span>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {/* Linii de Operațiuni & Piese Extrase */}
+              {Array.isArray(editableClaim.operatiuni) && editableClaim.operatiuni.length > 0 && (
+                <div className="p-4 bg-slate-950/50 rounded-xl border border-slate-800 space-y-2">
+                  <h5 className="font-medium text-slate-300 text-xs flex items-center justify-between">
+                    <span>Operațiuni & Piese de Schimb ({editableClaim.operatiuni.length} identificate)</span>
+                  </h5>
+                  <div className="max-h-40 overflow-y-auto space-y-1.5 pr-2">
+                    {editableClaim.operatiuni.map((op, idx) => (
+                      <div
+                        key={op.id || idx}
+                        className="flex items-center justify-between bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-800 text-xs"
+                      >
+                        <span className="text-slate-200">{op.piesa}</span>
+                        <div className="flex gap-1.5">
+                          {op.inl && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[10px]">
+                              Înlocuire
+                            </span>
+                          )}
+                          {op.rev && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">
+                              Vopsitorie
+                            </span>
+                          )}
+                          {op.rep && (
+                            <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px]">
+                              Reparație
+                            </span>
+                          )}
+                          {op.uni && (
+                            <span className="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 text-[10px]">
+                              Demontare
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -423,40 +522,36 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
         {/* Footer Actions */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-950/50">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
+            className="px-4 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors"
           >
             Anulează
           </button>
 
-          {!result ? (
-            <button
-              onClick={handleProcess}
-              disabled={!file || loading}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Procesare AI...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Analizează cu Agentul AI
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={handleConfirmApply}
-              className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              Aplică datele în Dosar
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {!result ? (
+              <button
+                type="button"
+                disabled={!file || loading}
+                onClick={handleProcess}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                {engine === "local" ? "Procesează cu Parserul Local" : "Analizează Documentul"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConfirmApply}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Aplică Datele în Dosar
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
