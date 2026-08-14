@@ -513,15 +513,7 @@ export default function BriefZilnic({
         )}
       </div>
 
-      {/* 3. ACTIVITĂȚI & RELAȚIE ASIGURĂTORI (AIR, Reconstatări, Deconturi) */}
-      <InsurerActivitiesPanel
-        claims={claims}
-        onOpen={onOpen}
-        onNotify={onNotify}
-        onSelectStatusFilter={onSelectStatusFilter}
-      />
-
-      {/* 4. OPERATIV ZILNIC */}
+      {/* 3. OPERATIV ZILNIC */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 shrink-0">
 
         <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[320px]">
@@ -707,6 +699,14 @@ export default function BriefZilnic({
           )}
         </div>
       ) : null}
+
+      {/* 5. ACTIVITĂȚI & RELAȚIE ASIGURĂTORI (În partea de jos a paginii) */}
+      <InsurerActivitiesPanel
+        claims={claims}
+        onOpen={onOpen}
+        onNotify={onNotify}
+        onSelectStatusFilter={onSelectStatusFilter}
+      />
 
     </div>
   );
