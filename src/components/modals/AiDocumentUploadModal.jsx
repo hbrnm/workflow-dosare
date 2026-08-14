@@ -11,7 +11,9 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [editableClaim, setEditableClaim] = useState(null);
-  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem("gemini_api_key") || "");
+  const [geminiApiKey, setGeminiApiKey] = useState(
+    () => localStorage.getItem("gemini_api_key") || import.meta.env.VITE_GEMINI_API_KEY || ""
+  );
 
   if (!isOpen) return null;
 
@@ -40,35 +42,35 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
     setError(null);
     setStepText("Încărcare și pregătire document...");
 
+    const effectiveKey = (geminiApiKey || "").trim();
+
     try {
       let extractedData;
 
       // Salvăm cheia API dacă a fost introdusă manual
-      if (geminiApiKey.trim()) {
-        localStorage.setItem("gemini_api_key", geminiApiKey.trim());
+      if (effectiveKey) {
+        localStorage.setItem("gemini_api_key", effectiveKey);
       }
 
-      // 1. Încercăm Supabase Edge Function prima dată (dacă Supabase este configurat)
-      if (supabase && !geminiApiKey.trim()) {
+      // Dacă avem cheie API Gemini introdusă sau configurată, apelăm direct
+      if (effectiveKey) {
+        setStepText("Agentul AI (Gemini 2.0 Flash) analizează documentul...");
+        extractedData = await extractClaimDataWithGeminiDirect(file, effectiveKey);
+      } else if (supabase) {
+        // Altfel încercăm Supabase Edge Function dacă este deployată
         setStepText("Agentul AI analizează documentul prin Supabase Edge Function...");
         try {
           extractedData = await extractClaimDataWithSupabaseEdge(file, supabase);
         } catch (edgeErr) {
           console.warn("Edge function fallback:", edgeErr);
-          // Dacă edge function nu e deployată și avem cheie locală, încercăm direct
-          if (geminiApiKey.trim()) {
-            setStepText("Analiză directă cu Gemini API...");
-            extractedData = await extractClaimDataWithGeminiDirect(file, geminiApiKey.trim());
-          } else {
-            throw new Error(
-              "Nu s-a putut apela Supabase Edge Function. Introduceți o cheie API Gemini în câmpul de mai jos pentru apelare directă."
-            );
-          }
+          throw new Error(
+            "Supabase Edge Function nu este activă sau configurată pe server. Introduceți o cheie gratuită Google Gemini API în câmpul de mai sus pentru procesare directă și instantanee din browser."
+          );
         }
       } else {
-        // Apel direct Gemini API
-        setStepText("Agentul AI (Gemini 2.0 Flash) analizează documentul...");
-        extractedData = await extractClaimDataWithGeminiDirect(file, geminiApiKey.trim());
+        throw new Error(
+          "Introduceți o cheie Google Gemini API în câmpul de mai sus pentru a analiza documente."
+        );
       }
 
       setStepText("Structurare și populare date dosar...");
@@ -180,21 +182,34 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
           {/* Configurare Cheie API Opțională */}
           {!result && (
             <div className="p-4 bg-slate-950/40 rounded-xl border border-slate-800/80 space-y-2">
-              <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
-                <span>Cheie Google Gemini API (Opțional pentru apelare directă din browser):</span>
+              <div className="flex items-center justify-between text-xs font-medium text-slate-300">
+                <label htmlFor="gemini-api-key-input">
+                  Cheie Google Gemini API (pentru extragere automată direct din browser):
+                </label>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 underline text-[11px] font-normal"
+                >
+                  Obține cheie gratuită AI Studio &rarr;
+                </a>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  id="gemini-api-key-input"
+                  type="password"
+                  placeholder="Lipește cheia AIzaSy... (se salvează local în browser)"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                />
                 {geminiApiKey ? (
-                  <span className="text-emerald-400 text-[11px] flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Salvată
+                  <span className="px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Salvată
                   </span>
                 ) : null}
-              </label>
-              <input
-                type="password"
-                placeholder="AIzaSy... (se salvează local în browser)"
-                value={geminiApiKey}
-                onChange={(e) => setGeminiApiKey(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-              />
+              </div>
             </div>
           )}
 
