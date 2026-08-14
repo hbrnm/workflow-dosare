@@ -537,16 +537,24 @@ export default function App() {
     async (claimData, options = {}) => {
       setSaving(true);
       const isNew = !claims.some((c) => c.id === claimData.id);
-      const res = await saveClaim(claimData);
+      const res = await saveClaim(claimData, options);
       setSaving(false);
 
-      if (res) {
+      if (res && res.success !== false) {
         showNotice(
           isNew ? "Dosar creat cu succes!" : "Dosar actualizat cu succes!",
           "success"
         );
         closeClaimModal();
         closeQuickCreate();
+
+        if (isNew) {
+          setFilterStatus("toate");
+          setFilterAsigurator("toti");
+          setSearch("");
+          setOnlyBlocked(false);
+          setView("dosare");
+        }
 
         if (options.openProgramator) {
           setView("programator");
@@ -555,7 +563,7 @@ export default function App() {
       }
       return res;
     },
-    [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate]
+    [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate, setFilterStatus, setFilterAsigurator, setSearch, setOnlyBlocked]
   );
 
   const handleDelete = useCallback(

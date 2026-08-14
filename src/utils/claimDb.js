@@ -1,12 +1,20 @@
 import { STATUS_MIGRATION, STATUSES, getStatusAlertDays } from "../constants/config";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
-import { todayISO, nowISO } from "./dateUtils";
+import { todayISO, nowISO, generateUUID } from "./dateUtils";
 import { emptyClaim, sanitizeClaim, parseNumber } from "./claimModel";
 import { stripEphemeralMediaUrls } from "./claimMedia";
 
+export function isValidUUID(str) {
+  return (
+    typeof str === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim())
+  );
+}
+
 export function toDb(c) {
+  const claimId = c?.id ? String(c.id).trim() : generateUUID();
   const row = {
-    id: c.id,
+    id: claimId,
     numar_dosar: c.numarDosar,
     tip_asigurare: c.tipAsigurare,
     asigurator: c.asigurator,
