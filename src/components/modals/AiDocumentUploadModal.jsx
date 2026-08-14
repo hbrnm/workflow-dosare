@@ -42,7 +42,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
 
     setLoading(true);
     setError(null);
-    setStepText("Analiză și extragere date din document...");
+    setStepText("Se extrag datele din document...");
 
     const effectiveKey = (apiKey || "").trim();
 
@@ -55,21 +55,12 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
         }
       }
 
-      if (engine === "local") {
-        setStepText("Procesare cu motorul local specializat Audatex / DAT...");
-      } else if (engine === "openai" || effectiveKey.startsWith("sk-")) {
-        setStepText("Procesare multimodală cu OpenAI GPT-4o...");
-      } else {
-        setStepText("Procesare inteligentă (Parser Local + Gemini AI)...");
-      }
-
       const extractedData = await extractClaimDataHybrid(file, {
         apiKey: effectiveKey,
         engine,
         supabaseClient: supabase,
       });
 
-      setStepText("Structurare și populare date dosar...");
       setResult(extractedData);
       setEditableClaim(extractedData.claimPartial);
     } catch (err) {

@@ -569,11 +569,9 @@ export default function App() {
   const handleDelete = useCallback(
     async (claimId) => {
       const res = await deleteClaim(claimId);
-      if (res) {
-        closeClaimModal();
-        closeFieldClaim();
-      }
-      return res;
+      closeClaimModal();
+      closeFieldClaim();
+      return res ?? true;
     },
     [deleteClaim, closeClaimModal, closeFieldClaim]
   );

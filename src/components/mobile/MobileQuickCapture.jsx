@@ -164,10 +164,11 @@ export default function MobileQuickCapture({
 
         const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
         const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
           claimId: selectedClaim.id,
           file: optimizedFile,
           folder: "poze",
-          bucketName: "claim-photos",
+          bucketName: "poze-dosare",
           extraFields: {
             categoria: cat,
             nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
@@ -267,10 +268,11 @@ export default function MobileQuickCapture({
       const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
 
       const uploaded = await uploadStorageItem({
+        supabaseClient: supabase,
         claimId: selectedClaim.id,
         file: pdfFile,
         folder: "documente",
-        bucketName: "claim-documents",
+        bucketName: "documente-dosare",
         extraFields: {
           nume: fileName,
           data: todayISO(),
@@ -305,10 +307,11 @@ export default function MobileQuickCapture({
         }
 
         const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
           claimId: selectedClaim.id,
           file,
           folder: "documente",
-          bucketName: "claim-documents",
+          bucketName: "documente-dosare",
           extraFields: {
             nume: file.name,
             data: todayISO(),
@@ -321,7 +324,7 @@ export default function MobileQuickCapture({
       }
 
       if (uploadedDocs.length > 0) {
-        await onPatch(selectedClaim.id, { appendDocumente: [uploadedDocs] }, { canEditFn });
+        await onPatch(selectedClaim.id, { appendDocumente: uploadedDocs }, { canEditFn });
         onNotify(`S-au adăugat ${uploadedDocs.length} documente.`, "success");
       }
     } catch (err) {
