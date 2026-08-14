@@ -35,6 +35,9 @@ import ClaimFinancialTab from "./claim/ClaimFinancialTab";
 import ClaimHistoryTab from "./claim/ClaimHistoryTab";
 import ClaimFooter from "./claim/ClaimFooter";
 import ClaimScannerOverlay from "./claim/ClaimScannerOverlay";
+import ReceptieAutoModal from "./ReceptieAutoModal";
+import SettlementPackageModal from "./SettlementPackageModal";
+import { loadCachedBranding } from "../../constants/branding";
 
 export function applyClaimStatusChange(prev, newStatusKey) {
   const mappedKey = getStatusDefinition(newStatusKey).key;
@@ -136,6 +139,8 @@ export default function ClaimModal({
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [savingLocal, setSavingLocal] = useState(false);
+  const [isReceptieModalOpen, setIsReceptieModalOpen] = useState(false);
+  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e) => {
@@ -946,6 +951,8 @@ export default function ClaimModal({
           downloadingZip={downloadingZip}
           handleDownloadZip={handleDownloadZip}
           handleDuplicate={handleDuplicate}
+          onOpenReceptie={() => setIsReceptieModalOpen(true)}
+          onOpenSettlement={() => setIsSettlementModalOpen(true)}
           requestClose={requestClose}
           handleMouseDown={handleMouseDown}
         />
@@ -1202,6 +1209,32 @@ export default function ClaimModal({
           handleAddPageToScan={handleAddPageToScan}
           handleSaveMultiPageScan={handleSaveMultiPageScan}
         />
+
+        {/* Modal Recepție Auto & Semnătură Digitală */}
+        {isReceptieModalOpen && (
+          <ReceptieAutoModal
+            isOpen={isReceptieModalOpen}
+            onClose={() => setIsReceptieModalOpen(false)}
+            claim={form}
+            onPatchClaim={async (id, patch) => {
+              setForm((prev) => ({ ...prev, ...patch }));
+              if (onPatch) await onPatch(id, patch);
+            }}
+            onNotify={onNotify}
+            atelierBranding={loadCachedBranding()}
+          />
+        )}
+
+        {/* Modal Pachet Decont Asigurător 1-Click ZIP */}
+        {isSettlementModalOpen && (
+          <SettlementPackageModal
+            isOpen={isSettlementModalOpen}
+            onClose={() => setIsSettlementModalOpen(false)}
+            claim={form}
+            onNotify={onNotify}
+            atelierBranding={loadCachedBranding()}
+          />
+        )}
       </div>
     </div>
   );

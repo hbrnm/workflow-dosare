@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   X, Phone, ChevronRight, Camera, FileText, Car, User,
-  ArrowRight, ExternalLink, Loader2
+  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus } from "../../constants/config";
 import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
@@ -11,6 +11,9 @@ import WhatsAppButton from "../common/WhatsAppButton";
 import PhotoLightbox from "../common/PhotoLightbox";
 import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
+import ReceptieAutoModal from "../modals/ReceptieAutoModal";
+import SettlementPackageModal from "../modals/SettlementPackageModal";
+import { loadCachedBranding } from "../../constants/branding";
 
 /**
  * Thin field sheet for mobile — plate, client, phone, status, photos, next step.
@@ -37,6 +40,8 @@ export default function MobileClaimSheet({
   const [photos, setPhotos] = useState(() => (Array.isArray(claim?.poze) ? claim.poze : []));
   const [docs, setDocs] = useState(() => (Array.isArray(claim?.documente) ? claim.documente : []));
   const [previewIndex, setPreviewIndex] = useState(null);
+  const [isReceptieOpen, setIsReceptieOpen] = useState(false);
+  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -396,6 +401,25 @@ export default function MobileClaimSheet({
           )}
         </section>
 
+        {/* Butoane Rapide: Recepție cu Semnătură & Pachet Decont */}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => setIsReceptieOpen(true)}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[12px] hover:bg-emerald-500/20 active:scale-95 transition-all"
+          >
+            <FileCheck size={14} /> Recepție &amp; Semnează
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsSettlementOpen(true)}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold text-[12px] hover:bg-indigo-500/20 active:scale-95 transition-all"
+          >
+            <FolderArchive size={14} /> Pachet Decont (ZIP)
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={() => onOpenFull?.(claim)}
@@ -411,6 +435,29 @@ export default function MobileClaimSheet({
           items={photos}
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
+        />
+      )}
+
+      {/* Modal Recepție Auto Mobil */}
+      {isReceptieOpen && (
+        <ReceptieAutoModal
+          isOpen={isReceptieOpen}
+          onClose={() => setIsReceptieOpen(false)}
+          claim={claim}
+          onPatchClaim={onPatch}
+          onNotify={onNotify}
+          atelierBranding={loadCachedBranding()}
+        />
+      )}
+
+      {/* Modal Pachet Decont Mobil */}
+      {isSettlementOpen && (
+        <SettlementPackageModal
+          isOpen={isSettlementOpen}
+          onClose={() => setIsSettlementOpen(false)}
+          claim={claim}
+          onNotify={onNotify}
+          atelierBranding={loadCachedBranding()}
         />
       )}
     </div>
