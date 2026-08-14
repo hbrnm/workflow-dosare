@@ -235,7 +235,8 @@ export default function ClaimHeader({
                       }`}
                       onClick={async () => {
                         setPdfMenuOpen(false);
-                        await generateazaCerereDespagubireAsirom(form);
+                        const branding = loadCachedBranding();
+                        await generateazaCerereDespagubireAsirom(form, branding);
                       }}
                     >
                       <FileText size={13} /> Cerere Asirom
