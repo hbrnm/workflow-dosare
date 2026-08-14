@@ -511,7 +511,7 @@ export default function SetariModal({
             />
           )}
 
-          {/* TAB 3: AGENT AI */}
+          {/* TAB 3: ASISTENȚĂ INTELIGENTĂ AI & SCANARE */}
           {activeTab === "ai" && (
             <SettingsAiTab
               geminiApiKeySetting={geminiApiKeySetting}
@@ -520,11 +520,12 @@ export default function SetariModal({
             />
           )}
 
-          {/* TAB 4: NOTIFICĂRI & PREFERINȚE VIZUALE */}
+          {/* TAB 4: ASPECT (ZI / NOAPTE / TEMĂ) */}
           {activeTab === "notificari" && (
             <SettingsAppearanceTab
               themePref={themePref}
               setThemePref={setThemePref}
+              onNotify={onNotify}
             />
           )}
 
@@ -540,6 +541,16 @@ export default function SetariModal({
               setConfirmNewPassword={setConfirmNewPassword}
               updatingPassword={updatingPassword}
               handleChangePasswordSubmit={handleChangePasswordSubmit}
+              billingView={billingView}
+              tenancyReady={tenancyReady}
+              atelierSlug={atelierSlug}
+              handleStripeCheckout={handleStripeCheckout}
+              handleStripePortal={handleStripePortal}
+              stripeBusy={stripeBusy}
+              seatDraft={seatDraft}
+              setSeatDraft={setSeatDraft}
+              handleSaveSeats={handleSaveSeats}
+              savingBilling={savingBilling}
               usersList={usersList}
               newUserEmail={newUserEmail}
               setNewUserEmail={setNewUserEmail}
@@ -551,17 +562,6 @@ export default function SetariModal({
               handleAddUserSubmit={handleAddUserSubmit}
               onToggleAdminRole={onToggleAdminRole}
               setPendingDeleteEmail={setPendingDeleteEmail}
-              billingView={billingView}
-              tenancyReady={tenancyReady}
-              atelierId={atelierId}
-              stripeBusy={stripeBusy}
-              handleStripeCheckout={handleStripeCheckout}
-              handleStripePortal={handleStripePortal}
-              seatDraft={seatDraft}
-              setSeatDraft={setSeatDraft}
-              savingBilling={savingBilling}
-              handleSaveSeats={handleSaveSeats}
-              onSaveBilling={onSaveBilling}
             />
           )}
 

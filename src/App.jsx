@@ -60,173 +60,99 @@ export default function App() {
   const [dosareSubView, setDosareSubView] = useState(() => {
     try {
       const saved = localStorage.getItem("workflow_dosare_sub_view");
-      if (saved === "flux" || saved === "brief" || saved === "list") return saved;
+      if (saved === "brief" || saved === "flux" || saved === "list") return saved;
+      return "brief";
     } catch (err) {
-      /* ignore */
+      return "brief";
     }
-    return "brief";
   });
+
+  const [activeMode, setActiveMode] = useState(() =>
+    typeof window !== "undefined" && isCompactMobileViewport() ? "mobile" : "desktop"
+  );
+  const [lockMobileShell, setLockMobileShell] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isAiModalOpenHeader, setIsAiModalOpenHeader] = useState(false);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
 
-  const [isMobileScreen, setIsMobileScreen] = useState(() => isCompactMobileViewport());
-  const [lockMobileShell, setLockMobileShell] = useState(false);
-
-  const [displayMode, setDisplayMode] = useState(() => {
-    try {
-      return localStorage.getItem("workflow_dosare_display_mode") || null;
-    } catch (err) {
-      return null;
-    }
-  });
-  const [isAiModalOpenHeader, setIsAiModalOpenHeader] = useState(false);
-
   useEffect(() => {
-    const handleResize = () => setIsMobileScreen(isCompactMobileViewport());
+    const handleResize = () => {
+      if (lockMobileShell) {
+        setActiveMode("mobile");
+        return;
+      }
+      setActiveMode(isCompactMobileViewport() ? "mobile" : "desktop");
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, [lockMobileShell]);
+
+  const showNotice = useCallback((message, type = "info", options = {}) => {
+    setNotice({
+      message,
+      type,
+      actionLabel: options.actionLabel,
+      onAction: options.onAction,
+      timeout: options.timeout,
+    });
   }, []);
-
-  const activeMode =
-    displayMode || (isMobileScreen || lockMobileShell ? "mobile" : "desktop");
-
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [authScreen, setAuthScreen] = useState("login"); // "login" | "signup"
 
   const {
     session,
-    authLoading,
     setSession,
-    handleLogout: authLogout,
+    authLoading,
+    authScreen,
+    setAuthScreen,
     passwordRecovery,
     clearPasswordRecovery,
-  } = useAuth();
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("workflow_dosare_active_view", view);
-    } catch (err) {
-      console.warn("Unable to persist active view to localStorage", err);
-    }
-    if (["brief", "programator"].includes(view)) {
-      setShowFilterPanel(false);
-    }
-  }, [view]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("workflow_dosare_sub_view", dosareSubView);
-    } catch (err) {
-      console.warn("Unable to persist dosare sub-view", err);
-    }
-  }, [dosareSubView]);
-
-  const handleSwitchView = useCallback((target) => {
-    if (target === "brief" || target === "flux" || target === "list") {
-      setView("dosare");
-      setDosareSubView(target);
-      return;
-    }
-    setView(target);
-  }, []);
-
-  const showNotice = useCallback((message, type = "success", extras = {}) => {
-    setNotice({ message, type, ...extras });
-  }, []);
-
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [isOffline, setIsOffline] = useState(
-    () => typeof navigator !== "undefined" && navigator.onLine === false
-  );
-
-  useEffect(() => {
-    const on = () => setIsOffline(false);
-    const off = () => setIsOffline(true);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
+    authLogout,
+  } = useAuth(showNotice);
 
   const {
-    atelierId,
+    memberships,
+    activeAtelierId: atelierId,
+    activeRole,
+    memberCount,
     atelier,
     tenancyReady,
-    billing,
-    memberCount,
-    memberships,
-    activeRole,
     switchAtelier,
-    refresh: refreshAtelier,
-  } = useAtelier(session, {});
-
-  const startStripeCheckout = useCallback(async (id) => {
-    const { data, error } = await supabase.functions.invoke("create-checkout-session", {
-      body: { atelierId: id, origin: window.location.origin },
-    });
-    if (error || data?.error) {
-      throw new Error(data?.error || error?.message || "Checkout eșuat");
-    }
-    if (data?.url) window.location.href = data.url;
-  }, []);
-
-  const startStripePortal = useCallback(async (id) => {
-    const { data, error } = await supabase.functions.invoke("create-portal-session", {
-      body: { atelierId: id, origin: window.location.origin },
-    });
-    if (error || data?.error) {
-      throw new Error(data?.error || error?.message || "Portal eșuat");
-    }
-    if (data?.url) window.location.href = data.url;
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const billingFlag = params.get("billing");
-    if (billingFlag === "success") {
-      showNotice("Abonament activat. Mulțumim!", "success");
-      refreshAtelier();
-      params.delete("billing");
-      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
-    } else if (billingFlag === "cancel") {
-      showNotice("Checkout anulat.", "info");
-      params.delete("billing");
-      const next = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
-      window.history.replaceState(window.history.state, "", next.replace(/\?$/, ""));
-    }
-  }, [showNotice, refreshAtelier]);
+    refreshAtelier,
+  } = useAtelier(session, showNotice);
 
   const {
     capacitateZilnica,
-    pragRidicare,
-    pragInactivitate,
-    adminEmails,
-    usersList,
-    customInsurers,
-    branding: settingsBranding,
-    billingSettings,
-    manoperaTarife,
-    saveUsersAndAdmins,
-    saveInsurers,
     saveCapacitate,
+    pragRidicare,
     savePragRidicare,
+    pragInactivitate,
     savePragInactivitate,
-    saveTermeneAlertaStatus,
     termeneAlertaStatus,
+    saveTermeneAlertaStatus,
+    customInsurers,
+    saveInsurers,
+    branding: settingsBranding,
     saveBranding: saveBrandingBase,
     uploadBrandingLogo,
-    saveBilling,
-    saveManoperaTarife,
+    adminEmails,
+    usersList,
     handleAddUser,
     handleDeleteUser,
     handleToggleAdminRole,
+    handleChangePassword,
+    billing,
+    billingSettings,
+    saveBilling,
+    manoperaTarife,
+    saveManoperaTarife,
+    startStripeCheckout,
+    startStripePortal,
+    onboardingOpen,
+    setOnboardingOpen,
   } = useSettings(session, showNotice, {
+    tenancyReady,
     atelierId,
-    atelierSlug: atelier?.slug || null,
+    isAdminRole: activeRole === "admin",
   });
 
   const saveBranding = useCallback(
@@ -506,24 +432,53 @@ export default function App() {
       openField: (id) => setFieldClaimId(id),
       openClaim: openExisting,
       openQuickCreate: () => openNew(),
+      openQuickCapture: () => openQuickCapture(),
     },
   });
 
-  const requestCloseAlerts = useCallback(() => requestClose("alerte"), [requestClose]);
+  const requestCloseClaimModal = useCallback(() => {
+    if (activeMode === "mobile") {
+      requestClose();
+      return;
+    }
+    closeClaimModal();
+  }, [activeMode, requestClose, closeClaimModal]);
+
+  const requestCloseFieldClaim = useCallback(() => {
+    if (activeMode === "mobile") {
+      requestClose();
+      return;
+    }
+    closeFieldClaim();
+  }, [activeMode, requestClose, closeFieldClaim]);
+
+  const requestCloseAlerts = useCallback(() => {
+    if (activeMode === "mobile") {
+      requestClose();
+      return;
+    }
+    closeAlerts();
+  }, [activeMode, requestClose, closeAlerts]);
+
   const requestCloseSettings = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose("setari");
+      requestClose();
       return;
     }
     closeSettings();
   }, [activeMode, requestClose, closeSettings]);
-  const requestCloseClaimModal = useCallback(() => requestClose("claim"), [requestClose]);
-  const requestCloseFieldClaim = useCallback(() => requestClose("field"), [requestClose]);
-  const requestCloseQuickCreate = useCallback(() => requestClose("quickCreate"), [requestClose]);
+
+  const requestCloseQuickCreate = useCallback(() => {
+    if (activeMode === "mobile") {
+      requestClose();
+      return;
+    }
+    closeQuickCreate();
+  }, [activeMode, requestClose, closeQuickCreate]);
 
   useEffect(() => {
-    if (activeMode === "mobile") return undefined;
     const handlePopState = (event) => {
+      if (isNavigatingHistoryRef.current) return;
       isNavigatingHistoryRef.current = true;
       if (modalClaim) closeClaimModal();
       else if (alerteModalTab) closeAlerts();
@@ -534,133 +489,118 @@ export default function App() {
         isNavigatingHistoryRef.current = false;
       }, 50);
     };
+
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [
-    activeMode,
     modalClaim,
-    closeClaimModal,
     alerteModalTab,
-    closeAlerts,
     quickCreateOpen,
-    closeQuickCreate,
     quickCaptureOpen,
+    closeClaimModal,
+    closeAlerts,
+    closeQuickCreate,
     closeQuickCapture,
-    setView,
   ]);
 
   useEffect(() => {
     if (activeMode === "mobile") return;
-    if (modalClaim && !isNavigatingHistoryRef.current) {
-      try {
-        window.history.pushState(
-          { view, modalOpen: true, claimId: modalClaim.id },
-          "",
-          `#claim-${modalClaim.id || "nou"}`
-        );
-      } catch {
-        /* ignore */
-      }
+    try {
+      localStorage.setItem("workflow_dosare_active_view", view);
+    } catch {
+      /* ignore */
     }
-  }, [activeMode, modalClaim, view]);
+  }, [activeMode, view]);
 
   useEffect(() => {
     if (activeMode === "mobile") return;
-    if (alerteModalTab && !isNavigatingHistoryRef.current) {
-      try {
-        window.history.pushState({ view, overlay: "alerte" }, "", `#alerte-${alerteModalTab}`);
-      } catch {
-        /* ignore */
-      }
+    try {
+      localStorage.setItem("workflow_dosare_sub_view", dosareSubView);
+    } catch {
+      /* ignore */
     }
-  }, [activeMode, alerteModalTab, view]);
+  }, [activeMode, dosareSubView]);
 
   const canEdit = useCallback(
-    (c) => {
-      if (!c) return false;
+    (claim) => {
+      if (!session?.user) return false;
       if (isAdmin) return true;
-      if (myId && c.createdBy === myId) return true;
-      if (myEmail && c.createdByEmail && c.createdByEmail.toLowerCase() === myEmail.toLowerCase()) return true;
-      if (!c.createdBy && !c.createdByEmail) return true;
-      return false;
+      if (!claim) return true;
+      const cOwner = (claim.createdByEmail || "").toLowerCase();
+      const uEmail = (myEmail || "").toLowerCase();
+      return Boolean(cOwner && uEmail && cOwner === uEmail);
     },
-    [myId, myEmail, isAdmin]
+    [session, isAdmin, myEmail]
   );
 
-  useEffect(() => {
-    if (!notice) return undefined;
-    const timer = window.setTimeout(() => setNotice(null), 5000);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
+  const handleSave = useCallback(
+    async (claimData, options = {}) => {
+      setSaving(true);
+      const isNew = !claims.some((c) => c.id === claimData.id);
+      const res = await saveClaim(claimData);
+      setSaving(false);
 
-  useEffect(() => {
-    if (session) loadAll();
-  }, [loadAll, session]);
+      if (res) {
+        showNotice(
+          isNew ? "Dosar creat cu succes!" : "Dosar actualizat cu succes!",
+          "success"
+        );
+        closeClaimModal();
+        closeQuickCreate();
 
-  const handleChangePassword = async (newPassword) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) throw error;
-  };
-
-  const handleSave = async (claim, options = {}) => {
-    setSaving(true);
-    const result = await saveClaim(claim, options);
-    setSaving(false);
-    if (!result?.success) return result;
-    if (options.openProgramator && claim?.dataProgramare) {
-      setProgramatorFocusDate(String(claim.dataProgramare).slice(0, 10));
-      setView("programator");
-    }
-    if (activeMode === "mobile" && claim?.id) {
-      replaceClaimWithField(claim.id);
-    } else {
-      closeClaimModal();
-    }
-    closeQuickCreate();
-    return result;
-  };
-
-  const handleDelete = (id) => {
-    deleteClaim(id, canEdit, {
-      onUndoToast: (item) => setUndoToastItem(item),
-    });
-    requestCloseClaimModal();
-    if (fieldClaimId === id) requestCloseFieldClaim();
-  };
-
-  const handleMoveToStatus = (claim, newStatusKey) => {
-    moveToStatus(claim, newStatusKey, canEdit, {
-      onUndoToast: (item) => setUndoToastItem(item),
-    });
-  };
-
-  const handlePatchClaim = async (id, patch) => {
-    return patchClaim(id, patch, { canEditFn: canEdit, skipOwnershipCheck: false });
-  };
-
-  const handleOpenClaim = useCallback((claimOrRef) => {
-    if (!claimOrRef) return;
-    const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
-    const fresh = id ? claims.find((c) => c.id === id) : null;
-    openExisting(fresh || claimOrRef);
-  }, [claims, openExisting]);
-
-  const clearSearch = useCallback(() => setSearch(""), [setSearch]);
-
-  const handleSearchSelectMobile = useCallback(
-    (claim) => {
-      clearSearch();
-      openMobileClaim(claim);
+        if (options.openProgramator) {
+          setView("programator");
+          setProgramatorFocusDate(claimData.dataProgramare || null);
+        }
+      }
+      return res;
     },
-    [clearSearch, openMobileClaim]
+    [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate]
+  );
+
+  const handleDelete = useCallback(
+    async (claimId) => {
+      const res = await deleteClaim(claimId);
+      if (res) {
+        closeClaimModal();
+        closeFieldClaim();
+      }
+      return res;
+    },
+    [deleteClaim, closeClaimModal, closeFieldClaim]
+  );
+
+  const handlePatchClaim = useCallback(
+    async (claimId, patch) => {
+      return await patchClaim(claimId, patch);
+    },
+    [patchClaim]
+  );
+
+  const handleMoveToStatus = useCallback(
+    async (claimId, newStatus) => {
+      return await moveToStatus(claimId, newStatus);
+    },
+    [moveToStatus]
   );
 
   const activeModalClaim = useMemo(() => {
-    if (!modalClaim?.id) return modalClaim;
-    return claims.find((c) => c.id === modalClaim.id) || modalClaim;
+    if (!modalClaim) return null;
+    const fresh = claims.find((c) => c.id === modalClaim.id);
+    return fresh || modalClaim;
   }, [claims, modalClaim]);
 
-  const { exportExcel, exportPdf } = useExportExcel(userClaims);
+  const handleOpenClaim = useCallback(
+    (claimOrRef) => {
+      if (!claimOrRef) return;
+      const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
+      const fresh = id ? claims.find((c) => c.id === id) : null;
+      openExisting(fresh || claimOrRef);
+    },
+    [claims, openExisting]
+  );
+
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
   if (authLoading) {
     return (
@@ -719,8 +659,11 @@ export default function App() {
           <SearchResultsOverlay
             query={search}
             claims={userClaims}
-            onSelect={handleSearchSelectMobile}
-            onClear={clearSearch}
+            onSelect={(claim) => {
+              setSearch("");
+              openMobileClaim(claim);
+            }}
+            onClear={() => setSearch("")}
             onNotify={showNotice}
           />
         )}
@@ -1107,38 +1050,22 @@ export default function App() {
         openNew={openNew}
       />
 
+      {/* Global Command Palette (Ctrl+K) */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         claims={userClaims}
-        initialQuery={search}
-        onQueryChange={setSearch}
-        onOpenClaim={(claim) => {
-          clearSearch();
-          handleOpenClaim(claim);
+        onSelectClaim={handleOpenClaim}
+        onNavigate={(viewId) => {
+          setView(viewId);
+          if (viewId === "dosare") setDosareSubView("brief");
         }}
-        onSwitchView={(id) => {
-          clearSearch();
-          handleSwitchView(id);
-        }}
-        onOpenNewClaim={
-          userCanCreate
-            ? () => {
-                clearSearch();
-                openNew();
-              }
-            : undefined
-        }
-        onOpenQuickCapture={() => {
-          clearSearch();
-          openQuickCapture();
-        }}
-        onOpenAiScan={() => {
-          clearSearch();
-          setIsAiModalOpenHeader(true);
-        }}
-        onExportExcel={exportExcel}
-        onExportPdf={exportPdf}
+        onOpenNewClaim={openNew}
+        onOpenSettings={openSettings}
+        onOpenAlerts={openAlerts}
+        onOpenBlocked={openBlockedClaims}
+        onOpenQuickCapture={openQuickCapture}
+        onOpenAiScan={() => setIsAiModalOpenHeader(true)}
       />
     </div>
   );

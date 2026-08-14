@@ -298,6 +298,7 @@ export default function ClaimModal({
         refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
       ]);
       if (!cancelled) {
+        // URL refresh is not a user edit — keep dirty baseline in sync
         setForm((current) => ({ ...current, poze, documente }));
         setBaseline((current) => ({ ...current, poze, documente }));
       }
@@ -734,7 +735,7 @@ export default function ClaimModal({
     }
     if (noi.length) {
       setFormMedia({ poze: [...noi, ...currentPoze] });
-      onNotify?.(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}".`, "success");
+      onNotify?.(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}”.`, "success");
       await persistMediaPatch({ appendPoze: noi });
     }
     setUploadingPoze(false);
@@ -799,6 +800,31 @@ export default function ClaimModal({
       await persistMediaPatch({ appendDocumente: noi });
     }
     setUploadingDocumente(false);
+  };
+
+  const handleStartScanSession = async (fileList) => {
+    const files = Array.from(fileList || []).filter((f) => f?.type?.startsWith("image/"));
+    if (files.length === 0) return;
+
+    setUploadingDocumente(true);
+    try {
+      const urls = [];
+      for (const file of files) urls.push(await fileToDataUrl(file));
+      const defaultName = `Scan_${form.numarInmatriculare || "Dosar"}_${todayISO()}`;
+      setScanSession({
+        fileName: defaultName,
+        pages: [],
+        saveAsPdf: true,
+        saveAsPhotos: false,
+      });
+      setCropMode("scan");
+      setCropImageSrc(urls[0]);
+      setCropQueue(urls.slice(1));
+    } catch (err) {
+      onNotify?.(err.message, "error");
+    } finally {
+      setUploadingDocumente(false);
+    }
   };
 
   const handleAddPageToScan = async (fileList) => {
@@ -903,57 +929,19 @@ export default function ClaimModal({
           setPdfMenuOpen={setPdfMenuOpen}
           pdfMenuRef={pdfMenuRef}
           downloadingZip={downloadingZip}
-          handleDownloadZip={handleDownloadZip}
-          handleDuplicate={handleDuplicate}
+          onDownloadZip={handleDownloadZip}
+          onDuplicate={handleDuplicate}
           requestClose={requestClose}
           handleMouseDown={handleMouseDown}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          readOnly={readOnly}
+          userEmail={userEmail}
         />
-
-        {/* Tab track */}
-        <div className="m-settings-tabs m-settings-tabs--pill flex shrink-0 overflow-x-auto scrollbar-thin z-30">
-          {[
-            { id: "general", label: desktopUi ? "Date Dosar & Vehicul" : "Dosar", icon: FileText },
-            {
-              id: "media",
-              label: desktopUi ? "Poze & Documente" : "Media",
-              icon: ImageIcon,
-              badge:
-                (Array.isArray(form.poze) ? form.poze.length : 0) +
-                (Array.isArray(form.documente) ? form.documente.length : 0),
-            },
-            { id: "financial", label: desktopUi ? "Financiar & Audatex" : "Financiar", icon: Wallet },
-            {
-              id: "history",
-              label: desktopUi ? "Istoric & Notițe" : "Istoric",
-              icon: History,
-              badge: Array.isArray(form.note) ? form.note.length : 0,
-            },
-          ].map(({ id, label, icon: Icon, badge }) => {
-            const active = activeTab === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setActiveTab(id)}
-                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 cursor-pointer ${
-                  active ? "is-active" : ""
-                }`}
-              >
-                <Icon size={14} />
-                <span>{label}</span>
-                {badge > 0 && (
-                  <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
-                    {badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
 
         {readOnly && (
           <div className="px-4 py-1.5 bg-[var(--app-border-soft)] text-[var(--app-muted)] text-[11px] flex items-center gap-1.5 shrink-0 border-b border-[var(--app-border)] font-medium">
-            <ShieldCheck size={13} className="text-[var(--app-accent)]" /> Vizualizare restricționată — poți citi, nu edita.
+            <ShieldCheck size={13} className="text-[var(--app-accent)]" /> Vizualizare restricționată - poți citi, nu edita.
           </div>
         )}
 
@@ -964,14 +952,16 @@ export default function ClaimModal({
               {activeTab === "general" && (
                 <ClaimGeneralTab
                   form={form}
-                  setForm={setForm}
                   set={set}
+                  setFinancial={setFinancial}
+                  insurersList={insurersList}
                   readOnly={readOnly}
                   isNew={isNew}
-                  insurersList={insurersList}
                   toggleGata={toggleGata}
                   toggleRidicata={toggleRidicata}
-                  applyClaimStatusChange={applyClaimStatusChange}
+                  applyLaborFromOre={applyLaborFromOre}
+                  laborRatesConfigured={laborRatesConfigured}
+                  laborPreview={laborPreview}
                   onNotify={onNotify}
                 />
               )}
@@ -982,14 +972,13 @@ export default function ClaimModal({
                   uploadingPoze={uploadingPoze}
                   uploadingDocumente={uploadingDocumente}
                   downloadingZip={downloadingZip}
-                  handleUploadPoze={handleUploadPoze}
-                  handleUploadDocumente={handleUploadDocumente}
-                  handleDownloadZip={handleDownloadZip}
-                  removePoza={removePoza}
-                  removeDoc={removeDoc}
-                  setPreviewPozaIndex={setPreviewPozaIndex}
-                  setCropMode={setCropMode}
-                  setCropImageSrc={setCropImageSrc}
+                  onUploadPoze={handleUploadPoze}
+                  onUploadDocumente={handleUploadDocumente}
+                  onDownloadZip={handleDownloadZip}
+                  onStartScan={handleStartScanSession}
+                  onRemovePoza={removePoza}
+                  onRemoveDoc={removeDoc}
+                  onPreviewPoza={(idx) => setPreviewPozaIndex(idx)}
                 />
               )}
 
@@ -999,27 +988,24 @@ export default function ClaimModal({
                   setForm={setForm}
                   set={set}
                   setFinancial={setFinancial}
-                  readOnly={readOnly}
-                  manoperaTarife={manoperaTarife}
                   setAudatexDevizField={setAudatexDevizField}
                   setCheltuieliService={setCheltuieliService}
                   applyLaborFromOre={applyLaborFromOre}
+                  laborRatesConfigured={laborRatesConfigured}
+                  laborPreview={laborPreview}
                   getAudatexDevizValue={getAudatexDevizValue}
                   valoareDevizAudatex={valoareDevizAudatex}
                   valoareAcceptPlata={valoareAcceptPlata}
                   valoareFransiza={valoareFransiza}
-                  totalDevizComponente={totalDevizComponente}
                   totalPieseAudatex={totalPieseAudatex}
                   totalManoperaAudatex={totalManoperaAudatex}
+                  totalCosturiSuplimentareAudatex={totalCosturiSuplimentareAudatex}
+                  totalVopsitorieAudatex={totalVopsitorieAudatex}
                   manoperaVopsitorieAudatex={manoperaVopsitorieAudatex}
                   materialeVopsitorie={materialeVopsitorie}
                   venitManoperaAudatex={venitManoperaAudatex}
                   costManoperaTinichigerieService={costManoperaTinichigerieService}
                   costManoperaVopsitorieService={costManoperaVopsitorieService}
-                  oreLucrateTinichigerie={oreLucrateTinichigerie}
-                  oreLucrateVopsitorie={oreLucrateVopsitorie}
-                  laborPreview={laborPreview}
-                  laborRatesConfigured={laborRatesConfigured}
                   costManoperaService={costManoperaService}
                   marjaManopera={marjaManopera}
                   pretPieseAudatex={pretPieseAudatex}
@@ -1029,13 +1015,13 @@ export default function ClaimModal({
                   costMaterialeVopsitorieService={costMaterialeVopsitorieService}
                   costConsumabileTinichigerieService={costConsumabileTinichigerieService}
                   costMasinaSchimb={costMasinaSchimb}
+                  totalDevizComponente={totalDevizComponente}
                   venitNetTotal={venitNetTotal}
                   totalCosturiService={totalCosturiService}
                   profitBrutReal={profitBrutReal}
                   marjaProfitProc={marjaProfitProc}
                   serviceCostBreakdown={serviceCostBreakdown}
-                  onNotify={onNotify}
-                  setActiveTab={setActiveTab}
+                  readOnly={readOnly}
                 />
               )}
 
@@ -1047,19 +1033,19 @@ export default function ClaimModal({
                   loadingIstoric={loadingIstoric}
                   noteText={noteText}
                   setNoteText={setNoteText}
-                  slashIndex={slashIndex}
-                  setSlashIndex={setSlashIndex}
+                  addNote={addNote}
+                  removeNote={removeNote}
+                  handleNoteKeyDown={handleNoteKeyDown}
                   noteInputRef={noteInputRef}
                   filteredSlashCommands={filteredSlashCommands}
+                  slashIndex={slashIndex}
                   applySlashCommand={applySlashCommand}
-                  addNote={addNote}
-                  handleNoteKeyDown={handleNoteKeyDown}
-                  removeNote={removeNote}
+                  readOnly={readOnly}
                 />
               )}
 
-              {/* Lightbox Poze */}
-              {previewPozaIndex != null && (form.poze || []).length > 0 && (
+              {/* Galerie fullscreen — swipe între poze */}
+              {previewPozaIndex != null && form.poze?.length > 0 && (
                 <PhotoLightbox
                   items={form.poze}
                   startIndex={previewPozaIndex}

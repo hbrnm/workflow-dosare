@@ -98,276 +98,260 @@ export default function MobileQuickCapture({
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
-  // Lista celor mai recente dosare
-  const recentClaims = useMemo(
-    () => [...editableClaims].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || "")).slice(0, 8),
-    [editableClaims]
-  );
-
-  // Rezultate căutare
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return recentClaims;
-    return editableClaims.slice(0, 25);
-  }, [editableClaims, recentClaims, searchQuery]);
-
-  // Dosarul selectat curent (up-to-date cu ultimele poze/documente)
   const selectedClaim = useMemo(() => {
     if (!selectedClaimId) return null;
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
 
-  const openLiveCamera = async () => {
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) return;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      setLiveCameraStream(stream);
-      setShowLiveCamera(true);
-    } catch (error) {
-      console.warn("Camera live nu a putut fi pornită:", error);
-    }
-  };
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return editableClaims.slice(0, 20);
+    return editableClaims
+      .filter(
+        (c) =>
+          c.numarInmatriculare?.toLowerCase().includes(q) ||
+          c.numarDosar?.toLowerCase().includes(q) ||
+          c.client?.toLowerCase().includes(q) ||
+          c.marcaModel?.toLowerCase().includes(q)
+      )
+      .slice(0, 20);
+  }, [editableClaims, searchQuery]);
 
-  // URL-uri semnate proaspete pentru thumbnails (cele din DB expiră)
+  // Thumbnails afișate imediat: refresh signed URLs dacă expiră
   const [displayPoze, setDisplayPoze] = useState([]);
   const [displayDocs, setDisplayDocs] = useState([]);
-  const mediaFingerprint = useMemo(() => {
-    if (!selectedClaim) return "";
-    const p = (selectedClaim.poze || []).map((x) => x?.path || x?.id || "").join(",");
-    const d = (selectedClaim.documente || []).map((x) => x?.path || x?.id || "").join(",");
-    return `${selectedClaim.id}|${p}|${d}|${selectedClaim.poze?.length || 0}|${selectedClaim.documente?.length || 0}`;
-  }, [selectedClaim]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!selectedClaim) {
+      setDisplayPoze([]);
+      setDisplayDocs([]);
+      return;
+    }
+    let active = true;
     (async () => {
-      if (!selectedClaim) {
-        setDisplayPoze([]);
-        setDisplayDocs([]);
-        return;
-      }
-      const [p, d] = await Promise.all([
-        refreshStorageUrls(selectedClaim.poze || [], "poze-dosare", supabase),
-        refreshStorageUrls(selectedClaim.documente || [], "documente-dosare", supabase),
-      ]);
-      if (!cancelled) {
-        setDisplayPoze(p);
-        setDisplayDocs(d);
+      const pozeFresh = await refreshStorageUrls(selectedClaim.poze || [], "claim-photos", supabase);
+      const docsFresh = await refreshStorageUrls(selectedClaim.documente || [], "claim-documents", supabase);
+      if (active) {
+        setDisplayPoze(pozeFresh);
+        setDisplayDocs(docsFresh);
       }
     })();
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [mediaFingerprint]);
+  }, [selectedClaim]);
 
-  // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
-  const handleMobilePhotoCapture = async (fileInputData, categorie = "generale") => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar din listă.", "error");
-      return;
-    }
-    const files = Array.isArray(fileInputData)
-      ? fileInputData
-      : fileInputData instanceof FileList
-      ? Array.from(fileInputData)
-      : fileInputData
-      ? [fileInputData]
-      : [];
-
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const noiPoze = [];
-      for (const rawFile of files) {
-        let compressed = rawFile;
-        try {
-          compressed = await compressImage(rawFile);
-        } catch (e) {
-          console.warn("Comprimare eșuată în mobil, se transmite fișierul brut:", e);
-        }
-        const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
-        const itemWithCat = typeof uploaded === "object"
-          ? { ...uploaded, categoria: categorie || "generale" }
-          : { url: uploaded, categoria: categorie || "generale" };
-        noiPoze.push(itemWithCat);
-      }
-
-      if (noiPoze.length > 0) {
-        await onPatch(selectedClaim.id, { appendPoze: noiPoze }, { canEditFn });
-        onNotify(`${noiPoze.length} fotografie(i) salvată(e) pe dosarul ${selectedClaim.numarInmatriculare}`, "success");
-      }
-    } catch (err) {
-      onNotify("Eroare la încărcare poză: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Încărcare document PDF
-  const handleMobileDocUpload = async (fileList) => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    const files = Array.from(fileList || []);
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const noiDocs = [];
-      for (const file of files) {
-        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB.`, "error");
-          continue;
-        }
-        const uploaded = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, file, "documente");
-        noiDocs.push(uploaded);
-      }
-
-      if (noiDocs.length > 0) {
-        await onPatch(selectedClaim.id, { appendDocumente: noiDocs }, { canEditFn });
-        onNotify(`📄 ${noiDocs.length} document(e) atașat(e) pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
-      }
-    } catch (err) {
-      onNotify("Eroare la încărcare document: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Scanare: deschide editorul tip CamScanner (4 colțuri) pentru fiecare pagină
-  const handleAddScanPages = async (fileList) => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    const files = Array.from(fileList || []).filter((f) => f && f.type && f.type.startsWith("image/"));
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const urls = [];
-      for (const file of files) {
-        urls.push(await fileToDataUrl(file));
-      }
-      setActiveScanCrop(urls[0]);
-      setScanCropQueue(urls.slice(1));
-      if (!scanSession) {
-        const defaultName = `Scan_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
-        setScanSession({ fileName: defaultName, pages: [] });
-      }
-    } catch (err) {
-      onNotify("Eroare scanare document: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const defaultScanFileName = () =>
-    `Scan_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
-
-  const appendScannedPage = (croppedDataUrl) => {
-    setScanSession((prev) => {
-      if (prev) {
-        return { ...prev, pages: [...prev.pages, croppedDataUrl] };
-      }
-      return { fileName: defaultScanFileName(), pages: [croppedDataUrl] };
-    });
-  };
-
-  const openLiveDocumentScanner = () => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    setShowLiveScanner(true);
-  };
-
-  const handleLiveScannerComplete = (pages) => {
-    setShowLiveScanner(false);
-    if (!pages || pages.length === 0) return;
-    setScanSession((prev) => {
-      if (prev) {
-        return { ...prev, pages: [...prev.pages, ...pages] };
-      }
-      return { fileName: defaultScanFileName(), pages: [...pages] };
-    });
-  };
-
-  const advanceScanCropQueue = () => {
-    setScanCropQueue((queue) => {
-      if (queue.length === 0) {
-        setActiveScanCrop(null);
-        return [];
-      }
-      const [next, ...rest] = queue;
-      setActiveScanCrop(next);
-      return rest;
-    });
-  };
-
-  const handleScanCropConfirm = (croppedDataUrl) => {
-    appendScannedPage(croppedDataUrl);
-    advanceScanCropQueue();
-  };
-
-  const handleScanCropClose = () => {
-    // Skip current page, continue with remaining queue
-    advanceScanCropQueue();
-  };
-
-  // Salvare sesiunii de scanare PDF (pagini fit pe A4, fără stretch)
-  const handleSaveScanPDF = async () => {
-    if (!scanSession || !scanSession.pages.length || !selectedClaim) return;
-    setUploading(true);
-
-    try {
-      const pdfBlob = await buildScanPdfBlob(scanSession.pages, { marginMm: 5 });
-      const fileName = `${scanSession.fileName.trim() || "Document_Scanat"}.pdf`;
-      const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
-
-      const uploadedDoc = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, pdfFile, "documente");
-      await onPatch(selectedClaim.id, { appendDocumente: [uploadedDoc] }, { canEditFn });
-
-      setScanSession(null);
-      onNotify(`📄 Documentul scanat „${fileName}” a fost atașat pe dosar!`, "success");
-    } catch (err) {
-      onNotify("Eroare la salvare PDF: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Ștergere fotografie din dosar și din Supabase Storage
-  const handleDeletePhoto = async (e, idx) => {
-    e.stopPropagation();
+  // Deschide camera live direct cu WebRTC getUserMedia (stil iPhone Camera UI)
+  const openLiveCamera = async () => {
     if (!selectedClaim) return;
-    if (!window.confirm("Confirmi ștergerea acestei fotografii din dosar?")) return;
+    setShowLiveCamera(true);
+  };
+
+  // Callback la captură rapidă din camera live (salvează fără confirmări suplimentare)
+  const handleMobilePhotoCapture = async (files, targetCat) => {
+    if (!selectedClaim || !files?.length) return;
+    const cat = targetCat || cameraCategory || "receptie";
 
     try {
       setUploading(true);
-      const currentPoze = selectedClaim.poze || [];
-      const targetItem = currentPoze[idx];
+      const uploadedPhotos = [];
 
-      // Curățare fișier din stocarea Supabase
-      if (targetItem && targetItem.path) {
-        try {
-          await supabase.storage.from("poze-dosare").remove([targetItem.path]);
-        } catch (stErr) {
-          console.warn("Could not delete from storage bucket:", stErr);
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
+          continue;
+        }
+
+        const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        const uploaded = await uploadStorageItem({
+          claimId: selectedClaim.id,
+          file: optimizedFile,
+          folder: "poze",
+          bucketName: "claim-photos",
+          extraFields: {
+            categoria: cat,
+            nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            data: todayISO(),
+          },
+        });
+
+        if (uploaded) {
+          uploadedPhotos.push(uploaded);
         }
       }
 
-      if (targetItem) {
-        await onPatch(selectedClaim.id, { removePoze: [targetItem] }, { canEditFn });
+      if (uploadedPhotos.length > 0) {
+        await onPatch(selectedClaim.id, { appendPoze: uploadedPhotos }, { canEditFn });
+        onNotify(`S-au salvat ${uploadedPhotos.length} foto la [${cat.toUpperCase()}]`, "success");
       }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la încărcarea fotografiilor: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Deschide scannerul de documente live (camera cu detecție chenar)
+  const openLiveDocumentScanner = () => {
+    if (!selectedClaim) return;
+    setShowLiveScanner(true);
+  };
+
+  // Callback după scanarea automată cu camera
+  const handleLiveScannerComplete = (capturedDataUrl) => {
+    setShowLiveScanner(false);
+    if (!capturedDataUrl) return;
+
+    // Deschide sesiunea de asamblare PDF
+    const defaultName = `Document_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
+    setScanSession({
+      pages: [capturedDataUrl],
+      fileName: defaultName,
+    });
+  };
+
+  // Deschide încărcătorul din galerie pentru decupare manuală pe 4 colțuri
+  const handleAddFromGallery = (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+    
+    // Convertim toate fișierele în DataURLs pentru coada de decupare
+    Promise.all(fileList.map((f) => fileToDataUrl(f))).then((dataUrls) => {
+      const valid = dataUrls.filter(Boolean);
+      if (valid.length > 0) {
+        setScanCropQueue((prev) => [...prev, ...valid]);
+      }
+    });
+  };
+
+  // Procesează coada de decupare câte o pagină
+  useEffect(() => {
+    if (!activeScanCrop && scanCropQueue.length > 0) {
+      setActiveScanCrop(scanCropQueue[0]);
+      setScanCropQueue((prev) => prev.slice(1));
+    }
+  }, [activeScanCrop, scanCropQueue]);
+
+  const handleScanCropConfirm = (croppedDataUrl) => {
+    setActiveScanCrop(null);
+    if (!croppedDataUrl) return;
+
+    setScanSession((prev) => {
+      if (!prev) {
+        const defaultName = `Document_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
+        return { pages: [croppedDataUrl], fileName: defaultName };
+      }
+      return { ...prev, pages: [...prev.pages, croppedDataUrl] };
+    });
+  };
+
+  const handleScanCropClose = () => {
+    setActiveScanCrop(null);
+  };
+
+  // Adaugă pagini suplimentare la sesiunea de scanare curentă
+  const handleAddScanPages = (files) => {
+    if (!files || files.length === 0) return;
+    handleAddFromGallery(files);
+  };
+
+  // Salvează paginile scanate ca un singur document PDF compact în dosar
+  const handleSaveScanPDF = async () => {
+    if (!selectedClaim || !scanSession || scanSession.pages.length === 0) return;
+
+    try {
+      setUploading(true);
+      const pdfBlob = await buildScanPdfBlob(scanSession.pages);
+      const fileName = `${scanSession.fileName.replace(/\.pdf$/i, "")}.pdf`;
+      const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+      const uploaded = await uploadStorageItem({
+        claimId: selectedClaim.id,
+        file: pdfFile,
+        folder: "documente",
+        bucketName: "claim-documents",
+        extraFields: {
+          nume: fileName,
+          data: todayISO(),
+        },
+      });
+
+      if (uploaded) {
+        await onPatch(selectedClaim.id, { appendDocumente: [uploaded] }, { canEditFn });
+        onNotify(`Documentul "${fileName}" a fost salvat în dosar.`, "success");
+        setScanSession(null);
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la generarea documentului PDF: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Încărcare rapidă documente PDF existente din fișiere
+  const handleMobileDocUpload = async (files) => {
+    if (!selectedClaim || !files?.length) return;
+
+    try {
+      setUploading(true);
+      const uploadedDocs = [];
+
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
+          continue;
+        }
+
+        const uploaded = await uploadStorageItem({
+          claimId: selectedClaim.id,
+          file,
+          folder: "documente",
+          bucketName: "claim-documents",
+          extraFields: {
+            nume: file.name,
+            data: todayISO(),
+          },
+        });
+
+        if (uploaded) {
+          uploadedDocs.push(uploaded);
+        }
+      }
+
+      if (uploadedDocs.length > 0) {
+        await onPatch(selectedClaim.id, { appendDocumente: [uploadedDocs] }, { canEditFn });
+        onNotify(`S-au adăugat ${uploadedDocs.length} documente.`, "success");
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la încărcarea documentelor: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Ștergere directă fotografie din dosar și storage
+  const handleDeletePhoto = async (e, photoIndex) => {
+    e.stopPropagation();
+    if (!selectedClaim) return;
+
+    const targetPhoto = displayPoze[photoIndex];
+    if (!targetPhoto) return;
+
+    if (!window.confirm("Sigur dorești să ștergi această fotografie din dosar?")) {
+      return;
+    }
+
+    try {
+      setUploading(true);
+      if (targetPhoto.path) {
+        await supabase.storage.from("claim-photos").remove([targetPhoto.path]);
+      }
+
+      // Actualizează dosarul prin removePoze patch
+      await onPatch(selectedClaim.id, { removePoze: [targetPhoto] }, { canEditFn });
       onNotify("Fotografia a fost ștearsă din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
@@ -376,27 +360,27 @@ export default function MobileQuickCapture({
     }
   };
 
-  // Ștergere document din dosar și din Supabase Storage
-  const handleDeleteDocument = async (e, idx) => {
-    e.preventDefault();
+  // Ștergere directă document PDF din dosar și storage
+  const handleDeleteDocument = async (e, docIndex) => {
     e.stopPropagation();
     if (!selectedClaim) return;
-    if (!window.confirm("Confirmi ștergerea acestui document din dosar?")) return;
+
+    const targetDoc = displayDocs[docIndex];
+    if (!targetDoc) return;
+
+    if (!window.confirm(`Sigur dorești să ștergi documentul "${targetDoc.name || targetDoc.nume || "PDF"}" din dosar?`)) {
+      return;
+    }
 
     try {
       setUploading(true);
-      const currentDocs = selectedClaim.documente || [];
-      const targetItem = currentDocs[idx];
-
-      // Curățare fișier din stocarea Supabase
-      if (targetItem && targetItem.path) {
-        try {
-          await supabase.storage.from("documente-dosare").remove([targetItem.path]);
-        } catch (stErr) {
-          console.warn("Could not delete from storage bucket:", stErr);
-        }
+      if (targetDoc.path) {
+        await supabase.storage.from("claim-documents").remove([targetDoc.path]);
       }
 
+      const targetItem = (selectedClaim.documente || []).find(
+        (d) => (d.path && d.path === targetDoc.path) || (d.id && d.id === targetDoc.id) || (d.url && d.url === targetDoc.url)
+      );
       if (targetItem) {
         await onPatch(selectedClaim.id, { removeDocumente: [targetItem] }, { canEditFn });
       }

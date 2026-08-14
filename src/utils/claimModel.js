@@ -65,7 +65,6 @@ export function parseNumber(val, defaultVal = 0) {
   if (typeof val === "number") return isNaN(val) ? defaultVal : val;
   const str = String(val).trim();
   if (!str) return defaultVal;
-
   // Clean currency symbols, units, spaces (e.g. "1 250,50 RON" -> "1250,50")
   const cleaned = str.replace(/[^\d.,-]/g, "");
   if (!cleaned) return defaultVal;

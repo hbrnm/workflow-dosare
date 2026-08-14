@@ -54,7 +54,8 @@ Formatul JSON de returnat trebuie să aibă exact această structură:
       "rep": boolean (reparație tinichigerie),
       "uni": boolean (demontare / montare)
     }
-  ]
+  ],
+  "tipDocumentIdentificat": string (ex: "Deviz Audatex", "Proces Verbal Constatare", "Certificat Înmatriculare", "Deviz Eurotax", "Factură Piese", "Necunoscut")
 }`;
 
 /**
