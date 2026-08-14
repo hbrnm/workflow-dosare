@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Sparkles, Upload, FileText, CheckCircle2, AlertCircle, Loader2, ArrowRight, X, Cpu, Zap, Globe } from "lucide-react";
 import { extractClaimDataHybrid } from "../../utils/aiDocumentExtractor";
 import { supabase } from "../../supabaseClient";
+import { INSURERS } from "../../constants/config";
 
 export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted, initialClaimData }) {
   const [file, setFile] = useState(null);
@@ -422,12 +423,19 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                         <label className="text-slate-400 text-[11px]">Asigurător:</label>
                         <input
                           type="text"
+                          list="insurers-autocomplete-list"
                           value={editableClaim.asigurator || ""}
                           onChange={(e) =>
                             setEditableClaim({ ...editableClaim, asigurator: e.target.value })
                           }
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                          placeholder="ex: Omniasig VIG"
                         />
+                        <datalist id="insurers-autocomplete-list">
+                          {INSURERS.map((ins) => (
+                            <option key={ins} value={ins} />
+                          ))}
+                        </datalist>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -457,6 +465,70 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                             })
                           }
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Manoperă Tinichig. (RON):</label>
+                        <input
+                          type="number"
+                          value={editableClaim.financiar?.manoperaTinichigerie || editableClaim.manopera?.tinichigerie?.facturat || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setEditableClaim({
+                              ...editableClaim,
+                              manopera: {
+                                ...editableClaim.manopera,
+                                tinichigerie: { ...(editableClaim.manopera?.tinichigerie || {}), facturat: val },
+                              },
+                              financiar: {
+                                ...editableClaim.financiar,
+                                manoperaTinichigerie: val,
+                              },
+                            });
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Manoperă Vopsit. (RON):</label>
+                        <input
+                          type="number"
+                          value={editableClaim.financiar?.manoperaVopsitorie || editableClaim.manopera?.vopsitorie?.facturat || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setEditableClaim({
+                              ...editableClaim,
+                              manopera: {
+                                ...editableClaim.manopera,
+                                vopsitorie: { ...(editableClaim.manopera?.vopsitorie || {}), facturat: val },
+                              },
+                              financiar: {
+                                ...editableClaim.financiar,
+                                manoperaVopsitorie: val,
+                              },
+                            });
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Materiale Vopsit. (RON):</label>
+                        <input
+                          type="number"
+                          value={editableClaim.financiar?.materialeVopsitorie || ""}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setEditableClaim({
+                              ...editableClaim,
+                              financiar: {
+                                ...editableClaim.financiar,
+                                materialeVopsitorie: val,
+                              },
+                            });
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200 text-xs"
                         />
                       </div>
                     </div>

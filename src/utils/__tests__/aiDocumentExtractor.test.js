@@ -57,7 +57,7 @@ describe("aiDocumentExtractor & schema mapping", () => {
 
     expect(tipDocument).toBe("Deviz Reparație");
     expect(claimPartial.numarDosar).toBe("DEV-2026-0042");
-    expect(claimPartial.asigurator).toBe("Allianz-Tiriac");
+    expect(claimPartial.asigurator).toBe("Allianz-Țiriac");
     expect(claimPartial.tipAsigurare).toBe("CASCO");
     expect(claimPartial.client).toBe("Andrei Georgescu");
     expect(claimPartial.telefonClient).toBe("0733444555");
@@ -68,13 +68,15 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(claimPartial.kilometraj).toBe(85200);
     expect(claimPartial.ceEsteDeReparat).toBe("Avarie aripă stânga față și bară");
 
-    // Financiare
+    // Financiare & Manoperă
     expect(claimPartial.valoareDevizAudatex).toBe(5400.5);
     expect(claimPartial.valoarePieseAudatex).toBe(3200.5);
     expect(claimPartial.financiar.audatex.totalPiese).toBe(3200.5);
     expect(claimPartial.financiar.audatex.costReparatieFaraTva).toBe(5400.5);
     expect(claimPartial.financiar.audatex.costReparatieCuTva).toBe(6426.6);
     expect(claimPartial.financiar.audatex.totalVopsitorie).toBe(800);
+    expect(claimPartial.financiar.manoperaTinichigerie).toBe(1400);
+    expect(claimPartial.manopera.tinichigerie.facturat).toBe(1400);
 
     // Line items
     expect(claimPartial.operatiuni.length).toBe(3);
@@ -83,7 +85,7 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(claimPartial.operatiuni[1].rev).toBe(true);
   });
 
-  it("mapează corect un răspuns JSON complet de la Gemini AI", () => {
+  it("mapează corect un răspuns JSON complet de la Gemini AI și ignoră service-ul la asigurător", () => {
     const mockAiOutput = {
       numarDosar: "DOS-2026-999",
       nrDosarAsigurator: "DA-888777",
@@ -114,7 +116,7 @@ describe("aiDocumentExtractor & schema mapping", () => {
 
     expect(claimPartial.numarDosar).toBe("DOS-2026-999");
     expect(claimPartial.nrDosarAsigurator).toBe("DA-888777");
-    expect(claimPartial.asigurator).toBe("Groupama Asigurari");
+    expect(claimPartial.asigurator).toBe("Groupama Asigurări");
     expect(claimPartial.tipAsigurare).toBe("RCA");
     expect(claimPartial.client).toBe("Popescu Ion");
     expect(claimPartial.telefonClient).toBe("0722111222");
@@ -126,6 +128,10 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(claimPartial.kilometraj).toBe(145000);
     expect(claimPartial.valoareDevizAudatex).toBe(4500.5);
     expect(claimPartial.valoarePieseAudatex).toBe(3100);
+    expect(claimPartial.manopera.tinichigerie.facturat).toBe(600);
+    expect(claimPartial.manopera.vopsitorie.facturat).toBe(800);
+    expect(claimPartial.financiar.manoperaTinichigerie).toBe(600);
+    expect(claimPartial.financiar.manoperaVopsitorie).toBe(800);
     expect(claimPartial.operatiuni.length).toBe(2);
     expect(claimPartial.operatiuni[0].piesa).toBe("Bara fata");
     expect(claimPartial.operatiuni[0].inl).toBe(true);

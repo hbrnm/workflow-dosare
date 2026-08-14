@@ -1,5 +1,152 @@
 import { sanitizeClaim, emptyClaim, parseNumber } from "./claimModel";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
+import { INSURERS } from "../constants/config";
+
+/**
+ * Verifică dacă un string seamănă cu numele unui service / atelier auto (pentru a nu fi setat din greșeală la Asigurător)
+ */
+export function isRepairShopName(name) {
+  if (!name || typeof name !== "string") return false;
+  const t = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return (
+    /\b(srl|sa|s\.r\.l|service|auto|autoklass|caroserie|repar|atelier|garaj|motors|piese|trading|invest|group|holding)\b/i.test(t) &&
+    !/\b(asigur|omniasig|allianz|groupama|generali|asirom|grawe|euroins|axeria|hellas|uniqa|garanta|city)\b/i.test(t)
+  );
+}
+
+/**
+ * Găsește denumirea canonică oficială a asigurătorului din România
+ */
+export function matchCanonicalInsurer(candidate, customList = []) {
+  if (!candidate || typeof candidate !== "string") return "";
+  const s = candidate.trim();
+  if (!s) return "";
+  const lower = s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const fullList = [...(customList || []), ...INSURERS, "Fără asigurare", "Regie Proprie", "City Insurance", "DallBogg"];
+
+  // Potrivire exactă
+  const direct = fullList.find(
+    (ins) => ins.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === lower
+  );
+  if (direct) return direct;
+
+  // Tipare specifice asigurătorilor din România
+  if (/omniasig/i.test(lower)) return "Omniasig VIG";
+  if (/allianz/i.test(lower) || /tiriac/i.test(lower)) return "Allianz-Țiriac";
+  if (/groupama/i.test(lower)) return "Groupama Asigurări";
+  if (/generali/i.test(lower)) return "Generali România";
+  if (/asirom/i.test(lower)) return "Asirom VIG";
+  if (/grawe/i.test(lower)) return "Grawe România";
+  if (/euroins/i.test(lower)) return "Euroins România";
+  if (/axeria/i.test(lower)) return "Axeria IARD";
+  if (/hellas/i.test(lower) || /hellawest/i.test(lower)) return "Hellas Direct";
+  if (/uniqa/i.test(lower)) return "Uniqa Asigurări";
+  if (/garanta/i.test(lower)) return "Garanta";
+  if (/city\s*ins/i.test(lower)) return "City Insurance";
+  if (/dall\s*bogg/i.test(lower)) return "DallBogg";
+  if (/fara\s+asig/i.test(lower)) return "Fără asigurare";
+  if (/regie\s+proprie/i.test(lower)) return "Regie Proprie";
+
+  // Verificare includere parțială
+  for (const item of fullList) {
+    const itemNorm = item.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (itemNorm.length >= 4 && (lower.includes(itemNorm) || itemNorm.includes(lower))) {
+      return item;
+    }
+  }
+
+  // Dacă seamănă cu un service auto, nu este asigurător
+  if (isRepairShopName(candidate)) {
+    return "";
+  }
+
+  return s;
+}
+
+/**
+ * Extrage metadate (număr înmatriculare, VIN, asigurător, dosar, client) din textul brut al documentului
+ */
+export function extractEstimateMetadataFromText(text) {
+  const raw = String(text || "");
+  const meta = {
+    numarDosar: "",
+    nrDosarAsigurator: "",
+    asigurator: "",
+    tipAsigurare: "RCA",
+    numarInmatriculare: "",
+    vin: "",
+    marca: "",
+    model: "",
+    marcaModel: "",
+    kilometraj: null,
+    client: "",
+    delegat: "",
+    telefonClient: "",
+    inspectorDauna: "",
+  };
+
+  // 1. Număr Înmatriculare (ex: B 123 ABC, CJ 01 XYZ)
+  const plateMatch = raw.match(/\b([A-Z]{1,2})\s*[- ]?\s*(\d{2,3})\s*[- ]?\s*([A-Z]{3})\b/i);
+  if (plateMatch) {
+    meta.numarInmatriculare = `${plateMatch[1].toUpperCase()} ${plateMatch[2]} ${plateMatch[3].toUpperCase()}`;
+  }
+
+  // 2. VIN (Serie Șasiu 17 caractere)
+  const vinMatch = raw.match(/\b([A-HJ-NPR-Z0-9]{17})\b/i);
+  if (vinMatch) {
+    meta.vin = vinMatch[1].toUpperCase();
+  }
+
+  // 3. Dosar daună asigurător
+  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?)\s*[:=\s]\s*([A-Z0-9\-_/]+)/i);
+  if (dosarMatch) {
+    meta.nrDosarAsigurator = dosarMatch[1].trim();
+    meta.numarDosar = dosarMatch[1].trim();
+  }
+
+  // 4. Asigurător
+  const matchedInsurer = matchCanonicalInsurer(raw);
+  if (matchedInsurer) {
+    meta.asigurator = matchedInsurer;
+  }
+
+  // 5. Tip Asigurare
+  if (/\bCASCO\b/i.test(raw)) {
+    meta.tipAsigurare = "CASCO";
+  } else if (/\bRCA\b/i.test(raw)) {
+    meta.tipAsigurare = "RCA";
+  }
+
+  // 6. Kilometraj
+  const kmMatch = raw.match(/(?:KM|KILOMETRAJ|RULAJ|ODOMETER)\s*[:=\s]\s*(\d{1,3}(?:[.\s]\d{3})*|\d+)/i);
+  if (kmMatch) {
+    meta.kilometraj = parseNumber(kmMatch[1], null);
+  }
+
+  // 7. Client / Proprietar
+  const clientMatch = raw.match(/(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT|CLIENT|UTILIZATOR)\s*[:=\s]\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL)/i);
+  if (clientMatch) {
+    const cl = clientMatch[1].trim();
+    if (!isRepairShopName(cl) && !/\b(AUDATEX|DAT|CALCUL|REPARATIE)\b/i.test(cl)) {
+      meta.client = cl;
+    }
+  }
+
+  // 8. Telefon client
+  const telMatch = raw.match(/(?:TEL(?:EFON)?|MOBIL|CONTACT)\s*[:=\s]\s*((?:(?:\+40|0040|0)\s*[1-9]\d{1,2}(?:[\s.-]?\d{2,3}){2,3}))/i);
+  if (telMatch) {
+    meta.telefonClient = telMatch[1].replace(/[^\d+]/g, "").trim();
+  }
+
+  // 9. Inspector Daună
+  const inspMatch = raw.match(/(?:INSPECTOR(?:\s+DAUN[AĂ])?|CONSTATARE\s+EFECTUAT[AĂ]\s+DE|EVALUATOR)\s*[:=\s]\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})/i);
+  if (inspMatch) {
+    meta.inspectorDauna = inspMatch[1].trim();
+  }
+
+  return meta;
+}
 
 /**
  * Prompt-ul de sistem structurat pentru Modele AI pentru a analiza documente de daună auto
@@ -9,19 +156,23 @@ export const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `Ești un asistent expert în proce
 
 Analizează documentul atașat (text, imagine sau PDF) și extrage toate datele disponibile în următorul format JSON strict. Dacă o informație nu este găsită în document, returnează null sau string gol.
 
+ATENȚIE MAXIMĂ LA ASIGURĂTOR:
+- "insurance_company" TREBUIE să fie societatea de asigurare (ex: "Omniasig VIG", "Allianz-Țiriac", "Groupama Asigurări", "Generali România", "Asirom VIG", "Grawe România", "Axeria IARD", "Hellas Direct", "Uniqa Asigurări", "Garanta").
+- NU confunda unitatea reparatoare / service-ul auto (ex: "AUTOKLASS", "SERVICE AUTO SRL") cu societatea de asigurare! Service-ul auto trebuie pus la "vendor_name", NU la "insurance_company".
+
 Formatul JSON de returnat trebuie să aibă exact această structură:
 {
   "document_type": "repair_estimate" | "invoice" | "receipt" | "registration_certificate" | "damage_report" | "unknown",
   "document_metadata": {
     "document_number": string sau null (ex: număr dosar, număr deviz sau număr factură),
     "document_date": string sau null (format YYYY-MM-DD),
-    "vendor_name": string sau null (nume service auto, asigurător sau emitent),
+    "vendor_name": string sau null (nume service auto / unitate reparatoare),
     "vendor_cui": string sau null (CUI / CIF firmă emitentă)
   },
   "financials": {
-    "subtotal_amount": number sau null (total fără TVA),
+    "subtotal_amount": number sau null (total reparație fără TVA / Cost reparație Netto),
     "vat_amount": number sau null (valoare TVA),
-    "total_amount": number sau null (total cu TVA),
+    "total_amount": number sau null (total reparație cu TVA / Cost reparație Brut),
     "currency": "RON" | "EUR" | "USD"
   },
   "repair_details": {
@@ -30,14 +181,15 @@ Formatul JSON de returnat trebuie să aibă exact această structură:
     "vehicle_make": string sau null (ex: "Volkswagen", "BMW", "Audi", "Dacia", "Ford"),
     "vehicle_model": string sau null (ex: "Passat", "X5", "Logan", "Focus"),
     "mileage_km": number sau null (kilometraj),
-    "labor_total": number sau null (total manoperă fără TVA),
-    "parts_total": number sau null (total piese fără TVA),
+    "labor_total": number sau null (total manoperă tinichigerie/mecanică fără TVA),
+    "labor_paint_total": number sau null (total manoperă vopsitorie fără TVA),
+    "parts_total": number sau null (total piese de schimb fără TVA),
     "paint_materials_total": number sau null (total materiale vopsitorie fără TVA),
     "additional_costs_total": number sau null (total costuri suplimentare / mărunțișuri),
-    "claim_number_insurer": string sau null (număr dosar asigurător ex: "DA-12345678"),
-    "insurance_company": string sau null (ex: "Omniasig", "Groupama", "Allianz", "Generali", "Asirom", "Grawe", "Axeria"),
+    "claim_number_insurer": string sau null (număr dosar daună asigurător ex: "DA-12345678"),
+    "insurance_company": string sau null (Societatea de asigurare ex: "Omniasig VIG", "Groupama", "Allianz-Țiriac", "Generali", "Asirom VIG", "Grawe", "Axeria IARD", "Uniqa"),
     "insurance_type": "RCA" | "CASCO",
-    "client_name": string sau null (numele asiguratului / păgubitului / proprietarului),
+    "client_name": string sau null (numele asiguratului / păgubitului / proprietarului autovehiculului),
     "client_phone": string sau null (telefon contact),
     "delegate_name": string sau null (persoană delegată / împuternicită),
     "claim_inspector": string sau null (inspector de daună),
@@ -52,7 +204,7 @@ Formatul JSON de returnat trebuie să aibă exact această structură:
       "inl": boolean (înlocuire piesă),
       "rev": boolean (revopsire),
       "rep": boolean (reparație tinichigerie),
-      "uni": boolean (demontare / montare)
+      "uni": boolean (demontare / remontare D/R)
     }
   ],
   "tipDocumentIdentificat": string (ex: "Deviz Audatex", "Proces Verbal Constatare", "Certificat Înmatriculare", "Deviz Eurotax", "Factură Piese", "Necunoscut")
@@ -106,22 +258,24 @@ export function mapExtractedJsonToClaim(extracted) {
     rep.claim_number_insurer ||
     "";
 
+  // Identificare asigurător canonic (excludem unitatea reparatoare din câmpul de asigurător)
+  const candidateInsurer = extracted.asigurator || rep.insurance_company || "";
+  const matchedInsurer = matchCanonicalInsurer(candidateInsurer);
+  const fallbackInsurer = matchCanonicalInsurer(meta.vendor_name) || "";
   const asigurator =
-    extracted.asigurator ||
-    rep.insurance_company ||
-    meta.vendor_name ||
-    base.asigurator;
+    matchedInsurer ||
+    fallbackInsurer ||
+    (candidateInsurer && !isRepairShopName(candidateInsurer) ? candidateInsurer : base.asigurator);
 
   const tipAsigurare =
     extracted.tipAsigurare === "CASCO" || rep.insurance_type === "CASCO"
       ? "CASCO"
       : "RCA";
 
-  const client =
-    extracted.client ||
-    rep.client_name ||
-    meta.vendor_name ||
-    "";
+  let client = (extracted.client || rep.client_name || "").trim();
+  if (isRepairShopName(client)) {
+    client = "";
+  }
 
   const delegat =
     extracted.delegat ||
@@ -160,28 +314,25 @@ export function mapExtractedJsonToClaim(extracted) {
     rep.damage_summary ||
     "";
 
-  // 2. Câmpuri financiare & deviz Audatex
-  const valoareDevizAudatex = normalizeNumeric(
-    extracted.valoareDevizAudatex ||
-    fin.subtotal_amount ||
-    fin.total_amount ||
-    0
-  );
-
+  // 2. Câmpuri financiare & deviz Audatex / DAT
   const valoarePieseAudatex = normalizeNumeric(
     extracted.valoarePieseAudatex ||
     rep.parts_total ||
+    fin.parts_total ||
     0
   );
 
   const manoperaTinichigerie = normalizeNumeric(
     extracted.manoperaTinichigerie ||
+    rep.labor_body_total ||
     rep.labor_total ||
+    fin.labor_total ||
     0
   );
 
   const manoperaVopsitorie = normalizeNumeric(
     extracted.manoperaVopsitorie ||
+    rep.labor_paint_total ||
     0
   );
 
@@ -197,10 +348,24 @@ export function mapExtractedJsonToClaim(extracted) {
     0
   );
 
+  const totalVopsitorie = (manoperaVopsitorie + materialeVopsitorie) > 0
+    ? (manoperaVopsitorie + materialeVopsitorie)
+    : materialeVopsitorie;
+
+  const sumComponents = valoarePieseAudatex + manoperaTinichigerie + manoperaVopsitorie + materialeVopsitorie + totalCosturiSuplimentare;
+
+  const valoareDevizAudatex = normalizeNumeric(
+    extracted.valoareDevizAudatex ||
+    fin.subtotal_amount ||
+    (sumComponents > 0 ? sumComponents : 0) ||
+    fin.total_amount ||
+    0
+  );
+
   const costReparatieCuTva = normalizeNumeric(
     extracted.costReparatieCuTva ||
     fin.total_amount ||
-    (valoareDevizAudatex > 0 ? Math.round(valoareDevizAudatex * 1.19 * 100) / 100 : 0)
+    (valoareDevizAudatex > 0 ? Math.round(valoareDevizAudatex * 1.21 * 100) / 100 : 0)
   );
 
   const valoareFransiza = normalizeNumeric(
@@ -209,7 +374,8 @@ export function mapExtractedJsonToClaim(extracted) {
 
   const sumaDecont = normalizeNumeric(
     extracted.sumaDecont ||
-    fin.total_amount ||
+    costReparatieCuTva ||
+    valoareDevizAudatex ||
     0
   );
 
@@ -219,9 +385,11 @@ export function mapExtractedJsonToClaim(extracted) {
     totalPiese: valoarePieseAudatex,
     totalManopera: manoperaTinichigerie + manoperaVopsitorie,
     totalCosturiSuplimentare: totalCosturiSuplimentare,
-    totalVopsitorie: materialeVopsitorie,
+    totalVopsitorie: totalVopsitorie,
     costReparatieFaraTva: valoareDevizAudatex,
     costReparatieCuTva: costReparatieCuTva,
+    manoperaVopsitorie: manoperaVopsitorie,
+    materialeVopsitorie: materialeVopsitorie,
   };
 
   // 4. Operațiuni & linii de deviz
@@ -264,18 +432,25 @@ export function mapExtractedJsonToClaim(extracted) {
     marcaModel,
     kilometraj,
     inspectorDauna,
-    ceEsteDeReparat,
+    ceEsteDeReparat: ceEsteDeReparat || (operatiuni.length > 0 ? operatiuni.map((o) => o.piesa).filter(Boolean).join(", ") : ""),
     valoareDevizAudatex,
     valoarePieseAudatex,
     sumaDecont,
+    manopera: {
+      tinichigerie: { facturat: manoperaTinichigerie, alocat: 0, dataIntrareEtapa: null },
+      vopsitorie: { facturat: manoperaVopsitorie, alocat: 0, dataIntrareEtapa: null },
+    },
     financiar: {
       ...base.financiar,
+      tvaProc: 21,
       valoareDevizAudatex,
       pieseFacturateFaraTva: valoarePieseAudatex,
       valoareFransiza,
       manoperaTinichigerie,
       manoperaVopsitorie,
       materialeVopsitorie,
+      cheltuieliDiverse: totalCosturiSuplimentare,
+      costuriExterne: totalCosturiSuplimentare,
       numarFactura: meta.document_number || extracted.numarFactura || "",
       dataFactura: meta.document_date || extracted.dataFactura || null,
       audatex: audatexTotals,
@@ -317,8 +492,9 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
   }
 
   const base = emptyClaim();
+  const operations = parsed.operations || parsed.lineItems?.operations || [];
   const populated = applyEstimateValuesToClaim(base, parsed.values, {
-    operations: parsed.operations || [],
+    operations,
     applyOperations: true,
     replaceOperations: true,
     importMeta: {
@@ -327,6 +503,21 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
       source: "local_audatex_engine",
     },
   });
+
+  // Extragere metadate din textul PDF-ului (nr. înmatriculare, VIN, asigurător, client etc.)
+  const rawText = parsed.rawPreview || "";
+  const meta = extractEstimateMetadataFromText(rawText);
+
+  if (meta.numarInmatriculare) populated.numarInmatriculare = meta.numarInmatriculare;
+  if (meta.vin) populated.vin = meta.vin;
+  if (meta.numarDosar) populated.numarDosar = meta.numarDosar;
+  if (meta.nrDosarAsigurator) populated.nrDosarAsigurator = meta.nrDosarAsigurator;
+  if (meta.asigurator) populated.asigurator = meta.asigurator;
+  if (meta.tipAsigurare) populated.tipAsigurare = meta.tipAsigurare;
+  if (meta.client) populated.client = meta.client;
+  if (meta.telefonClient) populated.telefonClient = meta.telefonClient;
+  if (meta.kilometraj != null) populated.kilometraj = meta.kilometraj;
+  if (meta.inspectorDauna) populated.inspectorDauna = meta.inspectorDauna;
 
   return {
     claimPartial: sanitizeClaim(populated),
