@@ -506,7 +506,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                           )}
                           {op.uni && (
                             <span className="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 text-[10px]">
-                              Demontare
+                              D/R
                             </span>
                           )}
                         </div>
