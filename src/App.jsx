@@ -116,6 +116,7 @@ export default function App() {
     memberCount,
     atelier,
     tenancyReady,
+    billing: atelierBilling,
     switchAtelier,
     refreshAtelier,
   } = useAtelier(session, showNotice);
@@ -140,7 +141,6 @@ export default function App() {
     handleDeleteUser,
     handleToggleAdminRole,
     handleChangePassword,
-    billing,
     billingSettings,
     saveBilling,
     manoperaTarife,
@@ -189,12 +189,12 @@ export default function App() {
   }, [tenancyReady, atelier, settingsBranding]);
 
   const effectiveBilling = useMemo(() => {
-    if (tenancyReady && atelier) return billing;
+    if (tenancyReady && atelier && atelierBilling) return atelierBilling;
     return normalizeBilling({
       ...billingSettings,
       memberCount: memberCount || usersList.length,
     });
-  }, [tenancyReady, atelier, billing, billingSettings, memberCount, usersList.length]);
+  }, [tenancyReady, atelier, atelierBilling, billingSettings, memberCount, usersList.length]);
 
   const {
     claims,
@@ -217,7 +217,7 @@ export default function App() {
     [myEmail, adminEmails, usersList]
   );
   const myRoleLabel = ROLES[myRole]?.label || myRole;
-  const userCanCreate = canCreateClaim(myRole) && effectiveBilling.canCreateClaim;
+  const userCanCreate = canCreateClaim(myRole) && (effectiveBilling?.canCreateClaim ?? true);
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
