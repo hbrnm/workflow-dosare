@@ -98,8 +98,8 @@ export function extractEstimateMetadataFromText(text) {
     meta.vin = vinMatch[1].toUpperCase();
   }
 
-  // 3. Dosar daună asigurător
-  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?)\s*[:=\s]\s*([A-Z0-9\-_/]+)/i);
+  // 3. Dosar daună asigurător / deviz
+  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?|NR\.?\s*DEVIZ)\s*[:=\s\-]+\s*([A-Z0-9\-_/]+)/i);
   if (dosarMatch) {
     meta.nrDosarAsigurator = dosarMatch[1].trim();
     meta.numarDosar = dosarMatch[1].trim();
@@ -119,30 +119,48 @@ export function extractEstimateMetadataFromText(text) {
   }
 
   // 6. Kilometraj
-  const kmMatch = raw.match(/(?:KM|KILOMETRAJ|RULAJ|ODOMETER)\s*[:=\s]\s*(\d{1,3}(?:[.\s]\d{3})*|\d+)/i);
+  const kmMatch = raw.match(/(?:KM|KILOMETRAJ|RULAJ|ODOMETER)\s*[:=\s\-]+\s*(\d{1,3}(?:[.\s]\d{3})*|\d+)/i);
   if (kmMatch) {
     meta.kilometraj = parseNumber(kmMatch[1], null);
   }
 
-  // 7. Client / Proprietar
-  const clientMatch = raw.match(/(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT|CLIENT|UTILIZATOR)\s*[:=\s]\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL)/i);
-  if (clientMatch) {
-    const cl = clientMatch[1].trim();
-    if (!isRepairShopName(cl) && !/\b(AUDATEX|DAT|CALCUL|REPARATIE)\b/i.test(cl)) {
-      meta.client = cl;
+  // 7. Client / Proprietar (multi-pattern resilient search)
+  const clientPatterns = [
+    /(?:PROPRIETAR\s*(?:\/\s*ASIGURAT|\/\s*P[AĂ]GUBIT)?|NUME\s+PROPRIETAR|NUME\s+ASIGURAT|ASIGURAT|P[AĂ]GUBIT|CLIENT|BENEFICIAR|DETINATOR|UTILIZATOR|NUME\s*[\/&]\s*PRENUME|NUME\s*[\/&]\s*DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,60})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|CIF|TEL|ADRES|STR)/i,
+    /(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT)\s*\r?\n\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,50})(?=\r?\n|$|\s{2,}|TEL|ADRES)/i,
+    /(?:NUME|DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,50})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL|ADRES)/i,
+  ];
+  for (const pat of clientPatterns) {
+    const m = raw.match(pat);
+    if (m && m[1]) {
+      const cl = m[1].replace(/^(?:DOMNUL|DOAMNA|SRL|SA|PFA)\s+/i, "").trim();
+      if (cl.length >= 3 && !isRepairShopName(cl) && !/\b(AUDATEX|DAT|CALCUL|REPARATIE|DEVIZ|SISTEM|CONSTATARE|PRET|LEI|RON)\b/i.test(cl)) {
+        meta.client = cl;
+        break;
+      }
     }
   }
 
   // 8. Telefon client
-  const telMatch = raw.match(/(?:TEL(?:EFON)?|MOBIL|CONTACT)\s*[:=\s]\s*((?:(?:\+40|0040|0)\s*[1-9]\d{1,2}(?:[\s.-]?\d{2,3}){2,3}))/i);
+  const telMatch = raw.match(/(?:TEL(?:EFON)?|MOBIL|CONTACT)\s*[:=\s\-]+\s*((?:(?:\+40|0040|0)\s*[1-9]\d{1,2}(?:[\s.-]?\d{2,3}){2,3}))/i);
   if (telMatch) {
     meta.telefonClient = telMatch[1].replace(/[^\d+]/g, "").trim();
   }
 
   // 9. Inspector Daună
-  const inspMatch = raw.match(/(?:INSPECTOR(?:\s+DAUN[AĂ])?|CONSTATARE\s+EFECTUAT[AĂ]\s+DE|EVALUATOR)\s*[:=\s]\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})/i);
+  const inspMatch = raw.match(/(?:INSPECTOR(?:\s+DAUN[AĂ])?|CONSTATARE\s+EFECTUAT[AĂ]\s+DE|EVALUATOR)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})/i);
   if (inspMatch) {
     meta.inspectorDauna = inspMatch[1].trim();
+  }
+
+  // 10. Marcă & Model Vehicul (ex: MERCEDES-BENZ GLE COUPE(C292) / 350 D 4MATIC)
+  const carLineMatch = raw.match(/(?:VEHICUL|AUTOVEHICUL|TIP\s+AUTO|MARCA\/TIP)\s*[:=\s\-]+\s*([A-Z0-9\-_/\s.()]+)(?=\r?\n|$|\s{2,}|SERIE|VIN)/i);
+  if (carLineMatch && carLineMatch[1].trim().length >= 4) {
+    const fullCar = carLineMatch[1].trim();
+    meta.marcaModel = fullCar;
+    const p = fullCar.split(/\s+/);
+    meta.marca = p[0] || "";
+    meta.model = p.slice(1).join(" ") || "";
   }
 
   return meta;
@@ -541,7 +559,19 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
   }
 
   const base = emptyClaim();
-  const operations = parsed.operations || parsed.lineItems?.operations || [];
+  const rawText = parsed.fullText || parsed.rawPreview || "";
+  const meta = extractEstimateMetadataFromText(rawText);
+
+  const rawOps = parsed.operations || parsed.lineItems?.operations || [];
+  const operations = rawOps.map((op, idx) => ({
+    id: op.id || `local_op_${Date.now()}_${idx}`,
+    piesa: String(op.piesa || op.name || "").trim(),
+    inl: Boolean(op.inl),
+    rev: Boolean(op.rev),
+    rep: Boolean(op.rep),
+    uni: Boolean(op.uni),
+  })).filter((op) => op.piesa && op.piesa.length >= 2);
+
   const populated = applyEstimateValuesToClaim(base, parsed.values, {
     operations,
     applyOperations: true,
@@ -553,10 +583,6 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
     },
   });
 
-  // Extragere metadate din textul PDF-ului (nr. înmatriculare, VIN, asigurător, client etc.)
-  const rawText = parsed.rawPreview || "";
-  const meta = extractEstimateMetadataFromText(rawText);
-
   if (meta.numarInmatriculare) populated.numarInmatriculare = meta.numarInmatriculare;
   if (meta.vin) populated.vin = meta.vin;
   if (meta.numarDosar) populated.numarDosar = meta.numarDosar;
@@ -567,6 +593,57 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
   if (meta.telefonClient) populated.telefonClient = meta.telefonClient;
   if (meta.kilometraj != null) populated.kilometraj = meta.kilometraj;
   if (meta.inspectorDauna) populated.inspectorDauna = meta.inspectorDauna;
+  if (meta.marca) populated.marca = meta.marca;
+  if (meta.model) populated.model = meta.model;
+  if (meta.marcaModel) populated.marcaModel = meta.marcaModel;
+
+  if (operations.length > 0) {
+    populated.operatiuni = operations;
+    populated.ceEsteDeReparat = operations.map((o) => o.piesa).filter(Boolean).join(", ");
+  }
+
+  // Financiare Audatex exacte
+  const valoarePiese = parseNumber(parsed.values.valoarePieseAudatex, 0);
+  const manTinichigerie = parseNumber(parsed.values.manoperaTinichigerie, 0);
+  const manVopsitorie = parseNumber(parsed.values.manoperaVopsitorie, 0);
+  const matVopsitorie = parseNumber(parsed.values.materialeVopsitorie, 0);
+  const totVopsitorie = parseNumber(parsed.values.totalVopsitorieAudatex, manVopsitorie + matVopsitorie);
+  const suplimente = parseNumber(parsed.values.cheltuieliDiverse, 0);
+  const totalNetto = parseNumber(parsed.values.valoareDevizAudatex, valoarePiese + manTinichigerie + totVopsitorie + suplimente);
+  const totalBrutto = parseNumber(parsed.values.costReparatieCuTva, totalNetto > 0 ? Math.round(totalNetto * 1.21 * 100) / 100 : 0);
+
+  populated.valoareDevizAudatex = totalNetto;
+  populated.valoarePieseAudatex = valoarePiese;
+  populated.sumaDecont = totalBrutto;
+
+  populated.manopera = {
+    tinichigerie: { facturat: manTinichigerie, alocat: 0, dataIntrareEtapa: null },
+    vopsitorie: { facturat: manVopsitorie > 0 ? manVopsitorie : totVopsitorie, alocat: 0, dataIntrareEtapa: null },
+  };
+
+  populated.financiar = {
+    ...base.financiar,
+    ...(populated.financiar || {}),
+    tvaProc: 21,
+    valoareDevizAudatex: totalNetto,
+    pieseFacturateFaraTva: valoarePiese,
+    manoperaTinichigerie: manTinichigerie,
+    manoperaVopsitorie: manVopsitorie > 0 ? manVopsitorie : totVopsitorie,
+    materialeVopsitorie: matVopsitorie,
+    cheltuieliDiverse: suplimente,
+    costuriExterne: suplimente,
+    audatex: {
+      ...emptyAudatexDevizTotals(),
+      totalPiese: valoarePiese,
+      totalManopera: manTinichigerie, // Tinichigerie, astfel încât Piese + Tinichigerie + Vopsitorie = Netto
+      totalCosturiSuplimentare: suplimente,
+      totalVopsitorie: totVopsitorie,
+      costReparatieFaraTva: totalNetto,
+      costReparatieCuTva: totalBrutto,
+      manoperaVopsitorie: manVopsitorie,
+      materialeVopsitorie: matVopsitorie,
+    },
+  };
 
   return {
     claimPartial: sanitizeClaim(populated),
@@ -593,7 +670,7 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
     try {
       const { parseEstimateFile } = await import("./audatexImportFile");
       const parsed = await parseEstimateFile(file);
-      extractedPdfText = parsed?.rawPreview || "";
+      extractedPdfText = parsed?.fullText || parsed?.rawPreview || "";
     } catch {
       // Fallback la date binare base64 dacă PDF-ul este scanat
     }

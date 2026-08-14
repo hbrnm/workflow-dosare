@@ -51,6 +51,8 @@ function cleanAudatexOpDesc(desc) {
   return String(desc || "")
     .replace(/\s+/g, " ")
     .replace(/\*+$/, "")
+    .replace(/^[:\-–=.\s]+/, "")
+    .replace(/[:\-–=.\s]+$/, "")
     .trim()
     .slice(0, 100);
 }
@@ -58,92 +60,130 @@ function cleanAudatexOpDesc(desc) {
 function audatexFlagsFromDesc(desc) {
   const t = String(desc || "").toUpperCase();
   const flags = { inl: false, rev: false, rep: false, uni: false };
-  if (/\bD\/R\b|DEMONT|MONTAR/.test(t)) flags.uni = true;
-  if (/\bREPARAT/.test(t)) flags.rep = true;
-  if (/\bVOP\b|VOPS|LACAR|GRUND|METALIZ|PREVOPS|REVOPS/.test(t)) flags.rev = true;
-  if (/\bINLOC|\bSCHIMB|\bNOU\b/.test(t)) flags.inl = true;
+  if (/\bD\/R\b|\bD\s*\/\s*R\b|DEMONT|MONTAR|DEM\.|MONT\./i.test(t)) flags.uni = true;
+  if (/\bREPARAT|\BINDREPT|\BAJUST|\BRECTIF/i.test(t)) flags.rep = true;
+  if (/\bVOP\b|VOPS|LACAR|GRUND|METALIZ|PREVOPS|REVOPS|K1G|K2/i.test(t)) flags.rev = true;
+  if (/\bINLOC|\bSCHIMB|\bNOU\b|\bPIESA\s+NOUA/i.test(t)) flags.inl = true;
   if (!flags.inl && !flags.rev && !flags.rep && !flags.uni) flags.uni = true;
   return flags;
 }
 
 function stripAudatexOpCode(part) {
   let s = String(part || "").trim();
-  s = s.replace(/^KN\s+/, "");
+  s = s.replace(/^KN\s+/i, "");
+  s = s.replace(/^\d{2}[-\s]\d{4}\s+\d{1,2}\s+/, "");
+  s = s.replace(/^\d{2}[-\s]\d{4}\s+/, "");
   s = s.replace(/^\d{2}\s+\d{2}\s+\d{2}\s+\d{2}\s+/, "");
   s = s.replace(/^\d{2}\s+\d{2}\s+[\d)]+\s+/, "");
-  s = s.replace(/^\d{4}\s+/, "");
-  return s;
+  s = s.replace(/^\d{4}\s+(?:\d{1,2}\s+)?/, "");
+  s = s.replace(/^\d{2,3}[.)]\s+/, "");
+  return s.trim();
 }
 
-/** Parse OPERATII line — UT (CL UT COST) or ORE (ore COST) format. */
+/** Parse OPERATII line — UT (CL UT COST), ORE (ore COST) or direct description format. */
 function parseAudatexOpLine(norm) {
-  if (!norm || norm.startsWith("(")) return null;
+  if (!norm || norm.startsWith("(") || /^COD\s*\//i.test(norm)) return null;
+  if (/^(?:BAZA\s+MANOPERA|PRET\/CL|PRET\s*=|COD\s*\/\s*DETALII|ORE\s+COST|PRET|BAZA|COD|TOTAL|SUMA|SISTEM\s+AUDATEX)/i.test(norm)) return null;
 
-  // UT: "... CL UT COST" e.g. "D/R ROTI SP 1 30 30.00"
-  const ut = norm.match(/^(.+?)\s+([123])\s+(\d+(?:\*|\.)?)\s+(\d+\.\d{2})\s*$/);
-  if (ut) {
-    const desc = cleanAudatexOpDesc(stripAudatexOpCode(ut[1]));
-    if (desc.length < 3) return null;
-    return { name: desc, amount: parseAudatexMoney(ut[4]), flags: audatexFlagsFromDesc(desc) };
+  // 1. UT with Class/UT/Cost: e.g. "60-4204 01 D/R PIESE COMPONENTE USA SP DR 1 50 75.00"
+  const m1 = norm.match(/^(.+?)\s+([123])\s+(\d+(?:\*|\.)?)\s+(\d+\.\d{2})\s*$/);
+  if (m1) {
+    const desc = cleanAudatexOpDesc(stripAudatexOpCode(m1[1]));
+    if (desc.length >= 3 && !/^(?:PRET|BAZA|COD|TOTAL|SUMA)/i.test(desc)) {
+      return { name: desc, amount: parseAudatexMoney(m1[4]), flags: audatexFlagsFromDesc(desc) };
+    }
   }
 
-  // ORE: "... 0.4 40.00" or "... 1.0* 100.00"
-  const ore = norm.match(/^(.+?)\s+(\d+(?:\.\d+)?)\*?\s+(\d+\.\d{2})\s*$/);
-  if (ore) {
-    const desc = cleanAudatexOpDesc(stripAudatexOpCode(ore[1]));
-    if (desc.length < 3) return null;
-    if (/^(?:PRET|BAZA|COD|TOTAL)/i.test(desc)) return null;
-    return { name: desc, amount: parseAudatexMoney(ore[3]), flags: audatexFlagsFromDesc(desc) };
+  // 2. ORE with Hours/Cost: e.g. "... 0.4 40.00" or "... 1.0* 100.00"
+  const m2 = norm.match(/^(.+?)\s+(\d+(?:\.\d+)?)\*?\s+(\d+\.\d{2})\s*$/);
+  if (m2) {
+    const desc = cleanAudatexOpDesc(stripAudatexOpCode(m2[1]));
+    if (desc.length >= 3 && !/^(?:PRET|BAZA|COD|TOTAL|SUMA)/i.test(desc)) {
+      return { name: desc, amount: parseAudatexMoney(m2[3]), flags: audatexFlagsFromDesc(desc) };
+    }
   }
+
+  // 3. Simple Amount at end: e.g. "D/R BARA PROTECTIE SPATE 150.00"
+  const m3 = norm.match(/^(.+?)\s+(\d+\.\d{2})\*?\s*$/);
+  if (m3) {
+    const desc = cleanAudatexOpDesc(stripAudatexOpCode(m3[1]));
+    if (desc.length >= 3 && !/^(?:PRET|BAZA|COD|TOTAL|SUMA|PAGINA)/i.test(desc)) {
+      return { name: desc, amount: parseAudatexMoney(m3[2]), flags: audatexFlagsFromDesc(desc) };
+    }
+  }
+
+  // 4. Operation with Code prefix: e.g. "60-4204 01 D/R PIESE COMPONENTE USA SP DR"
+  if (/^(?:KN\s+)?(?:\d{2}[-\s]\d{4}|\d{4})\s+(?:\d{1,2}\s+)?(?:D\/R|INL|REP|VOP|DEMONT|MONT|REPARAT|SCHIMB)/i.test(norm)) {
+    const desc = cleanAudatexOpDesc(stripAudatexOpCode(norm.replace(/\s+\d+(?:\.\d+)?\*?\s*$/g, "")));
+    if (desc.length >= 3) {
+      return { name: desc, amount: 0, flags: audatexFlagsFromDesc(desc) };
+    }
+  }
+
   return null;
 }
 
 /** Parse PIESE line — ghid + descriere + buc + cod OE + preț. */
 function parseAudatexPartLine(norm) {
-  if (!norm || /VEZI\s+COD|^NR\.?GHID|^DESCRIERE|^PRET/i.test(norm)) return null;
-  const priceM = norm.match(/(\d+(?:\.\d{2})?)U?\s*$/i);
+  if (!norm || /VEZI\s+COD|^NR\.?GHID|^DESCRIERE|^PRET|^COD\s+PIESA/i.test(norm)) return null;
+  const priceM = norm.match(/(\d+(?:\.\d{2})?)U?\*?\s*$/i);
   if (!priceM) return null;
   const price = parseAudatexMoney(priceM[1]);
   if (price == null) return null;
   const head = norm.slice(0, norm.length - priceM[0].length).trim();
-  const guideM = head.match(/^(\d{4})\s+(.*)$/);
-  if (!guideM) return null;
-  const body = guideM[2];
 
-  // GHID BUC DESC COD — e.g. "1414 2 P DISTANTIER 1 418 363"
-  const withBuc = body.match(/^(\d+)\s+(.+?)\s+((?:\d+\s+)+\d+)\s*$/);
-  if (withBuc && withBuc[1].length <= 2) {
+  // Extract guide number (4 digits or \d{2}-\d{4} or \d{2}\s+\d{2})
+  const guideM = head.match(/^(?:KN\s+)?(\d{2}[-\s]\d{4}|\d{4})(?:\s+\d{1,2})?\s+(.*)$/);
+  const body = guideM ? guideM[2].trim() : head;
+  const guide = guideM ? guideM[1] : "";
+
+  // Pattern 1: GHID BUC [P/N] DESC COD — e.g. "1414 2 P DISTANTIER 1 418 363"
+  const withBuc = body.match(/^(\d{1,2})\s+(?:[A-Z]\s+)?(.+?)\s+((?:\d+\s+)+\d+)\s*$/i);
+  if (withBuc && withBuc[2].trim().length >= 2) {
     return {
-      guide: guideM[1],
-      name: cleanAudatexOpDesc(withBuc[2]),
+      guide,
+      name: cleanAudatexOpDesc(stripAudatexOpCode(withBuc[2])),
       qty: parseInt(withBuc[1], 10),
       partCode: withBuc[3].trim(),
       amount: price,
     };
   }
 
-  // GHID DESC BUC COD — e.g. "1401 PARBRIZ 2 778 364"
-  const descFirst = body.match(/^(.+?)\s+(\d+)\s+((?:\d+\s+)+\d+)\s*$/);
-  if (descFirst) {
+  // Pattern 2: GHID DESC COD — e.g. "1401 PARBRIZ 2 778 364" or "1410 FOLIE SENZOR PLOAIE 1 720 926"
+  const descWithCode = body.match(/^(.+?)\s+((?:\d+\s+)+\d+)\s*$/);
+  if (descWithCode && descWithCode[1].trim().length >= 2) {
     return {
-      guide: guideM[1],
-      name: cleanAudatexOpDesc(descFirst[1]),
-      qty: parseInt(descFirst[2], 10),
-      partCode: descFirst[3].trim(),
+      guide,
+      name: cleanAudatexOpDesc(stripAudatexOpCode(descWithCode[1])),
+      qty: 1,
+      partCode: descWithCode[2].trim(),
       amount: price,
     };
   }
+
+  // Pattern 3: Direct Name
+  const directName = cleanAudatexOpDesc(stripAudatexOpCode(body));
+  if (directName.length >= 2 && !/^(?:PRET|TOTAL|COD|P\s*I\s*E\s*S\s*E|BAZA|PAGINA|DISCOUNT)/i.test(directName)) {
+    return {
+      guide,
+      name: directName,
+      qty: 1,
+      partCode: "",
+      amount: price,
+    };
+  }
+
   return null;
 }
 
 /** Paint position without K1G: "0281 BARA ... REVOPSIRE PLASTIC 14" */
-const AUDATEX_PAINT_REVOPS = /^(\d{4})\s+(.+?\s+REVOPSIRE\s+.+?)\s+(\d+(?:\.\d+)?)\s*$/i;
+const AUDATEX_PAINT_REVOPS = /^(?:(?:KN\s+)?(?:\d{2}[-\s]\d{4}|\d{4})(?:\s+\d{1,2})?\s+)?(.+?\s+REVOPSIRE\s+.+?)\s+(\d+(?:\.\d+)?)\s*$/i;
 
 /** Paint headline with K1G: "2583 BARA ... VOP. PIESE NOI K1G 21" */
-const AUDATEX_PAINT_LINE = /^(\d{4})\s+(.+?\s+VOP\.?\s*.+?)\s+K\dG\s+[\d.]+\s*$/i;
+const AUDATEX_PAINT_LINE = /^(?:(?:KN\s+)?(?:\d{2}[-\s]\d{4}|\d{4})(?:\s+\d{1,2})?\s+)?(.+?\s+VOP\.?\s*.+?)\s+K\dG\s+[\d.]+\s*$/i;
 
 /** Supplementary article: "1000 3M-SET REP. PLAST ... 222.18*" */
-const AUDATEX_SUPP_LINE = /^(\d{4})\s+(.+?)\s+(\d+\.\d{2})\*?\s*$/;
+const AUDATEX_SUPP_LINE = /^(?:(?:KN\s+)?(?:\d{2}[-\s]\d{4}|\d{4})(?:\s+\d{1,2})?\s+)?(.+?)\s+(\d+\.\d{2})\*?\s*$/;
 
 function extractAudatexOperations(text) {
   const raw = String(text || "");
@@ -152,13 +192,14 @@ function extractAudatexOperations(text) {
   const paint = [];
   const supplementary = [];
 
-  const blocks = raw.split(/OPERATII\s+PRET/gi).slice(1);
-  for (const block of blocks) {
-    const section = block.split(/-{3,}|V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E|SISTEM\s+AUDATEX|PAGINA\s+\d/i)[0] || "";
+  // Section 1: Operații Manoperă
+  const opBlocks = raw.split(/(?:O\s*P\s*E\s*R\s*A\s*T\s*I\s*I(?:\s*[\/\-]\s*PRET|\s+PRET|\s+CU\s+PRET\s+VALABIL)?|M\s*A\s*N\s*O\s*P\s*E\s*R\s*A)/gi).slice(1);
+  for (const block of opBlocks) {
+    const section = block.split(/-{3,}|V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E|P\s*I\s*E\s*S\s*E|SISTEM\s+AUDATEX|PAGINA\s+\d/i)[0] || "";
     for (const line of section.split(/\r?\n/)) {
       const norm = line.replace(/\s+/g, " ").trim();
       if (!norm || norm.startsWith("(") || /^COD\s*\//i.test(norm)) continue;
-      if (/^BAZA\s+MANOPERA|^PRET\/CL|^PRET\s*=|^COD\s*\/\s*DETALII|^ORE\s+COST$/i.test(norm)) continue;
+      if (/^BAZA\s+MANOPERA|^PRET\/CL|^PRET\s*=|^COD\s*\/\s*DETALII|^ORE\s+COST/i.test(norm)) continue;
 
       const op = parseAudatexOpLine(norm);
       if (op) {
@@ -167,9 +208,11 @@ function extractAudatexOperations(text) {
     }
   }
 
+  // Section 2: Vopsitorie
   const paintBlock = raw.match(
-    /V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E[\s\S]{0,3500}?(?=P\s*I\s*E\s*S\s*E|ARTICOLE\s+SUPLIMENTARE|SISTEM\s+AUDATEX|-{3,})/i
-  );
+    /(?:V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E\s*\(|PREGATIRE\s+VOPSIRE|OPERATII\s+DETALII\s*-\s*PREVOPSIRE|VOPSITORIE\s+PRET)[\s\S]{0,4500}?(?=P\s*I\s*E\s*S\s*E|ARTICOLE\s+SUPLIMENTARE|C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A)/i
+  ) || raw.match(/(?:V\s*O\s*P\s*S\s*I\s*T\s*O\s*R\s*I\s*E)[\s\S]{0,4500}?(?=P\s*I\s*E\s*S\s*E|ARTICOLE\s+SUPLIMENTARE|C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A)/i);
+
   if (paintBlock) {
     for (const line of paintBlock[0].split(/\r?\n/)) {
       const norm = line.replace(/\s+/g, " ").trim();
@@ -177,20 +220,23 @@ function extractAudatexOperations(text) {
 
       const pm = norm.match(AUDATEX_PAINT_LINE);
       if (pm) {
-        const base = cleanAudatexOpDesc(pm[2].replace(/\s+VOP\.?\s+.*/i, "").trim());
+        const base = cleanAudatexOpDesc(stripAudatexOpCode(pm[1].replace(/\s+VOP\.?\s+.*/i, "").trim()));
         if (base.length >= 3) paint.push({ name: base, flags: { inl: false, rev: true, rep: false, uni: false }, source: "vopsitorie" });
         continue;
       }
       const rev = norm.match(AUDATEX_PAINT_REVOPS);
       if (rev) {
-        const base = cleanAudatexOpDesc(rev[2].replace(/\s+REVOPSIRE\s+.*/i, "").trim());
+        const base = cleanAudatexOpDesc(stripAudatexOpCode(rev[1].replace(/\s+REVOPSIRE\s+.*/i, "").trim()));
         if (base.length >= 3) paint.push({ name: base, flags: { inl: false, rev: true, rep: false, uni: false }, source: "vopsitorie" });
       }
     }
   }
 
+  // Section 3: Piese de Schimb (vizează tabelul detaliat, nu liniile din cuprins/sumar)
   const partsBlock = raw.match(
-    /P\s*I\s*E\s*S\s*E\s+PRET\s+VALABIL[\s\S]{0,2000}?(?=ARTICOLE\s+SUPLIMENTARE|C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A|-{3,}|SISTEM\s+AUDATEX)/i
+    /(?:P\s*I\s*E\s*S\s*E\s+PRET\s+VALABIL|P\s*I\s*E\s*S\s*E\s+DE\s+SCHIMB|PIESE\s+DE\s+SCHIMB|NR\.?GHID\s+BUC\.?\s+DESCRIERE)[\s\S]{0,6000}?(?=ARTICOLE\s+SUPLIMENTARE|C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A|SISTEM\s+AUDATEX\s+PAGINA\s+[3-9])/i
+  ) || raw.match(
+    /(?:P\s*I\s*E\s*S\s*E|L\s*I\s*S\s*T\s*A\s+P\s*I\s*E\s*S\s*E)[\s\S]{0,6000}?(?=ARTICOLE\s+SUPLIMENTARE|C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A)/i
   );
   if (partsBlock) {
     for (const line of partsBlock[0].split(/\r?\n/)) {
@@ -210,17 +256,44 @@ function extractAudatexOperations(text) {
     }
   }
 
-  const supBlock = raw.match(/ARTICOLE\s+SUPLIMENTARE[\s\S]{0,1200}?(?=C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A|-{3,})/i);
+  // Section 4: Articole Suplimentare
+  const supBlock = raw.match(/(?:ARTICOLE\s+SUPLIMENTARE|COSTURI\s+SUPLIMENTARE)[\s\S]{0,1500}?(?=C\s*A\s*L\s*C\s*U\s*L\s*A\s*T\s*I\s*E\s+F\s*I\s*N\s*A\s*L\s*A|-{3,})/i);
   if (supBlock) {
     for (const line of supBlock[0].split(/\r?\n/)) {
       const norm = line.replace(/\s+/g, " ").trim();
-      if (/^NR\.?GHID|^DESCRIERE|^PRET$/i.test(norm)) continue;
+      if (/^NR\.?GHID|^DESCRIERE|^PRET/i.test(norm)) continue;
       const sm = norm.match(AUDATEX_SUPP_LINE);
       if (sm) {
         supplementary.push({
-          name: cleanAudatexOpDesc(sm[2]),
-          amount: parseAudatexMoney(sm[3]),
+          name: cleanAudatexOpDesc(sm[1]),
+          amount: parseAudatexMoney(sm[2]),
           source: "supliment",
+        });
+      }
+    }
+  }
+
+  // Universal Scanner Fallback: dacă prin secțiuni nu s-au găsit operațiuni, scanăm toate liniile documentului
+  if (labour.length === 0 && parts.length === 0) {
+    for (const line of raw.split(/\r?\n/)) {
+      const norm = line.replace(/\s+/g, " ").trim();
+      if (!norm || norm.length < 5 || norm.startsWith("(") || /^COD\s*\//i.test(norm)) continue;
+      if (/^BAZA\s+MANOPERA|^PRET\/CL|^PRET\s*=|^TOTAL|^SISTEM\s+AUDATEX|^CALCULATIE/i.test(norm)) continue;
+
+      const op = parseAudatexOpLine(norm);
+      if (op) {
+        labour.push({ ...op, source: "manopera" });
+        continue;
+      }
+      const p = parseAudatexPartLine(norm);
+      if (p && p.name.length >= 2) {
+        parts.push({
+          name: p.name,
+          qty: p.qty,
+          partCode: p.partCode,
+          amount: p.amount,
+          flags: { inl: true, rev: false, rep: false, uni: false },
+          source: "piese",
         });
       }
     }

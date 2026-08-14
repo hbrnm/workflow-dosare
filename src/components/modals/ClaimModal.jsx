@@ -433,8 +433,21 @@ export default function ClaimModal({
   const costMaterialeVopsitorieService = parseNumber(financial.costMaterialeVopsitorieService, 0);
   const costConsumabileTinichigerieService = parseNumber(financial.costConsumabileTinichigerieService, 0);
   const costMasinaSchimb = parseNumber(financial.costMasinaSchimb, 0);
-  const totalDevizComponente =
-    totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex + totalVopsitorieAudatex;
+  
+  // Calcul inteligent pentru componente deviz (evită dubla numărare dacă manopera totală include deja vopsitoria)
+  const totalDevizComponente = useMemo(() => {
+    const rawSum = totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex + totalVopsitorieAudatex;
+    if (valoareDevizAudatex > 0) {
+      if (Math.abs(rawSum - valoareDevizAudatex) <= 1) return valoareDevizAudatex;
+      const withoutVops = totalPieseAudatex + totalManoperaAudatex + totalCosturiSuplimentareAudatex;
+      if (Math.abs(withoutVops - valoareDevizAudatex) <= 1) return valoareDevizAudatex;
+      if (totalManoperaAudatex >= totalVopsitorieAudatex && totalVopsitorieAudatex > 0) {
+        const adjusted = totalPieseAudatex + (totalManoperaAudatex - totalVopsitorieAudatex) + totalVopsitorieAudatex + totalCosturiSuplimentareAudatex;
+        if (Math.abs(adjusted - valoareDevizAudatex) <= 1) return valoareDevizAudatex;
+      }
+    }
+    return rawSum;
+  }, [totalPieseAudatex, totalManoperaAudatex, totalCosturiSuplimentareAudatex, totalVopsitorieAudatex, valoareDevizAudatex]);
 
   const venitNetTotal = valoareAcceptPlata > 0 ? valoareAcceptPlata : valoareDevizAudatex;
   const totalCosturiService =
