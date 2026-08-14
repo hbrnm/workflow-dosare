@@ -6,7 +6,6 @@ import { getStatusDefinition } from "../../../constants/config";
 import ClaimAuditMeta from "../../common/ClaimAuditMeta";
 import { modalHeaderClass } from "../../common/modalShellClasses";
 import {
-  generateazaPDF,
   generateazaProcesVerbalMasinaSchimb,
   generateazaFisaIntrareService,
   generateazaCerereDespagubireOmniasig,
@@ -185,21 +184,6 @@ export default function ClaimHeader({
                       : "bg-[var(--app-surface-muted)] border-white/20"
                   }`}
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                      desktopUi
-                        ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                        : "text-white hover:bg-white/10"
-                    }`}
-                    onClick={async () => {
-                      setPdfMenuOpen(false);
-                      await generateazaPDF(form, istoric, loadCachedBranding());
-                    }}
-                  >
-                    <FileText size={13} /> Proces-Verbal General
-                  </button>
                   <button
                     type="button"
                     role="menuitem"
