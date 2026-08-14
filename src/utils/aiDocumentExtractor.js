@@ -309,17 +309,32 @@ export function mapExtractedJsonToClaim(extracted) {
  */
 export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam = "gemini-2.0-flash") {
   if (!apiKey) {
-    throw new Error("Cheia API Google Gemini lipsește. Introduceți cheia în Setări sau folosiți Supabase Edge Function.");
+    throw new Error("Cheia API Google Gemini lipsește. Introduceți cheia în căsuța dedicată sau în Setări.");
   }
 
   const base64Data = await fileToBase64(file);
-  const mimeType = file.type || (file.name.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+  const fileName = (file && file.name ? file.name : "").toLowerCase();
+  const rawType = (file && file.type ? file.type : "").toLowerCase();
+
+  let mimeType = "application/pdf";
+  if (rawType && rawType.includes("/")) {
+    mimeType = rawType;
+  } else if (fileName.endsWith(".png")) {
+    mimeType = "image/png";
+  } else if (fileName.endsWith(".webp")) {
+    mimeType = "image/webp";
+  } else if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+    mimeType = "image/jpeg";
+  } else if (fileName.endsWith(".pdf")) {
+    mimeType = "application/pdf";
+  }
 
   const modelEndpoints = [
     { version: "v1beta", name: modelParam || "gemini-2.0-flash" },
     { version: "v1beta", name: "gemini-2.0-flash" },
     { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1beta", name: "gemini-1.5-flash-8b" },
+    { version: "v1beta", name: "gemini-2.5-flash" },
   ];
 
   const body = {
@@ -327,8 +342,8 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
       {
         parts: [
           {
-            inline_data: {
-              mime_type: mimeType,
+            inlineData: {
+              mimeType: mimeType,
               data: base64Data,
             },
           },
@@ -339,14 +354,20 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
       },
     ],
     generationConfig: {
-      response_mime_type: "application/json",
+      responseMimeType: "application/json",
       temperature: 0.1,
     },
   };
 
   let lastError = null;
+  const tried = new Set();
+
   for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${apiKey}`;
+    const key = `${m.version}/${m.name}`;
+    if (tried.has(key)) continue;
+    tried.add(key);
+
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${apiKey.trim()}`;
     try {
       const resp = await fetch(url, {
         method: "POST",
@@ -360,12 +381,26 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
         if (!textResponse) {
           throw new Error("Nu s-a extras niciun text în răspunsul Gemini.");
         }
-        const extractedRaw = JSON.parse(textResponse);
+
+        let extractedRaw;
+        try {
+          const cleanedText = textResponse.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+          extractedRaw = JSON.parse(cleanedText);
+        } catch (jsonParseErr) {
+          const start = textResponse.indexOf("{");
+          const end = textResponse.lastIndexOf("}");
+          if (start !== -1 && end !== -1 && end > start) {
+            extractedRaw = JSON.parse(textResponse.slice(start, end + 1));
+          } else {
+            throw jsonParseErr;
+          }
+        }
+
         return mapExtractedJsonToClaim(extractedRaw);
       }
 
       const errText = await resp.text();
-      lastError = new Error(`Eroare Gemini API (${resp.status}): ${errText}`);
+      lastError = new Error(`Eroare Gemini API (${m.name}, status ${resp.status}): ${errText}`);
     } catch (err) {
       lastError = err;
     }

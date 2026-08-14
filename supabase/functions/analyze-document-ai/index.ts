@@ -106,8 +106,8 @@ serve(async (req) => {
         {
           parts: [
             {
-              inline_data: {
-                mime_type: effectiveMime,
+              inlineData: {
+                mimeType: effectiveMime,
                 data: fileBase64,
               },
             },
@@ -118,7 +118,7 @@ serve(async (req) => {
         },
       ],
       generationConfig: {
-        response_mime_type: "application/json",
+        responseMimeType: "application/json",
         temperature: 0.1,
       },
     };
