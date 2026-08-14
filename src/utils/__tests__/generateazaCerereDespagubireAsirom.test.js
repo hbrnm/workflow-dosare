@@ -3,7 +3,7 @@ import { generateazaCerereDespagubireAsirom } from "../pdfGenerator";
 import { emptyClaim } from "../claimModel";
 
 describe("generateazaCerereDespagubireAsirom", () => {
-  it("generează cu succes PDF-ul de cerere despăgubire Asirom cu toate datele completate", async () => {
+  it("generează cu succes PDF-ul de cerere despăgubire Asirom cu branding furnizat", async () => {
     const mockClaim = {
       ...emptyClaim("accept_plata"),
       id: "claim-asirom-1",
@@ -35,6 +35,25 @@ describe("generateazaCerereDespagubireAsirom", () => {
     expect(res.fileName).toContain("ASIROM");
     expect(res.pdfBytes).toBeInstanceOf(ArrayBuffer);
     expect(res.pdfBytes.byteLength).toBeGreaterThan(1000);
+    expect(res.blob).toBeInstanceOf(Blob);
+  });
+
+  it("funcționează impecabil și când branding este null/lipsă (cu datele implicite de atelier)", async () => {
+    const mockClaim = {
+      ...emptyClaim("in_lucru"),
+      id: "claim-asirom-2",
+      numarInmatriculare: "B 110 THO",
+      numarDosar: "33211775",
+      asigurator: "Asirom VIG",
+      client: "UNICREDIT LEASING CO",
+      telefonClient: "0770930862",
+    };
+
+    const res = await generateazaCerereDespagubireAsirom(mockClaim, null);
+
+    expect(res).toBeDefined();
+    expect(res.fileName).toContain("ASIROM");
+    expect(res.pdfBytes).toBeInstanceOf(ArrayBuffer);
     expect(res.blob).toBeInstanceOf(Blob);
   });
 });

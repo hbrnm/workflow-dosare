@@ -6,7 +6,7 @@ async function createPdf(options = {}) {
 import { getStatusDefinition } from "../constants/config";
 import { fmtDateTime, fmtDate, todayISO } from "./dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "./claimUtils";
-import { resolveCerereDespagubireParties, isCompanyClientName } from "./cerereDespagubire";
+import { resolveCerereDespagubireParties, isCompanyClientName, OMNIASIG_CERERE_PLATA } from "./cerereDespagubire";
 
 function stripDiacritics(str) {
   if (str === null || str === undefined) return "";
