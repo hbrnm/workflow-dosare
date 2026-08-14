@@ -1061,6 +1061,8 @@ export default function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         claims={userClaims}
+        initialQuery={search}
+        onQueryChange={setSearch}
         onOpenClaim={handleOpenClaim}
         onSelectClaim={handleOpenClaim}
         onSwitchView={(viewId) => {

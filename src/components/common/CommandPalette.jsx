@@ -6,6 +6,50 @@ import {
 import { getStatusDefinition } from "../../constants/config";
 import { claimMatchesSearch } from "../../utils/searchUtils";
 
+/**
+ * Calculează un scor de relevanță pentru sortarea inteligentă a căutării
+ */
+function scoreClaimMatch(claim, rawQuery) {
+  const query = String(rawQuery || "").trim().toLowerCase();
+  if (!query) return 0;
+
+  const cleanQuery = query.replace(/\s+/g, "");
+  const plate = String(claim.numarInmatriculare || "").toLowerCase().replace(/\s+/g, "");
+  const dosar = String(claim.numarDosar || "").toLowerCase();
+  const dosarAsig = String(claim.nrDosarAsigurator || "").toLowerCase();
+  const client = String(claim.client || "").toLowerCase();
+  const model = String(claim.marcaModel || "").toLowerCase();
+  const vin = String(claim.vin || "").toLowerCase();
+  const asig = String(claim.asigurator || "").toLowerCase();
+
+  let score = 0;
+
+  // 1. Potrivire pe Număr Înmatriculare (prioritate maximă)
+  if (plate === cleanQuery) score += 1000;
+  else if (plate.startsWith(cleanQuery)) score += 800;
+  else if (plate.includes(cleanQuery)) score += 600;
+
+  // 2. Potrivire pe Număr Dosar (daună / asigurător)
+  if (dosar === query || dosarAsig === query) score += 900;
+  else if (dosar.startsWith(query) || dosarAsig.startsWith(query)) score += 750;
+  else if (dosar.includes(query) || dosarAsig.includes(query)) score += 550;
+
+  // 3. Potrivire pe Nume Client / Proprietar
+  if (client.startsWith(query)) score += 500;
+  else if (client.includes(query)) score += 400;
+
+  // 4. Potrivire pe Marcă & Model / VIN
+  if (model.startsWith(query)) score += 350;
+  else if (model.includes(query)) score += 300;
+  if (vin.includes(cleanQuery)) score += 350;
+
+  // 5. Potrivire pe Asigurător
+  if (asig.startsWith(query)) score += 250;
+  else if (asig.includes(query)) score += 200;
+
+  return score;
+}
+
 export default function CommandPalette({
   isOpen,
   onClose,
@@ -33,26 +77,31 @@ export default function CommandPalette({
   const handleOpenTargetClaim = onOpenClaim || onSelectClaim;
   const handleSwitchTargetView = onSwitchView || onNavigate;
 
-  // Prefill + focus only when palette opens (not on every parent search sync)
+  // Prefill + focus când se deschide paleta
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
-      setQuery(String(initialQuery || ""));
+      const initial = String(initialQuery || "");
+      setQuery(initial);
       setSelectedIndex(0);
-      const t = window.setTimeout(() => inputRef.current?.focus(), 50);
+      const t = window.setTimeout(() => inputRef.current?.focus(), 40);
       wasOpenRef.current = true;
       return () => window.clearTimeout(t);
     }
-    if (!isOpen) wasOpenRef.current = false;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+    }
     return undefined;
   }, [isOpen, initialQuery]);
 
   const updateQuery = (next) => {
     setQuery(next);
     setSelectedIndex(0);
-    if (typeof onQueryChange === "function") onQueryChange(next);
+    if (typeof onQueryChange === "function") {
+      onQueryChange(next);
+    }
   };
 
-  // Global Ctrl+K / Cmd+K listener when palette is open
+  // Listener global Ctrl+K / Cmd+K
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
@@ -65,11 +114,11 @@ export default function CommandPalette({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Filtered items (Claims, Views, Actions)
+  // Elemente filtrate & sortate inteligent după relevanță
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    // Views List
+    // Tab-uri Navigare
     const views = [
       { type: "view", id: "flux", label: "Flux Operațional", sub: "Tabloul pe 6 stadii de atelier", icon: Layers },
       { type: "view", id: "brief", label: "Brieful Zilei", sub: "Alerte, sosiri azi & puls atelier", icon: Sunrise },
@@ -79,7 +128,7 @@ export default function CommandPalette({
       { type: "view", id: "rapoarte", label: "Rapoarte Financiar", sub: "Marjă piese & venit manoperă", icon: Wallet },
     ];
 
-    // Actions List
+    // Acțiuni rapide
     const actions = [
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
       { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte, cameră live", icon: Camera, handler: onOpenQuickCapture },
@@ -92,28 +141,30 @@ export default function CommandPalette({
     ].filter((a) => typeof a.handler === "function");
 
     if (!q) {
-      // Default view when query is empty: show recent claims + quick views + actions
-      const recentClaims = claims.slice(0, 5).map((c) => ({ type: "claim", claim: c }));
+      const recentClaims = claims.slice(0, 5).map((c) => ({ type: "claim", claim: c, score: 0 }));
       return [...recentClaims, ...views.slice(0, 4), ...actions];
     }
 
-    // Filter Claims — same matcher as header / overlay / list filters
-    const matchedClaims = claims
+    // Filtrare & Sortare după relevanță
+    const scoredClaims = claims
       .filter((c) => claimMatchesSearch(c, q))
-      .slice(0, 8)
-      .map((c) => ({ type: "claim", claim: c }));
+      .map((c) => ({
+        type: "claim",
+        claim: c,
+        score: scoreClaimMatch(c, q),
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
 
-    // Filter Views
     const matchedViews = views.filter(
       (v) => v.label.toLowerCase().includes(q) || v.sub.toLowerCase().includes(q)
     );
 
-    // Filter Actions
     const matchedActions = actions.filter(
       (a) => a.label.toLowerCase().includes(q) || a.sub.toLowerCase().includes(q)
     );
 
-    return [...matchedClaims, ...matchedViews, ...matchedActions];
+    return [...scoredClaims, ...matchedViews, ...matchedActions];
   }, [
     query,
     claims,
@@ -127,7 +178,29 @@ export default function CommandPalette({
     onExportPdf,
   ]);
 
-  // Keyboard navigation within list
+  const executeItem = (item) => {
+    if (!item) return;
+
+    if (item.type === "claim" && item.claim) {
+      if (typeof handleOpenTargetClaim === "function") {
+        handleOpenTargetClaim(item.claim);
+      }
+    } else if (item.type === "view") {
+      if (typeof handleSwitchTargetView === "function") {
+        handleSwitchTargetView(item.id);
+      }
+    } else if (item.type === "action" && item.handler) {
+      if (typeof item.handler === "function") {
+        item.handler();
+      }
+    }
+
+    if (typeof onClose === "function") {
+      onClose();
+    }
+  };
+
+  // Navigare tastatură
   const handleKeyDownList = (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -144,25 +217,6 @@ export default function CommandPalette({
       e.preventDefault();
       e.stopPropagation();
       if (typeof onClose === "function") onClose();
-    }
-  };
-
-  const executeItem = (item) => {
-    if (item.type === "claim") {
-      if (typeof handleOpenTargetClaim === "function") {
-        handleOpenTargetClaim(item.claim);
-      }
-    } else if (item.type === "view") {
-      if (typeof handleSwitchTargetView === "function") {
-        handleSwitchTargetView(item.id);
-      }
-    } else if (item.type === "action" && item.handler) {
-      if (typeof item.handler === "function") {
-        item.handler();
-      }
-    }
-    if (typeof onClose === "function") {
-      onClose();
     }
   };
 
@@ -227,6 +281,7 @@ export default function CommandPalette({
                     key={`claim-${c.id}`}
                     role="option"
                     aria-selected={isSelected}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
@@ -245,13 +300,13 @@ export default function CommandPalette({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold">{c.numarDosar || "Fără nr."}</span>
+                          <span className="font-mono font-bold text-[13px]">{c.numarDosar || "Fără nr."}</span>
                           <span className="text-[var(--app-muted)] truncate">
                             — {c.client || "Client nespecificat"}
                           </span>
                         </div>
                         <div className="text-[11px] truncate flex items-center gap-2 mt-0.5 text-[var(--app-muted)]">
-                          <span className="font-mono font-semibold">{c.numarInmatriculare || "—"}</span>
+                          <span className="font-mono font-bold uppercase text-[var(--app-text-strong)]">{c.numarInmatriculare || "—"}</span>
                           <span>· {c.marcaModel || "—"}</span>
                           {c.asigurator && <span>· {c.asigurator}</span>}
                         </div>
@@ -281,6 +336,7 @@ export default function CommandPalette({
                     key={`view-${item.id}`}
                     role="option"
                     aria-selected={isSelected}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
@@ -325,6 +381,7 @@ export default function CommandPalette({
                     key={`action-${item.id}`}
                     role="option"
                     aria-selected={isSelected}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => executeItem(item)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors text-[12.5px] ${
