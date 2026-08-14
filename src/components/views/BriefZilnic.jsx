@@ -23,6 +23,7 @@ import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 import { glossaryTitle } from "../../constants/glossary";
 import { buildStatusCounts, countUniqueVehicles } from "../../utils/plateSchedule";
+import InsurerActivitiesPanel from "./InsurerActivitiesPanel";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate" },
@@ -530,7 +531,15 @@ export default function BriefZilnic({
         )}
       </div>
 
-      {/* 3. OPERATIV ZILNIC */}
+      {/* 3. ACTIVITĂȚI & RELAȚIE ASIGURĂTORI (AIR, Reconstatări, Deconturi) */}
+      <InsurerActivitiesPanel
+        claims={claims}
+        onOpen={onOpen}
+        onNotify={onNotify}
+        onSelectStatusFilter={onSelectStatusFilter}
+      />
+
+      {/* 4. OPERATIV ZILNIC */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 shrink-0">
 
         <div className="app-brief-panel rounded-xl p-3 flex flex-col min-h-[200px] max-h-[320px]">
