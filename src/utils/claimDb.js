@@ -151,7 +151,28 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
       continue;
     }
 
-    // 2. Foreign key violation on atelier_id -> remove atelier_id if invalid and retry
+    // 2. Not-null constraint violation on atelier_id -> fetch available atelier and retry
+    if (
+      error.message &&
+      (error.message.includes('null value in column "atelier_id"') ||
+        (error.message.includes("atelier_id") && error.message.includes("not-null")))
+    ) {
+      try {
+        const { data: atRows } = await supabaseClient
+          .from("ateliere")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .limit(1);
+        if (atRows?.[0]?.id) {
+          body.atelier_id = atRows[0].id;
+          continue;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // 3. Foreign key violation on atelier_id -> remove atelier_id if invalid and retry
     if (error.message && error.message.includes("dosare_atelier_id_fkey") && body.atelier_id) {
       const next = { ...body };
       delete next.atelier_id;
@@ -159,7 +180,7 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
       continue;
     }
 
-    // 3. RLS policy violation on insert -> try healing created_by / atelier_id from current session
+    // 4. RLS policy violation on insert -> try healing created_by / atelier_id from current session
     if (
       mode !== "update" &&
       attempt === 0 &&
@@ -179,6 +200,15 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
               .limit(1);
             if (mRows?.[0]?.atelier_id) {
               body.atelier_id = mRows[0].atelier_id;
+            } else {
+              const { data: atRows } = await supabaseClient
+                .from("ateliere")
+                .select("id")
+                .order("created_at", { ascending: true })
+                .limit(1);
+              if (atRows?.[0]?.id) {
+                body.atelier_id = atRows[0].id;
+              }
             }
           }
           continue;
