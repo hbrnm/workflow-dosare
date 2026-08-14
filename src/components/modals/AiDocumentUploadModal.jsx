@@ -86,17 +86,17 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
-              <Sparkles className="w-5 h-5 animate-pulse" />
+              <FileText className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-semibold text-lg text-slate-100 flex items-center gap-2">
-                Agent Extragere Date Documente
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-normal">
-                  Multi-Motor
+                Import &amp; Scanare Documente
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-normal">
+                  OCR &amp; Parser Nativ
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Încarcă un deviz Audatex/Eurotax, proces verbal sau talon pentru a completa automat dosarul
+                Încarcă un deviz Audatex / DAT, talon sau proces-verbal pentru completare automată instantă
               </p>
             </div>
           </div>
@@ -110,66 +110,6 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
 
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-          {/* Selector Motor Extragere */}
-          {!result && (
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                <Cpu className="w-4 h-4 text-indigo-400" />
-                Selectează Motorul de Procesare:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEngine("auto")}
-                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
-                    engine === "auto"
-                      ? "bg-indigo-600/20 border-indigo-500 text-indigo-200 shadow-sm"
-                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  <Zap className="w-4 h-4 text-indigo-400" />
-                  <span>Automat (Hibrid)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEngine("local")}
-                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
-                    engine === "local"
-                      ? "bg-emerald-600/20 border-emerald-500 text-emerald-200 shadow-sm"
-                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  <FileText className="w-4 h-4 text-emerald-400" />
-                  <span>Parser Audatex (Offline)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEngine("gemini")}
-                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
-                    engine === "gemini"
-                      ? "bg-sky-600/20 border-sky-500 text-sky-200 shadow-sm"
-                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4 text-sky-400" />
-                  <span>Google Gemini 2.0</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEngine("openai")}
-                  className={`p-2.5 rounded-xl border text-xs font-medium flex flex-col items-center justify-center gap-1 text-center transition-all ${
-                    engine === "openai"
-                      ? "bg-purple-600/20 border-purple-500 text-purple-200 shadow-sm"
-                      : "bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  <Globe className="w-4 h-4 text-purple-400" />
-                  <span>OpenAI GPT-4o</span>
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* File Upload Zone */}
           {!result && (
             <div
@@ -189,12 +129,12 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
             >
               <input
                 type="file"
-                id="ai-doc-upload"
+                id="doc-upload-input"
                 className="hidden"
                 accept=".pdf,.xml,.xlsx,.csv,image/*"
                 onChange={handleFileChange}
               />
-              <label htmlFor="ai-doc-upload" className="cursor-pointer block">
+              <label htmlFor="doc-upload-input" className="cursor-pointer block">
                 {file ? (
                   <div className="flex flex-col items-center gap-3">
                     <div className="p-3 bg-emerald-500/20 rounded-full text-emerald-400">
@@ -203,7 +143,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                     <div>
                       <p className="font-medium text-emerald-300">{file.name}</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB • Click sau drag pentru a înlocui
+                        {(file.size / 1024 / 1024).toFixed(2)} MB • Click sau drag pentru a schimba fișierul
                       </p>
                     </div>
                   </div>
@@ -217,61 +157,12 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                         Trage fișierul aici sau <span className="text-indigo-400">răsfoiește</span>
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        Suportă PDF (Devize Audatex/DAT/Eurotax), XML, Excel sau imagini (taloane, PV-uri, facturi)
+                        Suportă PDF (Devize Audatex / DAT / Eurotax), Excel, XML sau imagini (Taloane, PV-uri)
                       </p>
                     </div>
                   </div>
                 )}
               </label>
-            </div>
-          )}
-
-          {/* Configurare Cheie API (Dacă motorul selectat o cere sau pentru AI) */}
-          {!result && engine !== "local" && (
-            <div className="p-4 bg-slate-950/40 rounded-xl border border-slate-800/80 space-y-2">
-              <div className="flex items-center justify-between text-xs font-medium text-slate-300">
-                <label htmlFor="api-key-input">
-                  Cheie API ({engine === "openai" ? "OpenAI sk-..." : "Google Gemini AIzaSy..."}):
-                </label>
-                {engine === "gemini" || engine === "auto" ? (
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 underline text-[11px] font-normal"
-                  >
-                    Obține cheie gratuită Gemini &rarr;
-                  </a>
-                ) : (
-                  <a
-                    href="https://platform.openai.com/api-keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-purple-400 hover:text-purple-300 underline text-[11px] font-normal"
-                  >
-                    Obține cheie OpenAI &rarr;
-                  </a>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="api-key-input"
-                  type="password"
-                  placeholder={
-                    engine === "openai"
-                      ? "sk-proj-... (salvată local)"
-                      : "AIzaSy... (sau lăsați gol pentru Parserul Local)"
-                  }
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                />
-                {apiKey ? (
-                  <span className="px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-lg flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Salvată
-                  </span>
-                ) : null}
-              </div>
             </div>
           )}
 
@@ -291,9 +182,6 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
               <div>
                 <p className="font-semibold">Procesarea a eșuat</p>
                 <p className="text-xs opacity-90 mt-1">{error}</p>
-                <p className="text-[11px] text-slate-400 mt-2">
-                  Sfat: Puteți comuta motorul pe <strong>„Parser Audatex (Offline)”</strong> pentru procesare instantă directă a PDF-urilor fără cheie API.
-                </p>
               </div>
             </div>
           )}
@@ -600,8 +488,8 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                 onClick={handleProcess}
                 className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition-all shadow-lg shadow-indigo-600/30 flex items-center gap-2"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {engine === "local" ? "Procesează cu Parserul Local" : "Analizează Documentul"}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Extrage Datele din Document
               </button>
             ) : (
               <button

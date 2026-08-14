@@ -23,7 +23,6 @@ import SettingsHeader from "./settings/SettingsHeader";
 import SettingsNav from "./settings/SettingsNav";
 import SettingsGeneralTab from "./settings/SettingsGeneralTab";
 import SettingsInsurersTab from "./settings/SettingsInsurersTab";
-import SettingsAiTab from "./settings/SettingsAiTab";
 import SettingsAppearanceTab from "./settings/SettingsAppearanceTab";
 import SettingsBackupTab from "./settings/SettingsBackupTab";
 import SettingsGdprTab from "./settings/SettingsGdprTab";
@@ -511,16 +510,7 @@ export default function SetariModal({
             />
           )}
 
-          {/* TAB 3: ASISTENȚĂ INTELIGENTĂ AI & SCANARE */}
-          {activeTab === "ai" && (
-            <SettingsAiTab
-              geminiApiKeySetting={geminiApiKeySetting}
-              setGeminiApiKeySetting={setGeminiApiKeySetting}
-              onNotify={onNotify}
-            />
-          )}
-
-          {/* TAB 4: ASPECT (ZI / NOAPTE / TEMĂ) */}
+          {/* TAB 3: ASPECT (ZI / NOAPTE / TEMĂ) */}
           {activeTab === "notificari" && (
             <SettingsAppearanceTab
               themePref={themePref}

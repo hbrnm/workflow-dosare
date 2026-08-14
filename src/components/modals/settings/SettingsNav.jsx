@@ -50,7 +50,6 @@ export default function SettingsNav({
           {[
             { id: "general", label: desktopUi ? "Parametri" : "Parametri", icon: Wrench },
             { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersCount },
-            { id: "ai", label: "Agent AI", icon: Sparkles },
             { id: "notificari", label: desktopUi ? "Afișare" : "Afișare", icon: Bell },
             { id: "diagnoza", label: "Backup", icon: Database },
             { id: "date", label: "Date", icon: Scale },
