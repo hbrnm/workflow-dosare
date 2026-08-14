@@ -1,8 +1,25 @@
 import JSZip from "jszip";
 import jsPDF from "jspdf";
 import { fmtDate, todayISO } from "./dateUtils";
-import { OMNIASIG_CERERE_PLATA, resolveCerereDespagubireParties } from "./cerereDespagubire";
+import { OMNIASIG_CERERE_PLATA } from "./cerereDespagubire";
 
+/**
+ * Curăță diacriticele pentru fonturile standard jsPDF (evită spațiile goale și caracterele lipsă)
+ */
+function stripDiacritics(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/[ăâ]/g, "a")
+    .replace(/[ĂÂ]/g, "A")
+    .replace(/[î]/g, "i")
+    .replace(/[Î]/g, "I")
+    .replace(/[șş]/g, "s")
+    .replace(/[ȘŞ]/g, "S")
+    .replace(/[țţ]/g, "t")
+    .replace(/[ȚŢ]/g, "T");
+}
+
+const sd = (val, fallback = "—") => stripDiacritics(String(val || "").trim() || fallback);
 const sanitize = (str) => String(str || "fara_nume").replace(/[^a-zA-Z0-9_\-\.]/g, "_");
 
 /**
@@ -14,17 +31,17 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   const margin = 15;
   let y = margin;
 
-  const atelierNume = atelierBranding?.nume || atelierBranding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar || "SERVICE AUTO EXPERT";
-  const atelierCui = atelierBranding?.cui || "RO12345678";
-  const atelierIban = atelierBranding?.iban || OMNIASIG_CERERE_PLATA.cont || "RO56 MIRO 0000 1184 0304 0301";
-  const atelierBanca = atelierBranding?.banca || OMNIASIG_CERERE_PLATA.banca || "PROCREDIT BANK";
+  const atelierNume = sd(atelierBranding?.nume || atelierBranding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar, "SERVICE AUTO EXPERT");
+  const atelierCui = sd(atelierBranding?.cui, "RO12345678");
+  const atelierIban = sd(atelierBranding?.iban || OMNIASIG_CERERE_PLATA.cont, "RO56 MIRO 0000 1184 0304 0301");
+  const atelierBanca = sd(atelierBranding?.banca || OMNIASIG_CERERE_PLATA.banca, "PROCREDIT BANK");
 
-  const nrInmat = String(claim?.numarInmatriculare || "—").toUpperCase();
-  const vin = String(claim?.vin || "—").toUpperCase();
-  const marcaModel = String(claim?.marcaModel || `${claim?.marca || ""} ${claim?.model || ""}`).trim() || "—";
-  const clientNume = String(claim?.client || "—").trim();
-  const nrDosarAsig = String(claim?.nrDosarAsigurator || claim?.numarDosar || "—").trim();
-  const asigurator = String(claim?.asigurator || "Asigurare").trim();
+  const nrInmat = sd(claim?.numarInmatriculare, "—").toUpperCase();
+  const vin = sd(claim?.vin, "—").toUpperCase();
+  const marcaModel = sd(claim?.marcaModel || `${claim?.marca || ""} ${claim?.model || ""}`, "—");
+  const clientNume = sd(claim?.client, "—");
+  const nrDosarAsig = sd(claim?.nrDosarAsigurator || claim?.numarDosar, "—");
+  const asigurator = sd(claim?.asigurator, "Asigurare");
 
   // Valori financiare
   const valPiese = Number(claim?.valoarePieseAudatex || claim?.financiar?.pieseFacturateFaraTva || 0);
@@ -58,13 +75,13 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  doc.text("CENTRALIZATOR DECONT DAUNĂ AUTO", pageWidth / 2, y, { align: "center" });
+  doc.text("CENTRALIZATOR DECONT DAUNA AUTO", pageWidth / 2, y, { align: "center" });
 
   y += 5;
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(71, 85, 105);
-  doc.text(`Către Asigurător: ${asigurator} · Dosar Daună: ${nrDosarAsig} · Data: ${fmtDate(todayISO())}`, pageWidth / 2, y, { align: "center" });
+  doc.text(`Catre Asigurator: ${asigurator} · Dosar Dauna: ${nrDosarAsig} · Data: ${fmtDate(todayISO())}`, pageWidth / 2, y, { align: "center" });
 
   // 3. Date Identificare
   y += 8;
@@ -76,19 +93,19 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85);
   doc.text(`Autovehicul: ${nrInmat} (${marcaModel})`, margin + 4, y + 7);
-  doc.text(`Serie Șasiu (VIN): ${vin}`, margin + 4, y + 14);
-  doc.text(`Proprietar / Păgubit: ${clientNume}`, margin + 4, y + 21);
+  doc.text(`Serie Sasiu (VIN): ${vin}`, margin + 4, y + 14);
+  doc.text(`Proprietar / Pagubit: ${clientNume}`, margin + 4, y + 21);
 
-  doc.text(`Nr. Deviz Service: ${claim?.numarDosar || "—"}`, margin + 110, y + 7);
-  doc.text(`Tip Asigurare: ${claim?.tipAsigurare || "CASCO"}`, margin + 110, y + 14);
-  doc.text(`Termen Legal Plată: 10 zile`, margin + 110, y + 21);
+  doc.text(`Nr. Deviz Service: ${sd(claim?.numarDosar, "—")}`, margin + 110, y + 7);
+  doc.text(`Tip Asigurare: ${sd(claim?.tipAsigurare, "CASCO")}`, margin + 110, y + 14);
+  doc.text(`Termen Legal Plata: 10 zile`, margin + 110, y + 21);
 
   // 4. Tabel Desfășurat Financiari
   y += 32;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 41, 59);
-  doc.text("SITUAȚIA VALORICĂ A LUCRĂRILOR EFECTUATE", margin, y);
+  doc.text("SITUATIA VALORICA A LUCRARILOR EFECTUATE", margin, y);
 
   y += 4;
   const colX = [margin, margin + 95, margin + 140];
@@ -99,16 +116,16 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.rect(margin, y, pageWidth - margin * 2, rowHeight, "F");
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
-  doc.text("CAPITOL / REPER DE REPARAȚIE", colX[0] + 3, y + 5);
-  doc.text("VALOARE FĂRĂ TVA", colX[1] + 3, y + 5);
+  doc.text("CAPITOL / REPER DE REPARATIE", colX[0] + 3, y + 5);
+  doc.text("VALOARE FARA TVA", colX[1] + 3, y + 5);
   doc.text("VALOARE CU TVA (21%)", colX[2] + 3, y + 5);
 
   y += rowHeight;
 
   const rows = [
-    { label: "1. Total Piese de Schimb Înlocuite", net: valPiese },
-    { label: "2. Manoperă Tinichigerie & Caroserie", net: manTinichigerie },
-    { label: "3. Manoperă Vopsitorie & Pregătire", net: manVopsitorie },
+    { label: "1. Total Piese de Schimb Inlocuite", net: valPiese },
+    { label: "2. Manopera Tinichigerie & Caroserie", net: manTinichigerie },
+    { label: "3. Manopera Vopsitorie & Pregatire", net: manVopsitorie },
     { label: "4. Materiale de Vopsitorie", net: matVopsitorie },
     { label: "5. Alte Cheltuieli / Suplimente", net: suplimente },
   ];
@@ -138,7 +155,7 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(30, 27, 75);
-  doc.text("TOTAL DECONT SOLICITAT DE PLATĂ:", margin + 4, y + 6);
+  doc.text("TOTAL DECONT SOLICITAT DE PLATA:", margin + 4, y + 6);
   doc.text(`TOTAL NETTO: ${Math.round(totalNet).toLocaleString("ro-RO")} lei  |  TVA 21%: ${Math.round(tvaVal).toLocaleString("ro-RO")} lei`, margin + 4, y + 11);
 
   doc.setFontSize(12);
@@ -154,14 +171,14 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(30, 41, 59);
-  doc.text("INSTRUCȚIUNI DE PLATĂ / VIRAMENT BANCAR", margin + 4, y + 6);
+  doc.text("INSTRUCTIUNI DE PLATA / VIRAMENT BANCAR", margin + 4, y + 6);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(51, 65, 85);
   doc.text(`Beneficiar: ${atelierNume}`, margin + 4, y + 12);
   doc.text(`Cont IBAN: ${atelierIban}`, margin + 4, y + 17);
-  doc.text(`Banca: ${atelierBanca}  |  Explicație virament: Decont Dauna ${nrDosarAsig} / ${nrInmat}`, margin + 4, y + 22);
+  doc.text(`Banca: ${atelierBanca}  |  Explicatie virament: Decont Dauna ${nrDosarAsig} / ${nrInmat}`, margin + 4, y + 22);
 
   // 6. Semnătură & Ștampilă
   y += 32;
@@ -172,7 +189,7 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.text(`Reprezentant legal / Consilier Daune`, margin, y + 5);
-  doc.text("✓ Document emis electronic conform legislației în vigoare", margin, y + 12);
+  doc.text("✓ Document emis electronic conform legislatiei in vigoare", margin, y + 12);
 
   return doc.output("arraybuffer");
 }
@@ -183,41 +200,41 @@ export function generateCentralizatorDecontPdf(claim, atelierBranding = {}) {
 export function buildInsurerEmailTemplate(claim, atelierBranding = {}) {
   const nrInmat = String(claim?.numarInmatriculare || "—").toUpperCase();
   const nrDosar = String(claim?.nrDosarAsigurator || claim?.numarDosar || "—");
-  const asigurator = String(claim?.asigurator || "Asigurător");
+  const asigurator = String(claim?.asigurator || "Asigurator");
   const clientNume = String(claim?.client || "Client");
   const totalDecont = Number(claim?.sumaDecont || claim?.valoareDevizAudatex || 0);
   const atelierNume = atelierBranding?.nume || OMNIASIG_CERERE_PLATA.beneficiar || "SERVICE AUTO";
   const iban = atelierBranding?.iban || OMNIASIG_CERERE_PLATA.cont;
 
-  return `Către: Departamentul Daune - ${asigurator}
-Subiect: Pachet Decont Final Daună [${nrInmat}] · Dosar: ${nrDosar} · ${clientNume}
+  return `Catre: Departamentul Daune - ${asigurator}
+Subiect: Pachet Decont Final Dauna [${nrInmat}] · Dosar: ${nrDosar} · ${clientNume}
 
-Stimate domnule / Stimată doamnă Inspector,
+Stimate domnule / Stimata doamna Inspector,
 
-Vă transmitem atașat pachetul complet de documente și fotografii pentru finalizarea dosarului de daună și emiterea acceptului de plată:
+Va transmitem atasat pachetul complet de documente si fotografii pentru finalizarea dosarului de dauna si emiterea acceptului de plata:
 
-• Nr. Înmatriculare: ${nrInmat}
-• Serie Șasiu (VIN): ${claim?.vin || "—"}
-• Nr. Dosar Asigurător: ${nrDosar}
-• Păgubit / Asigurat: ${clientNume}
-• Valoare Totală Decont (cu TVA): ${Math.round(totalDecont).toLocaleString("ro-RO")} LEI
+• Nr. Inmatriculare: ${nrInmat}
+• Serie Sasiu (VIN): ${claim?.vin || "—"}
+• Nr. Dosar Asigurator: ${nrDosar}
+• Pagubit / Asigurat: ${clientNume}
+• Valoare Totala Decont (cu TVA): ${Math.round(totalDecont).toLocaleString("ro-RO")} LEI
 
-Documente incluse în arhiva atașată:
-1. Centralizator Decont Lucrări & Cont Bancar IBAN
-2. Cerere Oficială de Despăgubire
-3. Deviz de Reparație Audatex / DAT
-4. Proces-Verbal de Recepție & Predare
-5. Fotografii conform standardelor (serie șasiu, avarii, piese înlocuite, final)
+Documente incluse in arhiva atasata:
+1. Centralizator Decont Lucrari & Cont Bancar IBAN
+2. Cerere Oficiala de Despagubire
+3. Deviz de Reparatie Audatex / DAT
+4. Proces-Verbal de Receptie & Predare
+5. Fotografii conform standardelor (serie sasiu, avarii, piese inlocuite, final)
 
 Date pentru efectuarea viramentului:
 • Beneficiar: ${atelierNume}
 • Cont IBAN: ${iban}
 • Banca: ${atelierBranding?.banca || OMNIASIG_CERERE_PLATA.banca}
-• Detalii plată: Decont dosar ${nrDosar} / ${nrInmat}
+• Detalii plata: Decont dosar ${nrDosar} / ${nrInmat}
 
-Vă rugăm să ne confirmați primirea documentației și emiterea acceptului de plată conform termenului legal.
+Va rugam sa ne confirmati primirea documentatiei si emiterea acceptului de plata conform termenului legal.
 
-Cu stimă,
+Cu stima,
 Departamentul Daune · ${atelierNume}`;
 }
 
