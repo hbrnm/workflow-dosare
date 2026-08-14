@@ -251,3 +251,17 @@ export async function uploadStorageItem(supabaseClientOrOptions, bucketName, cla
     ...extra,
   };
 }
+
+export async function uploadClaimPhoto(claimId, file, category = "generale", supabaseClient = null) {
+  return uploadStorageItem({
+    supabaseClient,
+    bucketName: "poze-dosare",
+    claimId,
+    file,
+    folder: category,
+    extraFields: {
+      categoria: category,
+      categorie: category,
+    },
+  });
+}

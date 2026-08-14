@@ -20,8 +20,10 @@ describe("generatePvReceptiePdf", () => {
       kilometraj: 154300,
       combustibil: "3/4 (75%)",
       obiecte: ["Certificat Înmatriculare (Talon original)", "Cheie contact"],
-      avariiPreexistente: "Zgârieturi bară spate",
+      elementeAvariate: ["Bară Față", "Capotă Motor", "Ușă Față Stg."],
+      avariiPreexistente: "Bară Față, Capotă Motor",
       observatii: "Vopsire aripă dreapta",
+      pozeCount: 4,
     };
 
     const result = await generatePvReceptiePdf({

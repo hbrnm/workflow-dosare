@@ -146,38 +146,47 @@ export async function generatePvReceptiePdf({
   doc.text(`Tip Asigurare:`, rightX + 3, y + 36);
   doc.text(sanitize(claim?.tipAsigurare, "CASCO"), rightX + 32, y + 36);
 
+  const elementeAvariate = Array.isArray(receptieData?.elementeAvariate) && receptieData.elementeAvariate.length > 0
+    ? receptieData.elementeAvariate.join(", ")
+    : "Nu au fost identificate elemente de caroserie avariate pe schemă";
+
+  const pozeCount = receptieData?.pozeCount || (Array.isArray(receptieData?.poze) ? receptieData.poze.length : 0);
+  const pozeMention = pozeCount > 0
+    ? `${pozeCount} fotografii de recepție efectuate și atașate în dosar`
+    : "Fără fotografii de intrare";
+
   // 4. Stare la Preluare & Avarii Preexistente
   y += 45;
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(203, 213, 225);
-  doc.roundedRect(margin, y, pageWidth - margin * 2, 38, 2, 2, "FD");
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 42, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
   doc.setTextColor(30, 41, 59);
-  doc.text("CONSTATĂRI LA RECEPȚIE & OBIECTE PRELUATE", margin + 3, y + 5);
+  doc.text("CONSTATĂRI LA RECEPȚIE & ELEMENTE AVARIATE", margin + 3, y + 5);
 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(51, 65, 85);
 
-  doc.text("Documente & Obiecte preluate în custodie:", margin + 3, y + 12);
+  doc.text("Elemente caroserie marcate pe schemă:", margin + 3, y + 12);
   doc.setFont("helvetica", "bold");
-  doc.text(doc.splitTextToSize(obiecte, pageWidth - margin * 2 - 10), margin + 3, y + 17);
+  doc.text(doc.splitTextToSize(elementeAvariate, pageWidth - margin * 2 - 10), margin + 3, y + 17);
 
   doc.setFont("helvetica", "normal");
-  doc.text("Avarii / Zgârieturi preexistente menționate la primire:", margin + 3, y + 24);
+  doc.text("Documente & Obiecte preluate în custodie:", margin + 3, y + 24);
   doc.setFont("helvetica", "bold");
-  doc.text(doc.splitTextToSize(avariiPreexistente, pageWidth - margin * 2 - 10), margin + 3, y + 29);
+  doc.text(doc.splitTextToSize(obiecte, pageWidth - margin * 2 - 10), margin + 3, y + 29);
 
   doc.setFont("helvetica", "normal");
-  doc.text("Observații intervenție:", margin + 3, y + 35);
-  doc.text(observatii.slice(0, 80), margin + 38, y + 35);
+  doc.text("Fotografii intrare & Observații:", margin + 3, y + 36);
+  doc.text(`${pozeMention} · ${observatii.slice(0, 60)}`, margin + 3, y + 40);
 
   // 5. Clauze Legale, Acord Proba de Drum & GDPR
-  y += 42;
+  y += 46;
   doc.setFillColor(241, 245, 249);
-  doc.roundedRect(margin, y, pageWidth - margin * 2, 30, 2, 2, "FD");
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
