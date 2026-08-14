@@ -713,8 +713,8 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
     { version: "v1beta", name: modelParam || "gemini-2.0-flash" },
     { version: "v1beta", name: "gemini-2.0-flash" },
     { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-flash-8b" },
-    { version: "v1beta", name: "gemini-2.5-flash" },
+    { version: "v1beta", name: "gemini-1.5-pro" },
+    { version: "v1beta", name: "gemini-2.0-flash-lite" },
   ];
 
   const body = {
@@ -778,44 +778,60 @@ export async function extractClaimDataWithGeminiDirect(file, apiKey, modelParam 
 /**
  * Motor 3: OpenAI GPT-4o / GPT-4o-mini (cu cheie OpenAI sk-...)
  */
-export async function extractClaimDataWithOpenAIDirect(file, apiKey, modelParam = "gpt-4o-mini") {
+export async function extractClaimDataWithOpenAIDirect(file, apiKey, model = "gpt-4o") {
   if (!apiKey) {
-    throw new Error("Cheia API OpenAI lipsește. Introduceți cheia sk-... în formular.");
+    throw new Error("Cheia API OpenAI lipsește. Introduceți cheia în căsuța dedicată.");
   }
 
   const fileName = (file && file.name ? file.name : "").toLowerCase();
-  const isPdf = fileName.endsWith(".pdf") || file.type?.includes("pdf");
-  let contentPayload;
+  const rawType = (file && file.type ? file.type : "").toLowerCase();
+  const isPdf = fileName.endsWith(".pdf") || rawType.includes("pdf");
 
+  let extractedPdfText = "";
   if (isPdf) {
-    let pdfText = "";
     try {
       const { parseEstimateFile } = await import("./audatexImportFile");
       const parsed = await parseEstimateFile(file);
-      pdfText = parsed?.rawPreview || "";
+      extractedPdfText = parsed?.fullText || parsed?.rawPreview || "";
     } catch {
-      // ignore
+      // Fallback la imagine
     }
+  }
 
-    if (pdfText && pdfText.length > 50) {
-      contentPayload = [
-        { type: "text", text: `${SYSTEM_PROMPT_ROMANIAN_CLAIMS}\n\nConținut text extras din PDF:\n${pdfText}` }
-      ];
-    } else {
-      const base64Data = await fileToBase64(file);
-      contentPayload = [
-        { type: "text", text: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
-        { type: "image_url", image_url: { url: `data:application/pdf;base64,${base64Data}` } }
-      ];
-    }
+  let userContent = [];
+  if (extractedPdfText && extractedPdfText.length > 80) {
+    userContent = [
+      {
+        type: "text",
+        text: `${SYSTEM_PROMPT_ROMANIAN_CLAIMS}\n\nConținut text extras din documentul PDF (${file.name}):\n\n${extractedPdfText}`,
+      },
+    ];
   } else {
     const base64Data = await fileToBase64(file);
-    const mime = file.type || "image/jpeg";
-    contentPayload = [
+    let mimeType = "image/jpeg";
+    if (fileName.endsWith(".png")) mimeType = "image/png";
+    else if (fileName.endsWith(".webp")) mimeType = "image/webp";
+
+    userContent = [
       { type: "text", text: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
-      { type: "image_url", image_url: { url: `data:${mime};base64,${base64Data}` } }
+      {
+        type: "image_url",
+        image_url: {
+          url: `data:${mimeType};base64,${base64Data}`,
+        },
+      },
     ];
   }
+
+  const payload = {
+    model: model || "gpt-4o",
+    messages: [
+      { role: "system", content: "You are a professional automotive document extraction agent. Return only JSON." },
+      { role: "user", content: userContent },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0.1,
+  };
 
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -823,15 +839,7 @@ export async function extractClaimDataWithOpenAIDirect(file, apiKey, modelParam 
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey.trim()}`,
     },
-    body: JSON.stringify({
-      model: modelParam || "gpt-4o-mini",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT_ROMANIAN_CLAIMS },
-        { role: "user", content: contentPayload },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.1,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!resp.ok) {
@@ -870,12 +878,28 @@ export async function extractClaimDataHybrid(file, { apiKey = "", engine = "auto
 
   // 2. Dacă motorul este OpenAI sau cheia începe cu 'sk-'
   if (engine === "openai" || apiKey.trim().startsWith("sk-")) {
-    return await extractClaimDataWithOpenAIDirect(file, apiKey.trim());
+    try {
+      return await extractClaimDataWithOpenAIDirect(file, apiKey.trim());
+    } catch (openAiErr) {
+      if (isPdfOrSheet) {
+        console.warn("[AI Document] OpenAI error, fallback la parser local:", openAiErr);
+        return await extractClaimDataWithLocalAudatexEngine(file);
+      }
+      throw openAiErr;
+    }
   }
 
   // 3. Dacă avem cheie Gemini introdusă
   if (apiKey.trim()) {
-    return await extractClaimDataWithGeminiDirect(file, apiKey.trim());
+    try {
+      return await extractClaimDataWithGeminiDirect(file, apiKey.trim());
+    } catch (geminiErr) {
+      if (isPdfOrSheet) {
+        console.warn("[AI Document] Gemini API error, fallback la parser local:", geminiErr);
+        return await extractClaimDataWithLocalAudatexEngine(file);
+      }
+      throw geminiErr;
+    }
   }
 
   // 4. Dacă avem Supabase Edge Function
