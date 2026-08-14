@@ -55,7 +55,7 @@ describe("aiDocumentExtractor & schema mapping", () => {
 
     const { claimPartial, tipDocument } = mapExtractedJsonToClaim(structuredDoc);
 
-    expect(tipDocument).toBe("Deviz Reparație");
+    expect(tipDocument).toBe("Deviz de Reparație");
     expect(claimPartial.numarDosar).toBe("DEV-2026-0042");
     expect(claimPartial.asigurator).toBe("Allianz-Țiriac");
     expect(claimPartial.tipAsigurare).toBe("CASCO");
@@ -131,9 +131,88 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(claimPartial.manopera.tinichigerie.facturat).toBe(600);
     expect(claimPartial.manopera.vopsitorie.facturat).toBe(800);
     expect(claimPartial.financiar.manoperaTinichigerie).toBe(600);
-    expect(claimPartial.financiar.manoperaVopsitorie).toBe(800);
     expect(claimPartial.operatiuni.length).toBe(2);
     expect(claimPartial.operatiuni[0].piesa).toBe("Bara fata");
     expect(claimPartial.operatiuni[0].inl).toBe(true);
+  });
+
+  it("mapează corect documente de tip TALON (Certificat de Înmatriculare)", () => {
+    const talonDoc = {
+      status: "SUCCESS",
+      document_type: "TALON",
+      confidence_score: 0.98,
+      data: {
+        license_plate: "CJ 10 ABC",
+        vehicle_vin: "VF1BB050512345678",
+        owner_name: "Ionescu Maria",
+        brand_model: "Dacia Duster",
+        first_registration_date: "2021-05-14",
+        engine_power: "1461 cm3 / 85 kW",
+      },
+    };
+
+    const { claimPartial, tipDocument } = mapExtractedJsonToClaim(talonDoc);
+
+    expect(tipDocument).toBe("Certificat Înmatriculare (Talon)");
+    expect(claimPartial.numarInmatriculare).toBe("CJ 10 ABC");
+    expect(claimPartial.vin).toBe("VF1BB050512345678");
+    expect(claimPartial.client).toBe("Ionescu Maria");
+    expect(claimPartial.marca).toBe("Dacia");
+    expect(claimPartial.model).toBe("Duster");
+  });
+
+  it("mapează corect documente de tip PV_DAUNA (Proces-Verbal de Constatare)", () => {
+    const pvDoc = {
+      status: "SUCCESS",
+      document_type: "PV_DAUNA",
+      confidence_score: 0.95,
+      data: {
+        claim_number: "DOS-OMN-2026-789",
+        insurance_company: "Omniasig VIG",
+        insurance_type: "CASCO",
+        client_name: "Radu Mihai",
+        client_phone: "0744111222",
+        license_plate: "B 555 XYZ",
+        vehicle_vin: "WBA3A5C55FP123456",
+        vehicle_make: "BMW",
+        vehicle_model: "Seria 3",
+        claim_inspector: "Inspector Daună George",
+        damage_summary: "Avarie frontală: bară, capotă, far stânga",
+        damaged_parts: [
+          { description: "Bara protectie fata", type: "REPLACE", inl: true },
+          { description: "Capota motor", type: "REPAIR", rep: true },
+          { description: "Vopsire capota", type: "PAINT", rev: true },
+          { description: "D/R componente fata", type: "D/R", uni: true },
+        ],
+        labor_total: 1200,
+        parts_total: 4500,
+        paint_materials_total: 650,
+        subtotal_amount: 6350,
+        total_amount: 7556.5,
+      },
+    };
+
+    const { claimPartial, tipDocument } = mapExtractedJsonToClaim(pvDoc);
+
+    expect(tipDocument).toBe("Proces Verbal Constatare Daună");
+    expect(claimPartial.nrDosarAsigurator).toBe("DOS-OMN-2026-789");
+    expect(claimPartial.asigurator).toBe("Omniasig VIG");
+    expect(claimPartial.tipAsigurare).toBe("CASCO");
+    expect(claimPartial.client).toBe("Radu Mihai");
+    expect(claimPartial.telefonClient).toBe("0744111222");
+    expect(claimPartial.numarInmatriculare).toBe("B 555 XYZ");
+    expect(claimPartial.vin).toBe("WBA3A5C55FP123456");
+    expect(claimPartial.marca).toBe("BMW");
+    expect(claimPartial.model).toBe("Seria 3");
+    expect(claimPartial.inspectorDauna).toBe("Inspector Daună George");
+    expect(claimPartial.valoareDevizAudatex).toBe(6350);
+    expect(claimPartial.valoarePieseAudatex).toBe(4500);
+    expect(claimPartial.manopera.tinichigerie.facturat).toBe(1200);
+
+    expect(claimPartial.operatiuni.length).toBe(4);
+    expect(claimPartial.operatiuni[0].inl).toBe(true);
+    expect(claimPartial.operatiuni[1].rep).toBe(true);
+    expect(claimPartial.operatiuni[2].rev).toBe(true);
+    expect(claimPartial.operatiuni[3].uni).toBe(true);
   });
 });

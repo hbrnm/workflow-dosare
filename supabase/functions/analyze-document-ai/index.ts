@@ -6,43 +6,68 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `Ești un asistent expert în procesarea și analiza documentelor de daună auto din România (devize Audatex, Eurotax, procese verbale de constatare daune, cereri de despăgubire, certificate de înmatriculare/taloane, facturi de piese).
+const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `You are an advanced Document Intelligence Engine designed for an Auto Repair Shop Management System (Service Auto România).
+The primary task is to process incoming scanned images, smartphone photos, and digital PDFs of auto claims documents (Certificat de Înmatriculare/Talon, Carte de Identitate/CI, Proces-Verbal de Constatare Daună, Devize de Reparație Audatex/Eurotax/DAT, Facturi Service, Polițe RCA/CASCO).
 
-Analizează documentul atașat (imagine sau PDF) și extrage toate datele disponibile în următorul format JSON strict. Dacă o informație nu este găsită în document, returnează null sau string gol.
+Return STRICTLY VALID JSON with no Markdown wrappers outside the JSON block.
 
-Formatul JSON de returnat trebuie să aibă exact această structură:
+CRITICAL INSTRUCTIONS:
+1. Document Type Classification: Identify one of "TALON" | "CI" | "PV_DAUNA" | "DEVIZ" | "POLITA" | "UNKNOWN".
+2. Insurer vs. Repair Shop: "insurance_company" MUST be the Romanian insurance company (e.g., "Omniasig VIG", "Allianz-Țiriac", "Groupama Asigurări", "Generali România", "Asirom VIG", "Grawe România", "Axeria IARD", "Hellas Direct", "Uniqa Asigurări", "Garanta"). DO NOT put the auto repair shop / service name (e.g. "AUTOKLASS", "SERVICE AUTO SRL") in "insurance_company"!
+3. TALON (Certificat de Înmatriculare): Extract VIN (Field E, 17 chars), License Plate (Field A), Owner Name (Field C.1.1/C.1.2), Brand/Model (Field D.1/D.3), First Registration Date (Field B), Engine Code/Power (Field P.1/P.2).
+4. CI (Carte de Identitate): Extract CNP (13 digits), Full Name, Address/Domiciliu, ID Series & Number.
+5. PV_DAUNA / DEVIZ: Extract Claim Number, Insurer, Insured Person / Client, Damaged Parts / Operations (with INL / REV / REP / D_R flags), Labor Totals, Parts Totals, Paint Material Totals, Subtotal (Netto), Total (Brutto).
+
+JSON Output Structure:
 {
-  "numarDosar": string sau null,
-  "nrDosarAsigurator": string sau null,
-  "asigurator": string sau null,
-  "tipAsigurare": string ("RCA" sau "CASCO"),
-  "client": string sau null,
-  "delegat": string sau null,
-  "telefonClient": string sau null,
-  "numarInmatriculare": string sau null,
-  "vin": string sau null,
-  "marca": string sau null,
-  "model": string sau null,
-  "kilometraj": number sau null,
-  "inspectorDauna": string sau null,
-  "ceEsteDeReparat": string sau null,
-  "valoareDevizAudatex": number sau null,
-  "valoarePieseAudatex": number sau null,
-  "manoperaTinichigerie": number sau null,
-  "manoperaVopsitorie": number sau null,
-  "materialeVopsitorie": number sau null,
-  "valoareFransiza": number sau null,
-  "sumaDecont": number sau null,
-  "operatiuni": [
-    {
-      "piesa": string,
-      "inl": boolean,
-      "rev": boolean,
-      "rep": boolean,
-      "uni": boolean
-    }
-  ],
-  "tipDocumentIdentificat": string
+  "status": "SUCCESS",
+  "document_type": "TALON" | "CI" | "PV_DAUNA" | "DEVIZ" | "POLITA" | "UNKNOWN",
+  "confidence_score": 0.95,
+  "data": {
+    "numarDosar": string sau null,
+    "claim_number": string sau null,
+    "insurance_company": string sau null,
+    "insurance_type": "RCA" | "CASCO",
+    "client_name": string sau null,
+    "client_phone": string sau null,
+    "cnp": string sau null,
+    "address": string sau null,
+    "id_series_number": string sau null,
+    "delegate_name": string sau null,
+    "license_plate": string sau null,
+    "vehicle_vin": string sau null,
+    "vehicle_make": string sau null,
+    "vehicle_model": string sau null,
+    "mileage_km": number sau null,
+    "first_registration_date": string sau null,
+    "engine_power": string sau null,
+    "claim_inspector": string sau null,
+    "damage_summary": string sau null,
+    "vendor_name": string sau null,
+    "vendor_cui": string sau null,
+    "parts_total": number sau null,
+    "labor_total": number sau null,
+    "labor_paint_total": number sau null,
+    "paint_materials_total": number sau null,
+    "additional_costs_total": number sau null,
+    "subtotal_amount": number sau null,
+    "vat_amount": number sau null,
+    "total_amount": number sau null,
+    "deductible_amount": number sau null,
+    "line_items": [
+      {
+        "description": string,
+        "quantity": number sau 1,
+        "unit_price": number sau 0,
+        "total_price": number sau 0,
+        "inl": boolean,
+        "rev": boolean,
+        "rep": boolean,
+        "uni": boolean
+      }
+    ]
+  },
+  "extraction_flags": []
 }`;
 
 serve(async (req) => {

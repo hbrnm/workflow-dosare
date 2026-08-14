@@ -150,64 +150,72 @@ export function extractEstimateMetadataFromText(text) {
 
 /**
  * Prompt-ul de sistem structurat pentru Modele AI pentru a analiza documente de daună auto
- * (Devize Audatex, Eurotax, DAT, Procese Verbale de Constatare, Cereri de despăgubire, Facturi, Taloane etc.)
+ * (Certificat Înmatriculare/Talon, Carte Identitate/CI, Proces-Verbal Constatare Daună, Devize de Reparație, Polițe RCA/CASCO)
  */
-export const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `Ești un asistent expert în procesarea și analiza documentelor de daună auto din România (devize Audatex, Eurotax, DAT, procese verbale de constatare daune, cereri de despăgubire, certificate de înmatriculare/taloane, facturi de piese, chitanțe).
+export const SYSTEM_PROMPT_ROMANIAN_CLAIMS = `You are an advanced Document Intelligence Engine designed for an Auto Repair Shop Management System (Service Auto România).
+The primary task is to process incoming scanned images, smartphone photos, and digital PDFs of auto claims documents (Certificat de Înmatriculare/Talon, Carte de Identitate/CI, Proces-Verbal de Constatare Daună, Devize de Reparație Audatex/Eurotax/DAT, Facturi Service, Polițe RCA/CASCO).
 
-Analizează documentul atașat (text, imagine sau PDF) și extrage toate datele disponibile în următorul format JSON strict. Dacă o informație nu este găsită în document, returnează null sau string gol.
+Return STRICTLY VALID JSON with no Markdown wrappers outside the JSON block.
 
-ATENȚIE MAXIMĂ LA ASIGURĂTOR:
-- "insurance_company" TREBUIE să fie societatea de asigurare (ex: "Omniasig VIG", "Allianz-Țiriac", "Groupama Asigurări", "Generali România", "Asirom VIG", "Grawe România", "Axeria IARD", "Hellas Direct", "Uniqa Asigurări", "Garanta").
-- NU confunda unitatea reparatoare / service-ul auto (ex: "AUTOKLASS", "SERVICE AUTO SRL") cu societatea de asigurare! Service-ul auto trebuie pus la "vendor_name", NU la "insurance_company".
+CRITICAL INSTRUCTIONS:
+1. Document Type Classification: Identify one of "TALON" | "CI" | "PV_DAUNA" | "DEVIZ" | "POLITA" | "UNKNOWN".
+2. Insurer vs. Repair Shop: "insurance_company" MUST be the Romanian insurance company (e.g., "Omniasig VIG", "Allianz-Țiriac", "Groupama Asigurări", "Generali România", "Asirom VIG", "Grawe România", "Axeria IARD", "Hellas Direct", "Uniqa Asigurări", "Garanta"). DO NOT put the auto repair shop / service name (e.g. "AUTOKLASS", "SERVICE AUTO SRL") in "insurance_company"!
+3. TALON (Certificat de Înmatriculare): Extract VIN (Field E, 17 chars), License Plate (Field A), Owner Name (Field C.1.1/C.1.2), Brand/Model (Field D.1/D.3), First Registration Date (Field B), Engine Code/Power (Field P.1/P.2).
+4. CI (Carte de Identitate): Extract CNP (13 digits), Full Name, Address/Domiciliu, ID Series & Number.
+5. PV_DAUNA / DEVIZ: Extract Claim Number, Insurer, Insured Person / Client, Damaged Parts / Operations (with INL / REV / REP / D_R flags), Labor Totals, Parts Totals, Paint Material Totals, Subtotal (Netto), Total (Brutto).
 
-Formatul JSON de returnat trebuie să aibă exact această structură:
+JSON Output Structure:
 {
-  "document_type": "repair_estimate" | "invoice" | "receipt" | "registration_certificate" | "damage_report" | "unknown",
-  "document_metadata": {
-    "document_number": string sau null (ex: număr dosar, număr deviz sau număr factură),
-    "document_date": string sau null (format YYYY-MM-DD),
-    "vendor_name": string sau null (nume service auto / unitate reparatoare),
-    "vendor_cui": string sau null (CUI / CIF firmă emitentă)
-  },
-  "financials": {
-    "subtotal_amount": number sau null (total reparație fără TVA / Cost reparație Netto),
-    "vat_amount": number sau null (valoare TVA),
-    "total_amount": number sau null (total reparație cu TVA / Cost reparație Brut),
-    "currency": "RON" | "EUR" | "USD"
-  },
-  "repair_details": {
-    "vehicle_vin": string sau null (Serie șasiu 17 caractere),
-    "license_plate": string sau null (ex: "B 123 ABC"),
-    "vehicle_make": string sau null (ex: "Volkswagen", "BMW", "Audi", "Dacia", "Ford"),
-    "vehicle_model": string sau null (ex: "Passat", "X5", "Logan", "Focus"),
-    "mileage_km": number sau null (kilometraj),
-    "labor_total": number sau null (total manoperă tinichigerie/mecanică fără TVA),
-    "labor_paint_total": number sau null (total manoperă vopsitorie fără TVA),
-    "parts_total": number sau null (total piese de schimb fără TVA),
-    "paint_materials_total": number sau null (total materiale vopsitorie fără TVA),
-    "additional_costs_total": number sau null (total costuri suplimentare / mărunțișuri),
-    "claim_number_insurer": string sau null (număr dosar daună asigurător ex: "DA-12345678"),
-    "insurance_company": string sau null (Societatea de asigurare ex: "Omniasig VIG", "Groupama", "Allianz-Țiriac", "Generali", "Asirom VIG", "Grawe", "Axeria IARD", "Uniqa"),
+  "status": "SUCCESS",
+  "document_type": "TALON" | "CI" | "PV_DAUNA" | "DEVIZ" | "POLITA" | "UNKNOWN",
+  "confidence_score": 0.95,
+  "data": {
+    "numarDosar": string sau null (număr dosar service / deviz),
+    "claim_number": string sau null (număr dosar daună asigurător),
+    "insurance_company": string sau null (Societate de asigurare),
     "insurance_type": "RCA" | "CASCO",
-    "client_name": string sau null (numele asiguratului / păgubitului / proprietarului autovehiculului),
-    "client_phone": string sau null (telefon contact),
-    "delegate_name": string sau null (persoană delegată / împuternicită),
-    "claim_inspector": string sau null (inspector de daună),
-    "damage_summary": string sau null (descrierea avariilor)
+    "client_name": string sau null (Nume asigurat / păgubit / proprietar),
+    "client_phone": string sau null (Telefon contact),
+    "cnp": string sau null (CNP 13 cifre),
+    "address": string sau null (Domiciliu / Adresă),
+    "id_series_number": string sau null (Serie și număr CI),
+    "delegate_name": string sau null (Persoană delegată / împuternicită),
+    "license_plate": string sau null (Număr înmatriculare ex: B 123 ABC),
+    "vehicle_vin": string sau null (Serie șasiu 17 caractere),
+    "vehicle_make": string sau null (Marca ex: Volkswagen, BMW, Audi, Dacia, Ford),
+    "vehicle_model": string sau null (Model ex: Passat, X5, Logan, Focus),
+    "mileage_km": number sau null (Kilometraj),
+    "first_registration_date": string sau null (Data primei înmatriculări YYYY-MM-DD),
+    "engine_power": string sau null (Capacitate cilindrică / Putere kW),
+    "claim_inspector": string sau null (Inspector daună),
+    "damage_summary": string sau null (Descrierea avariilor),
+    "vendor_name": string sau null (Nume service auto / unitate reparatoare),
+    "vendor_cui": string sau null (CUI / CIF service auto),
+    "parts_total": number sau null (Total piese de schimb fără TVA),
+    "labor_total": number sau null (Total manoperă tinichigerie/mecanică fără TVA),
+    "labor_paint_total": number sau null (Total manoperă vopsitorie fără TVA),
+    "paint_materials_total": number sau null (Total materiale vopsitorie fără TVA),
+    "additional_costs_total": number sau null (Total costuri suplimentare / mărunțișuri),
+    "subtotal_amount": number sau null (Cost reparație fără TVA / Netto),
+    "vat_amount": number sau null (Valoare TVA),
+    "total_amount": number sau null (Cost reparație cu TVA / Brut),
+    "deductible_amount": number sau null (Valoare franșiză),
+    "line_items": [
+      {
+        "description": string (Denumire piesă / reper / operațiune),
+        "quantity": number sau 1,
+        "unit_price": number sau 0,
+        "total_price": number sau 0,
+        "inl": boolean (Înlocuire piesă),
+        "rev": boolean (Revopsire),
+        "rep": boolean (Reparație tinichigerie),
+        "uni": boolean (Demontare / Remontare D/R)
+      }
+    ]
   },
-  "line_items": [
-    {
-      "description": string (denumire piesă / operațiune reparare),
-      "quantity": number sau 1,
-      "unit_price": number sau 0,
-      "total_price": number sau 0,
-      "inl": boolean (înlocuire piesă),
-      "rev": boolean (revopsire),
-      "rep": boolean (reparație tinichigerie),
-      "uni": boolean (demontare / remontare D/R)
-    }
-  ],
-  "tipDocumentIdentificat": string (ex: "Deviz Audatex", "Proces Verbal Constatare", "Certificat Înmatriculare", "Deviz Eurotax", "Factură Piese", "Necunoscut")
+  "extraction_flags": [
+    // Array of warning strings: "LOW_RESOLUTION", "HANDWRITTEN_TEXT_DETECTED", "UNCERTAIN_VIN_DIGIT"
+  ]
 }`;
 
 /**
@@ -242,80 +250,102 @@ export function mapExtractedJsonToClaim(extracted) {
   }
 
   const base = emptyClaim();
-  const meta = extracted.document_metadata || {};
-  const fin = extracted.financials || {};
-  const rep = extracted.repair_details || {};
-  const lineItems = Array.isArray(extracted.line_items) ? extracted.line_items : [];
+  // Suport atât pentru schema unificată { status, document_type, data: {...} } cât și pentru formate plate
+  const d = extracted.data && typeof extracted.data === "object" ? extracted.data : extracted;
+  const meta = extracted.document_metadata || d.document_metadata || {};
+  const fin = extracted.financials || d.financials || {};
+  const rep = extracted.repair_details || d.repair_details || {};
+  const rawLineItems = Array.isArray(d.line_items) ? d.line_items : (Array.isArray(d.damaged_parts) ? d.damaged_parts : (Array.isArray(extracted.line_items) ? extracted.line_items : []));
 
   // 1. Câmpuri de identificare dosar & vehicul
   const numarDosar =
+    d.numarDosar ||
     extracted.numarDosar ||
     meta.document_number ||
     base.numarDosar;
 
   const nrDosarAsigurator =
+    d.claim_number ||
+    d.nrDosarAsigurator ||
     extracted.nrDosarAsigurator ||
     rep.claim_number_insurer ||
     "";
 
   // Identificare asigurător canonic (excludem unitatea reparatoare din câmpul de asigurător)
-  const candidateInsurer = extracted.asigurator || rep.insurance_company || "";
+  const candidateInsurer = d.insurance_company || d.asigurator || extracted.asigurator || rep.insurance_company || "";
   const matchedInsurer = matchCanonicalInsurer(candidateInsurer);
-  const fallbackInsurer = matchCanonicalInsurer(meta.vendor_name) || "";
+  const fallbackInsurer = matchCanonicalInsurer(d.vendor_name || meta.vendor_name) || "";
   const asigurator =
     matchedInsurer ||
     fallbackInsurer ||
     (candidateInsurer && !isRepairShopName(candidateInsurer) ? candidateInsurer : base.asigurator);
 
   const tipAsigurare =
-    extracted.tipAsigurare === "CASCO" || rep.insurance_type === "CASCO"
+    d.insurance_type === "CASCO" || extracted.tipAsigurare === "CASCO" || rep.insurance_type === "CASCO"
       ? "CASCO"
       : "RCA";
 
-  let client = (extracted.client || rep.client_name || "").trim();
+  let client = (d.client_name || d.owner_name || d.full_name || d.client || extracted.client || rep.client_name || "").trim();
   if (isRepairShopName(client)) {
     client = "";
   }
 
   const delegat =
+    d.delegate_name ||
+    d.delegat ||
     extracted.delegat ||
     rep.delegate_name ||
     "";
 
   const telefonClient =
+    d.client_phone ||
+    d.telefonClient ||
     extracted.telefonClient ||
     rep.client_phone ||
     "";
 
-  const rawPlate = extracted.numarInmatriculare || rep.license_plate || "";
+  const rawPlate = d.license_plate || d.numarInmatriculare || extracted.numarInmatriculare || rep.license_plate || "";
   const numarInmatriculare = rawPlate.toUpperCase().replace(/[^A-Z0-9]/g, " ").trim();
 
-  const rawVin = extracted.vin || rep.vehicle_vin || "";
+  const rawVin = d.vehicle_vin || d.vin || extracted.vin || rep.vehicle_vin || "";
   const vin = rawVin.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-  const marca = (extracted.marca || rep.vehicle_make || "").trim();
-  const model = (extracted.model || rep.vehicle_model || "").trim();
-  const marcaModel = extracted.marcaModel || [marca, model].filter(Boolean).join(" ");
+  // Brand / Model
+  let marca = (d.vehicle_make || d.marca || extracted.marca || rep.vehicle_make || "").trim();
+  let model = (d.vehicle_model || d.model || extracted.model || rep.vehicle_model || "").trim();
+  if (!marca && !model && (d.brand_model || d.marcaModel)) {
+    const parts = String(d.brand_model || d.marcaModel).trim().split(/\s+/);
+    marca = parts[0] || "";
+    model = parts.slice(1).join(" ") || "";
+  }
+  const marcaModel = d.marcaModel || [marca, model].filter(Boolean).join(" ");
 
   const kilometraj =
-    extracted.kilometraj != null
+    d.mileage_km != null
+      ? normalizeNumeric(d.mileage_km, null)
+      : extracted.kilometraj != null
       ? normalizeNumeric(extracted.kilometraj, null)
       : rep.mileage_km != null
       ? normalizeNumeric(rep.mileage_km, null)
       : null;
 
   const inspectorDauna =
+    d.claim_inspector ||
+    d.inspectorDauna ||
     extracted.inspectorDauna ||
     rep.claim_inspector ||
     "";
 
   const ceEsteDeReparat =
+    d.damage_summary ||
+    d.ceEsteDeReparat ||
     extracted.ceEsteDeReparat ||
     rep.damage_summary ||
     "";
 
   // 2. Câmpuri financiare & deviz Audatex / DAT
   const valoarePieseAudatex = normalizeNumeric(
+    d.parts_total ||
     extracted.valoarePieseAudatex ||
     rep.parts_total ||
     fin.parts_total ||
@@ -323,6 +353,7 @@ export function mapExtractedJsonToClaim(extracted) {
   );
 
   const manoperaTinichigerie = normalizeNumeric(
+    d.labor_total ||
     extracted.manoperaTinichigerie ||
     rep.labor_body_total ||
     rep.labor_total ||
@@ -331,18 +362,21 @@ export function mapExtractedJsonToClaim(extracted) {
   );
 
   const manoperaVopsitorie = normalizeNumeric(
+    d.labor_paint_total ||
     extracted.manoperaVopsitorie ||
     rep.labor_paint_total ||
     0
   );
 
   const materialeVopsitorie = normalizeNumeric(
+    d.paint_materials_total ||
     extracted.materialeVopsitorie ||
     rep.paint_materials_total ||
     0
   );
 
   const totalCosturiSuplimentare = normalizeNumeric(
+    d.additional_costs_total ||
     extracted.totalCosturiSuplimentare ||
     rep.additional_costs_total ||
     0
@@ -355,6 +389,8 @@ export function mapExtractedJsonToClaim(extracted) {
   const sumComponents = valoarePieseAudatex + manoperaTinichigerie + manoperaVopsitorie + materialeVopsitorie + totalCosturiSuplimentare;
 
   const valoareDevizAudatex = normalizeNumeric(
+    d.subtotal_amount ||
+    d.total_cost_net ||
     extracted.valoareDevizAudatex ||
     fin.subtotal_amount ||
     (sumComponents > 0 ? sumComponents : 0) ||
@@ -363,16 +399,21 @@ export function mapExtractedJsonToClaim(extracted) {
   );
 
   const costReparatieCuTva = normalizeNumeric(
+    d.total_amount ||
+    d.total_cost_gross ||
     extracted.costReparatieCuTva ||
     fin.total_amount ||
     (valoareDevizAudatex > 0 ? Math.round(valoareDevizAudatex * 1.21 * 100) / 100 : 0)
   );
 
   const valoareFransiza = normalizeNumeric(
+    d.deductible_amount ||
     extracted.valoareFransiza || 0
   );
 
   const sumaDecont = normalizeNumeric(
+    d.total_amount ||
+    d.total_cost_gross ||
     extracted.sumaDecont ||
     costReparatieCuTva ||
     valoareDevizAudatex ||
@@ -393,19 +434,22 @@ export function mapExtractedJsonToClaim(extracted) {
   };
 
   // 4. Operațiuni & linii de deviz
-  const operatiuniFromLineItems = lineItems.map((li, i) => ({
-    id: `ai_item_${Date.now()}_${i}`,
-    piesa: String(li.description || li.piesa || "").trim(),
-    inl: Boolean(li.inl),
-    rev: Boolean(li.rev),
-    rep: Boolean(li.rep),
-    uni: Boolean(li.uni),
-  }));
+  const operatiuniFromLineItems = rawLineItems.map((li, i) => {
+    const desc = typeof li === "string" ? li : (li.description || li.piesa || li.name || "");
+    return {
+      id: `ai_item_${Date.now()}_${i}`,
+      piesa: String(desc).trim(),
+      inl: Boolean(li.inl ?? (li.type === "INL" || li.type === "REPLACE")),
+      rev: Boolean(li.rev ?? (li.type === "REV" || li.type === "PAINT")),
+      rep: Boolean(li.rep ?? (li.type === "REP" || li.type === "REPAIR")),
+      uni: Boolean(li.uni ?? (li.type === "D/R" || li.type === "UNI")),
+    };
+  });
 
-  const operatiuniFromLegacy = Array.isArray(extracted.operatiuni)
-    ? extracted.operatiuni.map((op, i) => ({
+  const operatiuniFromLegacy = Array.isArray(extracted.operatiuni || d.operatiuni)
+    ? (extracted.operatiuni || d.operatiuni).map((op, i) => ({
         id: `ai_op_${Date.now()}_${i}`,
-        piesa: String(op.piesa || "").trim(),
+        piesa: String(op.piesa || op.description || "").trim(),
         inl: Boolean(op.inl),
         rev: Boolean(op.rev),
         rep: Boolean(op.rep),
@@ -451,25 +495,30 @@ export function mapExtractedJsonToClaim(extracted) {
       materialeVopsitorie,
       cheltuieliDiverse: totalCosturiSuplimentare,
       costuriExterne: totalCosturiSuplimentare,
-      numarFactura: meta.document_number || extracted.numarFactura || "",
-      dataFactura: meta.document_date || extracted.dataFactura || null,
+      numarFactura: meta.document_number || d.numarFactura || extracted.numarFactura || "",
+      dataFactura: meta.document_date || d.dataFactura || extracted.dataFactura || null,
       audatex: audatexTotals,
     },
     operatiuni,
   };
 
+  const docType = extracted.document_type || d.document_type;
   const tipDoc =
     extracted.tipDocumentIdentificat ||
-    (extracted.document_type === "repair_estimate"
-      ? "Deviz Reparație"
-      : extracted.document_type === "invoice"
+    (docType === "TALON"
+      ? "Certificat Înmatriculare (Talon)"
+      : docType === "CI"
+      ? "Carte de Identitate (CI)"
+      : docType === "PV_DAUNA"
+      ? "Proces Verbal Constatare Daună"
+      : docType === "DEVIZ" || docType === "repair_estimate"
+      ? "Deviz de Reparație"
+      : docType === "POLITA"
+      ? "Poliță RCA / CASCO"
+      : docType === "invoice"
       ? "Factură Fiscală"
-      : extracted.document_type === "receipt"
+      : docType === "receipt"
       ? "Chitanță / Bon"
-      : extracted.document_type === "registration_certificate"
-      ? "Certificat Înmatriculare"
-      : extracted.document_type === "damage_report"
-      ? "Proces Verbal Constatare"
       : "Document Procesat");
 
   return {
