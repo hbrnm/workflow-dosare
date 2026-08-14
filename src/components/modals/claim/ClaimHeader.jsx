@@ -26,10 +26,14 @@ export default function ClaimHeader({
   pdfMenuRef,
   downloadingZip,
   handleDownloadZip,
+  onDownloadZip,
   handleDuplicate,
+  onDuplicate,
   requestClose,
   handleMouseDown,
 }) {
+  const downloadZipFn = handleDownloadZip || onDownloadZip;
+  const duplicateFn = handleDuplicate || onDuplicate;
   return (
     <div
       onMouseDown={handleMouseDown}
@@ -113,7 +117,7 @@ export default function ClaimHeader({
 
             <button
               type="button"
-              onClick={handleDuplicate}
+              onClick={duplicateFn}
               className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
               title="Duplică / Copiază datele acestui dosar"
             >
@@ -122,7 +126,7 @@ export default function ClaimHeader({
 
             <button
               type="button"
-              onClick={handleDownloadZip}
+              onClick={downloadZipFn}
               disabled={downloadingZip}
               className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
               title="Descarcă toate pozele și documentele într-o arhivă ZIP"

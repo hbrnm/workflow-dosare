@@ -655,7 +655,9 @@ export default function ClaimModal({
     await persistMediaPatch({ removeDocumente: [doc] });
   };
 
-  const removePoza = async (poza) => {
+  const removePoza = async (pozaOrId) => {
+    const poza = typeof pozaOrId === "object" ? pozaOrId : (form.poze || []).find((p) => p.id === pozaOrId);
+    if (!poza) return;
     if (poza?.path) {
       const { error } = await supabase.storage.from("poze-dosare").remove([poza.path]);
       if (error) {
@@ -663,7 +665,7 @@ export default function ClaimModal({
         return;
       }
     }
-    const nextPoze = form.poze.filter((p) => p.id !== poza.id);
+    const nextPoze = (form.poze || []).filter((p) => p.id !== poza.id);
     setFormMedia({ poze: nextPoze });
     await persistMediaPatch({ removePoze: [poza] });
   };
@@ -929,14 +931,10 @@ export default function ClaimModal({
           setPdfMenuOpen={setPdfMenuOpen}
           pdfMenuRef={pdfMenuRef}
           downloadingZip={downloadingZip}
-          onDownloadZip={handleDownloadZip}
-          onDuplicate={handleDuplicate}
+          handleDownloadZip={handleDownloadZip}
+          handleDuplicate={handleDuplicate}
           requestClose={requestClose}
           handleMouseDown={handleMouseDown}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          readOnly={readOnly}
-          userEmail={userEmail}
         />
 
         {readOnly && (
@@ -945,6 +943,64 @@ export default function ClaimModal({
           </div>
         )}
 
+        {/* TAB BAR NAVIGATION */}
+        <div className="flex border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 pt-2 gap-1 shrink-0 overflow-x-auto select-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab("general")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
+              activeTab === "general"
+                ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface-2)]"
+                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]/50"
+            }`}
+          >
+            <FileText size={14} /> Date Generale
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("media")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
+              activeTab === "media"
+                ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface-2)]"
+                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]/50"
+            }`}
+          >
+            <ImageIcon size={14} /> Poze &amp; Documente
+            {(form.poze?.length > 0 || form.documente?.length > 0) && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[var(--app-surface-3)] text-[var(--app-muted)]">
+                {(form.poze?.length || 0) + (form.documente?.length || 0)}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("financial")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
+              activeTab === "financial"
+                ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface-2)]"
+                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]/50"
+            }`}
+          >
+            <Wallet size={14} /> Deviz &amp; Finanțe
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("history")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
+              activeTab === "history"
+                ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface-2)]"
+                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]/50"
+            }`}
+          >
+            <History size={14} /> Istoric &amp; Note
+            {form.note?.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-[var(--app-surface-3)] text-[var(--app-muted)]">
+                {form.note.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* MAIN BODY */}
         <div className="app-claim-modal-body app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[var(--app-surface-2)]">
           <fieldset disabled={readOnly} className="border-0 m-0 p-0 min-w-0 min-h-full">
@@ -952,6 +1008,7 @@ export default function ClaimModal({
               {activeTab === "general" && (
                 <ClaimGeneralTab
                   form={form}
+                  setForm={setForm}
                   set={set}
                   setFinancial={setFinancial}
                   insurersList={insurersList}
@@ -959,6 +1016,7 @@ export default function ClaimModal({
                   isNew={isNew}
                   toggleGata={toggleGata}
                   toggleRidicata={toggleRidicata}
+                  applyClaimStatusChange={applyClaimStatusChange}
                   applyLaborFromOre={applyLaborFromOre}
                   laborRatesConfigured={laborRatesConfigured}
                   laborPreview={laborPreview}
@@ -972,13 +1030,15 @@ export default function ClaimModal({
                   uploadingPoze={uploadingPoze}
                   uploadingDocumente={uploadingDocumente}
                   downloadingZip={downloadingZip}
-                  onUploadPoze={handleUploadPoze}
-                  onUploadDocumente={handleUploadDocumente}
-                  onDownloadZip={handleDownloadZip}
+                  handleUploadPoze={handleUploadPoze}
+                  handleUploadDocumente={handleUploadDocumente}
+                  handleDownloadZip={handleDownloadZip}
+                  removePoza={removePoza}
+                  removeDoc={removeDoc}
+                  setPreviewPozaIndex={setPreviewPozaIndex}
+                  setCropMode={setCropMode}
+                  setCropImageSrc={setCropImageSrc}
                   onStartScan={handleStartScanSession}
-                  onRemovePoza={removePoza}
-                  onRemoveDoc={removeDoc}
-                  onPreviewPoza={(idx) => setPreviewPozaIndex(idx)}
                 />
               )}
 
@@ -988,15 +1048,16 @@ export default function ClaimModal({
                   setForm={setForm}
                   set={set}
                   setFinancial={setFinancial}
+                  readOnly={readOnly}
+                  manoperaTarife={manoperaTarife}
                   setAudatexDevizField={setAudatexDevizField}
                   setCheltuieliService={setCheltuieliService}
                   applyLaborFromOre={applyLaborFromOre}
-                  laborRatesConfigured={laborRatesConfigured}
-                  laborPreview={laborPreview}
                   getAudatexDevizValue={getAudatexDevizValue}
                   valoareDevizAudatex={valoareDevizAudatex}
                   valoareAcceptPlata={valoareAcceptPlata}
                   valoareFransiza={valoareFransiza}
+                  totalDevizComponente={totalDevizComponente}
                   totalPieseAudatex={totalPieseAudatex}
                   totalManoperaAudatex={totalManoperaAudatex}
                   totalCosturiSuplimentareAudatex={totalCosturiSuplimentareAudatex}
@@ -1006,6 +1067,10 @@ export default function ClaimModal({
                   venitManoperaAudatex={venitManoperaAudatex}
                   costManoperaTinichigerieService={costManoperaTinichigerieService}
                   costManoperaVopsitorieService={costManoperaVopsitorieService}
+                  oreLucrateTinichigerie={oreLucrateTinichigerie}
+                  oreLucrateVopsitorie={oreLucrateVopsitorie}
+                  laborPreview={laborPreview}
+                  laborRatesConfigured={laborRatesConfigured}
                   costManoperaService={costManoperaService}
                   marjaManopera={marjaManopera}
                   pretPieseAudatex={pretPieseAudatex}
@@ -1015,13 +1080,13 @@ export default function ClaimModal({
                   costMaterialeVopsitorieService={costMaterialeVopsitorieService}
                   costConsumabileTinichigerieService={costConsumabileTinichigerieService}
                   costMasinaSchimb={costMasinaSchimb}
-                  totalDevizComponente={totalDevizComponente}
                   venitNetTotal={venitNetTotal}
                   totalCosturiService={totalCosturiService}
                   profitBrutReal={profitBrutReal}
                   marjaProfitProc={marjaProfitProc}
                   serviceCostBreakdown={serviceCostBreakdown}
-                  readOnly={readOnly}
+                  onNotify={onNotify}
+                  setActiveTab={setActiveTab}
                 />
               )}
 
@@ -1033,13 +1098,14 @@ export default function ClaimModal({
                   loadingIstoric={loadingIstoric}
                   noteText={noteText}
                   setNoteText={setNoteText}
-                  addNote={addNote}
-                  removeNote={removeNote}
-                  handleNoteKeyDown={handleNoteKeyDown}
+                  slashIndex={slashIndex}
+                  setSlashIndex={setSlashIndex}
                   noteInputRef={noteInputRef}
                   filteredSlashCommands={filteredSlashCommands}
-                  slashIndex={slashIndex}
                   applySlashCommand={applySlashCommand}
+                  addNote={addNote}
+                  handleNoteKeyDown={handleNoteKeyDown}
+                  removeNote={removeNote}
                   readOnly={readOnly}
                 />
               )}
