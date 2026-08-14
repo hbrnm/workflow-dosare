@@ -1061,7 +1061,12 @@ export default function App() {
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         claims={userClaims}
+        onOpenClaim={handleOpenClaim}
         onSelectClaim={handleOpenClaim}
+        onSwitchView={(viewId) => {
+          setView(viewId);
+          if (viewId === "dosare") setDosareSubView("brief");
+        }}
         onNavigate={(viewId) => {
           setView(viewId);
           if (viewId === "dosare") setDosareSubView("brief");
