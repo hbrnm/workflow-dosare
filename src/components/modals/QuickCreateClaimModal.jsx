@@ -145,20 +145,20 @@ export default function QuickCreateClaimModal({
         </div>
 
         <form onSubmit={handleSubmit} className="m-modal-body flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Banner Agent AI */}
+          {/* Banner Import Deviz Nativ */}
           <button
             type="button"
             onClick={() => setIsAiModalOpen(true)}
             className="w-full py-2.5 px-3.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-xl flex items-center justify-between transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-2 text-left">
-              <Sparkles size={16} className="text-indigo-400 animate-pulse shrink-0" />
+              <FileText size={16} className="text-indigo-400 shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-indigo-300">Scanează cu Agentul AI</p>
-                <p className="text-[10px] text-slate-400">Încarcă deviz/PV pentru pre-completare</p>
+                <p className="text-xs font-semibold text-indigo-300">Importă Deviz Audatex / DAT</p>
+                <p className="text-[10px] text-slate-400">Încarcă deviz PDF sau XML pentru completare instantă</p>
               </div>
             </div>
-            <span className="text-[11px] font-medium text-indigo-400 group-hover:underline">Extrage →</span>
+            <span className="text-[11px] font-medium text-indigo-400 group-hover:underline">Încarcă →</span>
           </button>
 
           <div>

@@ -4,7 +4,7 @@ export const OP_FLAGS = [
   { key: "inl", label: "INL", title: "Înlocuire", active: "bg-[#B8791E] text-white border-[#B8791E]" },
   { key: "rev", label: "REV", title: "Revopsire", active: "bg-[#3B5166] text-white border-[#3B5166]" },
   { key: "rep", label: "REP", title: "Reparație", active: "bg-[#3E6B45] text-white border-[#3E6B45]" },
-  { key: "uni", label: "UNI", title: "Demontare / Montare", active: "bg-[#2C4160] text-white border-[#2C4160]" },
+  { key: "uni", label: "D/R", title: "Demontare / Remontare (D/R)", active: "bg-[#2C4160] text-white border-[#2C4160]" },
 ];
 
 export const DEVIZ_FILE_TYPES = [

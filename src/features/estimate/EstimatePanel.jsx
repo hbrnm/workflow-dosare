@@ -117,7 +117,7 @@ export default function EstimatePanel({ claim, setClaim, fullEdit, showNotice })
         <span>INL {counts.inl}</span>
         <span>REV {counts.rev}</span>
         <span>REP {counts.rep}</span>
-        <span>UNI {counts.uni}</span>
+        <span>D/R {counts.uni}</span>
       </div>
 
       {lines.length === 0 ? (

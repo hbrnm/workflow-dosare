@@ -80,13 +80,13 @@ export default defineConfig({
           if (!normalizedId.includes("/node_modules/")) return;
 
           const chunks = [
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:react|react-dom|scheduler)(?:\/|$)/, name: "vendor_react" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?xlsx(?:\/|$)/, name: "vendor_xlsx" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?jspdf(?:\/|\.|$)/, name: "vendor_jspdf" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:pdf-lib|@pdf-lib)(?:\/|$)/, name: "vendor_pdflib" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:jspdf|html2canvas|canvg|css-line-break|fast-png|utif2)(?:\/|\.|$)/, name: "vendor_pdf_export" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?recharts(?:\/|$)/, name: "vendor_recharts" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?lucide-react(?:\/|$)/, name: "vendor_icons" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?html2canvas(?:\/|$)/, name: "vendor_html2canvas" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?@supabase(?:\/|$)/, name: "vendor_supabase" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?supabase(?:\/|$)/, name: "vendor_supabase" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?@?supabase(?:\/|$)/, name: "vendor_supabase" },
           ];
 
           for (const chunk of chunks) {

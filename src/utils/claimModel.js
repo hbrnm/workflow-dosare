@@ -65,13 +65,43 @@ export function parseNumber(val, defaultVal = 0) {
   if (typeof val === "number") return isNaN(val) ? defaultVal : val;
   const str = String(val).trim();
   if (!str) return defaultVal;
-  let normalized = str;
-  if (str.includes(".") && str.includes(",")) {
-    normalized = str.replace(/\./g, "").replace(",", ".");
-  } else if (str.includes(",")) {
-    normalized = str.replace(",", ".");
+  // Clean currency symbols, units, spaces (e.g. "1 250,50 RON" -> "1250,50")
+  const cleaned = str.replace(/[^\d.,-]/g, "");
+  if (!cleaned) return defaultVal;
+
+  const dotIdx = cleaned.lastIndexOf(".");
+  const commaIdx = cleaned.lastIndexOf(",");
+
+  let normalized = cleaned;
+
+  if (dotIdx !== -1 && commaIdx !== -1) {
+    if (dotIdx > commaIdx) {
+      // US format: "1,250.50" -> "1250.50"
+      normalized = cleaned.replace(/,/g, "");
+    } else {
+      // European / RO format: "1.250,50" -> "1250.50"
+      normalized = cleaned.replace(/\./g, "").replace(",", ".");
+    }
+  } else if (commaIdx !== -1) {
+    // Only comma present
+    const afterComma = cleaned.slice(commaIdx + 1);
+    if (afterComma.length === 3 && cleaned.length > 4) {
+      // Thousands comma: "85,000" -> "85000"
+      normalized = cleaned.replace(/,/g, "");
+    } else {
+      // Decimal comma: "1250,50" -> "1250.50"
+      normalized = cleaned.replace(/,/g, ".");
+    }
+  } else if (dotIdx !== -1) {
+    // Only dot present
+    const afterDot = cleaned.slice(dotIdx + 1);
+    if (afterDot.length === 3 && cleaned.length > 4) {
+      // Thousands dot: "85.200" -> "85200"
+      normalized = cleaned.replace(/\./g, "");
+    }
   }
-  const parsed = parseFloat(normalized.replace(/[^0-9.-]/g, ""));
+
+  const parsed = parseFloat(normalized);
   return isNaN(parsed) ? defaultVal : parsed;
 }
 

@@ -16,17 +16,17 @@ export default function ClaimAuditMeta({ claim, className = "", compact = false 
 
   return (
     <div
-      className={`flex items-start gap-1.5 text-[11px] text-[var(--app-muted)] leading-snug ${className}`.trim()}
+      className={`flex items-start gap-1.5 text-[11.5px] text-slate-600 dark:text-slate-400 leading-snug ${className}`.trim()}
       title="Cine a creat și cine a editat ultima oară acest dosar"
     >
-      <User size={compact ? 11 : 12} className="shrink-0 mt-0.5 opacity-70" aria-hidden />
+      <User size={compact ? 11 : 12} className="shrink-0 mt-0.5 text-slate-500 dark:text-slate-400" aria-hidden />
       <p className="min-w-0">
         <span>
-          Creat de <span className="font-semibold text-[var(--app-text)]">{createdLabel}</span>
+          Creat de <span className="font-bold text-slate-900 dark:text-slate-100">{createdLabel}</span>
         </span>
         {(updatedAt || updatedByEmail) && (
           <>
-            <span className="mx-1 text-[var(--app-border)]" aria-hidden>
+            <span className="mx-1 text-slate-400 dark:text-slate-500" aria-hidden>
               ·
             </span>
             <span>
@@ -34,7 +34,7 @@ export default function ClaimAuditMeta({ claim, className = "", compact = false 
               {updatedLabel ? (
                 <>
                   {" "}
-                  de <span className="font-semibold text-[var(--app-text)]">{updatedLabel}</span>
+                  de <span className="font-bold text-slate-900 dark:text-slate-100">{updatedLabel}</span>
                 </>
               ) : null}
             </span>

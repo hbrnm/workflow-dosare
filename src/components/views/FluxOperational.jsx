@@ -348,6 +348,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
 export default function TablouPeFazeRedesign({
   claims,
   onOpen,
+  onOpenClaim,
   onMoveToStatus,
   onTogglePieseSosite,
   onScheduleFromPiese,
@@ -359,6 +360,7 @@ export default function TablouPeFazeRedesign({
   onNotify,
   highlightClaimIds = null,
 }) {
+  const openFn = onOpen || onOpenClaim;
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
   const [focusedStage, setFocusedStage] = useState(null);
   const [dragOverStage, setDragOverStage] = useState(null);
@@ -382,7 +384,7 @@ export default function TablouPeFazeRedesign({
   const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
   const cardProps = {
-    onOpen,
+    onOpen: openFn,
     onMoveToStatus,
     onTogglePieseSosite,
     onScheduleFromPiese,
@@ -506,11 +508,6 @@ export default function TablouPeFazeRedesign({
                     title={glossaryTitle(status.key)}
                     className="flex-1 min-w-0 pointer-events-none"
                   />
-                  {stageClaims.length > 0 && (
-                    <span className="app-flux-stage-sort-hint text-[10px] text-[var(--app-muted)] shrink-0">
-                      Cele mai noi → stânga
-                    </span>
-                  )}
                 </div>
 
                 {stageClaims.length === 0 ? (

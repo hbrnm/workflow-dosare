@@ -4,9 +4,10 @@ async function createPdf(options = {}) {
 }
 
 import { getStatusDefinition } from "../constants/config";
-import { fmtDateTime, fmtDate } from "./dateUtils";
+import { fmtDateTime, fmtDate, todayISO } from "./dateUtils";
 import { formatIstoricValoare, CAMP_LABELS } from "./claimUtils";
-import { resolveCerereDespagubireParties } from "./cerereDespagubire";
+import { resolveCerereDespagubireParties, isCompanyClientName, OMNIASIG_CERERE_PLATA } from "./cerereDespagubire";
+import { ASIROM_LOGO_BASE64 } from "../assets/asiromLogoBase64";
 
 function stripDiacritics(str) {
   if (str === null || str === undefined) return "";
@@ -804,189 +805,312 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   URL.revokeObjectURL(url);
 }
 
-export async function generateazaCerereDespagubireAsirom(claim) {
+export async function generateazaCerereDespagubireAsirom(claim, branding = null) {
   const doc = await createPdf();
   const parties = resolveCerereDespagubireParties(claim);
-  const pageW = doc.internal.pageSize.getWidth();
-  let y = 14;
+  const pageW = doc.internal.pageSize.getWidth(); // 210mm
+  const margin = 15;
+  const contentW = 180; // 210 - 30
 
   const write = (text, x, yy, opts = {}) => {
     doc.text(sd(text), x, yy, opts);
   };
 
-  const tip = String(claim.tipAsigurare || "").toUpperCase();
-  const isRca = tip.includes("RCA");
-  const isCasco = tip.includes("CASCO");
-  const mark = (on) => (on ? "[X]" : "[ ]");
+  const drawBox = (x, yy, w, h) => {
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.35);
+    doc.rect(x, yy, w, h);
+  };
 
-  doc.setFontSize(8);
-  doc.setTextColor(80);
-  write("ASIROM Vienna Insurance Group", 14, y);
-  y += 4;
-  write("www.asirom.ro · Call Center 021 9146", 14, y);
-  y += 8;
+  const drawCheckbox = (x, yy, checked = false) => {
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.rect(x, yy - 3.4, 3.6, 3.6);
+    if (checked) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(0);
+      doc.text("X", x + 0.8, yy - 0.7);
+    }
+  };
+
+  // Date dosar / service
+  const atelierNume = sd(branding?.nume || branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar, "AUTO WASH IMPEX SRL");
+  const atelierIban = sd(branding?.iban || OMNIASIG_CERERE_PLATA.cont, "RO56MIRO0000118403040301");
+  const atelierBanca = sd(branding?.banca || OMNIASIG_CERERE_PLATA.banca, "PRO CREDIT BANK");
+
+  const nrDosar = sd(claim?.nrDosarAsigurator || claim?.numarDosar, "—");
+  const tip = String(claim?.tipAsigurare || "").toUpperCase();
+  const isRca = tip.includes("RCA") || !tip.includes("CASCO");
+  const isCasco = tip.includes("CASCO");
+  const isNonAuto = !isRca && !isCasco;
+
+  const bunAvariat = `${sd(claim?.marcaModel || "")} / ${sd(claim?.numarInmatriculare || "")}`.trim() || "—";
+  const asiguratPagubit = sd(parties.proprietar || claim?.client, "—");
+  const dataEveniment = claim?.dataEveniment ? fmtDate(claim.dataEveniment) : fmtDate(claim?.dataDeschiderii || todayISO());
+
+  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client, "…………………………………………");
+  const cnpDisplay = claim?.cnp ? sd(claim.cnp) : "…………………………………………";
+  const domDisplay = (claim?.adresaClient || claim?.adresa || claim?.localitateClient)
+    ? sd(claim?.adresaClient || claim?.adresa || claim?.localitateClient)
+    : "……………………………………………………………………………………………………………………";
+  const telDisplay = claim?.telefonClient ? sd(claim.telefonClient) : "…………………………";
+  const ciDisplay = claim?.serieCI
+    ? `CI seria ${sd(claim.serieCI)} nr. ${sd(claim.numarCI || "……………………")}`
+    : (claim?.actIdentitate ? sd(claim.actIdentitate) : "CI seria ……… nr. ……………………");
+  
+  const isCompany = parties.asCompanyOwner || isCompanyClientName(parties.proprietar);
+  const hasDelegat = parties.hasSeparateDelegat;
+
+  let y = 14;
+
+  // ==========================================
+  // 1. ANTET BOX MARE (Titlu Stânga + Logo Asirom Oficial Dreapta)
+  // ==========================================
+  const headerH = 18;
+  const dividerX = 132;
+  drawBox(margin, y, contentW, headerH);
+  doc.line(dividerX, y, dividerX, y + headerH);
+
+  // Titlu stânga
+  doc.setFont("times", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(0);
+  write("CERERE DE PLATA A DESPAGUBIRII", (margin + dividerX) / 2, y + 11, { align: "center" });
+
+  // Logo Oficial Asirom dreapta
+  try {
+    doc.addImage(ASIROM_LOGO_BASE64, "JPEG", dividerX + 3, y + 1.5, 42, 15);
+  } catch (e) {
+    // Fallback text dacă imaginea e indisponibilă
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(17, 85, 163);
+    write("ASIROM", dividerX + 15, y + 8);
+    doc.setFontSize(6.5);
+    doc.setTextColor(190, 20, 20);
+    write("VIENNA INSURANCE GROUP", dividerX + 8, y + 13);
+  }
+
+  y += headerH + 5;
+
+  // ==========================================
+  // 2. TABEL IDENTIFICARE DAUNĂ (5 Rânduri generoase)
+  // ==========================================
+  const rowH = 6.2;
+  const col1W = 44;
+
+  // Rând 1: Nr. dosar
+  drawBox(margin, y, contentW, rowH);
+  doc.line(margin + col1W, y, margin + col1W, y + rowH);
+  doc.setFont("times", "normal");
+  doc.setFontSize(9.5);
+  doc.setTextColor(0);
+  write("Nr. dosar", margin + 3, y + 4.5);
+  doc.setFont("times", "bold");
+  write(nrDosar, margin + col1W + 4, y + 4.5);
+  y += rowH;
+
+  // Rând 2: Polița tip
+  drawBox(margin, y, contentW, rowH);
+  doc.line(margin + col1W, y, margin + col1W, y + rowH);
+  doc.line(margin + col1W + 30, y, margin + col1W + 30, y + rowH);
+  doc.line(margin + col1W + 60, y, margin + col1W + 60, y + rowH);
+
+  doc.setFont("times", "normal");
+  write("Polita tip", margin + 3, y + 4.5);
+
+  drawCheckbox(margin + col1W + 4, y + 4.5, isRca);
+  write("RCA", margin + col1W + 9.5, y + 4.5);
+
+  drawCheckbox(margin + col1W + 34, y + 4.5, isCasco);
+  write("Casco", margin + col1W + 39.5, y + 4.5);
+
+  drawCheckbox(margin + col1W + 64, y + 4.5, isNonAuto);
+  write("Non Auto", margin + col1W + 69.5, y + 4.5);
+  y += rowH;
+
+  // Rând 3: Bunul avariat
+  drawBox(margin, y, contentW, rowH);
+  doc.line(margin + col1W, y, margin + col1W, y + rowH);
+  doc.setFont("times", "normal");
+  write("Bunul avariat", margin + 3, y + 4.5);
+  doc.setFont("times", "bold");
+  write(bunAvariat, margin + col1W + 4, y + 4.5);
+  y += rowH;
+
+  // Rând 4: Asigurat / Păgubit
+  drawBox(margin, y, contentW, rowH);
+  doc.line(margin + col1W, y, margin + col1W, y + rowH);
+  doc.setFont("times", "normal");
+  write("Asigurat / Pagubit", margin + 3, y + 4.5);
+  doc.setFont("times", "bold");
+  write(asiguratPagubit, margin + col1W + 4, y + 4.5);
+  y += rowH;
+
+  // Rând 5: Data Eveniment
+  drawBox(margin, y, contentW, rowH);
+  doc.line(margin + col1W, y, margin + col1W, y + rowH);
+  doc.setFont("times", "normal");
+  write("Data Eveniment", margin + 3, y + 4.5);
+  doc.setFont("times", "bold");
+  write(dataEveniment, margin + col1W + 4, y + 4.5);
+  y += rowH + 6;
+
+  // ==========================================
+  // 3. PARAGRAF DECLARANT (Spațiu mărit pentru completare de mână)
+  // ==========================================
+  doc.setFont("times", "normal");
+  doc.setFontSize(9.2);
   doc.setTextColor(0);
 
-  doc.setFontSize(14);
-  doc.setFont(undefined, "bold");
-  write("CERERE", pageW / 2, y, { align: "center" });
-  y += 6;
-  doc.setFontSize(10);
-  write("de plata a drepturilor din asigurare la asigurarile generale", pageW / 2, y, { align: "center" });
-  y += 9;
+  const declarantIntro = `Subsemnatul(a) ${subsemnatul}, CNP ${cnpDisplay}, domiciliat(a) in str. ${domDisplay}, TEL ${telDisplay}, cu actul de identitate ${ciDisplay}, in calitate de:`;
+  const declLines = doc.splitTextToSize(sd(declarantIntro), contentW);
+  doc.text(declLines, margin, y);
+  y += declLines.length * 5.2 + 1.5;
 
-  // Tabel antet
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8.5);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(14, y, 182, 22, "F");
-  doc.setDrawColor(180);
-  doc.rect(14, y, 182, 22, "S");
+  // Calitate bife
+  drawCheckbox(margin, y, !hasDelegat && !isCompany);
+  write("asigurat,", margin + 5, y);
 
-  let rowY = y + 5;
-  doc.setFont(undefined, "bold");
-  write("Nr. dosar:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(claim.numarDosar || "……………", 36, rowY);
+  drawCheckbox(margin + 28, y, !hasDelegat && !isCompany);
+  write("pagubit,", margin + 33, y);
 
-  doc.setFont(undefined, "bold");
-  write("Polita tip:", 90, rowY);
-  doc.setFont(undefined, "normal");
-  write(`${mark(isRca)} RCA   ${mark(isCasco)} Casco   ${mark(!isRca && !isCasco)} Non Auto`, 110, rowY);
-  rowY += 6;
+  drawCheckbox(margin + 56, y, hasDelegat || isCompany);
+  write("reprezentant al", margin + 61, y);
 
-  const bun = [claim.numarInmatriculare, claim.marcaModel].filter(Boolean).join(" · ") || "……………………";
-  doc.setFont(undefined, "bold");
-  write("Bunul avariat:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(bun, 42, rowY);
-  rowY += 6;
+  y += 5.2;
+  write("beneficiarului,  solicit plata despagubirii in valoare de                                         (lei):", margin, y);
+  y += 5.2;
 
-  doc.setFont(undefined, "bold");
-  write("Asigurat/Pagubit:", 16, rowY);
-  doc.setFont(undefined, "normal");
-  write(parties.proprietar || "……………………", 48, rowY);
-  doc.setFont(undefined, "bold");
-  write("Data eveniment:", 120, rowY);
-  doc.setFont(undefined, "normal");
-  write("____________", 152, rowY);
+  drawCheckbox(margin, y, false);
+  write("conform Evaluare ASIROM, fara sa fie necesara prezentarea unor documente justificative;", margin + 5, y);
+  y += 5.2;
 
-  y += 26;
-
-  const calitate = parties.asCompanyOwner || parties.hasSeparateDelegat
-    ? "Reprezentant al beneficiarului"
-    : "Asigurat/Pagubit";
-  const sub = parties.subsemnatul || "…………………………………………";
-  const firmNote = parties.reprezentantSocietate
-    ? ` (reprezentant al societatii ${parties.reprezentantSocietate})`
-    : "";
-
-  doc.setFontSize(9);
-  const intro = `Subsemnatul(a) ${sub}${firmNote}, CNP ____________________, domiciliat in localitatea ____________________, adresa completa ______________________________________________, nr. telefon ${claim.telefonClient || "______________"}, email ____________________, cu actul de identitate seria ____, nr. ____________, in calitate de ${calitate}, solicit plata despagubirii in valoare de ____________________ (lei):`;
-  const introLines = doc.splitTextToSize(sd(intro), 182);
-  doc.text(introLines, 14, y);
-  y += introLines.length * 4.2 + 4;
-
-  doc.rect(14, y - 2.2, 3, 3);
-  write("conform evaluare ASIROM (fara documente justificative);", 20, y);
-  y += 5.5;
-  doc.rect(14, y - 2.2, 3, 3);
-  write("conform documente justificative anexate, astfel:", 20, y);
-  y += 5.5;
-  write("In original: .......................................................................................................................", 14, y);
-  y += 5;
-  write("In fotocopie: .....................................................................................................................", 14, y);
-  y += 8;
-
-  doc.setFont(undefined, "bold");
-  write("Despagubirea cuvenita sunt de acord sa fie platita:", 14, y);
-  y += 6;
-  doc.setFont(undefined, "normal");
-  doc.setFontSize(8.5);
-  write("[ ] prin casieriile BCR, suma _____________ lei, beneficiar _________________________________", 14, y);
-  y += 5;
-  write("[ ] prin cont bancar, suma _____________ lei, IBAN _________________________________________", 14, y);
-  y += 5;
-  write("    banca _______________________________, titular _________________________________________", 14, y);
-  y += 8;
-
-  doc.setFontSize(8);
-  doc.setFont(undefined, "bold");
-  write("Declar, pe propria raspundere, urmatoarele:", 14, y);
+  drawCheckbox(margin, y, true);
+  write("conform documente justificative anexate, astfel:", margin + 5, y);
   y += 4.5;
-  doc.setFont(undefined, "normal");
-  const decls = [
-    "Am avizat acest eveniment si la Asiguratorul: .............................., iar suma stabilita de acesta este ……….. / Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurare.",
-    "Nu mai posed aceeasi forma de asigurare pentru bunul respectiv incheiata si la alta societate de asigurare.",
-    "Ma oblig sa restitui de indata, partial sau total, societatii de asigurare suma de bani primita cu titlu de despagubire, in functie de o eventuala hotarare a instantei ori in cazul anularii actelor organelor competente.",
-    "Declar ca, prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nicio pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata de producerea evenimentului.",
-  ];
-  for (const d of decls) {
-    const lines = doc.splitTextToSize(sd(d), 182);
-    doc.text(lines, 14, y);
-    y += lines.length * 3.5 + 1.2;
-  }
-  y += 3;
 
-  doc.setFontSize(9);
-  write("Doresc sa primesc informare dupa realizarea platii pe email: _______________________________", 14, y);
-  y += 5;
-  write("Observatii: ...........................................................................................................................", 14, y);
-  y += 5;
-  write("Localitate: _______________________________", 14, y);
-  y += 10;
-
-  doc.setFont(undefined, "bold");
-  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
-  write("Data completarii: __________", 130, y);
-  y += 5;
-  doc.setFont(undefined, "normal");
-  write(`(nume/prenume in clar): ${sd(sub)}`, 14, y);
-  y += 8;
-  write("Semnatura (stampila daca este cazul): _______________________________", 14, y);
-
-  // Pagina 2 — consimțământ GDPR (compact)
-  doc.addPage();
-  y = 16;
-  doc.setFontSize(11);
-  doc.setFont(undefined, "bold");
-  write("DECLARATIE SI CONSIMTAMANT PRIVIND PRELUCRAREA DATELOR CU CARACTER PERSONAL", pageW / 2, y, {
-    align: "center",
-  });
-  y += 10;
-  doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
-  const gdprIntro = `Subsemnatul(a) ${sub}, domiciliat(a) in ____________________ si cu CNP _______________, declar ca am citit si am inteles continutul Notei de informare cu privire la prelucrarea de catre ASIROM a datelor cu caracter personal (disponibila pe site-ul ASIROM) si ca imi exprim consimtamantul pentru urmatoarele:`;
-  const gdprLines = doc.splitTextToSize(sd(gdprIntro), 182);
-  doc.text(gdprLines, 14, y);
-  y += gdprLines.length * 4.2 + 6;
-
+  // ==========================================
+  // 4. CHENARE PENTRU JUSTIFICATIVE
+  // ==========================================
+  drawBox(margin, y, contentW, 11.5);
+  doc.setFont("times", "normal");
   doc.setFontSize(8.5);
-  write("[ ] Sunt de acord   [ ] Nu sunt de acord — utilizarea datelor mele pentru oferte / promotii ASIROM.", 14, y);
-  y += 8;
-
-  const gdprBody = [
-    "Pentru derularea contractului de asigurare ASIROM are acordul meu expres sa contacteze medici / institutii medicale si sa obtina date privind starea mea de sanatate, in masura in care sunt necesare pentru solutionarea dosarului de dauna.",
-    "Sunt de acord ca aceste date sa fie transmise catre ASIROM si reasiguratori / spitale / medici doar in scopul determinarii cuantumului despagubirii.",
-    "Fara acces la datele necesare, ASIROM poate fi in imposibilitatea obiectiva de a solutiona pretentiile de despagubire.",
-  ];
-  for (const g of gdprBody) {
-    const lines = doc.splitTextToSize(sd(g), 182);
-    doc.text(lines, 14, y);
-    y += lines.length * 3.6 + 2;
-  }
-  y += 6;
-  write("[ ] Sunt de acord   [ ] Nu sunt de acord — prelucrare date privind sanatatea pentru dosarul de dauna.", 14, y);
+  write("In original:   ……F.F. SEV……………………………………ACCEPT PLATA……………………………………………… ……………………", margin + 2.5, y + 4.5);
+  write("………………………………………………………………………………………………………………………………………………………", margin + 2.5, y + 8.5);
   y += 14;
 
-  doc.setFontSize(9);
-  doc.setFont(undefined, "bold");
-  write("Asigurat / Pagubit / Reprezentant al beneficiarului", 14, y);
-  write("Data: __________", 130, y);
-  y += 6;
-  doc.setFont(undefined, "normal");
-  write(`(nume/prenume, semnatura): ${sd(sub)} _______________________________`, 14, y);
+  drawBox(margin, y, contentW, 11.5);
+  write("In fotocopie:   …………………………………………………………………………………… ……… … … … … … … … … .", margin + 2.5, y + 4.5);
+  write("………………………………………………………………………………………………………………………………………………………", margin + 2.5, y + 8.5);
+  y += 16;
 
-  const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
-  doc.save(`cerere-despagubire-asirom-${token}.pdf`);
+  // ==========================================
+  // 5. DESTINAȚIE PLATĂ
+  // ==========================================
+  doc.setFont("times", "bold");
+  doc.setFontSize(9.2);
+  write("Despagubirea cuvenita sunt de acord sa fie platita:", margin, y);
+  y += 5;
+
+  doc.setFont("times", "normal");
+  drawCheckbox(margin, y, false);
+  write("princasieriile BCR", margin + 5, y);
+  y += 4.8;
+
+  drawCheckbox(margin, y, false);
+  write("princasieriile ASIROM", margin + 5, y);
+  y += 4.8;
+
+  drawCheckbox(margin, y, true);
+  write("prin cont bancarastfel:", margin + 5, y);
+  y += 5.2;
+
+  // Rând cont service completat
+  write(`Suma                   lei, IBAN  ${atelierIban} ….  banca  ${atelierBanca} …. , titular  ${atelierNume}…`, margin, y);
+  y += 4.8;
+  write(`Suma                   lei, IBAN  … … … … .. … … … … … … … . , banca  … … … … … , titular  … … … … … … … …`, margin, y);
+  y += 7.5;
+
+  // ==========================================
+  // 6. DECLARAȚII & CLAUZE LEGALE
+  // ==========================================
+  doc.setFont("times", "bold");
+  write("Declar, pe propria raspundere, urmatoarele:", margin, y);
+  y += 4.6;
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(8.5);
+  drawCheckbox(margin, y, false);
+  write("Am avizat acest eveniment sila Asiguratorul: ..................., iar suma stabilita de acesta este", margin + 5, y);
+  y += 4.6;
+
+  drawCheckbox(margin, y, true);
+  write("Nu am avizat si nu urmeaza sa mai avizez acest eveniment la alta societate de asigurari.", margin + 5, y);
+  y += 4.6;
+
+  drawCheckbox(margin, y, true);
+  write("Numai posed aceeasi forma de asigurare pentru bunul respectiv incheiata si la alta societate de asigurare.", margin + 5, y);
+  y += 5.2;
+
+  // Clauze text
+  const clauza1 = "Ma oblig sa restitui de indata, partial sau total, societatii de asigurare suma de bani primita cutitlu de despagubire, in functie de o eventuala hotarare a instantei de judecata in ceea ce priveste fapta, infaptuitorul sau vinovatia, ori in cazul anularii actelor incheiate de organele de politie, de unitatile de pompieri sau alte autoritati competente sa cerceteze evenimentul.";
+  const c1Lines = doc.splitTextToSize(sd(clauza1), contentW);
+  doc.text(c1Lines, margin, y);
+  y += c1Lines.length * 4.0 + 1.8;
+
+  const clauza2 = "Declar ca prin primirea sumei de mai sus sunt integral despagubit(a) de catre ASIROM pentru dauna mentionata anterior si nu voi mai avea nici o pretentie fata de ASIROM, asiguratorul de raspundere civila si persoana vinovata de producerea evenimentului.";
+  const c2Lines = doc.splitTextToSize(sd(clauza2), contentW);
+  doc.text(c2Lines, margin, y);
+  y += c2Lines.length * 4.0 + 2;
+
+  write("Observatii  … … … … … … … … … … … … … … … … … … … …", margin, y);
+  y += 5.5;
+
+  // ==========================================
+  // 7. TABEL SEMNĂTURI JOS (Chenar complet la baza paginii)
+  // ==========================================
+  const signTableH = 22;
+  const signCol1W = 85;
+  drawBox(margin, y, contentW, signTableH);
+  doc.line(margin + signCol1W, y, margin + signCol1W, y + signTableH);
+
+  doc.setFont("times", "normal");
+  doc.setFontSize(8.8);
+  write("Localitate / data", margin + 3.5, y + 5.5);
+  doc.setFont("times", "bold");
+  write(`Bucuresti  /  ${fmtDate(todayISO())}`, margin + 3.5, y + 12);
+
+  write("Nume si prenume  … … … … … … … … … .", margin + signCol1W + 3.5, y + 5.5);
+  doc.setFont("times", "bold");
+  write(subsemnatul, margin + signCol1W + 3.5, y + 11.5);
+  doc.setFont("times", "normal");
+  write("Semnatura (si stampila, daca este cazul)", margin + signCol1W + 3.5, y + 17);
+
+  const pdfBytes = doc.output("arraybuffer");
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const token = stripDiacritics(claim?.numarDosar || claim?.numarInmatriculare || "nou").replace(/\s+/g, "_");
+  const fileName = `Cerere_Despagubire_ASIROM_${token}.pdf`;
+
+  if (typeof document !== "undefined" && typeof window !== "undefined") {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  return {
+    pdfBytes,
+    blob,
+    fileName,
+  };
 }
+
+
+
+

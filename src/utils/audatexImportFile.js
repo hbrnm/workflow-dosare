@@ -96,13 +96,13 @@ export async function parseEstimateFile(file) {
       throw new Error("PDF-ul nu conține text selectabil (scan?). Exportă din Audatex ca PDF nativ.");
     }
     const result = parseEstimateText(text);
-    return { ...result, rawPreview: text.slice(0, 1500) };
+    return { ...result, rawPreview: text.slice(0, 1500), fullText: text };
   }
 
   if (name.endsWith(".xml") || type.includes("xml")) {
     const text = await readAsText(file);
     const result = parseEstimateXml(text);
-    return { ...result, rawPreview: text.slice(0, 1500) };
+    return { ...result, rawPreview: text.slice(0, 1500), fullText: text };
   }
 
   if (name.endsWith(".csv") || type.includes("csv") || type.includes("text/plain") || name.endsWith(".txt")) {
@@ -110,7 +110,7 @@ export async function parseEstimateFile(file) {
     const result = name.endsWith(".csv")
       ? parseEstimateSheetRows(text.split(/\r?\n/).map((l) => l.split(/[,;]/)))
       : parseEstimateText(text);
-    return { ...result, rawPreview: text.slice(0, 1500) };
+    return { ...result, rawPreview: text.slice(0, 1500), fullText: text };
   }
 
   if (name.endsWith(".xlsx") || name.endsWith(".xls") || type.includes("spreadsheet") || type.includes("excel")) {
@@ -119,10 +119,8 @@ export async function parseEstimateFile(file) {
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
     const result = parseEstimateSheetRows(rows);
-    return { ...result, rawPreview: rows.slice(0, 40).map((r) => r.join(" | ")).join("\n") };
+    return { ...result, rawPreview: JSON.stringify(rows.slice(0, 20)), fullText: JSON.stringify(rows) };
   }
 
-  const text = await readAsText(file);
-  const result = parseEstimateText(text);
-  return { ...result, rawPreview: text.slice(0, 1500) };
+  throw new Error("Format fișier neacceptat. Încarcă un fișier PDF, XML, XLSX sau CSV.");
 }

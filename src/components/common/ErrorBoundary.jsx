@@ -1,10 +1,17 @@
 import React from "react";
-import { AlertOctagon, RotateCcw } from "lucide-react";
+import { AlertOctagon, RotateCcw, WifiOff, Home, FileQuestion } from "lucide-react";
+import { telemetry } from "../../utils/telemetry";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      isAutoRetrying: false,
+      autoRetriedOnce: false,
+    };
   }
 
   static getDerivedStateFromError(error) {
@@ -12,49 +19,139 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    this.setState({ errorInfo });
+
+    // Trimitere către telemetrie
+    telemetry.logError(error, { componentStack: errorInfo?.componentStack });
+
+    // Auto-Healing: dacă este prima eroare pe modul, încearcă o rerandare automată după 150ms
+    if (!this.state.autoRetriedOnce && !this.isNetworkOrChunkError(error)) {
+      this.setState({ isAutoRetrying: true, autoRetriedOnce: true });
+      setTimeout(() => {
+        this.resetErrorState();
+      }, 150);
+    }
   }
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-[var(--app-surface)] rounded-xl border border-[var(--app-danger)] p-6 max-w-md w-full shadow-2xl text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-[var(--app-danger)]/10 text-[var(--app-danger)] flex items-center justify-center mx-auto">
-              <AlertOctagon size={24} />
-            </div>
-            <div className="font-bold text-[16px] text-[var(--app-text-strong)]">Eroare de afișare</div>
-            <p className="text-[12.5px] text-[var(--app-muted)]">
-              A apărut o problemă temporară la încărcarea acestei ferestre:
-              <br />
-              <span className="font-mono text-[11px] text-[var(--app-danger)] bg-[var(--app-danger)]/15 px-2 py-1 rounded inline-block mt-2 break-all">
-                {this.state.error?.message || "Eroare necunoscută"}
-              </span>
-            </p>
-            <button
-              onClick={() => {
-                const msg = this.state.error?.message || "";
-                const isChunkError =
-                  msg.includes("dynamically imported module") ||
-                  msg.includes("Failed to fetch") ||
-                  msg.includes("Importing a module script failed");
+  isNetworkOrChunkError(error) {
+    const msg = String(error?.message || "");
+    return (
+      (typeof navigator !== "undefined" && !navigator.onLine) ||
+      msg.includes("dynamically imported module") ||
+      msg.includes("Failed to fetch") ||
+      msg.includes("Importing a module script failed") ||
+      msg.includes("NetworkError")
+    );
+  }
 
-                if (isChunkError) {
-                  window.location.reload();
-                } else {
-                  this.setState({ hasError: false, error: null });
-                  if (this.props.onReset) this.props.onReset();
-                }
-              }}
-              className="px-4 py-2 bg-[var(--app-surface-muted)] text-[var(--app-text-strong)] text-[13px] font-semibold rounded-lg hover:bg-[var(--app-border)] transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-md"
-            >
-              <RotateCcw size={14} /> Reîncearcă
-            </button>
-          </div>
+  resetErrorState = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      isAutoRetrying: false,
+    });
+    this.props.onReset?.();
+  };
+
+  handleHardReload = () => {
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
+  };
+
+  render() {
+    const { hasError, error, isAutoRetrying } = this.state;
+    const { children, level = "module", fallbackTitle, onGoHome } = this.props;
+
+    if (!hasError) {
+      return children;
+    }
+
+    if (isAutoRetrying) {
+      return (
+        <div className="flex items-center justify-center p-6 text-[12.5px] font-bold text-[var(--app-muted)] animate-pulse">
+          Se reîncearcă afișarea automată...
         </div>
       );
     }
 
-    return this.props.children;
+    const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+    const isChunk = this.isNetworkOrChunkError(error);
+    const isRoot = level === "root";
+
+    return (
+      <div
+        className={`flex items-center justify-center p-4 ${
+          isRoot ? "fixed inset-0 z-[99999] bg-[var(--app-bg)]" : "w-full py-8"
+        }`}
+      >
+        <div className="bg-[var(--app-surface)] rounded-2xl border-2 border-[var(--app-border)] p-6 max-w-md w-full shadow-2xl text-center space-y-4">
+          <div
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto ${
+              isOffline
+                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                : "bg-[var(--app-danger)]/10 text-[var(--app-danger)] border border-[var(--app-danger)]/20"
+            }`}
+          >
+            {isOffline ? <WifiOff size={24} /> : isChunk ? <FileQuestion size={24} /> : <AlertOctagon size={24} />}
+          </div>
+
+          <div>
+            <h2 className="font-extrabold text-[16px] text-[var(--app-text-strong)]">
+              {fallbackTitle || (isOffline ? "Conexiune Întreruptă" : isChunk ? "Actualizare Disponibilă" : "Eroare Temporară de Afișare")}
+            </h2>
+            <p className="text-[12px] text-[var(--app-muted)] mt-1 font-medium leading-relaxed">
+              {isOffline
+                ? "Aplicația nu poate descărca datele fără o conexiune activă la internet."
+                : isChunk
+                ? "A fost lansată o versiune nouă a modulului. Reîncărcarea paginii va descărca cele mai recente fișiere."
+                : "A apărut o excepție neașteptată în acest modul. Restul aplicației rămâne operațională."}
+            </p>
+          </div>
+
+          {error?.message && !isOffline && (
+            <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] p-2.5 rounded-xl text-left">
+              <span className="font-mono text-[11px] text-[var(--app-danger)] break-all font-semibold block">
+                {error.message}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
+            {isChunk ? (
+              <button
+                type="button"
+                onClick={this.handleHardReload}
+                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <RotateCcw size={14} /> Reîncarcă Aplicația
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={this.resetErrorState}
+                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <RotateCcw size={14} /> Reîncearcă
+              </button>
+            )}
+
+            {onGoHome && (
+              <button
+                type="button"
+                onClick={() => {
+                  this.resetErrorState();
+                  onGoHome();
+                }}
+                className="px-3.5 py-2.5 bg-[var(--app-surface-2)] hover:bg-[var(--app-border)] text-[var(--app-text-strong)] text-[12.5px] font-bold rounded-xl transition-all flex items-center gap-1.5 border border-[var(--app-border)]"
+              >
+                <Home size={14} /> Acasă
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 }

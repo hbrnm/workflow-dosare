@@ -214,19 +214,19 @@
 }
 
 .mobile-shell.app-shell .m-float-menu-label {
-  font-size: var(--m-type-micro);
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--app-muted);
-  padding: 0.35rem 0.55rem 0.2rem;
+  padding: 0.4rem 0.55rem 0.2rem;
 }
 
 .mobile-shell.app-shell .m-float-menu-meta {
-  font-size: var(--m-type-micro);
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--app-muted);
-  padding: 0.15rem 0.55rem 0.35rem;
+  color: var(--app-text);
+  padding: 0.25rem 0.55rem 0.35rem;
 }
 
 .mobile-shell.app-shell .m-float-menu-item {

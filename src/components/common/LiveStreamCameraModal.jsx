@@ -1,20 +1,28 @@
-import React, { useState, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { X, Camera, AlertCircle, RefreshCw } from "lucide-react";
 import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import { useModalEscape } from "../../hooks/useModalEscape";
+import { compressImage } from "../../utils/imageUtils";
 import "../../styles/liveCamera.css";
 
-export default function LiveStreamCameraModal({ initialCategorie = "receptie", initialStream = null, onSavePhoto, onClose }) {
+export default function LiveStreamCameraModal({
+  initialCategorie = "receptie",
+  initialStream = null,
+  onSavePhoto,
+  onClose,
+}) {
   const [categorie, setCategorie] = useState(initialCategorie);
   const [photoCount, setPhotoCount] = useState(0);
   const [lastThumbUrl, setLastThumbUrl] = useState(null);
   const [flash, setFlash] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const thumbUrlRef = useRef(null);
   const aliveRef = useRef(true);
   const flashTimerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useModalEscape(onClose);
 
@@ -22,60 +30,86 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
     setCategorie(initialCategorie);
   }, [initialCategorie]);
 
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => {
+        t.stop();
+        streamRef.current?.removeTrack(t);
+      });
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const attachStream = useCallback((stream) => {
+    if (!aliveRef.current) {
+      stream.getTracks().forEach((track) => track.stop());
+      return;
+    }
+    streamRef.current = stream;
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      void videoRef.current.play().catch(() => {});
+    }
+    setCameraError(null);
+  }, []);
+
+  const startCamera = useCallback(async () => {
+    setCameraReady(false);
+    setCameraError(null);
+
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Camera video nu este suportată de acest browser.");
+      return;
+    }
+
+    try {
+      stopStream();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+      attachStream(stream);
+    } catch (err) {
+      console.warn("Camera video stream failed:", err);
+      setCameraError("Permisiunea camerei a fost refuzată sau camera este indisponibilă.");
+    }
+  }, [attachStream, stopStream]);
+
   useEffect(() => {
     aliveRef.current = true;
-    let active = true;
-
-    const attachStream = (stream) => {
-      if (!active) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        void videoRef.current.play().catch(() => {});
-      }
-    };
-
-    async function startCamera() {
-      try {
-        setCameraReady(false);
-        if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-          return;
-        }
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        attachStream(stream);
-      } catch (err) {
-        console.warn("Camera video stream failed:", err);
-      }
-    }
 
     if (initialStream) attachStream(initialStream);
     else startCamera();
+
+    // Reia stream-ul la revenirea din background pe telefoane mobile (iOS Safari / Android)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && aliveRef.current && !streamRef.current) {
+        startCamera();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      active = false;
       aliveRef.current = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (flashTimerRef.current) {
         clearTimeout(flashTimerRef.current);
         flashTimerRef.current = null;
       }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
+      stopStream();
       if (thumbUrlRef.current) {
         URL.revokeObjectURL(thumbUrlRef.current);
         thumbUrlRef.current = null;
       }
     };
-  }, [initialStream]);
+  }, [initialStream, startCamera, attachStream, stopStream]);
 
   const setThumbFromBlob = (blob) => {
     if (!blob || !aliveRef.current) return;
@@ -91,7 +125,9 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
       if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
         navigator.vibrate(10);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     setFlash(true);
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
@@ -107,10 +143,18 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
       const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      if (!ctx) {
+        canvas.width = 0;
+        canvas.height = 0;
+        return;
+      }
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(async (blob) => {
+        // Zero-memory cleanup pe WebKit
+        canvas.width = 0;
+        canvas.height = 0;
+
         if (!blob || !aliveRef.current) return;
         try {
           setThumbFromBlob(blob);
@@ -122,9 +166,28 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
         } catch (err) {
           console.error("Camera save failed:", err);
         }
-      }, "image/jpeg", 0.70);
+      }, "image/jpeg", 0.80);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleNativeFallbackInput = async (e) => {
+    if (!e.target.files || !e.target.files.length) return;
+    const rawFiles = Array.from(e.target.files);
+    try {
+      const optimizedFiles = [];
+      for (const file of rawFiles) {
+        const opt = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        optimizedFiles.push(opt);
+        setThumbFromBlob(opt);
+      }
+      if (aliveRef.current) setPhotoCount((c) => c + optimizedFiles.length);
+      if (typeof onSavePhoto === "function") {
+        await onSavePhoto(optimizedFiles, categorie);
+      }
+    } catch (err) {
+      console.error("Native capture save error:", err);
     }
   };
 
@@ -136,7 +199,7 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
         <button
           type="button"
           onClick={onClose}
-          className="live-cam-icon-btn"
+          className="live-cam-icon-btn min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Închide camera"
         >
           <X size={22} />
@@ -156,16 +219,46 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
       </div>
 
       <div className="live-cam-stage">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="live-cam-video"
-          onLoadedMetadata={(event) => event.currentTarget.play().catch(() => {})}
-          onCanPlay={() => setCameraReady(true)}
-        />
+        {cameraError ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm mx-auto">
+            <AlertCircle size={40} className="text-amber-400" />
+            <div>
+              <p className="text-[14px] font-bold text-white">{cameraError}</p>
+              <p className="text-[12px] text-white/60 mt-1">
+                Poți face fotografii folosind camera nativă a telefonului.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={startCamera}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[12px] font-semibold flex items-center gap-1.5"
+              >
+                <RefreshCw size={14} /> Reîncearcă
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] rounded-xl text-[12px] font-bold flex items-center gap-1.5 text-white"
+              >
+                <Camera size={14} /> Fă Foto Nativ
+              </button>
+            </div>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="live-cam-video"
+            onLoadedMetadata={(event) => event.currentTarget.play().catch(() => {})}
+            onCanPlay={() => setCameraReady(true)}
+          />
+        )}
+
         {flash && <div className="live-cam-flash" />}
+
         {lastThumbUrl ? (
           <div
             className="live-cam-thumb"
@@ -178,18 +271,33 @@ export default function LiveStreamCameraModal({ initialCategorie = "receptie", i
         ) : null}
       </div>
 
+      {/* Input nativ ascuns pentru fallback */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple
+        className="hidden"
+        onChange={handleNativeFallbackInput}
+      />
+
       <div className="live-cam-rail live-cam-rail--end">
         <div className="live-cam-cat-label">{activeCat?.label || categorie}</div>
         <button
           type="button"
-          onClick={capturePhotoInstantly}
+          onClick={cameraError ? () => fileInputRef.current?.click() : capturePhotoInstantly}
           className="live-cam-shutter"
-          disabled={!cameraReady}
+          disabled={!cameraReady && !cameraError}
           aria-label="Fotografiază"
         >
           <span className="live-cam-shutter-inner" />
         </button>
-        <button type="button" onClick={onClose} className="live-cam-done">
+        <button
+          type="button"
+          onClick={onClose}
+          className="live-cam-done min-w-[44px] min-h-[44px] flex items-center justify-center font-bold"
+        >
           Gata
         </button>
       </div>

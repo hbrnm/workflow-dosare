@@ -23,11 +23,11 @@ export async function downloadClaimAsZip(claim, claimNumber = "dosar") {
     documente: root.folder("Documente"),
   };
 
-  const fetchBlob = async (url) => {
+  const fetchBytes = async (url) => {
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error("HTTP error " + response.status);
-      return await response.blob();
+      return await response.arrayBuffer();
     } catch (err) {
       console.warn("Could not fetch file for zip:", url, err);
       return null;
@@ -43,9 +43,9 @@ export async function downloadClaimAsZip(claim, claimNumber = "dosar") {
     const targetFolder = folders[cat] || folders.generale;
     const filename = sanitizeName(p.nume || `foto_${i + 1}.jpg`);
 
-    const blob = await fetchBlob(itemUrl);
-    if (blob) {
-      targetFolder.file(filename, blob);
+    const bytes = await fetchBytes(itemUrl);
+    if (bytes) {
+      targetFolder.file(filename, bytes);
     }
   }
 
@@ -56,20 +56,25 @@ export async function downloadClaimAsZip(claim, claimNumber = "dosar") {
     const itemUrl = d.url || d.dataUrl;
     const filename = sanitizeName(d.nume || `doc_${i + 1}.pdf`);
 
-    const blob = await fetchBlob(itemUrl);
-    if (blob) {
-      folders.documente.file(filename, blob);
+    const bytes = await fetchBytes(itemUrl);
+    if (bytes) {
+      folders.documente.file(filename, bytes);
     }
   }
 
   // Generate zip file and trigger download
   const content = await zip.generateAsync({ type: "blob" });
-  const downloadUrl = URL.createObjectURL(content);
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  link.download = `${folderName}.zip`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+  if (typeof document !== "undefined" && typeof URL !== "undefined" && URL.createObjectURL) {
+    const downloadUrl = URL.createObjectURL(content);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${folderName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+  }
+
+  return content;
 }

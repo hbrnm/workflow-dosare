@@ -1,12 +1,20 @@
 import { STATUS_MIGRATION, STATUSES, getStatusAlertDays } from "../constants/config";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
-import { todayISO, nowISO } from "./dateUtils";
+import { todayISO, nowISO, generateUUID } from "./dateUtils";
 import { emptyClaim, sanitizeClaim, parseNumber } from "./claimModel";
 import { stripEphemeralMediaUrls } from "./claimMedia";
 
+export function isValidUUID(str) {
+  return (
+    typeof str === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim())
+  );
+}
+
 export function toDb(c) {
+  const claimId = c?.id ? String(c.id).trim() : generateUUID();
   const row = {
-    id: c.id,
+    id: claimId,
     numar_dosar: c.numarDosar,
     tip_asigurare: c.tipAsigurare,
     asigurator: c.asigurator,
@@ -124,10 +132,6 @@ export function parseMissingColumnError(message) {
   return m ? m[1] : null;
 }
 
-/**
- * Upsert / update cu retry: dacă lipsește o coloană din schema DB, o scoate din payload și reîncearcă.
- * Evită crash-ul pe create când migrările noi (ex. mesaj_client) nu sunt încă pe producție.
- */
 export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, { id } = {}) {
   let body = { ...payload };
   for (let attempt = 0; attempt < 16; attempt++) {
@@ -137,13 +141,84 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
         : supabaseClient.from("dosare").upsert(body);
     const { error } = await query;
     if (!error) return { error: null, payload: body };
+
+    // 1. Missing column in DB schema -> strip column and retry
     const missing = parseMissingColumnError(error.message);
-    if (!missing || !Object.prototype.hasOwnProperty.call(body, missing)) {
-      return { error, payload: body };
+    if (missing && Object.prototype.hasOwnProperty.call(body, missing)) {
+      const next = { ...body };
+      delete next[missing];
+      body = next;
+      continue;
     }
-    const next = { ...body };
-    delete next[missing];
-    body = next;
+
+    // 2. Not-null constraint violation on atelier_id -> fetch available atelier and retry
+    if (
+      error.message &&
+      (error.message.includes('null value in column "atelier_id"') ||
+        (error.message.includes("atelier_id") && error.message.includes("not-null")))
+    ) {
+      try {
+        const { data: atRows } = await supabaseClient
+          .from("ateliere")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .limit(1);
+        if (atRows?.[0]?.id) {
+          body.atelier_id = atRows[0].id;
+          continue;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    // 3. Foreign key violation on atelier_id -> remove atelier_id if invalid and retry
+    if (error.message && error.message.includes("dosare_atelier_id_fkey") && body.atelier_id) {
+      const next = { ...body };
+      delete next.atelier_id;
+      body = next;
+      continue;
+    }
+
+    // 4. RLS policy violation on insert -> try healing created_by / atelier_id from current session
+    if (
+      mode !== "update" &&
+      attempt === 0 &&
+      error.message &&
+      error.message.includes("row-level security")
+    ) {
+      try {
+        const { data: authData } = await supabaseClient.auth.getUser();
+        const curUid = authData?.user?.id;
+        if (curUid) {
+          body.created_by = curUid;
+          if (!body.atelier_id) {
+            const { data: mRows } = await supabaseClient
+              .from("atelier_membri")
+              .select("atelier_id")
+              .eq("user_id", curUid)
+              .limit(1);
+            if (mRows?.[0]?.atelier_id) {
+              body.atelier_id = mRows[0].atelier_id;
+            } else {
+              const { data: atRows } = await supabaseClient
+                .from("ateliere")
+                .select("id")
+                .order("created_at", { ascending: true })
+                .limit(1);
+              if (atRows?.[0]?.id) {
+                body.atelier_id = atRows[0].id;
+              }
+            }
+          }
+          continue;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    return { error, payload: body };
   }
   return { error: { message: "Schema bazei de date e incompatibilă cu aplicația." }, payload: body };
 }

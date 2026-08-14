@@ -10,7 +10,8 @@ export function storagePath(claimId, file, folder = "poze") {
     else if (file.type.includes("webp")) ext = "webp";
     else ext = "jpg";
   }
-  return `${claimId || "temp"}/${folder}/${uid()}.${ext}`;
+  const validId = claimId && claimId !== "temp" ? claimId : uid();
+  return `${validId}/${folder}/${uid()}.${ext}`;
 }
 
 /** TTL pentru URL-uri semnate Storage (24h). Se regenerează la deschiderea dosarului. */
@@ -194,25 +195,73 @@ export function resolveMediaPatch(currentClaim = {}, patch = {}) {
   return next;
 }
 
-export async function uploadStorageItem(supabaseClient, bucketName, claimId, file, folder) {
-  const path = storagePath(claimId, file, folder);
-  const mimeType = file.type || (bucketName === "documente-dosare" ? "application/pdf" : "image/jpeg");
+export async function uploadStorageItem(supabaseClientOrOptions, bucketName, claimId, file, folder) {
+  let client = supabaseClientOrOptions;
+  let bName = bucketName;
+  let cId = claimId;
+  let f = file;
+  let fold = folder;
+  let extra = {};
+
+  if (supabaseClientOrOptions && typeof supabaseClientOrOptions === "object" && !supabaseClientOrOptions.storage) {
+    // Options object format: { supabaseClient, bucketName, claimId, file, folder, extraFields }
+    client = supabaseClientOrOptions.supabaseClient || supabaseClientOrOptions.supabase;
+    bName = supabaseClientOrOptions.bucketName;
+    cId = supabaseClientOrOptions.claimId;
+    f = supabaseClientOrOptions.file;
+    fold = supabaseClientOrOptions.folder;
+    extra = supabaseClientOrOptions.extraFields || {};
+  }
+
+  // Canonical bucket aliases
+  if (bName === "claim-photos" || bName === "poze") bName = "poze-dosare";
+  if (bName === "claim-documents" || bName === "documente") bName = "documente-dosare";
+  if (!bName) bName = fold === "documente" ? "documente-dosare" : "poze-dosare";
+
+  if (!client || !client.storage) {
+    const mod = await import("../supabaseClient");
+    client = mod.supabase;
+  }
+
+  const path = storagePath(cId, f, fold);
+  const mimeType = f.type || (bName === "documente-dosare" ? "application/pdf" : "image/jpeg");
   
-  const { error } = await supabaseClient.storage.from(bucketName).upload(path, file, {
+  const { error } = await client.storage.from(bName).upload(path, f, {
     contentType: mimeType,
     upsert: false,
   });
   if (error) throw error;
 
-  const { data: signed, error: signedError } = await supabaseClient.storage
-    .from(bucketName)
+  const { data: signed, error: signedError } = await client.storage
+    .from(bName)
     .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
 
   if (signedError) {
-    await supabaseClient.storage.from(bucketName).remove([path]);
+    await client.storage.from(bName).remove([path]);
     throw signedError;
   }
 
-  const fallbackName = file.name || (mimeType.includes("pdf") ? `Document_${uid().slice(0, 4)}.pdf` : `Foto_${uid().slice(0, 4)}.jpg`);
-  return { id: uid(), path, url: signed?.signedUrl || "", nume: fallbackName, incarcatLa: nowISO() };
+  const fallbackName = f.name || (mimeType.includes("pdf") ? `Document_${uid().slice(0, 4)}.pdf` : `Foto_${uid().slice(0, 4)}.jpg`);
+  return {
+    id: uid(),
+    path,
+    url: signed?.signedUrl || "",
+    nume: fallbackName,
+    incarcatLa: nowISO(),
+    ...extra,
+  };
+}
+
+export async function uploadClaimPhoto(claimId, file, category = "generale", supabaseClient = null) {
+  return uploadStorageItem({
+    supabaseClient,
+    bucketName: "poze-dosare",
+    claimId,
+    file,
+    folder: category,
+    extraFields: {
+      categoria: category,
+      categorie: category,
+    },
+  });
 }

@@ -1,10 +1,95 @@
 import { useState, useMemo, useCallback } from "react";
 import { claimMatchesSearch } from "../utils/searchUtils";
 
-/** Flux/Tabel pipeline: blocked dossiers only appear in the dedicated Blocate view. */
+/** Filtrează dosarele vizibile pentru utilizatorul conectat conform rolului său. */
+export function filterClaimsByUser(claims = [], { myId = null, myEmail = "", isAdmin = false } = {}) {
+  if (!Array.isArray(claims)) return [];
+  if (isAdmin || (!myId && !myEmail)) return claims;
+  return claims.filter((c) => {
+    if (!c) return false;
+    if (!c.createdBy && !c.createdByEmail) return true;
+    return (
+      (c.createdBy && c.createdBy === myId) ||
+      (c.createdBy && c.createdBy === myEmail) ||
+      (c.createdByEmail &&
+        typeof c.createdByEmail === "string" &&
+        c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
+    );
+  });
+}
+
+/** Sortează o listă de dosare conform cheii specificate. */
+export function sortClaimsList(claims = [], sortKey = "recent") {
+  if (!Array.isArray(claims)) return [];
+  const list = [...claims];
+  if (sortKey === "numar") {
+    return list.sort((a, b) => (a.numarDosar || "").localeCompare(b.numarDosar || ""));
+  }
+  if (sortKey === "status") {
+    return list.sort((a, b) => (a.status || "").localeCompare(b.status || ""));
+  }
+  if (sortKey === "client") {
+    return list.sort((a, b) => (a.client || "").localeCompare(b.client || ""));
+  }
+  // Default: data ultimei actualizări descrescător
+  return list.sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || ""));
+}
+
+/** Filtrează lista de dosare pe baza criteriilor selectate (tip, status, asigurător, blocate, căutare text). */
+export function filterClaimsList(
+  claims = [],
+  {
+    search = "",
+    filterTip = "toate",
+    filterStatus = "toate",
+    filterAsigurator = "toti",
+    onlyBlocked = false,
+    sortKey = "recent",
+  } = {}
+) {
+  if (!Array.isArray(claims)) return [];
+  const query = (search || "").trim().toLowerCase();
+
+  const filtered = claims.filter((c) => {
+    if (!c) return false;
+    if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
+    if (filterStatus !== "toate" && c.status !== filterStatus) return false;
+    if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
+    if (onlyBlocked && !c.blocat) return false;
+    if (!query) return true;
+    return claimMatchesSearch(c, query);
+  });
+
+  return sortClaimsList(filtered, sortKey);
+}
+
+/** Flux/Tabel pipeline: dosarele blocate nu se amestecă în etapele operaționale. */
 export function selectStageClaims(filteredClaims = [], onlyBlocked = false) {
   if (onlyBlocked) return filteredClaims;
   return filteredClaims.filter((c) => !c.blocat);
+}
+
+/** Extrage lista unică ordonată a asigurătorilor din dosare. */
+export function extractInsurersList(claims = []) {
+  if (!Array.isArray(claims)) return [];
+  return [...new Set(claims.map((c) => c?.asigurator).filter(Boolean))].sort();
+}
+
+/** Calculează numărul de filtre active aplicate. */
+export function computeActiveFilterCount({
+  search = "",
+  filterTip = "toate",
+  filterStatus = "toate",
+  filterAsigurator = "toti",
+  onlyBlocked = false,
+} = {}) {
+  return [
+    (search || "").trim() !== "",
+    filterTip !== "toate",
+    filterStatus !== "toate",
+    filterAsigurator !== "toti",
+    Boolean(onlyBlocked),
+  ].filter(Boolean).length;
 }
 
 export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, pragInactivitate }) {
@@ -17,55 +102,40 @@ export function useClaimFilters({ claims, myId, myEmail, isAdmin, pragRidicare, 
   const [mobileSort, setMobileSort] = useState("recent");
   const [mobileFilterSheetOpen, setMobileFilterSheetOpen] = useState(false);
 
-  const userClaims = useMemo(() => {
-    if (isAdmin || (!myId && !myEmail)) return claims;
-    return claims.filter((c) => {
-      if (!c) return false;
-      if (!c.createdBy && !c.createdByEmail) return true;
-      return (
-        (c.createdBy && c.createdBy === myId) ||
-        (c.createdBy && c.createdBy === myEmail) ||
-        (c.createdByEmail && typeof c.createdByEmail === "string" && c.createdByEmail.toLowerCase() === myEmail.toLowerCase())
-      );
-    });
-  }, [claims, isAdmin, myEmail, myId]);
+  const userClaims = useMemo(
+    () => filterClaimsByUser(claims, { myId, myEmail, isAdmin }),
+    [claims, isAdmin, myEmail, myId]
+  );
 
-  const filteredClaims = useMemo(() => {
-    const query = (search || "").trim().toLowerCase();
-    let res = userClaims.filter((c) => {
-      if (filterTip !== "toate" && c.tipAsigurare !== filterTip) return false;
-      if (filterStatus !== "toate" && c.status !== filterStatus) return false;
-      if (filterAsigurator !== "toti" && c.asigurator !== filterAsigurator) return false;
-      if (onlyBlocked && !c.blocat) return false;
-      if (!query) return true;
-      return claimMatchesSearch(c, query);
-    });
+  const filteredClaims = useMemo(
+    () =>
+      filterClaimsList(userClaims, {
+        search,
+        filterTip,
+        filterStatus,
+        filterAsigurator,
+        onlyBlocked,
+        sortKey: mobileSort,
+      }),
+    [userClaims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]
+  );
 
-    if (mobileSort === "numar") {
-      return [...res].sort((a, b) => (a.numarDosar || "").localeCompare(b.numarDosar || ""));
-    }
-    if (mobileSort === "status") {
-      return [...res].sort((a, b) => (a.status || "").localeCompare(b.status || ""));
-    }
-    if (mobileSort === "client") {
-      return [...res].sort((a, b) => (a.client || "").localeCompare(b.client || ""));
-    }
-    return [...res].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || ""));
-  }, [userClaims, search, filterTip, filterStatus, filterAsigurator, onlyBlocked, mobileSort]);
-
-  /** Flux / Tabel stage views: never mix blocked dossiers into pipeline stages. */
   const stageClaims = useMemo(
     () => selectStageClaims(filteredClaims, onlyBlocked),
     [filteredClaims, onlyBlocked]
   );
 
-  const insurers = useMemo(
-    () => [...new Set(claims.map((c) => c.asigurator).filter(Boolean))].sort(),
-    [claims]
-  );
+  const insurers = useMemo(() => extractInsurersList(claims), [claims]);
 
   const activeFilterCount = useMemo(
-    () => [search.trim() !== "", filterTip !== "toate", filterStatus !== "toate", filterAsigurator !== "toti", onlyBlocked].filter(Boolean).length,
+    () =>
+      computeActiveFilterCount({
+        search,
+        filterTip,
+        filterStatus,
+        filterAsigurator,
+        onlyBlocked,
+      }),
     [search, filterTip, filterStatus, filterAsigurator, onlyBlocked]
   );
 

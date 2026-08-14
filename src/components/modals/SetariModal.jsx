@@ -1,33 +1,32 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import {
-  X, Settings, User, Building, Database, Bell, Wrench, Download,
-  CheckCircle2, Plus, Trash2, Key, Sliders, Shield, RefreshCw, Car, ChevronRight, Clock,
-  Sun, Moon, Scale, Sparkles,
-} from "lucide-react";
 import { INSURERS, STATUSES } from "../../constants/config";
-import { ROLE_OPTIONS, ROLES, normalizeRole } from "../../constants/roles";
-import * as XLSX from "xlsx";
 import { todayISO } from "../../utils/dateUtils";
 import {
   modalOverlayClass,
   modalOverlayProps,
   modalPanelClass,
-  modalHeaderClass,
 } from "../common/modalShellClasses";
 import {
   loadThemePreference,
-  saveThemePreference,
   THEME_PREF_EVENT,
 } from "../../utils/themePrefs";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AppButton from "../common/AppButton";
 import { normalizeBilling } from "../../constants/billing";
-import { fmtDate } from "../../utils/dateUtils";
 import { supabase } from "../../supabaseClient";
 import { downloadAtelierGdprExport, wipeAtelierDosare } from "../../utils/gdprExport";
 import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 import { normalizeManoperaTarife, DEFAULT_MANOPERA_TARIFE } from "../../constants/manoperaTarife";
-import { resolveRoleHourlyRate } from "../../utils/manoperaCost";
+
+// Sub-components
+import SettingsHeader from "./settings/SettingsHeader";
+import SettingsNav from "./settings/SettingsNav";
+import SettingsGeneralTab from "./settings/SettingsGeneralTab";
+import SettingsInsurersTab from "./settings/SettingsInsurersTab";
+import SettingsAppearanceTab from "./settings/SettingsAppearanceTab";
+import SettingsBackupTab from "./settings/SettingsBackupTab";
+import SettingsGdprTab from "./settings/SettingsGdprTab";
+import SettingsAccountTab from "./settings/SettingsAccountTab";
 
 export default function SetariModal({
   claims = [],
@@ -151,7 +150,6 @@ export default function SetariModal({
     setAtelierNume(brandingNume || "Dosare Daună");
     setAtelierShort(brandingShort || "WD");
     setLogoUrl(brandingLogo || "");
-    // Sync pe valori primitive — nu pe referința obiectului (altfel input-ul se resetează la typing).
   }, [brandingNume, brandingShort, brandingLogo]);
 
   useEffect(() => {
@@ -445,1067 +443,143 @@ export default function SetariModal({
       <div
         className={modalPanelClass(
           desktopUi,
-          // Fixed height — Parametri/Asigurători/… tabs don't resize the shell
           "app-fixed-shell-modal w-full max-w-4xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] overflow-hidden bg-[var(--app-surface)]"
         )}
         onMouseDown={(e) => e.stopPropagation()}
       >
+        {/* Header — doar desktop */}
+        <SettingsHeader
+          desktopUi={desktopUi}
+          userEmail={userEmail}
+          isAdmin={isAdmin}
+          onClose={onClose}
+        />
 
-        {/* Header — doar desktop; pe mobil rămâne bara de taburi rotunjită */}
-        {desktopUi ? (
-          <div className={modalHeaderClass(desktopUi, "flex items-center justify-between px-4 py-3")}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[14px] app-accent-bg">
-                {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-[15.5px] tracking-wide app-display text-[var(--app-text)]">
-                    Centrul de Administrare &amp; Setări
-                  </h2>
-                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${isAdmin ? "bg-[var(--app-accent)]/15 text-[var(--app-accent)] border border-[var(--app-accent)]/40" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"}`}>
-                    {isAdmin ? "Administrator" : "Operator"}
-                  </span>
-                </div>
-                <p className="text-[11px] text-[var(--app-muted)]">Conectat ca: <span className="font-semibold text-[var(--app-text)]">{userEmail || "Neautentificat"}</span></p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-              aria-label="Închide setările"
-            >
-              <X size={20} />
-            </button>
-          </div>
-        ) : null}
+        {/* Atelier vs Cont navigation */}
+        <SettingsNav
+          desktopUi={desktopUi}
+          settingsSection={settingsSection}
+          setSettingsSection={setSettingsSection}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          insurersCount={insurersList.length}
+          onClose={onClose}
+        />
 
-        {/* Atelier vs Cont — then atelier subtabs */}
-        <div className="shrink-0 border-b border-[var(--app-border)] px-3 pt-2 space-y-2">
-          <div className="flex items-center gap-1.5">
-            {[
-              { id: "atelier", label: "Atelier", icon: Building },
-              { id: "cont", label: "Cont", icon: User },
-            ].map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  setSettingsSection(id);
-                  setActiveTab(id === "cont" ? "profil" : "general");
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors ${
-                  settingsSection === id
-                    ? "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]"
-                    : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                }`}
-              >
-                <Icon size={14} /> {label}
-              </button>
-            ))}
-            {!desktopUi ? (
-              <button
-                type="button"
-                onClick={onClose}
-                className="ml-auto shrink-0 p-2 rounded-full text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface-muted)]"
-                aria-label="Închide setările"
-              >
-                <X size={18} />
-              </button>
-            ) : null}
-          </div>
-
-          {settingsSection === "atelier" ? (
-            <div className="m-settings-tabs m-settings-tabs--pill flex overflow-x-auto scrollbar-thin pb-2">
-              {[
-                { id: "general", label: desktopUi ? "Parametri" : "Parametri", icon: Wrench },
-                { id: "asiguratori", label: "Asigurători", icon: Building, badge: insurersList.length },
-                { id: "ai", label: "Agent AI", icon: Sparkles },
-                { id: "notificari", label: desktopUi ? "Afișare" : "Afișare", icon: Bell },
-                { id: "diagnoza", label: "Backup", icon: Database },
-                { id: "date", label: "Date", icon: Scale },
-              ].map(({ id, label, icon: Icon, badge }) => {
-                const active = activeTab === id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveTab(id)}
-                    className={`m-settings-tab flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
-                      active ? "is-active" : ""
-                    }`}
-                  >
-                    <Icon size={15} />
-                    <span>{label}</span>
-                    {badge !== undefined && (
-                      <span className={`m-settings-tab-badge px-1.5 py-0.5 text-[10px] font-black rounded-full ${active ? "is-active" : ""}`}>
-                        {badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="pb-2 text-[11px] text-[var(--app-muted)] px-1">
-              Parolă, rol și membri echipă
-            </div>
-          )}
-        </div>
-
-        {/* Content Body — sole scroll region across settings tabs */}
+        {/* Content Body */}
         <div className="app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-5 pb-5 space-y-4">
-
           {/* TAB 1: PARAMETRI GENERALI & ATELIER */}
           {activeTab === "general" && (
-            <form onSubmit={handleSaveConfig} className="space-y-4">
-              {/* Identitate atelier / white-label */}
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Building size={16} className="text-[var(--app-accent)]" /> Identitate atelier (white-label)
-                </h3>
-                <p className="text-[11.5px] text-[var(--app-muted)]">
-                  Numele, inițialele și logo-ul apar în header, login, PDF și mesaje WhatsApp.
-                  {isAdmin ? "" : " Doar administratorul poate salva permanent în cloud."}
-                </p>
-
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--app-surface)] text-white">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px] bg-[#21262d] border border-[#30363d] text-[#e6edf3]">
-                      {(atelierShort || "WD").slice(0, 3)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="font-extrabold text-[14px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {atelierNume || "Dosare Daună"}
-                    </div>
-                    <div className="text-[11px] text-white/60">Previzualizare header</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">Nume atelier</label>
-                    <input
-                      type="text"
-                      value={atelierNume}
-                      onChange={(e) => setAtelierNume(e.target.value)}
-                      disabled={!isAdmin}
-                      title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed"
-                      placeholder="ex. AutoService Popescu"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">Inițiale (max 4)</label>
-                    <input
-                      type="text"
-                      value={atelierShort}
-                      onChange={(e) => setAtelierShort(e.target.value.slice(0, 4).toUpperCase())}
-                      disabled={!isAdmin}
-                      title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
-                      maxLength={4}
-                      className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed uppercase"
-                      placeholder="WD"
-                    />
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[12px] font-bold text-[var(--app-text-strong)]">URL logo (public)</label>
-                    <div className="flex flex-wrap gap-2">
-                      <input
-                        type="url"
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        disabled={!isAdmin}
-                        title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
-                        className="flex-1 min-w-[180px] p-2 border border-[var(--app-border)] rounded-lg text-[12px] font-semibold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed"
-                        placeholder="https://… sau lasă gol pentru inițiale"
-                      />
-                      {isAdmin && onUploadBrandingLogo && (
-                        <label className="px-3 py-2 rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[12px] font-bold cursor-pointer hover:bg-[var(--app-border-soft)]">
-                          {uploadingLogo ? "Se încarcă…" : "Încarcă fișier"}
-                          <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} disabled={uploadingLogo} />
-                        </label>
-                      )}
-                      {logoUrl && isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => setLogoUrl("")}
-                          className="px-3 py-2 rounded-lg border border-[var(--app-border)] text-[12px] font-bold text-[var(--app-danger)]"
-                        >
-                          Șterge logo
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Wrench size={16} className="text-[var(--app-accent)]" /> Configurare Capacitate Atelier &amp; Praguri Alerte
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Prag mașini neridicate */}
-                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
-                      Prag alertă mașini neridicate (zile)
-                    </label>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      După câte zile de la finalizarea reparației se declanșează alerta pentru mașinile neridicate.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="30"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
-                        value={prag}
-                        onChange={(e) => setPrag(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">zile de la finalizare</span>
-                    </div>
-                  </div>
-
-                  {/* NOUL PRAG: Alertă dosare fără activitate (inactivitate) */}
-                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
-                      <Clock size={15} className="text-[var(--app-accent)]" /> Prag alertă dosare fără activitate (inactivitate)
-                    </label>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      Semnalează dosarele deschise în care NU a existat nicio modificare, schimbare de status sau notă nouă timp de X zile.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <select
-                        className="p-2 border border-[var(--app-border)] rounded-lg font-bold text-[13.5px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
-                        value={inactivitateDays}
-                        onChange={(e) => setInactivitateDays(Number(e.target.value))}
-                      > 
-                        <option value={1}>1 zi fără activitate</option>
-                        <option value={2}>2 zile fără activitate</option>
-                        <option value={3}>3 zile fără activitate</option>
-                        <option value={5}>5 zile fără activitate</option>
-                        <option value={7}>7 zile fără activitate (implicit)</option>
-                        <option value={10}>10 zile fără activitate</option>
-                        <option value={14}>14 zile (2 săptămâni)</option>
-                        <option value={30}>30 zile (1 lună)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Capacitate zilnică programator */}
-                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
-                      Capacitate maximă programări pe zi
-                    </label>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      Limita de dosare ce pot fi programate într-o singură zi în calendarul service-ului.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
-                        value={capacitate}
-                        onChange={(e) => setCapacitate(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">mașini / zi</span>
-                    </div>
-                  </div>
-
-                  <div className="col-span-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-3">
-                    <div>
-                      <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
-                        <Bell size={15} className="text-[var(--app-accent)]" /> Praguri alertă per stadiu (zile)
-                      </label>
-                      <p className="text-[11px] text-[var(--app-muted)] mt-1">
-                        După câte zile în același stadiu se declanșează alerta pe card și în Brief.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {STATUSES.map((s) => (
-                        <div key={s.key} className="flex items-center justify-between gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-2.5 py-1.5">
-                          <span className="text-[11px] font-bold text-[var(--app-text-strong)] truncate" title={s.label}>
-                            {s.num}. {s.label}
-                          </span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <input
-                              type="number"
-                              min="1"
-                              max="90"
-                              className="w-14 p-1 border border-[var(--app-border)] rounded-md font-bold text-[13px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
-                              value={alertDaysByStatus[s.key] ?? s.alertDays ?? 3}
-                              onChange={(e) =>
-                                setAlertDaysByStatus((prev) => ({
-                                  ...prev,
-                                  [s.key]: e.target.value === "" ? "" : Number(e.target.value),
-                                }))
-                              }
-                            />
-                            <span className="text-[10px] font-bold text-[var(--app-muted)]">z</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* TVA Implicit */}
-                  <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-2">
-                    <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)]">
-                      Cotă TVA implicită (%)
-                    </label>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      Procentul de TVA aplicat automat la calculul veniturilor financiare și facturilor dosarului.
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="w-24 p-2 border border-[var(--app-border)] rounded-lg font-bold text-[15px] bg-[var(--app-surface)] text-center focus:border-[var(--app-accent)]"
-                        value={tvaDefault}
-                        onChange={(e) => setTvaDefault(e.target.value)}
-                      />
-                      <span className="text-[12.5px] font-bold text-[var(--app-muted)]">% TVA</span>
-                    </div>
-                  </div>
-
-                  {/* Tarife manoperă — cost real din salariu */}
-                  <div className="col-span-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3.5 space-y-3">
-                    <div>
-                      <label className="block text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5">
-                        <Wrench size={15} className="text-[var(--app-accent)]" /> Tarife manoperă internă
-                      </label>
-                      <p className="text-[11px] text-[var(--app-muted)] mt-1">
-                        Salariu lunar + ore productive → tarif orar pentru calcul automat al costului manoperei pe dosar.
-                        Exemplu: 8000 lei/lună, 160 ore, overhead 20% → ~60 lei/h.
-                      </p>
-                    </div>
-
-                    {(["tinichigerie", "vopsitorie"]).map((role) => {
-                      const roleLabel = role === "tinichigerie" ? "Tinichigerie" : "Vopsitorie";
-                      const cfg = manoperaTarifeDraft[role] || {};
-                      const computedRate = resolveRoleHourlyRate(cfg);
-                      const previewRate =
-                        cfg.tarifOrar != null && cfg.tarifOrar !== "" ? Number(cfg.tarifOrar) : computedRate;
-                      return (
-                        <div key={role} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg p-2.5">
-                          <div className="sm:col-span-4 text-[11px] font-bold text-[var(--app-text-strong)] uppercase tracking-wide">
-                            {roleLabel}
-                            <span className="ml-2 text-[10px] font-mono text-[var(--app-accent)]">
-                              {previewRate > 0 ? `${previewRate.toLocaleString("ro-RO")} lei/h` : "—"}
-                            </span>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Salariu lunar (lei)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
-                              value={cfg.salariuLunar || ""}
-                              onChange={(e) =>
-                                setManoperaTarifeDraft((prev) => ({
-                                  ...prev,
-                                  [role]: { ...prev[role], salariuLunar: Number(e.target.value) || 0, tarifOrar: null },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Ore/lună</label>
-                            <input
-                              type="number"
-                              min="1"
-                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
-                              value={cfg.oreProductiveLuna ?? 160}
-                              onChange={(e) =>
-                                setManoperaTarifeDraft((prev) => ({
-                                  ...prev,
-                                  [role]: { ...prev[role], oreProductiveLuna: Math.max(1, Number(e.target.value) || 160), tarifOrar: null },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Overhead (%)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
-                              value={cfg.overheadProc ?? 20}
-                              onChange={(e) =>
-                                setManoperaTarifeDraft((prev) => ({
-                                  ...prev,
-                                  [role]: { ...prev[role], overheadProc: Math.max(0, Number(e.target.value) || 0), tarifOrar: null },
-                                }))
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">Tarif manual (lei/h)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder={computedRate > 0 ? String(computedRate) : "auto"}
-                              className="w-full p-1.5 border border-[var(--app-border)] rounded-md font-mono text-[12px] bg-[var(--app-surface)]"
-                              value={cfg.tarifOrar ?? ""}
-                              onChange={(e) =>
-                                setManoperaTarifeDraft((prev) => ({
-                                  ...prev,
-                                  [role]: {
-                                    ...prev[role],
-                                    tarifOrar: e.target.value === "" ? null : Number(e.target.value) || null,
-                                  },
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    <label className="flex items-center gap-2 text-[11px] text-[var(--app-text-strong)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={manoperaTarifeDraft.autoCalcFromOre !== false}
-                        onChange={(e) =>
-                          setManoperaTarifeDraft((prev) => ({ ...prev, autoCalcFromOre: e.target.checked }))
-                        }
-                        className="rounded border-[var(--app-border)]"
-                      />
-                      Calculează automat costul manoperei când se schimbă orele pe dosar
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-1.5 px-6 py-2.5 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold rounded-lg text-[13px] shadow-sm transition-colors disabled:opacity-50"
-                >
-                  <CheckCircle2 size={16} /> Salvează Parametrii
-                </button>
-              </div>
-            </form>
+            <SettingsGeneralTab
+              isAdmin={isAdmin}
+              handleSaveConfig={handleSaveConfig}
+              saving={saving}
+              atelierNume={atelierNume}
+              setAtelierNume={setAtelierNume}
+              atelierShort={atelierShort}
+              setAtelierShort={setAtelierShort}
+              logoUrl={logoUrl}
+              setLogoUrl={setLogoUrl}
+              uploadingLogo={uploadingLogo}
+              handleLogoFile={handleLogoFile}
+              onUploadBrandingLogo={onUploadBrandingLogo}
+              prag={prag}
+              setPrag={setPrag}
+              inactivitateDays={inactivitateDays}
+              setInactivitateDays={setInactivitateDays}
+              capacitate={capacitate}
+              setCapacitate={setCapacitate}
+              alertDaysByStatus={alertDaysByStatus}
+              setAlertDaysByStatus={setAlertDaysByStatus}
+              tvaDefault={tvaDefault}
+              setTvaDefault={setTvaDefault}
+              manoperaTarifeDraft={manoperaTarifeDraft}
+              setManoperaTarifeDraft={setManoperaTarifeDraft}
+            />
           )}
 
           {/* TAB 2: MANAGEMENT ASIGURĂTORI */}
           {activeTab === "asiguratori" && (
-            <div className="space-y-4">
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
-                  <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-2">
-                    <Building size={16} className="text-[var(--app-accent)]" /> Nomenclator Asigurători ({insurersList.length})
-                  </h3>
-                  <span className="text-[11px] text-[var(--app-muted)] font-semibold">Lista societăților de asigurare</span>
-                </div>
-
-                {/* Adăugare Asigurător Nou (doar pentru Admins) */}
-                {isAdmin ? (
-                  <div className="flex gap-2">
-                    <input
-                      className="flex-1 px-3 py-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface-2)] focus:bg-[var(--app-surface)]"
-                      placeholder="Adaugă societate de asigurare nouă (ex: SIGNAL IDUNA)..."
-                      value={newInsurer}
-                      onChange={(e) => setNewInsurer(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddInsurer(); } }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddInsurer}
-                      className="flex items-center gap-1 px-4 py-2 bg-[var(--app-muted)] text-white rounded-lg text-[12.5px] font-bold hover:bg-[var(--app-text)]"
-                    >
-                      <Plus size={15} /> Adaugă
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[11.5px] text-[var(--app-muted)] bg-[var(--app-surface-2)] p-2.5 rounded-lg border border-[var(--app-border)]">
-                    Lista societăților de asigurare este gestionată de Administrator.
-                  </p>
-                )}
-
-                {/* Grilă Asigurători */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
-                  {(Array.isArray(insurersList) && insurersList.length > 0 ? insurersList : INSURERS).map((ins) => (
-                    <div key={ins} className="flex items-center justify-between bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg px-3 py-2 text-[12.5px]">
-                      <span className="font-semibold text-[var(--app-text-strong)] truncate">{ins}</span>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInsurer(ins)}
-                          className="text-[var(--app-muted)] hover:text-[var(--app-danger)] p-1 transition-colors"
-                          title="Șterge din listă"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <SettingsInsurersTab
+              isAdmin={isAdmin}
+              insurersList={insurersList}
+              newInsurer={newInsurer}
+              setNewInsurer={setNewInsurer}
+              handleAddInsurer={handleAddInsurer}
+              handleRemoveInsurer={handleRemoveInsurer}
+            />
           )}
 
-          {/* TAB AGENT AI */}
-          {activeTab === "ai" && (
-            <div className="space-y-4">
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
-                  <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] flex items-center gap-2">
-                    <Sparkles size={16} className="text-indigo-400" /> Configurare Agent AI Multimodal
-                  </h3>
-                  <span className="text-[11px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">
-                    Gemini 2.0 Flash
-                  </span>
-                </div>
-
-                <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
-                  Agentul AI analizează și extrage automat datele din devize Audatex/Eurotax, procese verbale de constatare, cereri de despăgubire și taloane auto.
-                </p>
-
-                <div className="space-y-3 pt-1">
-                  <div>
-                    <label className="text-[12px] font-bold text-[var(--app-text-strong)] block mb-1">
-                      Cheie Google Gemini API (pentru apelare directă):
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        placeholder="AIzaSy..."
-                        className="flex-1 px-3 py-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] text-[var(--app-text-strong)] font-mono"
-                        value={geminiApiKeySetting}
-                        onChange={(e) => setGeminiApiKeySetting(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (geminiApiKeySetting.trim()) {
-                            localStorage.setItem("gemini_api_key", geminiApiKeySetting.trim());
-                            onNotify("Cheia API Gemini a fost salvată în browser!", "success");
-                          } else {
-                            localStorage.removeItem("gemini_api_key");
-                            onNotify("Cheia API Gemini a fost ștearsă.", "info");
-                          }
-                        }}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-[12.5px] transition-colors"
-                      >
-                        Salvează
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-[var(--app-muted)] mt-1">
-                      Cheia se salvează securizat local în browserul dumneavoastră. Sau puteți configura <code className="text-indigo-300">GEMINI_API_KEY</code> în Supabase Secrets pentru toți utilizatorii atelierului.
-                    </p>
-                  </div>
-
-                  <div className="p-3 bg-[var(--app-surface)] rounded-lg border border-[var(--app-border)] space-y-1.5 text-[12px]">
-                    <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                      <CheckCircle2 size={15} /> Supabase Edge Function: analyze-document-ai
-                    </div>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      Funcția backend este pregătită pentru a securiza apelurile API la nivel de atelier.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: NOTIFICĂRI & PREFERINȚE VIZUALE */}
+          {/* TAB 3: ASPECT (ZI / NOAPTE / TEMĂ) */}
           {activeTab === "notificari" && (
-            <div className="space-y-4">
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Sun size={16} className="text-[var(--app-accent)]" /> Aspect &amp; temă
-                </h3>
-                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
-                  <strong className="text-[var(--app-text-strong)]">Automat</strong> — fundal alb între 07:00–19:00, negru noaptea.
-                  Poți forța manual tema deschisă sau întunecată.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: "auto", label: "Automat", hint: "Zi / noapte", Icon: Clock },
-                    { id: "light", label: "Deschis", hint: "Alb", Icon: Sun },
-                    { id: "dark", label: "Întunecat", hint: "Negru", Icon: Moon },
-                  ].map(({ id, label, hint, Icon }) => {
-                    const active = themePref === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          saveThemePreference(id);
-                          setThemePref(id);
-                        }}
-                        className={`m-theme-choice flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all ${
-                          active ? "is-active" : ""
-                        }`}
-                      >
-                        <Icon size={20} strokeWidth={active ? 2.25 : 2} />
-                        <span className="text-[12px] font-extrabold">{label}</span>
-                        <span className="text-[10px] font-semibold opacity-80">{hint}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <p className="text-[12px] text-[var(--app-muted)] px-1">
-                Notificările și alertele folosesc aceleași reguli ca în modul desktop.
-              </p>
-            </div>
+            <SettingsAppearanceTab
+              themePref={themePref}
+              setThemePref={setThemePref}
+              onNotify={onNotify}
+            />
           )}
 
-          {/* TAB 4: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
+          {/* TAB 5: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
           {activeTab === "profil" && (
-            <div className="space-y-4">
-              {/* Billing + Stripe */}
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Shield size={16} className="text-[var(--app-accent)]" /> Plan atelier
-                </h3>
-                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
-                  {tenancyReady
-                    ? "Abonament pe atelier. Checkout Stripe actualizează automat planul."
-                    : "Rulează migrarea 29 (+ 31) pentru multi-tenant și branding pe slug."}
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2">
-                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Plan</div>
-                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">{billingView.planMeta.label}</div>
-                  </div>
-                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2">
-                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Locuri</div>
-                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">
-                      {billingView.memberCount}/{billingView.seatLimit}
-                    </div>
-                  </div>
-                  <div className="rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] px-3 py-2 col-span-2">
-                    <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Trial până la</div>
-                    <div className="text-[13px] font-semibold text-[var(--app-text-strong)]">
-                      {billingView.trialEndsAt ? fmtDate(billingView.trialEndsAt) : "—"}
-                    </div>
-                  </div>
-                </div>
-                {isAdmin ? (
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    {billingView.needsUpgrade || !billingView.hasStripeCustomer ? (
-                      <AppButton
-                        type="button"
-                        variant="primary"
-                        disabled={stripeBusy || !atelierId}
-                        onClick={handleStripeCheckout}
-                      >
-                        {stripeBusy ? "…" : "Activează abonament"}
-                      </AppButton>
-                    ) : null}
-                    {billingView.hasStripeCustomer ? (
-                      <AppButton
-                        type="button"
-                        variant="secondary"
-                        disabled={stripeBusy || !atelierId}
-                        onClick={handleStripePortal}
-                      >
-                        Gestionează facturare
-                      </AppButton>
-                    ) : null}
-                  </div>
-                ) : null}
-                {isAdmin && onSaveBilling ? (
-                  <form onSubmit={handleSaveSeats} className="flex flex-wrap items-end gap-2 pt-1 border-t border-[var(--app-border)]">
-                    <label className="text-[11px] font-bold text-[var(--app-muted)]">
-                      Seat limit
-                      <input
-                        type="number"
-                        min={1}
-                        max={200}
-                        className="mt-1 block p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] w-24"
-                        value={seatDraft}
-                        onChange={(e) => setSeatDraft(e.target.value)}
-                      />
-                    </label>
-                    <AppButton type="submit" variant="secondary" disabled={savingBilling}>
-                      {savingBilling ? "…" : "Salvează locuri"}
-                    </AppButton>
-                  </form>
-                ) : null}
-              </div>
-
-              {/* Informații Cont Curent */}
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <User size={16} className="text-[var(--app-accent)]" /> Detalii Cont &amp; Securitate
-                  </span>
-                  <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full ${isAdmin ? "bg-[var(--app-accent)] text-white" : "bg-[var(--app-muted)] text-white"}`}>
-                    {isAdmin ? "Rol: ADMINISTRATOR (Acces Total)" : "Rol: OPERATOR (Dosare Proprii)"}
-                  </span>
-                </h3>
-
-                <div className="space-y-3">
-                  <div className="p-3.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] text-[var(--app-muted)] font-bold uppercase block">Adresă de e-mail conectată</span>
-                      <span className="font-mono font-bold text-[14px] text-[var(--app-text-strong)]">{userEmail || "—"}</span>
-                      <span className="text-[11.5px] text-[var(--app-muted)] block mt-0.5">
-                        {isAdmin ? "Poți edita, modifica și șterge orice dosar din sistem." : "Poți edita și șterge doar dosarele create de tine."}
-                      </span>
-                    </div>
-                    <span className="px-2.5 py-1 bg-[var(--app-success)]/15 text-[var(--app-success)] font-bold text-[11px] rounded-md">
-                      ✓ Cont Activ
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex items-center justify-between">
-                    <div>
-                      <span className="text-[13px] font-bold text-[var(--app-text-strong)]">Deconectare din cont</span>
-                      <span className="text-[11px] text-[var(--app-muted)] block">Închide sesiunea curentă în condiții de siguranță</span>
-                    </div>
-                    {onSignOut && (
-                      <button
-                        type="button"
-                        onClick={onSignOut}
-                        className="px-4 py-1.5 bg-[var(--app-danger)] text-white text-[12px] font-bold rounded-lg hover:bg-[#922D24] transition-colors"
-                      >
-                        Delogare
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Formular Schimbare Parolă Cont (Disponibil pentru toți utilizatorii) */}
-                <form onSubmit={handleChangePasswordSubmit} className="p-4 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl space-y-3 pt-3">
-                  <div>
-                    <h4 className="font-bold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5">
-                      <Key size={15} className="text-[var(--app-accent)]" /> Schimbă Parola Contului Tău
-                    </h4>
-                    <p className="text-[11px] text-[var(--app-muted)]">
-                      Setează o parolă nouă confidențială după conectarea inițială.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1">Parolă Nouă</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder="Parola nouă (min. 6 caractere)..."
-                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
-                        value={myNewPassword}
-                        onChange={(e) => setMyNewPassword(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1">Confirmare Parolă Nouă</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={6}
-                        placeholder="Reintroduceți parola nouă..."
-                        className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] focus:border-[var(--app-accent)]"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={updatingPassword || !myNewPassword}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-muted)] hover:bg-[var(--app-text)] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all disabled:opacity-50"
-                    >
-                      <Key size={14} /> {updatingPassword ? "Se actualizează..." : "Actualizează Parola"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* SECTIUNE GESTIONARE UTILIZATORI (Disponibilă Exclusiv pentru Administratori) */}
-              {isAdmin && (
-                <div className="bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl p-4 space-y-4 shadow-sm">
-                  <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
-                    <div>
-                      <h3 className="font-extrabold text-[14.5px] text-[var(--app-text-strong)] flex items-center gap-2">
-                        <Shield size={17} className="text-[var(--app-accent)]" /> Administrare Utilizatori &amp; Permisiuni Echipa ({usersList.length})
-                      </h3>
-                      <p className="text-[11px] text-[var(--app-muted)]">
-                        Invită colegi cu rol clar. Trimite-le emailul + parola inițială; pot reseta parola din „Am uitat parola” la login.
-                      </p>
-                    </div>
-                  </div>
-
-                {/* Formular Adăugare Utilizator Nou */}
-                {!billingView.canInvite ? (
-                  <div className="text-[12px] text-[var(--app-danger)] bg-[var(--app-danger)]/10 border border-[var(--app-danger)]/30 rounded-lg px-3 py-2">
-                    {billingView.overSeatLimit
-                      ? `Nu mai poți invita — ${billingView.memberCount}/${billingView.seatLimit} locuri ocupate.`
-                      : "Planul curent blochează invitațiile noi."}
-                  </div>
-                ) : null}
-
-                <form onSubmit={handleAddUserSubmit} className="bg-[var(--app-warning-muted)] border border-[var(--app-accent)]/30 rounded-xl p-3.5 space-y-3">
-                  <h4 className="font-bold text-[13px] text-[var(--app-warning)] flex items-center gap-1.5">
-                    <Plus size={15} /> Invită utilizator
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="email"
-                      required
-                      placeholder="E-mail (ex: coleg@service.ro)"
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-medium focus:border-[var(--app-accent)]"
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                    />
-
-                    <select
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-bold text-[var(--app-text-strong)] focus:border-[var(--app-accent)]"
-                      value={newUserRole}
-                      onChange={(e) => setNewUserRole(e.target.value)}
-                      title={ROLES[normalizeRole(newUserRole)]?.description}
-                    >
-                      {ROLE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    <input
-                      type="password"
-                      required
-                      placeholder="Parolă inițială (min. 6)"
-                      className="p-2 border border-[var(--app-border)] rounded-lg text-[13px] bg-[var(--app-surface)] font-medium focus:border-[var(--app-accent)]"
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                    />
-                  </div>
-
-                  <p className="text-[11px] text-[var(--app-muted)] leading-relaxed">
-                    {ROLES[normalizeRole(newUserRole)]?.description || ""}
-                    {" "}Partajează datele de login pe un canal sigur.
-                  </p>
-
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={creatingUser || !billingView.canInvite}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold rounded-lg text-[12.5px] shadow-sm transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <Plus size={15} /> {creatingUser ? "Se invită..." : "Creează invitație"}
-                    </button>
-                  </div>
-                </form>
-
-                {/* Lista Utilizatori Existenți */}
-                <div className="space-y-2 pt-1">
-                  <h4 className="font-bold text-[12.5px] text-[var(--app-text-strong)]">Membri Înregistrați ({usersList.length}):</h4>
-                  {usersList.length === 0 ? (
-                    <div className="p-4 text-center text-[12px] text-[var(--app-muted)] bg-[var(--app-surface-2)] rounded-xl border border-[var(--app-border)]">
-                      Niciun utilizator suplimentar configurat încă.
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-[var(--app-border-soft)] border border-[var(--app-border)] rounded-xl overflow-hidden bg-[var(--app-surface)]">
-                      {usersList.map((u) => {
-                        const isCurrent = u.email?.toLowerCase() === userEmail?.toLowerCase();
-                        const isUserAdmin = u.role === "admin";
-
-                        return (
-                          <div key={u.email} className="p-3 flex items-center justify-between gap-2 hover:bg-[var(--app-surface-2)]">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[12px] text-white ${isUserAdmin ? "bg-[var(--app-accent)]" : "bg-[var(--app-muted)]"}`}>
-                                {u.email ? u.email.charAt(0).toUpperCase() : "U"}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono font-bold text-[13px] text-[var(--app-text-strong)]">{u.email}</span>
-                                  {isCurrent && (
-                                    <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[var(--app-border-soft)] text-[var(--app-muted)]">
-                                      Tu (Cont Curent)
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[11px] text-[var(--app-muted)] block">
-                                  Rol: <strong className={isUserAdmin ? "text-[var(--app-accent)]" : "text-[var(--app-muted)]"}>{isUserAdmin ? "Administrator (Editare toate dosarele)" : "Operator (Editează doar propriile dosare)"}</strong>
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {/* Schimbare rol Admin / Operator */}
-                              {onToggleAdminRole && (
-                                <button
-                                  type="button"
-                                  onClick={() => onToggleAdminRole(u.email)}
-                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11.5px] font-bold border transition-colors ${
-                                    isUserAdmin
-                                      ? "bg-[var(--app-surface-muted)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"
-                                      : "bg-[var(--app-warning-muted)] text-[var(--app-warning)] border-[var(--app-accent)]/40 hover:bg-[var(--app-accent)]/15"
-                                  }`}
-                                  title={isUserAdmin ? "Retrogradează la Operator" : "Promovează în Administrator"}
-                                >
-                                  <Key size={13} />
-                                  <span>{isUserAdmin ? "Devino Operator" : "Fă Administrator"}</span>
-                                </button>
-                              )}
-
-                              {/* Ștergere utilizator */}
-                              {onDeleteUser && (
-                                <button
-                                  type="button"
-                                  disabled={isCurrent}
-                                  onClick={() => setPendingDeleteEmail(u.email)}
-                                  className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                                  title={isCurrent ? "Nu te poți șterge pe tine însuți" : "Șterge utilizator"}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-              )}
-            </div>
+            <SettingsAccountTab
+              userEmail={userEmail}
+              isAdmin={isAdmin}
+              onSignOut={onSignOut}
+              myNewPassword={myNewPassword}
+              setMyNewPassword={setMyNewPassword}
+              confirmNewPassword={confirmNewPassword}
+              setConfirmNewPassword={setConfirmNewPassword}
+              updatingPassword={updatingPassword}
+              handleChangePasswordSubmit={handleChangePasswordSubmit}
+              billingView={billingView}
+              tenancyReady={tenancyReady}
+              atelierSlug={atelierSlug}
+              handleStripeCheckout={handleStripeCheckout}
+              handleStripePortal={handleStripePortal}
+              stripeBusy={stripeBusy}
+              seatDraft={seatDraft}
+              setSeatDraft={setSeatDraft}
+              handleSaveSeats={handleSaveSeats}
+              savingBilling={savingBilling}
+              usersList={usersList}
+              newUserEmail={newUserEmail}
+              setNewUserEmail={setNewUserEmail}
+              newUserRole={newUserRole}
+              setNewUserRole={setNewUserRole}
+              newUserPassword={newUserPassword}
+              setNewUserPassword={setNewUserPassword}
+              creatingUser={creatingUser}
+              handleAddUserSubmit={handleAddUserSubmit}
+              onToggleAdminRole={onToggleAdminRole}
+              setPendingDeleteEmail={setPendingDeleteEmail}
+            />
           )}
 
-          {/* TAB 5: DIAGNOZĂ & BACKUP DATA */}
+          {/* TAB 6: DIAGNOZĂ & BACKUP DATA */}
           {activeTab === "diagnoza" && (
-            <div className="space-y-4">
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-4">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Database size={16} className="text-[var(--app-muted)]" /> Diagnostic Sistem &amp; Stocare Cloud
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Total Dosare</span>
-                    <span className="block font-extrabold text-[20px] text-[var(--app-text-strong)]">{claims.length}</span>
-                  </div>
-
-                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Fotografii Salvate</span>
-                    <span className="block font-extrabold text-[20px] text-[var(--app-accent)]">{totalPoze}</span>
-                  </div>
-
-                  <div className="p-3 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl text-center">
-                    <span className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Documente Atașate</span>
-                    <span className="block font-extrabold text-[20px] text-[var(--app-muted)]">{totalDocumente}</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-[var(--app-border)]">
-                  <h4 className="font-bold text-[13px] text-[var(--app-text-strong)] mb-1">Export &amp; Salvgardare Date (Backup)</h4>
-                  <p className="text-[11px] text-[var(--app-muted)] mb-3">
-                    Copie rapidă a dosarelor încărcate în sesiune (JSON). Pentru export complet GDPR (inclusiv arhivă și echipă), folosește tab-ul Date.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={exportFullBackupJSON}
-                    disabled={!isAdmin}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-text)] text-white text-[12.5px] font-bold rounded-lg hover:bg-[#1E2D44] transition-colors disabled:opacity-50"
-                  >
-                    <Download size={15} /> Descarcă Backup Complet (.json)
-                  </button>
-                </div>
-              </div>
-            </div>
+            <SettingsBackupTab
+              isAdmin={isAdmin}
+              claims={claims}
+              totalPoze={totalPoze}
+              totalDocumente={totalDocumente}
+              exportFullBackupJSON={exportFullBackupJSON}
+            />
           )}
 
-          {/* TAB: DATE & CONFIDENȚIALITATE */}
+          {/* TAB 7: DATE & CONFIDENȚIALITATE */}
           {activeTab === "date" && (
-            <div className="space-y-4">
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
-                <h3 className="font-bold text-[14px] text-[var(--app-text-strong)] border-b border-[var(--app-border)] pb-2 flex items-center gap-2">
-                  <Scale size={16} className="text-[var(--app-muted)]" /> Date &amp; confidențialitate
-                </h3>
-                <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
-                  Atelierul tău este operatorul datelor din dosare (clienți, contacte, documente).
-                  Workflow Dosare procesează datele ca furnizor tehnic. Exportă periodic o copie și șterge ce nu mai ai temei să păstrezi.
-                </p>
-                <ul className="text-[11.5px] text-[var(--app-muted)] list-disc pl-4 space-y-1">
-                  <li>Export GDPR: atelier, membri, dosare active, arhivă, istoric (fără chei Stripe).</li>
-                  <li>Eliminarea unui membru din Cont scoate accesul; contul Auth poate rămâne.</li>
-                  <li>Ștergerea unui dosar arhivează rândul și curăță pozele/documentele din Storage (migrare 34).</li>
-                </ul>
-              </div>
-
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3">
-                <h4 className="font-bold text-[13px] text-[var(--app-text-strong)]">Export date atelier (GDPR)</h4>
-                <p className="text-[11.5px] text-[var(--app-muted)]">
-                  Descarcă pachetul JSON complet pentru atelierul activ
-                  {atelierSlug ? ` (${atelierSlug})` : ""}. Doar administrator.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleGdprExport}
-                  disabled={!isAdmin || !atelierId || gdprExporting}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-accent)] text-white text-[12.5px] font-bold rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  <Download size={15} />
-                  {gdprExporting ? "Se exportă…" : "Descarcă export GDPR (.json)"}
-                </button>
-                {!atelierId && (
-                  <p className="text-[11px] text-[var(--app-warning,#b45309)]">
-                    Nu există atelier activ — reîncarcă pagina după login.
-                  </p>
-                )}
-              </div>
-
-              <div className="bg-[var(--app-surface-2)] border border-[var(--app-danger)]/30 rounded-xl p-4 space-y-3">
-                <h4 className="font-bold text-[13px] text-[var(--app-danger)]">Șterge toate dosarele atelierului</h4>
-                <p className="text-[11.5px] text-[var(--app-muted)] leading-relaxed">
-                  Mută dosarele active în arhivă, le elimină din flux și curăță fișierele din Storage.
-                  Membrii, branding-ul și abonamentul rămân. Irreversibil din UI.
-                </p>
-                <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase tracking-wide">
-                  Tastează slug-ul pentru confirmare
-                  {atelierSlug ? `: ${atelierSlug}` : ""}
-                </label>
-                <input
-                  type="text"
-                  value={wipeSlugConfirm}
-                  onChange={(e) => setWipeSlugConfirm(e.target.value)}
-                  disabled={!isAdmin || !atelierId || wipeBusy}
-                  placeholder={atelierSlug || "slug-atelier"}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-[13px] bg-[var(--app-surface-2)]"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  onClick={handleWipeAtelier}
-                  disabled={
-                    !isAdmin ||
-                    !atelierId ||
-                    wipeBusy ||
-                    !atelierSlug ||
-                    wipeSlugConfirm.trim().toLowerCase() !== String(atelierSlug).toLowerCase()
-                  }
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--app-danger)] text-white text-[12.5px] font-bold rounded-lg disabled:opacity-40"
-                >
-                  <Trash2 size={15} />
-                  {wipeBusy ? "Se șterge…" : "Șterge toate dosarele"}
-                </button>
-              </div>
-            </div>
+            <SettingsGdprTab
+              isAdmin={isAdmin}
+              atelierId={atelierId}
+              atelierSlug={atelierSlug}
+              gdprExporting={gdprExporting}
+              handleGdprExport={handleGdprExport}
+              wipeSlugConfirm={wipeSlugConfirm}
+              setWipeSlugConfirm={setWipeSlugConfirm}
+              wipeBusy={wipeBusy}
+              handleWipeAtelier={handleWipeAtelier}
+            />
           )}
-
         </div>
 
         {/* Footer */}

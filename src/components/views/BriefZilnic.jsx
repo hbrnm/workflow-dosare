@@ -23,6 +23,7 @@ import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
 import { glossaryTitle } from "../../constants/glossary";
 import { buildStatusCounts, countUniqueVehicles } from "../../utils/plateSchedule";
+import InsurerActivitiesPanel from "./InsurerActivitiesPanel";
 
 const ALERT_TABS = [
   { key: "toate", label: "Toate" },
@@ -385,25 +386,7 @@ export default function BriefZilnic({
         </div>
       </div>
 
-      {/* 2. BLOCATE (inventar) + ALERTE */}
-      {blockedCount > 0 && onOpenBlocked ? (
-        <button
-          type="button"
-          onClick={onOpenBlocked}
-          className="app-brief-panel rounded-xl px-3 py-2.5 flex items-center justify-between gap-3 shrink-0 text-left border border-[#4A5568]/25 hover:border-[#4A5568]/50 transition-colors"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <ShieldAlert size={16} className="text-[#4A5568] shrink-0" />
-            <div className="min-w-0">
-              <p className="font-semibold app-type-sm text-[var(--app-text-strong)]">Dosare blocate</p>
-              <p className="app-type-xs text-[var(--app-muted)]">Inventar separat — nu apar în alerte</p>
-            </div>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-[#4A5568] text-white shrink-0">
-            {blockedCount}
-          </span>
-        </button>
-      ) : null}
+      {/* 2. ALERTE & ACȚIUNI */}
 
       <div className="app-brief-panel rounded-xl p-3 space-y-2 shrink-0">
         <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2">
@@ -716,6 +699,14 @@ export default function BriefZilnic({
           )}
         </div>
       ) : null}
+
+      {/* 5. ACTIVITĂȚI & RELAȚIE ASIGURĂTORI (În partea de jos a paginii) */}
+      <InsurerActivitiesPanel
+        claims={claims}
+        onOpen={onOpen}
+        onNotify={onNotify}
+        onSelectStatusFilter={onSelectStatusFilter}
+      />
 
     </div>
   );

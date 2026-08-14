@@ -267,11 +267,21 @@ export default function MobileAppLayout({
             <div className="m-float-menu-divider" />
             <div className="m-float-menu-label">Cont</div>
             {userEmail ? (
-              <div className="m-float-menu-meta truncate">{userEmail}</div>
+              <div className="px-2.5 py-2 rounded-lg bg-[var(--app-surface-2)] border border-[var(--app-border)] my-1">
+                <div className="text-[12px] font-bold text-[var(--app-text-strong)] truncate">
+                  {userEmail}
+                </div>
+                {memberships[0]?.nume && (
+                  <div className="text-[11px] font-medium text-[var(--app-muted)] truncate flex items-center gap-1.5 mt-0.5">
+                    <Building2 size={11} className="shrink-0 text-emerald-500" />
+                    <span>{memberships[0].nume}</span>
+                  </div>
+                )}
+              </div>
             ) : null}
             {memberships.length > 1 ? (
               <>
-                <div className="m-float-menu-label">Atelier</div>
+                <div className="m-float-menu-label mt-1">Schimbă Atelier</div>
                 {memberships.map((m) => {
                   const active = m.id === activeAtelierId;
                   return (
@@ -294,10 +304,6 @@ export default function MobileAppLayout({
                   );
                 })}
               </>
-            ) : memberships[0] ? (
-              <div className="m-float-menu-meta truncate">
-                Atelier: {memberships[0].nume}
-              </div>
             ) : null}
             {onOpenSettings ? (
               <button
@@ -338,7 +344,7 @@ export default function MobileAppLayout({
       </div>
       )}
 
-      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 overflow-y-auto scrollbar-thin">
+      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 pb-28 overflow-y-auto scrollbar-thin">
         {loading ? (
           <ListSkeleton rows={5} />
         ) : loadError || isOffline ? (

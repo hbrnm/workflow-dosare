@@ -117,17 +117,33 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       const nextDate = claimToSave.dataProgramare || null;
       const scheduleChanged = String(prevDate || "") !== String(nextDate || "");
 
+      let effectiveAtelierId = claimToSave.atelierId || atelierIdRef.current || null;
+      if (!effectiveAtelierId) {
+        try {
+          const { data: atRows } = await supabase
+            .from("ateliere")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1);
+          if (atRows?.[0]?.id) {
+            effectiveAtelierId = atRows[0].id;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
       const payload = toDb({
         ...claimToSave,
         createdBy: isNewClaim ? myId : claimToSave.createdBy || myId,
         createdByEmail: isNewClaim ? myEmail : claimToSave.createdByEmail || myEmail,
         updatedByEmail: myEmail,
-        atelierId: claimToSave.atelierId || atelierIdRef.current || null,
+        atelierId: effectiveAtelierId,
       });
       const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", payload);
       if (error) {
         showNotice(error.message, "error");
-        return { success: false };
+        return { success: false, error };
       }
       await loadAll();
 

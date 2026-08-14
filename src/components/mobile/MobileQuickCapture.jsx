@@ -98,276 +98,263 @@ export default function MobileQuickCapture({
 
   const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
 
-  // Lista celor mai recente dosare
-  const recentClaims = useMemo(
-    () => [...editableClaims].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || "")).slice(0, 8),
-    [editableClaims]
-  );
-
-  // Rezultate căutare
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return recentClaims;
-    return editableClaims.slice(0, 25);
-  }, [editableClaims, recentClaims, searchQuery]);
-
-  // Dosarul selectat curent (up-to-date cu ultimele poze/documente)
   const selectedClaim = useMemo(() => {
     if (!selectedClaimId) return null;
     return claims.find((c) => c.id === selectedClaimId) || null;
   }, [claims, selectedClaimId]);
 
-  const openLiveCamera = async () => {
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) return;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      setLiveCameraStream(stream);
-      setShowLiveCamera(true);
-    } catch (error) {
-      console.warn("Camera live nu a putut fi pornită:", error);
-    }
-  };
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return editableClaims.slice(0, 20);
+    return editableClaims
+      .filter(
+        (c) =>
+          c.numarInmatriculare?.toLowerCase().includes(q) ||
+          c.numarDosar?.toLowerCase().includes(q) ||
+          c.client?.toLowerCase().includes(q) ||
+          c.marcaModel?.toLowerCase().includes(q)
+      )
+      .slice(0, 20);
+  }, [editableClaims, searchQuery]);
 
-  // URL-uri semnate proaspete pentru thumbnails (cele din DB expiră)
+  // Thumbnails afișate imediat: refresh signed URLs dacă expiră
   const [displayPoze, setDisplayPoze] = useState([]);
   const [displayDocs, setDisplayDocs] = useState([]);
-  const mediaFingerprint = useMemo(() => {
-    if (!selectedClaim) return "";
-    const p = (selectedClaim.poze || []).map((x) => x?.path || x?.id || "").join(",");
-    const d = (selectedClaim.documente || []).map((x) => x?.path || x?.id || "").join(",");
-    return `${selectedClaim.id}|${p}|${d}|${selectedClaim.poze?.length || 0}|${selectedClaim.documente?.length || 0}`;
-  }, [selectedClaim]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!selectedClaim) {
+      setDisplayPoze([]);
+      setDisplayDocs([]);
+      return;
+    }
+    let active = true;
     (async () => {
-      if (!selectedClaim) {
-        setDisplayPoze([]);
-        setDisplayDocs([]);
-        return;
-      }
-      const [p, d] = await Promise.all([
-        refreshStorageUrls(selectedClaim.poze || [], "poze-dosare", supabase),
-        refreshStorageUrls(selectedClaim.documente || [], "documente-dosare", supabase),
-      ]);
-      if (!cancelled) {
-        setDisplayPoze(p);
-        setDisplayDocs(d);
+      const pozeFresh = await refreshStorageUrls(selectedClaim.poze || [], "claim-photos", supabase);
+      const docsFresh = await refreshStorageUrls(selectedClaim.documente || [], "claim-documents", supabase);
+      if (active) {
+        setDisplayPoze(pozeFresh);
+        setDisplayDocs(docsFresh);
       }
     })();
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [mediaFingerprint]);
+  }, [selectedClaim]);
 
-  // Fotografiere cu aparatul foto al telefonului pe categorii (Recepție, Reconstatare, Predare, Generale)
-  const handleMobilePhotoCapture = async (fileInputData, categorie = "generale") => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar din listă.", "error");
-      return;
-    }
-    const files = Array.isArray(fileInputData)
-      ? fileInputData
-      : fileInputData instanceof FileList
-      ? Array.from(fileInputData)
-      : fileInputData
-      ? [fileInputData]
-      : [];
-
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const noiPoze = [];
-      for (const rawFile of files) {
-        let compressed = rawFile;
-        try {
-          compressed = await compressImage(rawFile);
-        } catch (e) {
-          console.warn("Comprimare eșuată în mobil, se transmite fișierul brut:", e);
-        }
-        const uploaded = await uploadStorageItem(supabase, "poze-dosare", selectedClaim.id, compressed, "poze");
-        const itemWithCat = typeof uploaded === "object"
-          ? { ...uploaded, categoria: categorie || "generale" }
-          : { url: uploaded, categoria: categorie || "generale" };
-        noiPoze.push(itemWithCat);
-      }
-
-      if (noiPoze.length > 0) {
-        await onPatch(selectedClaim.id, { appendPoze: noiPoze }, { canEditFn });
-        onNotify(`${noiPoze.length} fotografie(i) salvată(e) pe dosarul ${selectedClaim.numarInmatriculare}`, "success");
-      }
-    } catch (err) {
-      onNotify("Eroare la încărcare poză: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Încărcare document PDF
-  const handleMobileDocUpload = async (fileList) => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    const files = Array.from(fileList || []);
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const noiDocs = [];
-      for (const file of files) {
-        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB.`, "error");
-          continue;
-        }
-        const uploaded = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, file, "documente");
-        noiDocs.push(uploaded);
-      }
-
-      if (noiDocs.length > 0) {
-        await onPatch(selectedClaim.id, { appendDocumente: noiDocs }, { canEditFn });
-        onNotify(`📄 ${noiDocs.length} document(e) atașat(e) pe dosarul ${selectedClaim.numarInmatriculare}!`, "success");
-      }
-    } catch (err) {
-      onNotify("Eroare la încărcare document: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Scanare: deschide editorul tip CamScanner (4 colțuri) pentru fiecare pagină
-  const handleAddScanPages = async (fileList) => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    const files = Array.from(fileList || []).filter((f) => f && f.type && f.type.startsWith("image/"));
-    if (files.length === 0) return;
-
-    setUploading(true);
-    try {
-      const urls = [];
-      for (const file of files) {
-        urls.push(await fileToDataUrl(file));
-      }
-      setActiveScanCrop(urls[0]);
-      setScanCropQueue(urls.slice(1));
-      if (!scanSession) {
-        const defaultName = `Scan_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
-        setScanSession({ fileName: defaultName, pages: [] });
-      }
-    } catch (err) {
-      onNotify("Eroare scanare document: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const defaultScanFileName = () =>
-    `Scan_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
-
-  const appendScannedPage = (croppedDataUrl) => {
-    setScanSession((prev) => {
-      if (prev) {
-        return { ...prev, pages: [...prev.pages, croppedDataUrl] };
-      }
-      return { fileName: defaultScanFileName(), pages: [croppedDataUrl] };
-    });
-  };
-
-  const openLiveDocumentScanner = () => {
-    if (!selectedClaim) {
-      onNotify("Selectează mai întâi un dosar.", "error");
-      return;
-    }
-    setShowLiveScanner(true);
-  };
-
-  const handleLiveScannerComplete = (pages) => {
-    setShowLiveScanner(false);
-    if (!pages || pages.length === 0) return;
-    setScanSession((prev) => {
-      if (prev) {
-        return { ...prev, pages: [...prev.pages, ...pages] };
-      }
-      return { fileName: defaultScanFileName(), pages: [...pages] };
-    });
-  };
-
-  const advanceScanCropQueue = () => {
-    setScanCropQueue((queue) => {
-      if (queue.length === 0) {
-        setActiveScanCrop(null);
-        return [];
-      }
-      const [next, ...rest] = queue;
-      setActiveScanCrop(next);
-      return rest;
-    });
-  };
-
-  const handleScanCropConfirm = (croppedDataUrl) => {
-    appendScannedPage(croppedDataUrl);
-    advanceScanCropQueue();
-  };
-
-  const handleScanCropClose = () => {
-    // Skip current page, continue with remaining queue
-    advanceScanCropQueue();
-  };
-
-  // Salvare sesiunii de scanare PDF (pagini fit pe A4, fără stretch)
-  const handleSaveScanPDF = async () => {
-    if (!scanSession || !scanSession.pages.length || !selectedClaim) return;
-    setUploading(true);
-
-    try {
-      const pdfBlob = await buildScanPdfBlob(scanSession.pages, { marginMm: 5 });
-      const fileName = `${scanSession.fileName.trim() || "Document_Scanat"}.pdf`;
-      const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
-
-      const uploadedDoc = await uploadStorageItem(supabase, "documente-dosare", selectedClaim.id, pdfFile, "documente");
-      await onPatch(selectedClaim.id, { appendDocumente: [uploadedDoc] }, { canEditFn });
-
-      setScanSession(null);
-      onNotify(`📄 Documentul scanat „${fileName}” a fost atașat pe dosar!`, "success");
-    } catch (err) {
-      onNotify("Eroare la salvare PDF: " + err.message, "error");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Ștergere fotografie din dosar și din Supabase Storage
-  const handleDeletePhoto = async (e, idx) => {
-    e.stopPropagation();
+  // Deschide camera live direct cu WebRTC getUserMedia (stil iPhone Camera UI)
+  const openLiveCamera = async () => {
     if (!selectedClaim) return;
-    if (!window.confirm("Confirmi ștergerea acestei fotografii din dosar?")) return;
+    setShowLiveCamera(true);
+  };
+
+  // Callback la captură rapidă din camera live (salvează fără confirmări suplimentare)
+  const handleMobilePhotoCapture = async (files, targetCat) => {
+    if (!selectedClaim || !files?.length) return;
+    const cat = targetCat || cameraCategory || "receptie";
 
     try {
       setUploading(true);
-      const currentPoze = selectedClaim.poze || [];
-      const targetItem = currentPoze[idx];
+      const uploadedPhotos = [];
 
-      // Curățare fișier din stocarea Supabase
-      if (targetItem && targetItem.path) {
-        try {
-          await supabase.storage.from("poze-dosare").remove([targetItem.path]);
-        } catch (stErr) {
-          console.warn("Could not delete from storage bucket:", stErr);
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
+          continue;
+        }
+
+        const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
+          claimId: selectedClaim.id,
+          file: optimizedFile,
+          folder: "poze",
+          bucketName: "poze-dosare",
+          extraFields: {
+            categoria: cat,
+            nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            data: todayISO(),
+          },
+        });
+
+        if (uploaded) {
+          uploadedPhotos.push(uploaded);
         }
       }
 
-      if (targetItem) {
-        await onPatch(selectedClaim.id, { removePoze: [targetItem] }, { canEditFn });
+      if (uploadedPhotos.length > 0) {
+        await onPatch(selectedClaim.id, { appendPoze: uploadedPhotos }, { canEditFn });
+        onNotify(`S-au salvat ${uploadedPhotos.length} foto la [${cat.toUpperCase()}]`, "success");
       }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la încărcarea fotografiilor: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Deschide scannerul de documente live (camera cu detecție chenar)
+  const openLiveDocumentScanner = () => {
+    if (!selectedClaim) return;
+    setShowLiveScanner(true);
+  };
+
+  // Callback după scanarea automată cu camera
+  const handleLiveScannerComplete = (capturedDataUrl) => {
+    setShowLiveScanner(false);
+    if (!capturedDataUrl) return;
+
+    // Deschide sesiunea de asamblare PDF
+    const defaultName = `Document_${selectedClaim.numarInmatriculare || "Dosar"}_${todayISO()}`;
+    setScanSession({
+      pages: [capturedDataUrl],
+      fileName: defaultName,
+    });
+  };
+
+  // Deschide încărcătorul din galerie pentru decupare manuală pe 4 colțuri
+  const handleAddFromGallery = (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+    
+    // Convertim toate fișierele în DataURLs pentru coada de decupare
+    Promise.all(fileList.map((f) => fileToDataUrl(f))).then((dataUrls) => {
+      const valid = dataUrls.filter(Boolean);
+      if (valid.length > 0) {
+        setScanCropQueue((prev) => [...prev, ...valid]);
+      }
+    });
+  };
+
+  // Procesează coada de decupare câte o pagină
+  useEffect(() => {
+    if (!activeScanCrop && scanCropQueue.length > 0) {
+      setActiveScanCrop(scanCropQueue[0]);
+      setScanCropQueue((prev) => prev.slice(1));
+    }
+  }, [activeScanCrop, scanCropQueue]);
+
+  const handleScanCropConfirm = (croppedDataUrl) => {
+    setActiveScanCrop(null);
+    if (!croppedDataUrl) return;
+
+    setScanSession((prev) => {
+      if (!prev) {
+        const defaultName = `Document_${selectedClaim?.numarInmatriculare || "Dosar"}_${todayISO()}`;
+        return { pages: [croppedDataUrl], fileName: defaultName };
+      }
+      return { ...prev, pages: [...prev.pages, croppedDataUrl] };
+    });
+  };
+
+  const handleScanCropClose = () => {
+    setActiveScanCrop(null);
+  };
+
+  // Adaugă pagini suplimentare la sesiunea de scanare curentă
+  const handleAddScanPages = (files) => {
+    if (!files || files.length === 0) return;
+    handleAddFromGallery(files);
+  };
+
+  // Salvează paginile scanate ca un singur document PDF compact în dosar
+  const handleSaveScanPDF = async () => {
+    if (!selectedClaim || !scanSession || scanSession.pages.length === 0) return;
+
+    try {
+      setUploading(true);
+      const pdfBlob = await buildScanPdfBlob(scanSession.pages);
+      const fileName = `${scanSession.fileName.replace(/\.pdf$/i, "")}.pdf`;
+      const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+      const uploaded = await uploadStorageItem({
+        supabaseClient: supabase,
+        claimId: selectedClaim.id,
+        file: pdfFile,
+        folder: "documente",
+        bucketName: "documente-dosare",
+        extraFields: {
+          nume: fileName,
+          data: todayISO(),
+        },
+      });
+
+      if (uploaded) {
+        await onPatch(selectedClaim.id, { appendDocumente: [uploaded] }, { canEditFn });
+        onNotify(`Documentul "${fileName}" a fost salvat în dosar.`, "success");
+        setScanSession(null);
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la generarea documentului PDF: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Încărcare rapidă documente PDF existente din fișiere
+  const handleMobileDocUpload = async (files) => {
+    if (!selectedClaim || !files?.length) return;
+
+    try {
+      setUploading(true);
+      const uploadedDocs = [];
+
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          onNotify(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
+          continue;
+        }
+
+        const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
+          claimId: selectedClaim.id,
+          file,
+          folder: "documente",
+          bucketName: "documente-dosare",
+          extraFields: {
+            nume: file.name,
+            data: todayISO(),
+          },
+        });
+
+        if (uploaded) {
+          uploadedDocs.push(uploaded);
+        }
+      }
+
+      if (uploadedDocs.length > 0) {
+        await onPatch(selectedClaim.id, { appendDocumente: uploadedDocs }, { canEditFn });
+        onNotify(`S-au adăugat ${uploadedDocs.length} documente.`, "success");
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify("Eroare la încărcarea documentelor: " + err.message, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Ștergere directă fotografie din dosar și storage
+  const handleDeletePhoto = async (e, photoIndex) => {
+    e.stopPropagation();
+    if (!selectedClaim) return;
+
+    const targetPhoto = displayPoze[photoIndex];
+    if (!targetPhoto) return;
+
+    if (!window.confirm("Sigur dorești să ștergi această fotografie din dosar?")) {
+      return;
+    }
+
+    try {
+      setUploading(true);
+      if (targetPhoto.path) {
+        await supabase.storage.from("claim-photos").remove([targetPhoto.path]);
+      }
+
+      // Actualizează dosarul prin removePoze patch
+      await onPatch(selectedClaim.id, { removePoze: [targetPhoto] }, { canEditFn });
       onNotify("Fotografia a fost ștearsă din dosar și din stocare.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea fotografiei: " + err.message, "error");
@@ -376,27 +363,27 @@ export default function MobileQuickCapture({
     }
   };
 
-  // Ștergere document din dosar și din Supabase Storage
-  const handleDeleteDocument = async (e, idx) => {
-    e.preventDefault();
+  // Ștergere directă document PDF din dosar și storage
+  const handleDeleteDocument = async (e, docIndex) => {
     e.stopPropagation();
     if (!selectedClaim) return;
-    if (!window.confirm("Confirmi ștergerea acestui document din dosar?")) return;
+
+    const targetDoc = displayDocs[docIndex];
+    if (!targetDoc) return;
+
+    if (!window.confirm(`Sigur dorești să ștergi documentul "${targetDoc.name || targetDoc.nume || "PDF"}" din dosar?`)) {
+      return;
+    }
 
     try {
       setUploading(true);
-      const currentDocs = selectedClaim.documente || [];
-      const targetItem = currentDocs[idx];
-
-      // Curățare fișier din stocarea Supabase
-      if (targetItem && targetItem.path) {
-        try {
-          await supabase.storage.from("documente-dosare").remove([targetItem.path]);
-        } catch (stErr) {
-          console.warn("Could not delete from storage bucket:", stErr);
-        }
+      if (targetDoc.path) {
+        await supabase.storage.from("claim-documents").remove([targetDoc.path]);
       }
 
+      const targetItem = (selectedClaim.documente || []).find(
+        (d) => (d.path && d.path === targetDoc.path) || (d.id && d.id === targetDoc.id) || (d.url && d.url === targetDoc.url)
+      );
       if (targetItem) {
         await onPatch(selectedClaim.id, { removeDocumente: [targetItem] }, { canEditFn });
       }
@@ -409,61 +396,87 @@ export default function MobileQuickCapture({
   };
 
   return (
-    <div className="m-ui space-y-3 flex flex-col flex-1 min-h-0 pb-4">
+    <div className="m-ui space-y-3.5 flex flex-col flex-1 min-h-0 pb-12">
       
-      {/* 1. SELECTARE DOSAR */}
-      <div className="m-ui-panel m-ui-panel-pad space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="m-ui-title">Dosar pentru foto</h2>
-          {onNew && (
+      {/* 1. HEADER CU SPAȚIERE SIGURĂ PENTRU BUTONUL MENIU FLOATING */}
+      <div className="flex items-center justify-between gap-3 pl-12 pr-1 pt-1 min-h-[44px]">
+        <div className="min-w-0">
+          <h1 className="text-[17px] font-black text-[var(--app-text-strong)] tracking-tight truncate" style={{ fontFamily: "var(--app-font-display)" }}>
+            Captură Foto &amp; Doc
+          </h1>
+          <p className="text-[11px] text-[var(--app-muted)] font-medium truncate">
+            Selectează dosarul pentru fotografiere
+          </p>
+        </div>
+        {onNew && (
+          <button
+            type="button"
+            onClick={() => { softHaptic(8); onNew(); }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[var(--app-accent)] text-[var(--app-accent-text)] rounded-xl text-[12px] font-extrabold shadow-sm active:scale-95 transition-transform shrink-0"
+            aria-label="Dosar nou"
+            title="Dosar nou"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Nou</span>
+          </button>
+        )}
+      </div>
+
+      {/* 2. CARD DOSAR ACTIV SELECTAT */}
+      {selectedClaim ? (
+        <div className="bg-gradient-to-r from-[var(--app-surface-2)] to-[var(--app-surface)] border-2 border-[var(--app-accent)]/50 rounded-2xl p-3.5 shadow-sm flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] flex items-center justify-center font-black text-[14px] shrink-0 shadow-xs">
+              <Car size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-black text-[15px] text-[var(--app-text-strong)] tracking-wide">
+                  {selectedClaim.numarInmatriculare || "FĂRĂ NR."}
+                </span>
+                <span className="text-[10.5px] font-mono text-[var(--app-muted)] bg-[var(--app-surface-2)] px-2 py-0.5 rounded-md border border-[var(--app-border)] font-bold">
+                  {selectedClaim.numarDosar || "Fără dosar"}
+                </span>
+              </div>
+              <div className="text-[11.5px] text-[var(--app-muted)] truncate font-semibold mt-0.5">
+                {selectedClaim.client || selectedClaim.marcaModel || "Dosar selectat activ"}
+              </div>
+            </div>
+          </div>
+          {onOpen && (
             <button
               type="button"
-              onClick={() => { softHaptic(8); onNew(); }}
-              className="m-fab-plus m-press"
-              aria-label="Dosar nou"
-              title="Dosar nou"
+              onClick={() => onOpen(selectedClaim)}
+              className="px-3.5 py-2 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-text-strong)] rounded-xl text-[12px] font-bold shrink-0 flex items-center gap-1.5 shadow-2xs active:scale-95 transition-all"
             >
-              <Plus size={18} strokeWidth={2.5} />
+              <span>Deschide</span>
+              <ArrowRight size={13} />
             </button>
           )}
         </div>
+      ) : (
+        <div className="p-3.5 bg-[var(--app-surface-2)]/60 border border-dashed border-[var(--app-border)] rounded-2xl text-center">
+          <p className="text-[12px] text-[var(--app-muted)] font-semibold">
+            Alege un dosar din lista de mai jos pentru a începe captura
+          </p>
+        </div>
+      )}
 
-        {selectedClaim && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="m-ui-chip is-accent min-w-0">
-              <Check size={11} className="shrink-0" />
-              <span className="truncate">Selectat: {selectedClaim.numarInmatriculare || selectedClaim.numarDosar}</span>
-            </span>
-            {onOpen && (
-              <button
-                type="button"
-                onClick={() => onOpen(selectedClaim)}
-                className="m-brief-ghost-btn shrink-0"
-              >
-                Deschide
-              </button>
-            )}
-          </div>
-        )}
+      {/* 3. LISTĂ SELECTARE DOSAR */}
+      <div className="m-ui-panel m-ui-panel-pad space-y-2">
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)] flex items-center justify-between pb-1 border-b border-[var(--app-border)]">
+          <span>Dosare recente</span>
+          <span className="text-[10px] font-mono font-bold text-[var(--app-muted)]">
+            {searchResults.length} disponibile
+          </span>
+        </div>
 
-        {/* Listă cu afișare: Stânga (Număr Dosar) | Dreapta (Număr Înmatriculare) */}
-        <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
           {searchResults.length === 0 ? (
             <div className="text-center py-4 px-2 space-y-2">
               <p className="text-[12px] m-muted font-semibold">
                 {searchQuery.trim() ? "Niciun dosar pentru această căutare." : "Nu ai încă dosare editabile."}
               </p>
-              {onNew && (
-                <button
-                  type="button"
-                  onClick={() => { softHaptic(8); onNew(); }}
-                  className="m-fab-plus m-press mx-auto"
-                  aria-label="Dosar nou"
-                  title="Dosar nou"
-                >
-                  <Plus size={18} strokeWidth={2.5} />
-                </button>
-              )}
             </div>
           ) : (
             searchResults.map((c) => {
@@ -473,21 +486,32 @@ export default function MobileQuickCapture({
                   key={c.id}
                   id={`mobile-claim-${c.id}`}
                   onClick={() => selectClaim(c.id)}
-                  className={`m-ui-select-row m-press cursor-pointer ${
-                    isSelected ? "is-selected" : ""
+                  className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-[var(--app-accent)]/10 border-[var(--app-accent)] shadow-xs"
+                      : "bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border-[var(--app-border)]"
                   } ${!isSelected && isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="m-dosar-num shrink-0">
+                    <span className={`font-mono text-[12px] font-black ${isSelected ? "text-[var(--app-accent)]" : "text-[var(--app-text-strong)]"}`}>
                       {c.numarDosar || "Fără nr."}
                     </span>
+                    {c.client && (
+                      <span className="text-[11px] text-[var(--app-muted)] truncate max-w-[120px]">
+                        · {c.client}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-                    <span className="m-plate">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-[12.5px] font-black text-[var(--app-text-strong)] bg-[var(--app-surface-2)] px-2 py-0.5 rounded-md border border-[var(--app-border)]">
                       {c.numarInmatriculare || "FĂRĂ NR."}
                     </span>
-                    {isSelected && <CheckCircle2 size={16} className="text-[var(--app-accent)]" />}
+                    {isSelected ? (
+                      <CheckCircle2 size={17} className="text-[var(--app-accent)] shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-[var(--app-border)] shrink-0 opacity-40" />
+                    )}
                   </div>
                 </div>
               );
@@ -496,58 +520,69 @@ export default function MobileQuickCapture({
         </div>
       </div>
 
-      {/* 3. ACȚIUNE PRINCIPALĂ: categorie + un singur declanșator; Scan/Galerie în „Mai mult” */}
+      {/* 4. ACȚIUNE PRINCIPALĂ: categorie + Studio Shutter */}
       <div className={`m-ui-panel m-ui-panel-pad space-y-3 transition-opacity ${selectedClaim ? "" : "opacity-60 pointer-events-none"}`}>
         
         {uploading && (
-          <div className="flex items-center justify-center gap-2 p-2 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
-            <Loader2 size={16} className="animate-spin" /> Se încarcă...
+          <div className="flex items-center justify-center gap-2 p-2.5 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/40 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
+            <Loader2 size={16} className="animate-spin" /> Se încarcă și se optimizează...
           </div>
         )}
 
         <div className="space-y-3">
-          {/* Selector categorie (nu deschide camera) */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* Selector Categorie Segmented */}
+          <div className="bg-[var(--app-surface-2)] p-1 rounded-xl border border-[var(--app-border)] grid grid-cols-3 gap-1">
             {[
               { key: "receptie", label: "Recepție" },
               { key: "reconstatare", label: "Reconstatare" },
               { key: "predare", label: "Predare" },
-            ].map((cat) => (
-              <button
-                key={cat.key}
-                type="button"
-                onClick={() => setCameraCategory(cat.key)}
-                className={`m-capture-cat py-2 px-1 rounded-full border text-[11.5px] font-extrabold transition-all ${
-                  cameraCategory === cat.key ? "is-active" : ""
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+            ].map((cat) => {
+              const isActive = cameraCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setCameraCategory(cat.key)}
+                  className={`py-2 px-1 rounded-lg text-[11.5px] font-black transition-all text-center ${
+                    isActive
+                      ? "bg-[var(--app-surface)] text-[var(--app-text-strong)] shadow-xs border border-[var(--app-border)]"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Declanșator principal */}
+          {/* Declanșator principal Stil Studio */}
           <button
             type="button"
             onClick={() => { softHaptic(12); openLiveCamera(); }}
-            className="m-ui-primary-cta m-press"
-            title="Deschide camera"
+            className="w-full relative overflow-hidden group p-5 bg-gradient-to-b from-[var(--app-surface)] to-[var(--app-surface-2)] border-2 border-[var(--app-accent)]/40 hover:border-[var(--app-accent)] rounded-2xl shadow-sm flex flex-col items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            title="Deschide camera live"
           >
-            <Camera size={32} className="text-[var(--app-accent)]" />
-            <span className="text-[15px] font-extrabold" style={{ fontFamily: "var(--app-font-display)" }}>
-              Fotografiază
-            </span>
-            <span className="text-[11px] font-semibold opacity-60 capitalize">{cameraCategory}</span>
+            <div className="w-14 h-14 rounded-2xl bg-[var(--app-accent)]/15 border border-[var(--app-accent)]/30 flex items-center justify-center text-[var(--app-accent)] group-hover:scale-110 transition-transform">
+              <Camera size={28} />
+            </div>
+            <div className="text-center">
+              <span className="text-[16px] font-black text-[var(--app-text-strong)] block" style={{ fontFamily: "var(--app-font-display)" }}>
+                Fotografiază
+              </span>
+              <span className="text-[11px] font-semibold text-[var(--app-muted)] capitalize">
+                Secțiune activă: <strong className="text-[var(--app-accent)] font-black">{cameraCategory}</strong>
+              </span>
+            </div>
           </button>
 
           {/* Mai mult: Scan Acte / Galerie */}
-          <div className="border-t border-[var(--app-border)] pt-2">
+          <div className="border-t border-[var(--app-border)] pt-1">
             <button
               type="button"
               onClick={() => setShowMoreActions((v) => !v)}
               className="w-full flex items-center justify-center gap-1.5 py-2 text-[12px] font-extrabold m-muted"
             >
-              Mai mult
+              <span>Mai multe opțiuni (Scan Acte, Galerie)</span>
               <ChevronDown size={14} className={`transition-transform ${showMoreActions ? "rotate-180" : ""}`} />
             </button>
 
@@ -590,7 +625,7 @@ export default function MobileQuickCapture({
         </div>
       </div>
 
-      {/* 4. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT (CU POSIBILITATE DE ȘTERGERE) */}
+      {/* 5. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT */}
       {selectedClaim && (
         <div className="m-ui-panel m-ui-panel-pad space-y-3">
           <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
