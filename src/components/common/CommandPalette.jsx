@@ -216,7 +216,11 @@ export default function CommandPalette({
     } else if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      if (typeof onClose === "function") onClose();
+      if (query.trim().length > 0) {
+        updateQuery("");
+      } else {
+        if (typeof onClose === "function") onClose();
+      }
     }
   };
 

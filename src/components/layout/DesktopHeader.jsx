@@ -102,7 +102,13 @@ export default function DesktopHeader({
             onFocus={() => setIsCommandPaletteOpen(true)}
             onClick={() => setIsCommandPaletteOpen(true)}
             onKeyDown={(e) => {
-              if (e.key === "Escape") return;
+              if (e.key === "Escape") {
+                if (search) {
+                  e.stopPropagation();
+                  setSearch("");
+                }
+                return;
+              }
               if (e.key.length === 1 || e.key === "Backspace" || e.key === "Enter") {
                 e.preventDefault();
                 setIsCommandPaletteOpen(true);
