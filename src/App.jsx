@@ -1020,6 +1020,7 @@ export default function App() {
           programatorFocusDate={programatorFocusDate}
           density={density}
           activeClaimId={drawerClaim?.id}
+          setIsAiModalOpenHeader={setIsAiModalOpenHeader}
         />
       </div>
 

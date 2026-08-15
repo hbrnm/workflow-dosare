@@ -52,6 +52,7 @@ export default function AppViewRouter({
   programatorFocusDate,
   density,
   activeClaimId,
+  setIsAiModalOpenHeader,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
@@ -133,6 +134,8 @@ export default function AppViewRouter({
                 <ClaimTable
                   claims={onlyBlocked ? filteredClaims : stageClaims}
                   onOpen={openExisting}
+                  onOpenNew={openNew}
+                  onImportClick={setIsAiModalOpenHeader ? () => setIsAiModalOpenHeader(true) : undefined}
                   onDelete={handleDelete}
                   canEditFn={canEdit}
                   highlightClaimIds={highlightClaimIds}
