@@ -206,16 +206,22 @@ export default function LiveStreamCameraModal({
           <X size={22} />
         </button>
         <div className="live-cam-cats">
-          {PHOTO_CATEGORIES.map(({ key, label, color }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setCategorie(key)}
-              className={`live-cam-cat ${categorie === key ? `is-active ${color}` : ""}`}
-            >
-              {label}
-            </button>
-          ))}
+          {categorie.startsWith("scan_") ? (
+            <div className="live-cam-cat is-active bg-[var(--app-accent)] text-white">
+              {categorie === "scan_crop" ? "Scan Document" : "Scan Multi-pagină"}
+            </div>
+          ) : (
+            PHOTO_CATEGORIES.map(({ key, label, color }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCategorie(key)}
+                className={`live-cam-cat ${categorie === key ? `is-active ${color}` : ""}`}
+              >
+                {label}
+              </button>
+            ))
+          )}
         </div>
       </div>
 

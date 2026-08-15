@@ -48,17 +48,14 @@ export default function ClaimScannerOverlay({
               </button>
             </div>
           ))}
-          <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
+          <button
+            type="button"
+            onClick={() => onOpenLiveCamera?.("scan_multi")}
+            className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10"
+          >
             <Plus size={20} className="text-[var(--app-accent)]" />
             <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => handleAddPageToScan?.(e.target.files)}
-            />
-          </label>
+          </button>
         </div>
       </div>
 

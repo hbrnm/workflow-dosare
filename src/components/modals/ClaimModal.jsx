@@ -1215,12 +1215,30 @@ export default function ClaimModal({
           uploadingPoze={uploadingPoze}
           handleAddPageToScan={handleAddPageToScan}
           handleSaveMultiPageScan={handleSaveMultiPageScan}
+          onOpenLiveCamera={(cat) => {
+            setCameraCategory(cat);
+            setShowLiveCamera(true);
+          }}
         />
 
         {showLiveCamera && (
           <LiveStreamCameraModal
             initialCategorie={cameraCategory}
-            onSavePhoto={(files, cat) => handleUploadPoze(files, cat)}
+            onSavePhoto={(files, cat) => {
+              if (cat === "scan_crop") {
+                const file = files?.[0];
+                if (file) {
+                  setCropMode("document");
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setCropImageSrc(ev.target.result);
+                  reader.readAsDataURL(file);
+                }
+              } else if (cat === "scan_multi") {
+                handleAddPageToScan?.(files);
+              } else {
+                handleUploadPoze(files, cat);
+              }
+            }}
             onClose={() => setShowLiveCamera(false)}
           />
         )}
