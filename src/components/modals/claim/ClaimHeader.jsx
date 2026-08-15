@@ -159,20 +159,6 @@ export default function ClaimHeader({
               <span className="hidden md:inline"> ZIP</span>
             </button>
 
-            {onOpenSettlement && (
-              <button
-                type="button"
-                onClick={onOpenSettlement}
-                className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
-                  desktopUi
-                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
-                }`}
-                title="Pachet decont complet pentru asigurător (1-Click ZIP)"
-              >
-                <FolderArchive size={12} /><span className="hidden md:inline"> Pachet Decont</span>
-              </button>
-            )}
 
             {/* Print / PDF — icon-only printer */}
             <div ref={pdfMenuRef} className="relative">
@@ -215,6 +201,23 @@ export default function ClaimHeader({
                   >
                     <FileText size={13} /> Fișă Intrare Service
                   </button>
+                  {onOpenSettlement && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
+                        desktopUi
+                          ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+                          : "text-white hover:bg-white/10"
+                      }`}
+                      onClick={() => {
+                        setPdfMenuOpen(false);
+                        onOpenSettlement();
+                      }}
+                    >
+                      <FolderArchive size={13} /> Pachet Decont (ZIP)
+                    </button>
+                  )}
                   {resolveCerereDespagubireKind(form.asigurator) === "omniasig" ? (
                     <button
                       type="button"
