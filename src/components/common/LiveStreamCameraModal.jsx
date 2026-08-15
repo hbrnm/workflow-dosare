@@ -70,8 +70,9 @@ export default function LiveStreamCameraModal({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+          advanced: [{ focusMode: "continuous" }]
         },
         audio: false,
       });
@@ -166,7 +167,7 @@ export default function LiveStreamCameraModal({
         } catch (err) {
           console.error("Camera save failed:", err);
         }
-      }, "image/jpeg", 0.80);
+      }, "image/jpeg", 0.95);
     } catch (e) {
       console.error(e);
     }

@@ -37,6 +37,7 @@ import ClaimFooter from "./claim/ClaimFooter";
 import ClaimScannerOverlay from "./claim/ClaimScannerOverlay";
 import ReceptieAutoModal from "./ReceptieAutoModal";
 import SettlementPackageModal from "./SettlementPackageModal";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadCachedBranding } from "../../constants/branding";
 
 export function applyClaimStatusChange(prev, newStatusKey) {
@@ -175,6 +176,8 @@ export default function ClaimModal({
   const [baseline, setBaseline] = useState(safeClaim);
   const [unsavedPrompt, setUnsavedPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraCategory, setCameraCategory] = useState("generale");
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const noteInputRef = useRef(null);
@@ -1058,6 +1061,10 @@ export default function ClaimModal({
                   setPreviewPozaIndex={setPreviewPozaIndex}
                   setCropMode={setCropMode}
                   setCropImageSrc={setCropImageSrc}
+                  onOpenLiveCamera={(cat) => {
+                    setCameraCategory(cat);
+                    setShowLiveCamera(true);
+                  }}
                   onStartScan={handleStartScanSession}
                 />
               )}
@@ -1209,6 +1216,14 @@ export default function ClaimModal({
           handleAddPageToScan={handleAddPageToScan}
           handleSaveMultiPageScan={handleSaveMultiPageScan}
         />
+
+        {showLiveCamera && (
+          <LiveStreamCameraModal
+            initialCategorie={cameraCategory}
+            onSavePhoto={(files, cat) => handleUploadPoze(files, cat)}
+            onClose={() => setShowLiveCamera(false)}
+          />
+        )}
 
         {/* Modal Recepție Auto & Semnătură Digitală */}
         {isReceptieModalOpen && (

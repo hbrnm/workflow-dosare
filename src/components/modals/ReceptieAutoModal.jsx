@@ -20,6 +20,7 @@ import { generatePvReceptiePdf } from "../../utils/generatePvReceptiePdf";
 import WhatsAppButton from "../common/WhatsAppButton";
 import { uploadClaimPhoto } from "../../utils/claimMedia";
 import { supabase } from "../../supabaseClient";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 
 const OBIECTE_DEFAULT = [
   "Certificat Înmatriculare (Talon original)",
@@ -54,6 +55,7 @@ export default function ReceptieAutoModal({
   const [selectedPanels, setSelectedPanels] = useState([]);
   const [alteObservatii, setAlteObservatii] = useState("");
   const [receptionPhotos, setReceptionPhotos] = useState([]);
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [generatedPdf, setGeneratedPdf] = useState(null);
@@ -329,19 +331,10 @@ export default function ReceptieAutoModal({
                   </h4>
 
                   <div className="flex items-center gap-2">
-                    {/* Buton Deschidere Cameră Mobil */}
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => handleAddPhotos(e.target.files)}
-                    />
+                    {/* Buton Deschidere Cameră Live */}
                     <button
                       type="button"
-                      onClick={() => cameraInputRef.current?.click()}
+                      onClick={() => setShowLiveCamera(true)}
                       className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
                     >
                       <Camera size={12} /> Fă Poză
@@ -467,6 +460,14 @@ export default function ReceptieAutoModal({
           )}
         </div>
       </div>
+
+      {showLiveCamera && (
+        <LiveStreamCameraModal
+          initialCategorie="receptie"
+          onSavePhoto={(files) => handleAddPhotos(files)}
+          onClose={() => setShowLiveCamera(false)}
+        />
+      )}
     </div>
   );
 }

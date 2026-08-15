@@ -25,7 +25,7 @@ async function loadBitmap(file) {
   });
 }
 
-export async function compressImage(file, { maxDim = 1800, quality = 0.80, format = "image/jpeg" } = {}) {
+export async function compressImage(file, { maxDim = 3840, quality = 0.95, format = "image/jpeg" } = {}) {
   if (!file || !file.type || !file.type.startsWith("image/")) return file;
 
   try {
