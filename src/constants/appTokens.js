@@ -35,28 +35,28 @@ const SHARED_TOKENS = {
   "--app-btn-height-lg": "2.5rem",
 };
 
-/** Noapte — dark confortabil (GitHub-inspired). */
+/** Noapte — Warm Charcoal / Graphite cu accent verde-mentă. */
 export const APP_TOKEN_DARK = {
   ...SHARED_TOKENS,
-  "--app-bg": "#09090b",
-  "--app-surface": "#121217",
-  "--app-surface-2": "#18181f",
-  "--app-surface-muted": "#21262d",
-  "--app-text": "#c9d1d9",
-  "--app-text-strong": "#e6edf3",
-  "--app-muted": "#8b949e",
-  "--app-muted-2": "#6e7681",
-  "--app-border": "rgba(39, 39, 42, 0.6)",
-  "--app-border-soft": "rgba(39, 39, 42, 0.3)",
-  "--app-chrome": "#09090b",
-  "--app-chrome-text": "#c9d1d9",
-  "--app-chrome-muted": "#8b949e",
-  "--app-accent": "#e6edf3",
-  "--app-accent-hover": "#c9d1d9",
-  "--app-accent-text": "#09090b",
-  "--app-danger-muted": "#3d1f1f",
-  "--app-success-muted": "#1a2e1f",
-  "--app-warning-muted": "#3d2e00",
+  "--app-bg": "#131415",           // warm charcoal canvas
+  "--app-surface": "#101112",      // sidebar/header level
+  "--app-surface-2": "#202225",    // cards / interactive level
+  "--app-surface-muted": "#2a2d31",
+  "--app-text": "#b8bec6",         // warm light gray
+  "--app-text-strong": "#e8eaed",  // near-white warm
+  "--app-muted": "#737880",        // warm gray muted
+  "--app-muted-2": "#50545a",
+  "--app-border": "rgba(255,255,255,0.06)",
+  "--app-border-soft": "rgba(255,255,255,0.03)",
+  "--app-chrome": "#101112",       // dark sidebar/header
+  "--app-chrome-text": "#b8bec6",
+  "--app-chrome-muted": "#737880",
+  "--app-accent": "#9ae6b4",       // mint / sage green
+  "--app-accent-hover": "#86d9a3", // slightly deeper mint
+  "--app-accent-text": "#0d1a13",  // dark text over mint
+  "--app-danger-muted": "#3d1515",
+  "--app-success-muted": "#0f2d1f",
+  "--app-warning-muted": "#2e2200",
 };
 
 /** Zi — alb curat, ca aplicațiile native light. */

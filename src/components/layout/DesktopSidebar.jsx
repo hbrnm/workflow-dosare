@@ -61,7 +61,7 @@ export default function DesktopSidebar({
               onClick={() => setView(id)}
               className={`w-full flex items-center justify-center p-2.5 transition-all rounded-xl ${
                 active 
-                  ? "bg-amber-400 text-zinc-950 font-bold shadow-sm" 
+                  ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm" 
                   : "app-nav-btn hover:bg-[var(--app-surface-2)]"
               }`}
               title={label}
@@ -86,7 +86,7 @@ export default function DesktopSidebar({
           onClick={openSettings}
           className={`w-full flex items-center justify-center p-2 rounded-xl transition-all ${
             setariOpen 
-              ? "bg-amber-400 text-zinc-950 font-bold shadow-sm" 
+              ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm" 
               : "app-nav-btn hover:bg-[var(--app-surface-2)]"
           }`}
           title="Setări"

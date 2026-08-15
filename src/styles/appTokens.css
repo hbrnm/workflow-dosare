@@ -13,9 +13,9 @@
 }
 
 .app-sidebar {
-  background: var(--app-chrome, #0a0a0a);
-  color: var(--app-chrome-text, #ededed);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--app-chrome, #101112);
+  color: var(--app-chrome-text, #b8bec6);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .app-surface {
