@@ -9,6 +9,7 @@ import {
   CalendarClock,
   BarChart3,
   Camera,
+  PackageCheck,
 } from "lucide-react";
 import Login from "./components/auth/Login";
 import { useAuth } from "./hooks/useAuth";
@@ -33,6 +34,7 @@ import AlertsPanel from "./features/alerts/AlertsPanel";
 import SchedulePanel from "./features/schedule/SchedulePanel";
 import KpiDashboard from "./features/dashboard/KpiDashboard";
 import QuickCapture from "./components/views/QuickCapture";
+import PieseComandatePanel from "./components/views/PieseComandatePanel";
 import TrackPage, { getTrackingTokenFromLocation } from "./features/tracking/TrackPage";
 import "./styles/v2.css";
 
@@ -144,6 +146,7 @@ function AppAuthenticated() {
     { key: "list", label: "Dosare", icon: ClipboardList },
     { key: "capture", label: "Capture", icon: Camera },
     { key: "flux", label: "Flux", icon: LayoutGrid },
+    { key: "piese", label: "Piese", icon: PackageCheck },
     { key: "alerts", label: "Alerte", icon: Bell, badge: alerts.totalAlertsCount },
     { key: "schedule", label: "Programări", icon: CalendarClock },
     { key: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -272,6 +275,15 @@ function AppAuthenticated() {
               role={role}
               onOpen={openClaim}
               onMoveStatus={(claim, newStatus) => moveToStatus(claim, newStatus, canEditFn)}
+            />
+          ) : screen === "piese" ? (
+            <PieseComandatePanel
+              claims={claims}
+              onOpenClaim={openClaim}
+              onPatchClaim={(id, patch) => patchClaim(id, patch, { canEditFn, skipOwnershipCheck: true })}
+              canEditFn={canEditFn}
+              pragRidicare={pragRidicare}
+              onNotify={showNotice}
             />
           ) : screen === "alerts" ? (
             <AlertsPanel buckets={alerts} onOpen={openClaim} />
