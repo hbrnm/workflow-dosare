@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Phone, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Phone, Trash2, ChevronUp, ChevronDown, AlertCircle, X } from "lucide-react";
 import { STATUSES, getStatusDefinition, getClaimAlertDays, getStatusShortLabel, isPieseComandateStatus } from "../../constants/config";
 import { fmtDate, telLink, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
@@ -224,6 +224,22 @@ export default function ClaimTable({
         exportCount={sorted.length}
         onExport={handleDownloadList}
       />
+
+      {focusedStage && (
+        <div className="flex items-center justify-between bg-[var(--app-accent)]/10 border border-[var(--app-accent)]/20 rounded-lg px-4 py-2.5 text-[12px] text-[var(--app-text)] shadow-sm">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertCircle size={15} className="text-[var(--app-accent)]" />
+            <span>Vezi doar dosarele din stadiul <strong>{getStatusDefinition(focusedStage)?.label}</strong>.</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setFocusedStage(null)}
+            className="flex items-center gap-1 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-3)] px-2 py-1.5 rounded transition-colors font-bold"
+          >
+            <X size={14} /> Șterge filtrul
+          </button>
+        </div>
+      )}
 
       <div className="app-table-wrap overflow-x-auto rounded-lg flex-1 min-h-0">
         <table className="app-table w-full min-w-[960px] text-[12.5px]">

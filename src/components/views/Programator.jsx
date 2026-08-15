@@ -566,38 +566,60 @@ export default function Programator({
                   </div>
                   {/* Compact chips — comasate pe nr. înmatriculare */}
                   <div className="mt-1 flex flex-wrap gap-0.5 content-start min-h-[1.25rem]">
-                    {groupClaimsByPlate(dayClaims).map((group) => {
-                      const lead = group[0];
-                      const time = lead.dataProgramare?.slice(11, 16) || "";
-                      const plate = (lead.numarInmatriculare || "—").slice(-7);
-                      const stacked = group.length > 1;
-                      const title = stacked
-                        ? `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"} ×${group.length}: ${group.map((c) => `#${c.numarDosar || "?"}`).join(", ")}`
-                        : `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"}${lead.numarDosar ? ` (#${lead.numarDosar})` : ""} · ${lead.client || ""}`;
+                    {(() => {
+                      const groups = groupClaimsByPlate(dayClaims);
+                      const visible = groups.slice(0, 2);
+                      const hidden = groups.slice(2);
+
+                      const renderChip = (group, isHidden = false) => {
+                        const lead = group[0];
+                        const time = lead.dataProgramare?.slice(11, 16) || "";
+                        const plate = (lead.numarInmatriculare || "—").slice(-7);
+                        const stacked = group.length > 1;
+                        const title = stacked
+                          ? `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"} ×${group.length}: ${group.map((c) => `#${c.numarDosar || "?"}`).join(", ")}`
+                          : `${time ? `${time} · ` : ""}${lead.numarInmatriculare || "—"}${lead.numarDosar ? ` (#${lead.numarDosar})` : ""} · ${lead.client || ""}`;
+                        return (
+                          <button
+                            key={stacked ? `g-${lead.numarInmatriculare}-${lead.id}` : lead.id}
+                            type="button"
+                            draggable={true}
+                            onDragStart={(e) => {
+                              e.stopPropagation();
+                              e.dataTransfer.setData("text/plain", lead.id);
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDateStr(cell.iso);
+                              setActiveSlotForScheduling(null);
+                              setSelectingFromArrived(false);
+                              if (onOpen) onOpen(lead);
+                            }}
+                            className={`app-prog-chip max-w-full truncate text-[10px] font-mono font-bold px-1.5 py-1 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)} ${isHidden ? 'w-full text-left' : ''}`}
+                            title={title}
+                          >
+                            {stacked ? `${plate}×${group.length}` : plate}
+                          </button>
+                        );
+                      };
+
                       return (
-                        <button
-                          key={stacked ? `g-${lead.numarInmatriculare}-${lead.id}` : lead.id}
-                          type="button"
-                          draggable={true}
-                          onDragStart={(e) => {
-                            e.stopPropagation();
-                            e.dataTransfer.setData("text/plain", lead.id);
-                            e.dataTransfer.effectAllowed = "move";
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveDateStr(cell.iso);
-                            setActiveSlotForScheduling(null);
-                            setSelectingFromArrived(false);
-                            if (onOpen) onOpen(lead);
-                          }}
-                          className={`app-prog-chip max-w-full truncate text-[10px] font-mono font-bold px-1.5 py-1 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)}`}
-                          title={title}
-                        >
-                          {stacked ? `${plate}×${group.length}` : plate}
-                        </button>
+                        <>
+                          {visible.map(g => renderChip(g, false))}
+                          {hidden.length > 0 && (
+                            <div className="relative group/more z-10 hover:z-50">
+                              <span className="app-prog-chip flex items-center justify-center max-w-full text-[10px] font-mono font-bold px-1.5 py-1 rounded leading-tight bg-[var(--app-surface-3)] text-[var(--app-muted)] border border-[var(--app-border)] cursor-default select-none hover:bg-[var(--app-border-soft)] transition-colors h-full">
+                                +{hidden.length}
+                              </span>
+                              <div className="absolute hidden group-hover/more:flex flex-col gap-1 top-full mt-1 left-1/2 -translate-x-1/2 p-2 bg-[var(--app-surface-2)] border border-[var(--app-border)] shadow-2xl rounded-md min-w-[120px] max-h-[150px] overflow-y-auto custom-scrollbar z-[100]">
+                                {hidden.map(g => renderChip(g, true))}
+                              </div>
+                            </div>
+                          )}
+                        </>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
               );
