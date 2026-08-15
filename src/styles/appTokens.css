@@ -73,11 +73,11 @@
 }
 
 .app-muted {
-  color: var(--app-muted, #8a8a8a);
+  color: var(--app-muted, #a1a1aa); /* Updated to zinc-400 for contrast */
 }
 
 .app-breadcrumb {
-  color: var(--app-muted, #8a8a8a);
+  color: var(--app-muted, #a1a1aa);
   font-size: 13px;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .app-nav-btn {
-  color: var(--app-chrome-muted, #737373);
+  color: var(--app-chrome-muted, #a1a1aa);
   border-radius: var(--app-radius, 8px);
   transition: background 0.15s, color 0.15s;
 }
@@ -118,15 +118,17 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
-/* Large modals (Dosar / Alerte / Setări): fixed shell; only body scrolls */
+/* Large modals (Dosar / Alerte / Setări): dynamic height, up to 85vh */
 .app-shell .app-modal-panel.app-fixed-shell-modal {
-  height: min(92vh, 100%);
-  max-height: 92vh;
+  height: auto;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-shell .app-modal-panel.app-fixed-shell-modal:has(.app-claim-modal-body) {
-  height: min(94vh, 100%);
-  max-height: 94vh;
+  height: auto;
+  max-height: 90vh; /* slightly larger for Dosar */
 }
 
 .app-shell .app-fixed-shell-body,

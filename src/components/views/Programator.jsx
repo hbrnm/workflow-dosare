@@ -127,6 +127,8 @@ export default function Programator({
   const [activeDateStr, setActiveDateStr] = useState(() => initialDate || todayISO());
   const [weekOffset, setWeekOffset] = useState(0);
   const [capInput, setCapInput] = useState(capacitate || 5);
+  const [weekView, setWeekView] = useState(true);
+  const [hideEmpty, setHideEmpty] = useState(true);
   
   useEffect(() => {
     if (!initialDate) return;
@@ -189,39 +191,59 @@ export default function Programator({
     setSelectingFromArrived(false);
   };
 
-  // Generate calendar cells (rolling 35 days starting from today + weekOffset)
+  // Generate calendar cells (rolling 35 days starting from today + weekOffset or 5 days for Mon-Fri)
   const calendarCells = useMemo(() => {
     const cells = [];
     const baseDate = new Date();
     baseDate.setHours(12, 0, 0, 0);
-    baseDate.setDate(baseDate.getDate() + weekOffset * 7);
 
-    for (let i = 0; i < 35; i++) {
-      const d = new Date(baseDate);
-      d.setDate(baseDate.getDate() + i);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const iso = `${year}-${month}-${day}`;
-      cells.push({
-        dayNum: d.getDate(),
-        monthNum: d.getMonth() + 1,
-        iso,
-        weekday: d.getDay(),
-      });
+    if (weekView) {
+      // Find Monday
+      const day = baseDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      const diff = day === 0 ? -6 : 1 - day;
+      baseDate.setDate(baseDate.getDate() + diff + weekOffset * 7);
+
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + i);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const dayStr = String(d.getDate()).padStart(2, "0");
+        cells.push({
+          dayNum: d.getDate(),
+          monthNum: d.getMonth() + 1,
+          iso: `${year}-${month}-${dayStr}`,
+          weekday: d.getDay(),
+        });
+      }
+    } else {
+      baseDate.setDate(baseDate.getDate() + weekOffset * 7);
+      for (let i = 0; i < 35; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + i);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const dayStr = String(d.getDate()).padStart(2, "0");
+        cells.push({
+          dayNum: d.getDate(),
+          monthNum: d.getMonth() + 1,
+          iso: `${year}-${month}-${dayStr}`,
+          weekday: d.getDay(),
+        });
+      }
     }
     return cells;
-  }, [weekOffset]);
+  }, [weekOffset, weekView]);
 
   // Weekday headers follow the rolling window (not stuck on "today" when navigating)
   const headers = useMemo(() => {
     if (calendarCells.length === 0) return WEEKDAYS_RO;
-    return calendarCells.slice(0, 7).map((cell, i) => {
+    return calendarCells.slice(0, weekView ? 5 : 7).map((cell, i) => {
       const name = WEEKDAYS_RO[cell.weekday];
       const isTodayCol = cell.iso === todayISO();
       return isTodayCol ? `${name} (Azi)` : name;
     });
-  }, [calendarCells]);
+  }, [calendarCells, weekView]);
 
   // Claims on the active date
   const activeDayClaims = useMemo(() => {
@@ -382,24 +404,38 @@ export default function Programator({
           </div>
         </div>
 
-        {/* Capacity Input */}
-        <div className="app-prog-capacity flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg">
-          <Clock size={13} className="text-[var(--app-muted)]" />
-          <span className="font-medium">Capacitate zilnică:</span>
-          <input
-            type="number"
-            min={1} max={30}
-            className="w-11 rounded px-1.5 py-0.5 text-center font-bold text-[11.5px]"
-            value={capInput}
-            onChange={(e) => setCapInput(Number(e.target.value) || 1)}
-          />
-          <span>mașini/zi</span>
-          <button
-            onClick={() => onSetCapacitate && onSetCapacitate(capInput)}
-            className="app-prog-nav-today px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors"
-          >
-            Salvează
-          </button>
+        {/* Capacity Input and Toggles */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="app-prog-capacity flex items-center gap-3 text-[11.5px] px-3 py-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)]">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={weekView} onChange={(e) => setWeekView(e.target.checked)} className="rounded border-[var(--app-border)]" />
+              <span className="font-medium">Luni-Vineri</span>
+            </label>
+            <div className="w-px h-4 bg-[var(--app-border)]" />
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} className="rounded border-[var(--app-border)]" />
+              <span className="font-medium">Ascunde sloturi goale</span>
+            </label>
+          </div>
+
+          <div className="app-prog-capacity flex items-center gap-2 text-[11.5px] px-3 py-1.5 rounded-lg">
+            <Clock size={13} className="text-[var(--app-muted)]" />
+            <span className="font-medium">Capacitate zilnică:</span>
+            <input
+              type="number"
+              min={1} max={30}
+              className="w-11 rounded px-1.5 py-0.5 text-center font-bold text-[11.5px]"
+              value={capInput}
+              onChange={(e) => setCapInput(Number(e.target.value) || 1)}
+            />
+            <span>mașini/zi</span>
+            <button
+              onClick={() => onSetCapacitate && onSetCapacitate(capInput)}
+              className="app-prog-nav-today px-2.5 py-0.5 rounded text-[11px] font-semibold transition-colors"
+            >
+              Salvează
+            </button>
+          </div>
         </div>
       </div>
 
@@ -453,14 +489,14 @@ export default function Programator({
         {/* Rolling Calendar Grid */}
         <div className="app-prog-panel rounded-xl overflow-hidden flex flex-col h-full">
           {/* Days names */}
-          <div className="app-prog-cal-header grid grid-cols-7 text-center">
+          <div className={`app-prog-cal-header grid ${weekView ? "grid-cols-5" : "grid-cols-7"} text-center`}>
             {headers.map((d, i) => (
               <span key={`${d}-${i}`} className="text-[13.5px] font-bold py-2.5">{d}</span>
             ))}
           </div>
 
           {/* Days cells */}
-          <div className="app-prog-cal-grid grid grid-cols-7 auto-rows-fr gap-px flex-grow flex-1">
+          <div className={`app-prog-cal-grid grid ${weekView ? "grid-cols-5" : "grid-cols-7"} auto-rows-fr gap-px flex-grow flex-1`}>
             {calendarCells.map((cell, idx) => {
               const dayClaims = claims.filter(c => isProgramatorClaim(c) && c.dataProgramare.slice(0, 10) === cell.iso);
               const total = countUniqueVehicles(dayClaims);
@@ -555,7 +591,7 @@ export default function Programator({
                             setSelectingFromArrived(false);
                             if (onOpen) onOpen(lead);
                           }}
-                          className={`app-prog-chip max-w-[62px] truncate text-[8.5px] font-mono font-semibold px-1 py-0.5 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)}`}
+                          className={`app-prog-chip max-w-full truncate text-[10px] font-mono font-bold px-1.5 py-1 rounded leading-tight hover:opacity-80 active:scale-95 transition-all ${getProgramareChipClass(lead.programareStatus)}`}
                           title={title}
                         >
                           {stacked ? `${plate}×${group.length}` : plate}
@@ -611,7 +647,7 @@ export default function Programator({
 
                 if (hasItems || isScheduling) {
                   if (currentRange) {
-                    groupedSlots.push(currentRange);
+                    if (!hideEmpty) groupedSlots.push(currentRange);
                     currentRange = null;
                   }
                   groupedSlots.push({ type: "slot", slot, items, hasItems, isScheduling });
@@ -630,7 +666,7 @@ export default function Programator({
                 }
               });
 
-              if (currentRange) {
+              if (currentRange && !hideEmpty) {
                 groupedSlots.push(currentRange);
               }
 

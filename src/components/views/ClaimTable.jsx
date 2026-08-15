@@ -131,7 +131,7 @@ export default function ClaimTable({
         key={c.id}
         id={`claim-row-${c.id}`}
         onClick={() => onOpen(c)}
-        className={`app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+        className={`group app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
       >
         <td className={`${cell} font-mono font-semibold whitespace-nowrap`} onClick={(e) => e.stopPropagation()}>
           {inGroup && <span className="text-[var(--app-muted)] mr-1">↳</span>}
@@ -179,11 +179,16 @@ export default function ClaimTable({
                 În etapă din {stageSince.dateTimeLabel}
               </span>
             ) : null}
+            {c.blocat ? (
+              <span className="text-[10px] text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+                Motiv: {blockedReason}
+              </span>
+            ) : null}
           </div>
         </td>
         <td className={`${cellMuted} whitespace-nowrap`}>{fmtDate(c.dataDeschiderii)}</td>
         <td className={`${cell} whitespace-nowrap text-right`} onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             {phone && (
               <>
                 <WhatsAppButton phone={phone} claim={c} size={12} />

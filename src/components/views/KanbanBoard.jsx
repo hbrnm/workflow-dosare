@@ -41,7 +41,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative bg-[var(--app-surface)] rounded-lg border p-2 cursor-pointer transition-all duration-150 hover:shadow-md ${
+        className={`group relative bg-[var(--app-surface)] rounded-lg border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md ${
           claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
         }`}
         style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -65,7 +65,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
               {claim.client || "Client neintrodus"}
             </span>
             {claim.telefonClient && (
-              <div className="flex items-center gap-0.5 shrink-0">
+              <div className="flex items-center gap-0.5 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" aria-label="Sună" className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                   <Phone size={11} />
                 </a>
@@ -443,7 +443,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4 pt-1 align-top scrollbar-thin">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 pb-4 pt-1 align-top">
         {STATUSES.map((status) => {
           const list = claims
             .filter((c) => !c.blocat && c.status === status.key)
@@ -457,7 +457,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
           return (
             <div
               key={status.key}
-              className="flex-none w-72 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
+              className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
