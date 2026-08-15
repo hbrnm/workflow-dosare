@@ -124,24 +124,14 @@
   color: var(--app-text);
 }
 
-/* Bottom chrome: floating search pill + floating Dark Bento bottom nav */
+/* Bottom chrome: fixed, flush-to-edge Dark Bento bottom nav (always visible) */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 8.6rem;
+  --mobile-bottom-chrome: 5.25rem;
   background: var(--app-bg);
-}
-
-/* Search pill stacks above the floating bottom nav bar instead of the screen edge */
-.mobile-shell.app-shell .mobile-bottom-chrome--stacked {
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) * 0.6);
 }
 
 .mobile-shell.app-shell .mobile-main {
   padding-bottom: calc(var(--mobile-bottom-chrome) + env(safe-area-inset-bottom, 0px) * 0.35 + 0.35rem);
-}
-
-/* When fullscreen overlays own the screen, drop reserved search space */
-.mobile-shell.app-shell.is-chrome-hidden .mobile-main {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobile-shell.app-shell .mobile-main--no-header {
@@ -155,6 +145,60 @@
   left: 0.75rem;
   z-index: 60;
   max-width: min(18.5rem, calc(100vw - 1.5rem));
+}
+
+/* Floating search icon (top-right) — collapsed magnifier + expanded input */
+.mobile-shell.app-shell .m-float-search-wrap {
+  position: fixed;
+  top: calc(0.65rem + env(safe-area-inset-top, 0px));
+  right: 0.75rem;
+  z-index: 60;
+}
+
+.mobile-shell.app-shell .m-float-search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.65rem;
+  height: 2.65rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  color: var(--app-text);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--app-text) 10%, transparent);
+}
+
+.mobile-shell.app-shell .m-float-search-expanded {
+  position: fixed;
+  top: calc(0.65rem + env(safe-area-inset-top, 0px));
+  left: 0.75rem;
+  right: 0.75rem;
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2.65rem;
+  padding: 0 0.35rem 0 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--app-text) 12%, transparent);
+}
+
+.mobile-shell.app-shell .m-float-search-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--app-surface-2) 90%, transparent);
+  color: var(--app-muted);
 }
 
 .mobile-shell.app-shell .m-float-brand {

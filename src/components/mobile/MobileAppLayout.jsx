@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban, Search, X,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
-import MobileSearchBar from "./MobileSearchBar";
 import MobileBottomNav from "./MobileBottomNav";
 import EmptyWorkspace from "../common/EmptyWorkspace";
 import ListSkeleton from "../common/ListSkeleton";
@@ -74,6 +73,8 @@ export default function MobileAppLayout({
   const [focusClaimId, setFocusClaimId] = useState(null);
   const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef(null);
   const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
   const menuRef = useRef(null);
 
@@ -124,6 +125,26 @@ export default function MobileAppLayout({
   const handleSearchChange = (value) => {
     setSearch?.(value);
   };
+
+  const openSearch = () => {
+    softHaptic(8);
+    setMenuOpen(false);
+    setSearchOpen(true);
+  };
+
+  const closeSearch = () => {
+    softHaptic(8);
+    setSearchOpen(false);
+    handleSearchChange("");
+  };
+
+  useEffect(() => {
+    if (searchOpen) {
+      const t = window.setTimeout(() => searchInputRef.current?.focus(), 60);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [searchOpen]);
 
   useEffect(() => {
     if (!highlightClaimIds?.size) return;
@@ -346,6 +367,53 @@ export default function MobileAppLayout({
       </div>
       )}
 
+      {!hideBottomChrome && !searchOpen && (
+        <div className="m-float-search-wrap">
+          <button
+            type="button"
+            className="m-float-search-btn m-press"
+            onClick={openSearch}
+            aria-label="Caută"
+            title="Caută nr. auto, client, dosar…"
+          >
+            <Search size={18} strokeWidth={2.25} />
+          </button>
+        </div>
+      )}
+
+      {!hideBottomChrome && searchOpen && (
+        <div className="m-float-search-expanded">
+          <div className="relative flex-1">
+            <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              inputMode="search"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              enterKeyHint="search"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Caută nr. auto, client, dosar…"
+              className="mobile-search-input app-search w-full pl-10 pr-3 py-2.5 rounded-full text-[15px] font-medium"
+              aria-label="Căutare dosare"
+              onKeyDown={(e) => {
+                if (e.key === "Escape") closeSearch();
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="m-float-search-close m-press"
+            onClick={closeSearch}
+            aria-label="Închide căutarea"
+          >
+            <X size={17} />
+          </button>
+        </div>
+      )}
+
       <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 pb-28 overflow-y-auto scrollbar-thin">
         {loading ? (
           <ListSkeleton rows={5} />
@@ -423,19 +491,12 @@ export default function MobileAppLayout({
         ) : null}
       </main>
 
-      {!hideBottomChrome && (
-        <div className="mobile-bottom-chrome mobile-bottom-chrome--float mobile-bottom-chrome--stacked fixed bottom-0 left-0 right-0 z-40">
-          <MobileSearchBar value={search} onChange={handleSearchChange} />
-        </div>
-      )}
-
       <MobileBottomNav
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenAlerts={onOpenAlerts}
         onNewClaim={onNewClaim}
         totalAlertsCount={totalAlertsCount}
-        hidden={hideBottomChrome}
       />
     </div>
   );
