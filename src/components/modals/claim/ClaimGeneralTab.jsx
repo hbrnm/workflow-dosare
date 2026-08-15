@@ -299,8 +299,8 @@ export default function ClaimGeneralTab({
               />
               {form.telefonClient && (
                 <>
-                  <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
-                  <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
+                  <a href={telLink(form.telefonClient)} title="Sună client" aria-label="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
+                  <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" aria-label="Trimite WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
                 </>
               )}
             </div>

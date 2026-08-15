@@ -395,7 +395,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
                           <Eye size={16} />
                         </div>
-                        <button type="button" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 z-10">
+                        <button type="button" aria-label="Șterge poză" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 z-10">
                           <Trash2 size={11} />
                         </button>
                       </div>
@@ -422,7 +422,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                       <FileText size={14} className="text-[var(--app-text)] shrink-0" />
                       <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[var(--app-text)] font-semibold hover:underline truncate flex-1">{d.nume || d.name || `Document_${idx + 1}`}</a>
                     </div>
-                    <button type="button" onClick={() => removeDoc(d, idx)} className="text-[var(--app-danger)] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
+                    <button type="button" aria-label="Șterge document" onClick={() => removeDoc(d, idx)} className="text-[var(--app-danger)] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
                   </div>
                 ))}
                 {documente.length === 0 && pendingDocs.length === 0 && (
@@ -454,6 +454,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-bold">Pag. {idx + 1}</div>
                     <button
                       type="button"
+                      aria-label="Șterge pagină"
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
                       className="absolute top-1 right-1 bg-[var(--app-danger)] text-white rounded p-1 hover:opacity-80"
                     >

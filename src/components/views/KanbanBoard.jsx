@@ -66,7 +66,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             </span>
             {claim.telefonClient && (
               <div className="flex items-center gap-0.5 shrink-0">
-                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
+                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" aria-label="Sună" className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                   <Phone size={11} />
                 </a>
                 <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
@@ -232,7 +232,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </span>
           {claim.telefonClient && (
             <div className="flex items-center gap-0.5 shrink-0">
-              <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
+              <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" aria-label="Sună" className="p-1 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                 <Phone size={11} />
               </a>
               <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />

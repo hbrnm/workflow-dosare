@@ -9,7 +9,7 @@ Experimentul **2.0** rămâne în cod (`src/App.v2.jsx`) dar nu e pornit implici
 - **Flux** kanban pe faze — carduri compacte, 2 pe rând, status prescurtat
 - **Piese comandate** — date comandă/livrare + bifă „Au sosit piesele?” la hover pe card
 - **Brief alerte**, **Tabel dosare**, **Programator**, **Dashboard**, **Rapoarte**
-- **Desktop** minimalist — sidebar fix doar icoane, tokeni light, modale proprii
+- **Desktop** minimalist — sidebar fix doar icoane, tokeni dark, modale proprii
 - **Mobil** — layout + teme vizuale (Atelier, Sport, Forge, Pulse…)
 - **Programări** din dosar, onorat/neonorat în Programator
 - Command palette (Ctrl+K), export Excel, branding atelier

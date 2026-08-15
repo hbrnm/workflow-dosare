@@ -32,7 +32,7 @@ import FluxBoard from "./features/flux/FluxBoard";
 import AlertsPanel from "./features/alerts/AlertsPanel";
 import SchedulePanel from "./features/schedule/SchedulePanel";
 import KpiDashboard from "./features/dashboard/KpiDashboard";
-import QuickCapture from "./features/capture/QuickCapture";
+import QuickCapture from "./components/views/QuickCapture";
 import TrackPage, { getTrackingTokenFromLocation } from "./features/tracking/TrackPage";
 import "./styles/v2.css";
 

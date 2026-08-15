@@ -378,6 +378,7 @@ export default function ReceptieAutoModal({
                         />
                         <button
                           type="button"
+                          aria-label="Șterge poza"
                           onClick={() => handleRemovePhoto(photo.id)}
                           className="absolute top-1 right-1 p-1 rounded-full bg-black/70 hover:bg-rose-600 text-white transition-colors"
                           title="Șterge poza"

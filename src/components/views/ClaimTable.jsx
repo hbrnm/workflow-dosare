@@ -187,7 +187,7 @@ export default function ClaimTable({
             {phone && (
               <>
                 <WhatsAppButton phone={phone} claim={c} size={12} />
-                <a href={telLink(phone)} className="app-table-contact-btn p-1 rounded transition-colors" title={`Sună ${phone}`}>
+                <a href={telLink(phone)} className="app-table-contact-btn p-1 rounded transition-colors" title={`Sună ${phone}`} aria-label={`Sună ${phone}`}>
                   <Phone size={12} />
                 </a>
               </>
@@ -195,6 +195,7 @@ export default function ClaimTable({
             {canEditFn(c) ? (
               <button
                 type="button"
+                aria-label="Șterge dosar"
                 onClick={() => onDelete && onDelete(c.id)}
                 className="app-table-delete-btn inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors"
               >
