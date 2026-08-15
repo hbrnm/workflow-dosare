@@ -41,9 +41,9 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative bg-[var(--app-surface)] rounded-lg border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md ${
-          claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
-        }`}
+      className={`group relative bg-[var(--app-surface-2)] rounded-lg border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:border-zinc-600/80 ${
+        claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
+      }`}
         style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
       >
         <div className="space-y-1">
@@ -75,7 +75,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-            <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1">
+            <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
               <Car size={12} className="text-[var(--app-accent)]" />
               {claim.numarInmatriculare || "—"}
             </span>
@@ -161,7 +161,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`group relative bg-[var(--app-surface)] rounded-lg border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
+      className={`group relative bg-[var(--app-surface-2)] rounded-lg border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:border-zinc-600/80 hover:-translate-y-0.5 ${
         claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
       }`}
       style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -242,7 +242,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
         {/* Car & Insurer */}
         <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-          <span className="font-mono font-bold text-[var(--app-text-strong)] flex items-center gap-1">
+          <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
             <Car size={11} className="text-[var(--app-muted)]" />
             {claim.numarInmatriculare || "—"}
           </span>

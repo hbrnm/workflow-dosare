@@ -359,6 +359,7 @@ export default function TablouPeFazeRedesign({
   pragRidicare,
   onNotify,
   highlightClaimIds = null,
+  density = "cozy",
 }) {
   const openFn = onOpen || onOpenClaim;
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
@@ -412,7 +413,7 @@ export default function TablouPeFazeRedesign({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]">
+    <div className="flex flex-col flex-1 min-h-0 min-w-0 w-full space-y-2.5 font-sans text-[var(--app-text)]" data-density={density}>
 
       {/* 1. ALERT BANNER AUTO-GENERAT (PIESE ÎNTÂRZIATE Overdue Threshold) */}
       {overduePartClaims.length > 0 && !dismissAlertBanner && (

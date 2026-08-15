@@ -151,6 +151,7 @@ export default function AppViewRouter({
                     return ok;
                   }}
                   onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                  density={density}
                 />
               </div>
             ) : (
@@ -182,6 +183,7 @@ export default function AppViewRouter({
                 pragInactivitate={pragInactivitate}
                 onNotify={showNotice}
                 highlightClaimIds={highlightClaimIds}
+                density={density}
               />
             )
           ) : view === "dashboard" ? (

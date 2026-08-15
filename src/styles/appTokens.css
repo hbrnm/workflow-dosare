@@ -560,3 +560,22 @@
     transition: none !important;
   }
 }
+
+/* ── Density Toggle (Compact vs Cozy) ── */
+[data-density="compact"] .app-flux-card {
+  padding: 0.35rem 0.5rem !important;
+}
+
+[data-density="compact"] .app-table-cell {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
+[data-density="compact"] .app-table-group-header td {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+[data-density="compact"] .app-flux-stack-card {
+  padding: 0.35rem 0.5rem !important;
+}

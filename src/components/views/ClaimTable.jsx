@@ -28,6 +28,7 @@ export default function ClaimTable({
   onTogglePieseSosite,
   onScheduleFromPiese,
   onPatchPieseDates,
+  density = "cozy",
 }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
@@ -141,10 +142,12 @@ export default function ClaimTable({
         <td className={`${cellMuted} truncate`} title={c.asigurator || ""}>{c.asigurator || "—"}</td>
         <td className={`${cell} truncate`} title={c.client || ""}>{c.client || "—"}</td>
         <td className={`${cell} font-mono`}>
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <div className="whitespace-nowrap">
-              {c.numarInmatriculare || "—"}
-              {c.blocat && <span className="ml-1 text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}
+          <div className="flex flex-col gap-0.5 min-w-0 items-start">
+            <div className="whitespace-nowrap flex items-center gap-1.5">
+              <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+                {c.numarInmatriculare || "—"}
+              </span>
+              {c.blocat && <span className="text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}
             </div>
             {c.blocat && blockedReason ? (
               <span className="text-[10px] text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
@@ -216,7 +219,7 @@ export default function ClaimTable({
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 space-y-2">
+    <div className="flex flex-col flex-1 min-h-0 space-y-2" data-density={density}>
       <FluxHeaderBar
         statusCounts={statusCounts}
         focusedStage={focusedStage}
