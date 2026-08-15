@@ -62,6 +62,7 @@ export default function SettingsInsurersTab({
               {isAdmin && (
                 <button
                   type="button"
+                  aria-label="Șterge din listă"
                   onClick={() => handleRemoveInsurer(ins)}
                   className="text-[var(--app-muted)] hover:text-[var(--app-danger)] p-1 transition-colors"
                   title="Șterge din listă"

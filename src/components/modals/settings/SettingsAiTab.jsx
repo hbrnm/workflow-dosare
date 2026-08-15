@@ -54,7 +54,7 @@ export default function SettingsAiTab({
               </button>
             </div>
             <p className="text-[11px] text-[var(--app-muted)] mt-1">
-              Cheia se salvează securizat local în browserul dumneavoastră. Sau puteți configura <code className="text-indigo-300">GEMINI_API_KEY</code> în Supabase Secrets pentru toți utilizatorii atelierului.
+              Cheia se salvează local în browserul dumneavoastră (în localStorage). Alternativ (și recomandat pentru securitate), puteți configura <code className="text-indigo-300">GEMINI_API_KEY</code> în Supabase Secrets pentru toți utilizatorii atelierului.
             </p>
           </div>
 

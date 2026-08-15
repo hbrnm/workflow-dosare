@@ -341,11 +341,14 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                 <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleFiles(e.target.files, "poza", "generale"); e.target.value = ""; }} />
               </label>
 
-              <label className="flex flex-col items-center justify-center gap-1 border border-[var(--app-accent)]/40 rounded-lg py-2.5 px-1 bg-[var(--app-surface-2)] hover:bg-[var(--app-accent)]/10 transition-colors cursor-pointer text-center">
+              <button
+                type="button"
+                onClick={() => openLiveCamera("scan_multi")}
+                className="flex flex-col items-center justify-center gap-1 border border-[var(--app-accent)]/40 rounded-lg py-2.5 px-1 bg-[var(--app-surface-2)] hover:bg-[var(--app-accent)]/10 transition-colors cursor-pointer text-center"
+              >
                 <FileText size={16} className="text-[var(--app-accent)]" />
                 <span className="text-[11px] font-bold text-[var(--app-accent)]">Scan Acte</span>
-                <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleAddScanPages(e.target.files); e.target.value = ""; }} />
-              </label>
+              </button>
 
               <label className="flex flex-col items-center justify-center gap-1 border border-[var(--app-border)] rounded-lg py-2.5 px-1 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] transition-colors cursor-pointer text-center">
                 <FolderOpen size={16} className="text-[var(--app-text)]" />
@@ -395,7 +398,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white pointer-events-none">
                           <Eye size={16} />
                         </div>
-                        <button type="button" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 z-10">
+                        <button type="button" aria-label="Șterge poză" onClick={() => removePoza(p, idx)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 z-10">
                           <Trash2 size={11} />
                         </button>
                       </div>
@@ -422,7 +425,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                       <FileText size={14} className="text-[var(--app-text)] shrink-0" />
                       <a href={d.url || d.link} target="_blank" rel="noreferrer" className="text-[var(--app-text)] font-semibold hover:underline truncate flex-1">{d.nume || d.name || `Document_${idx + 1}`}</a>
                     </div>
-                    <button type="button" onClick={() => removeDoc(d, idx)} className="text-[var(--app-danger)] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
+                    <button type="button" aria-label="Șterge document" onClick={() => removeDoc(d, idx)} className="text-[var(--app-danger)] hover:opacity-70 ml-2 p-1"><Trash2 size={13} /></button>
                   </div>
                 ))}
                 {documente.length === 0 && pendingDocs.length === 0 && (
@@ -454,6 +457,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     <div className="absolute top-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] font-bold">Pag. {idx + 1}</div>
                     <button
                       type="button"
+                      aria-label="Șterge pagină"
                       onClick={() => setScanSession((prev) => ({ ...prev, pages: prev.pages.filter((_, i) => i !== idx) }))}
                       className="absolute top-1 right-1 bg-[var(--app-danger)] text-white rounded p-1 hover:opacity-80"
                     >
@@ -461,11 +465,14 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
                     </button>
                   </div>
                 ))}
-                <label className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10">
+                <button
+                  type="button"
+                  onClick={() => openLiveCamera("scan_multi")}
+                  className="flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-white/20 hover:border-white/40 cursor-pointer aspect-[3/4] bg-white/5 transition-all text-center p-2 hover:bg-white/10"
+                >
                   <Plus size={20} className="text-[var(--app-accent)]" />
                   <span className="text-[11px] font-semibold text-white/80">Adaugă pagină</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleAddScanPages(e.target.files); e.target.value = ""; }} />
-                </label>
+                </button>
               </div>
             </div>
 
@@ -517,7 +524,13 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
         {showLiveCamera && selected && (
           <LiveStreamCameraModal
             initialCategorie={cameraCategory}
-            onSavePhoto={(files, cat) => handleFiles(files, "poza", cat)}
+            onSavePhoto={(files, cat) => {
+              if (cat === "scan_multi") {
+                handleAddScanPages(files);
+              } else {
+                handleFiles(files, "poza", cat);
+              }
+            }}
             onClose={() => setShowLiveCamera(false)}
           />
         )}

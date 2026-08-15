@@ -835,7 +835,7 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   };
 
   // Date dosar / service
-  const atelierNume = sd(branding?.nume || branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar, "AUTO WASH IMPEX SRL");
+  const atelierNume = sd(branding?.nume || branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar, "AUTO WASH IMPEX");
   const atelierIban = sd(branding?.iban || OMNIASIG_CERERE_PLATA.cont, "RO56MIRO0000118403040301");
   const atelierBanca = sd(branding?.banca || OMNIASIG_CERERE_PLATA.banca, "PRO CREDIT BANK");
 

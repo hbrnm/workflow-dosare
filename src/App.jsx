@@ -11,6 +11,7 @@ import CommandPalette from "./components/common/CommandPalette";
 import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import OnboardingModal from "./components/common/OnboardingModal";
+import QuickViewDrawer from "./components/common/QuickViewDrawer";
 import SetariModal from "./components/modals/SetariModal";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { dismissOnboarding } from "./utils/onboardingPrefs";
@@ -70,11 +71,27 @@ export default function App() {
   const [activeMode, setActiveMode] = useState(() =>
     typeof window !== "undefined" && isCompactMobileViewport() ? "mobile" : "desktop"
   );
+  const [density, setDensity] = useState(() => {
+    try {
+      return localStorage.getItem("workflow_dosare_density") || "cozy";
+    } catch {
+      return "cozy";
+    }
+  });
   const [lockMobileShell, setLockMobileShell] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAiModalOpenHeader, setIsAiModalOpenHeader] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [programatorFocusDate, setProgramatorFocusDate] = useState(null);
+
+  const handleDensityChange = useCallback((newDensity) => {
+    setDensity(newDensity);
+    try {
+      localStorage.setItem("workflow_dosare_density", newDensity);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -309,6 +326,7 @@ export default function App() {
   const [fieldClaimId, setFieldClaimId] = useState(null);
   const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
   const [mobileTab, setMobileTab] = useState("brief");
+  const [drawerClaim, setDrawerClaim] = useState(null);
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -326,6 +344,7 @@ export default function App() {
     closeQuickCreate();
     closeQuickCapture();
     setFieldClaimId(null);
+    setDrawerClaim(null);
     setIsCommandPaletteOpen(false);
     setView("dosare");
     setDosareSubView("brief");
@@ -601,9 +620,13 @@ export default function App() {
       if (!claimOrRef) return;
       const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
       const fresh = id ? claims.find((c) => c.id === id) : null;
-      openExisting(fresh || claimOrRef);
+      if (activeMode === "desktop") {
+        setDrawerClaim(fresh || claimOrRef);
+      } else {
+        openExisting(fresh || claimOrRef);
+      }
     },
-    [claims, openExisting]
+    [claims, openExisting, activeMode]
   );
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
@@ -928,6 +951,8 @@ export default function App() {
           setFilterStatus={setFilterStatus}
           insurers={insurers}
           resetFilters={resetFilters}
+          density={density}
+          onDensityChange={handleDensityChange}
         />
 
         {/* Responsive mobile fallback dock & filter sheet in desktop mode */}
@@ -993,6 +1018,9 @@ export default function App() {
           capacitateZilnica={capacitateZilnica}
           saveCapacitate={saveCapacitate}
           programatorFocusDate={programatorFocusDate}
+          density={density}
+          activeClaimId={drawerClaim?.id}
+          setIsAiModalOpenHeader={setIsAiModalOpenHeader}
         />
       </div>
 
@@ -1054,6 +1082,16 @@ export default function App() {
         isAiModalOpenHeader={isAiModalOpenHeader}
         setIsAiModalOpenHeader={setIsAiModalOpenHeader}
         openNew={openNew}
+      />
+
+      {/* Drawer */}
+      <QuickViewDrawer
+        claim={drawerClaim}
+        onClose={() => setDrawerClaim(null)}
+        onOpenFull={(c) => {
+          setDrawerClaim(null);
+          openExisting(c);
+        }}
       />
 
       {/* Global Command Palette (Ctrl+K) */}

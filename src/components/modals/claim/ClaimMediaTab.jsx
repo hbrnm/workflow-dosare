@@ -17,6 +17,7 @@ export default function ClaimMediaTab({
   setPreviewPozaIndex,
   setCropMode,
   setCropImageSrc,
+  onOpenLiveCamera,
 }) {
   const pozeList = Array.isArray(form.poze) ? form.poze : [];
   const documenteList = Array.isArray(form.documente) ? form.documente : [];
@@ -60,10 +61,9 @@ export default function ClaimMediaTab({
             {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Galerie generală</>}
             <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
           </label>
-          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
+          <button type="button" onClick={() => onOpenLiveCamera?.("generale")} className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
             {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
-            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
-          </label>
+          </button>
         </div>
 
         {pozeList.length > 0 ? (
@@ -102,25 +102,14 @@ export default function ClaimMediaTab({
             {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
             <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
           </label>
-          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-accent)]/40 text-[var(--app-warning)] font-bold"}`}>
+          <button
+            type="button"
+            onClick={() => onOpenLiveCamera?.("scan_crop")}
+            disabled={uploadingDocumente}
+            className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-accent)]/40 text-[var(--app-warning)] font-bold"}`}
+          >
             {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  setCropMode("document");
-                  const reader = new FileReader();
-                  reader.onload = (ev) => setCropImageSrc(ev.target.result);
-                  reader.readAsDataURL(file);
-                }
-                e.target.value = "";
-              }}
-            />
-          </label>
+          </button>
         </div>
 
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">

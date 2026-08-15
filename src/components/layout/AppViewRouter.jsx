@@ -50,6 +50,9 @@ export default function AppViewRouter({
   capacitateZilnica,
   saveCapacitate,
   programatorFocusDate,
+  density,
+  activeClaimId,
+  setIsAiModalOpenHeader,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
@@ -131,6 +134,8 @@ export default function AppViewRouter({
                 <ClaimTable
                   claims={onlyBlocked ? filteredClaims : stageClaims}
                   onOpen={openExisting}
+                  onOpenNew={openNew}
+                  onImportClick={setIsAiModalOpenHeader ? () => setIsAiModalOpenHeader(true) : undefined}
                   onDelete={handleDelete}
                   canEditFn={canEdit}
                   highlightClaimIds={highlightClaimIds}
@@ -151,6 +156,8 @@ export default function AppViewRouter({
                     return ok;
                   }}
                   onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                  density={density}
+                  activeClaimId={activeClaimId}
                 />
               </div>
             ) : (
@@ -159,6 +166,7 @@ export default function AppViewRouter({
                 onOpen={openExisting}
                 onOpenClaim={handleOpenClaim}
                 onMoveToStatus={handleMoveToStatus}
+                activeClaimId={activeClaimId}
                 onTogglePieseSosite={(claim, val) =>
                   handlePatchClaim(claim.id, { pieseSosite: val })
                 }
@@ -182,6 +190,7 @@ export default function AppViewRouter({
                 pragInactivitate={pragInactivitate}
                 onNotify={showNotice}
                 highlightClaimIds={highlightClaimIds}
+                density={density}
               />
             )
           ) : view === "dashboard" ? (

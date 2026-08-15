@@ -35,49 +35,49 @@ const SHARED_TOKENS = {
   "--app-btn-height-lg": "2.5rem",
 };
 
-/** Noapte — dark confortabil (GitHub-inspired). */
+/** Noapte — Warm Charcoal / Graphite cu accent verde-mentă. */
 export const APP_TOKEN_DARK = {
   ...SHARED_TOKENS,
-  "--app-bg": "#0d1117",
-  "--app-surface": "#161b22",
-  "--app-surface-2": "#1c2128",
-  "--app-surface-muted": "#21262d",
-  "--app-text": "#c9d1d9",
-  "--app-text-strong": "#e6edf3",
-  "--app-muted": "#8b949e",
-  "--app-muted-2": "#6e7681",
-  "--app-border": "#30363d",
-  "--app-border-soft": "#21262d",
-  "--app-chrome": "#010409",
-  "--app-chrome-text": "#c9d1d9",
-  "--app-chrome-muted": "#8b949e",
-  "--app-accent": "#e6edf3",
-  "--app-accent-hover": "#c9d1d9",
-  "--app-accent-text": "#0d1117",
-  "--app-danger-muted": "#3d1f1f",
-  "--app-success-muted": "#1a2e1f",
-  "--app-warning-muted": "#3d2e00",
+  "--app-bg": "#131415",           // warm charcoal canvas
+  "--app-surface": "#101112",      // sidebar/header level
+  "--app-surface-2": "#202225",    // cards / interactive level
+  "--app-surface-muted": "#2a2d31",
+  "--app-text": "#b8bec6",         // warm light gray
+  "--app-text-strong": "#e8eaed",  // near-white warm
+  "--app-muted": "#737880",        // warm gray muted
+  "--app-muted-2": "#50545a",
+  "--app-border": "rgba(255,255,255,0.06)",
+  "--app-border-soft": "rgba(255,255,255,0.03)",
+  "--app-chrome": "#101112",       // dark sidebar/header
+  "--app-chrome-text": "#b8bec6",
+  "--app-chrome-muted": "#737880",
+  "--app-accent": "#9ae6b4",       // mint / sage green
+  "--app-accent-hover": "#86d9a3", // slightly deeper mint
+  "--app-accent-text": "#0d1a13",  // dark text over mint
+  "--app-danger-muted": "#3d1515",
+  "--app-success-muted": "#0f2d1f",
+  "--app-warning-muted": "#2e2200",
 };
 
 /** Zi — alb curat, ca aplicațiile native light. */
 export const APP_TOKEN_LIGHT = {
   ...SHARED_TOKENS,
-  "--app-bg": "#f6f8fa",
-  "--app-surface": "#ffffff",
-  "--app-surface-2": "#f6f8fa",
-  "--app-surface-muted": "#eaeef2",
-  "--app-text": "#24292f",
-  "--app-text-strong": "#1f2328",
-  "--app-muted": "#656d76",
-  "--app-muted-2": "#8c959f",
-  "--app-border": "#d0d7de",
-  "--app-border-soft": "#eaeef2",
-  "--app-chrome": "#ffffff",
-  "--app-chrome-text": "#1f2328",
-  "--app-chrome-muted": "#656d76",
-  "--app-accent": "#1f2328",
-  "--app-accent-hover": "#424a53",
-  "--app-accent-text": "#ffffff",
+  "--app-bg": "#f8fafc",          // slate-50 canvas
+  "--app-surface": "#ffffff",     // white cards/containers
+  "--app-surface-2": "#f1f5f9",   // slate-100 borders/minor surfaces
+  "--app-surface-muted": "#f1f5f9",
+  "--app-text": "#334155",        // slate-700
+  "--app-text-strong": "#0f172a", // slate-900
+  "--app-muted": "#64748b",       // slate-500
+  "--app-muted-2": "#94a3b8",     // slate-400
+  "--app-border": "#e2e8f0",      // slate-200
+  "--app-border-soft": "#f1f5f9", // slate-100
+  "--app-chrome": "#09090b",      // zinc-950 (Dark chrome)
+  "--app-chrome-text": "#d4d4d8", // zinc-300
+  "--app-chrome-muted": "#a1a1aa",// zinc-400
+  "--app-accent": "#fbbf24",      // amber-400
+  "--app-accent-hover": "#fcd34d",// amber-300
+  "--app-accent-text": "#09090b", // zinc-950
 };
 
 /** @deprecated — folosește APP_TOKEN_DARK */

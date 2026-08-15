@@ -1,6 +1,7 @@
 import React from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { STATUSES } from "../../constants/config";
+import DensityToggle from "../common/DensityToggle";
 
 export default function DesktopFilterBar({
   view,
@@ -15,6 +16,8 @@ export default function DesktopFilterBar({
   setFilterStatus,
   insurers = [],
   resetFilters,
+  density,
+  onDensityChange,
 }) {
   if (["brief", "programator", "flux", "dosare"].includes(view)) {
     return null;
@@ -35,6 +38,10 @@ export default function DesktopFilterBar({
           <SlidersHorizontal size={14} />
           <span>{activeFilterCount > 0 ? `Filtre active (${activeFilterCount})` : "Filtre avansate"}</span>
         </button>
+
+        <div className="ml-auto">
+          <DensityToggle density={density} onDensityChange={onDensityChange} />
+        </div>
       </div>
 
       {showFilterPanel && (

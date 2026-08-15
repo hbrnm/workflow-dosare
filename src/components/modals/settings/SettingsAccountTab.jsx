@@ -342,6 +342,7 @@ export default function SettingsAccountTab({
                           <button
                             type="button"
                             disabled={isCurrent}
+                            aria-label="Șterge utilizator"
                             onClick={() => setPendingDeleteEmail(u.email)}
                             className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                             title={isCurrent ? "Nu te poți șterge pe tine însuți" : "Șterge utilizator"}

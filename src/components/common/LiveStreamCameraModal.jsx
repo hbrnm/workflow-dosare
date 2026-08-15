@@ -70,8 +70,9 @@ export default function LiveStreamCameraModal({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+          advanced: [{ focusMode: "continuous" }]
         },
         audio: false,
       });
@@ -166,7 +167,7 @@ export default function LiveStreamCameraModal({
         } catch (err) {
           console.error("Camera save failed:", err);
         }
-      }, "image/jpeg", 0.80);
+      }, "image/jpeg", 0.95);
     } catch (e) {
       console.error(e);
     }
@@ -205,16 +206,22 @@ export default function LiveStreamCameraModal({
           <X size={22} />
         </button>
         <div className="live-cam-cats">
-          {PHOTO_CATEGORIES.map(({ key, label, color }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setCategorie(key)}
-              className={`live-cam-cat ${categorie === key ? `is-active ${color}` : ""}`}
-            >
-              {label}
-            </button>
-          ))}
+          {categorie.startsWith("scan_") ? (
+            <div className="live-cam-cat is-active bg-[var(--app-accent)] text-white">
+              {categorie === "scan_crop" ? "Scan Document" : "Scan Multi-pagină"}
+            </div>
+          ) : (
+            PHOTO_CATEGORIES.map(({ key, label, color }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setCategorie(key)}
+                className={`live-cam-cat ${categorie === key ? `is-active ${color}` : ""}`}
+              >
+                {label}
+              </button>
+            ))
+          )}
         </div>
       </div>
 

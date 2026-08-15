@@ -108,7 +108,7 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
 
   return (
     <div
-      className={`rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] ${
+      className={`rounded-xl border-2 border-dashed border-indigo-200 dark:border-zinc-800 bg-indigo-50/50 dark:bg-zinc-900/40 ${
         compact ? "p-3" : "p-4"
       } space-y-2.5`}
     >
@@ -135,9 +135,9 @@ export default function AudatexImportCard({ claim, setClaim, showNotice, compact
             <button
               type="button"
               onClick={() => setIsAiModalOpen(true)}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-[11px] font-bold text-indigo-300 hover:bg-indigo-500/20 transition-all"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-indigo-200 dark:border-indigo-500/40 bg-white dark:bg-indigo-500/10 px-3 py-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 shadow-sm dark:shadow-none transition-all"
             >
-              <Sparkles size={14} className="text-indigo-400 animate-pulse" />
+              <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
               Extrage cu Agent AI
             </button>
 

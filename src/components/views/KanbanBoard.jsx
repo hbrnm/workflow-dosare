@@ -1,8 +1,20 @@
 import React, { useState } from "react";
 import {
   Phone, Car, AlertTriangle, PackageCheck, Wrench, Paintbrush,
-  ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check
+  ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check,
+  ArrowUpRight
 } from "lucide-react";
+
+/* ── Status-tinted card background helper ── */
+function getCardTint(claim, overdue) {
+  if (claim.blocat || overdue) {
+    return "bg-rose-950/25 border-rose-800/40 hover:border-rose-700/60";
+  }
+  if (claim.gataDeRidicare && !claim.ridicata) {
+    return "bg-emerald-950/20 border-emerald-800/40 hover:border-emerald-700/60";
+  }
+  return "bg-[#202225] border-zinc-700/40 hover:border-zinc-500/60";
+}
 import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
 import { daysBetween, telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
@@ -41,11 +53,15 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
         }}
-        className={`group relative bg-[var(--app-surface)] rounded-lg border p-2 cursor-pointer transition-all duration-150 hover:shadow-md ${
-          claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
-        }`}
-        style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
+      className={`group relative rounded-2xl border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
+        style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}
       >
+        {/* Nav indicator */}
+        <div className="absolute top-1.5 right-1.5">
+          <span className="w-5 h-5 rounded-full bg-zinc-800/60 text-zinc-400 group-hover:bg-zinc-700 group-hover:text-white flex items-center justify-center transition-all">
+            <ArrowUpRight size={10} />
+          </span>
+        </div>
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-1">
             <DosarNumber
@@ -65,8 +81,8 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
               {claim.client || "Client neintrodus"}
             </span>
             {claim.telefonClient && (
-              <div className="flex items-center gap-0.5 shrink-0">
-                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
+              <div className="flex items-center gap-0.5 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" aria-label="Sună" className="p-0.5 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                   <Phone size={11} />
                 </a>
                 <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
@@ -75,7 +91,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-            <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1">
+            <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
               <Car size={12} className="text-[var(--app-accent)]" />
               {claim.numarInmatriculare || "—"}
             </span>
@@ -161,11 +177,16 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
       }}
-      className={`group relative bg-[var(--app-surface)] rounded-lg border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${
-        claim.blocat ? "border-[var(--app-text-strong)] border-2" : overdue ? "border-[var(--app-danger)]" : "border-[var(--app-border)]"
-      }`}
-      style={{ borderLeftWidth: 4, borderLeftColor: getPhaseColors(claim.status).bar }}
+      className={`group relative rounded-2xl border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
+      style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}
     >
+      {/* ── Nav indicator top-right ── */}
+      <div className="absolute top-2.5 right-2.5">
+        <span className="w-7 h-7 rounded-full bg-zinc-800/60 text-zinc-400 group-hover:bg-zinc-700 group-hover:text-white flex items-center justify-center transition-all">
+          <ArrowUpRight size={13} />
+        </span>
+      </div>
+
       <div className="space-y-1.5">
         {/* Header Row: Nr Dosar + Pill + Alert Badge */}
         <div className="flex items-center justify-between gap-1">
@@ -173,7 +194,13 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
             value={claim.numarDosar}
             onNotify={onNotify}
             empty="(fără nr.)"
-            className="font-mono text-[12.5px] font-bold text-[var(--app-text-strong)] group-hover:text-[var(--app-accent)] truncate"
+            className={`font-mono text-[12.5px] font-bold truncate group-hover:text-[#9ae6b4] transition-colors ${
+              overdue || claim.blocat
+                ? "text-rose-300"
+                : claim.gataDeRidicare && !claim.ridicata
+                  ? "text-emerald-300"
+                  : "text-[var(--app-text-strong)]"
+            }`}
           />
           <div className="flex items-center gap-1 shrink-0">
             <Pill tone={claim.tipAsigurare === "CASCO" ? "amber" : "steel"}>{claim.tipAsigurare}</Pill>
@@ -232,7 +259,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </span>
           {claim.telefonClient && (
             <div className="flex items-center gap-0.5 shrink-0">
-              <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" className="p-1 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
+              <a href={telLink(claim.telefonClient)} onClick={(e) => e.stopPropagation()} title="Sună" aria-label="Sună" className="p-1 rounded hover:bg-[var(--app-border-soft)] text-[var(--app-muted)]">
                 <Phone size={11} />
               </a>
               <WhatsAppButton phone={claim.telefonClient} claim={claim} size={11} />
@@ -242,7 +269,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
         {/* Car & Insurer */}
         <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-          <span className="font-mono font-bold text-[var(--app-text-strong)] flex items-center gap-1">
+          <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
             <Car size={11} className="text-[var(--app-muted)]" />
             {claim.numarInmatriculare || "—"}
           </span>
@@ -423,19 +450,23 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
         <div className="text-[12.5px] font-bold text-[var(--app-text-strong)] flex items-center gap-2">
           <span>Flux Vizual Pe Etape ({claims.length} dosare)</span>
         </div>
-        <div className="flex items-center gap-1 bg-[var(--app-surface-2)] p-1 rounded-md border border-[var(--app-border)]">
+        <div className="flex items-center gap-1 p-0.5">
           <button
             onClick={() => setViewMode("full")}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-              viewMode === "full" ? "bg-[var(--app-muted)] text-white shadow-2xs" : "text-[var(--app-muted)] hover:text-[var(--app-text-strong)]"
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+              viewMode === "full"
+                ? "bg-[#9ae6b4] text-zinc-950 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
             }`}
           >
             <LayoutGrid size={13} /> Card Detaliat
           </button>
           <button
             onClick={() => setViewMode("compact")}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-              viewMode === "compact" ? "bg-[var(--app-muted)] text-white shadow-2xs" : "text-[var(--app-muted)] hover:text-[var(--app-text-strong)]"
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
+              viewMode === "compact"
+                ? "bg-[#9ae6b4] text-zinc-950 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
             }`}
           >
             <List size={13} /> Card Compact
@@ -443,7 +474,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
         </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4 pt-1 align-top scrollbar-thin">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 pb-4 pt-1 align-top">
         {STATUSES.map((status) => {
           const list = claims
             .filter((c) => !c.blocat && c.status === status.key)
@@ -457,7 +488,7 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
           return (
             <div
               key={status.key}
-              className="flex-none w-72 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
+              className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl flex flex-col max-h-[80vh] shadow-2xs"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();

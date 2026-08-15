@@ -4,7 +4,7 @@ import {
   Package, Car, Phone, ClipboardList, Wrench
 } from "lucide-react";
 import {
-  STATUSES, INSURERS, getStatusDefinition, isPieseComandateStatus,
+  STATUSES, INSURERS, getStatusDefinition, isPieseComandateStatus, getPhaseColors,
   MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_BYTES, MAX_POZE_PER_DOSAR, MAX_DOCUMENTE_PER_DOSAR
 } from "../../constants/config";
 import { todayISO, nowISO, uid } from "../../utils/dateUtils";
@@ -37,7 +37,10 @@ import ClaimFooter from "./claim/ClaimFooter";
 import ClaimScannerOverlay from "./claim/ClaimScannerOverlay";
 import ReceptieAutoModal from "./ReceptieAutoModal";
 import SettlementPackageModal from "./SettlementPackageModal";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadCachedBranding } from "../../constants/branding";
+import ClaimScheduleFields from "../common/ClaimScheduleFields";
+import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 export function applyClaimStatusChange(prev, newStatusKey) {
   const mappedKey = getStatusDefinition(newStatusKey).key;
@@ -175,6 +178,8 @@ export default function ClaimModal({
   const [baseline, setBaseline] = useState(safeClaim);
   const [unsavedPrompt, setUnsavedPrompt] = useState(false);
   const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
+  const [showLiveCamera, setShowLiveCamera] = useState(false);
+  const [cameraCategory, setCameraCategory] = useState("generale");
   const [noteText, setNoteText] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const noteInputRef = useRef(null);
@@ -963,6 +968,83 @@ export default function ClaimModal({
           </div>
         )}
 
+        {/* BARA INTERACTIVĂ DE STADII FLUX (Sticky la scroll) */}
+        <div className="bg-[var(--app-surface)] border-b border-[var(--app-border)] px-4 py-2.5 shadow-sm space-y-2 sticky top-[52px] z-20 flex-shrink-0">
+          {/* 9 Segmented Progress Bar */}
+          <div className="flex items-center gap-1 h-2 w-full bg-[var(--app-border-soft)] rounded-full overflow-hidden p-0.5">
+            {STATUSES.map((s, idx) => {
+              const curIdx = Math.max(0, STATUSES.findIndex((x) => x.key === form.status));
+              const isDone = idx < curIdx;
+              const isCurrent = idx === curIdx;
+              const phaseColor = getPhaseColors(s.phase)?.bar || "var(--app-muted)";
+
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => {
+                    setForm((f) => applyClaimStatusChange(f, s.key));
+                  }}
+                  title={`${s.num}. ${s.label}`}
+                  className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
+                  style={{
+                    backgroundColor: isDone || isCurrent ? phaseColor : "var(--app-border)",
+                    opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3,
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Status Label */}
+          <div className="flex items-center justify-between text-[11px] pt-0.5">
+            <span className="text-[10px] text-[var(--app-muted)] font-semibold">
+              Etapa {Math.max(1, STATUSES.findIndex((s) => s.key === getStatusDefinition(form.status).key) + 1)} din {STATUSES.length} — click pe segment pentru a schimba
+            </span>
+
+            <select
+              value={form.status}
+              onChange={(e) => {
+                setForm((f) => applyClaimStatusChange(f, e.target.value));
+              }}
+              className="font-bold text-[11px] py-1 px-2 border border-[var(--app-border)] rounded-md bg-[var(--app-surface-2)] text-[var(--app-text-strong)] focus:border-[var(--app-muted)] cursor-pointer"
+            >
+              {STATUSES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {String(s.num).padStart(2, "0")}. {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {form.status === "programat" && (
+            <ClaimScheduleFields
+              dataProgramare={form.dataProgramare}
+              readOnly={readOnly}
+              onChange={(iso) => set("dataProgramare", iso)}
+            />
+          )}
+
+          {isPieseComandateStatus(form.status) && (
+            <MobilePieseSositeRow
+              claim={form}
+              canEdit={!readOnly}
+              layout="inline"
+              onToggle={(val) => set("pieseSosite", val)}
+              onSchedule={(iso) => {
+                setForm((f) => {
+                  const draft = applyClaimStatusChange(f, "programat");
+                  draft.dataProgramare = iso;
+                  return draft;
+                });
+              }}
+              onPatchDates={(updates) => {
+                setForm((f) => ({ ...f, ...updates }));
+              }}
+            />
+          )}
+        </div>
+
         {/* TAB BAR NAVIGATION */}
         <div className="flex border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 pt-2 gap-1 shrink-0 overflow-x-auto select-none">
           <button
@@ -1058,6 +1140,10 @@ export default function ClaimModal({
                   setPreviewPozaIndex={setPreviewPozaIndex}
                   setCropMode={setCropMode}
                   setCropImageSrc={setCropImageSrc}
+                  onOpenLiveCamera={(cat) => {
+                    setCameraCategory(cat);
+                    setShowLiveCamera(true);
+                  }}
                   onStartScan={handleStartScanSession}
                 />
               )}
@@ -1208,7 +1294,33 @@ export default function ClaimModal({
           uploadingPoze={uploadingPoze}
           handleAddPageToScan={handleAddPageToScan}
           handleSaveMultiPageScan={handleSaveMultiPageScan}
+          onOpenLiveCamera={(cat) => {
+            setCameraCategory(cat);
+            setShowLiveCamera(true);
+          }}
         />
+
+        {showLiveCamera && (
+          <LiveStreamCameraModal
+            initialCategorie={cameraCategory}
+            onSavePhoto={(files, cat) => {
+              if (cat === "scan_crop") {
+                const file = files?.[0];
+                if (file) {
+                  setCropMode("document");
+                  const reader = new FileReader();
+                  reader.onload = (ev) => setCropImageSrc(ev.target.result);
+                  reader.readAsDataURL(file);
+                }
+              } else if (cat === "scan_multi") {
+                handleAddPageToScan?.(files);
+              } else {
+                handleUploadPoze(files, cat);
+              }
+            }}
+            onClose={() => setShowLiveCamera(false)}
+          />
+        )}
 
         {/* Modal Recepție Auto & Semnătură Digitală */}
         {isReceptieModalOpen && (

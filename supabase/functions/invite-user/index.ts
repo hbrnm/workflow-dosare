@@ -97,17 +97,7 @@ Deno.serve(async (req: Request) => {
           .eq("atelier_id", atelierId)
           .maybeSingle();
         if (!membership || membership.role !== "admin") {
-          // still allow global is_admin (already checked)
-          const { data: atelier } = await admin
-            .from("ateliere")
-            .select("seat_limit")
-            .eq("id", atelierId)
-            .maybeSingle();
-          if (!atelier) {
-            return json({ error: "Atelier invalid." }, 400);
-          }
-          seatLimit = Number(atelier.seat_limit) || 10;
-          tenancy = true;
+          return json({ error: "Nu aveți rol de admin în acest atelier." }, 403);
         } else {
           tenancy = true;
           const { data: atelier } = await admin

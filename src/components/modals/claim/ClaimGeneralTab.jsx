@@ -37,6 +37,8 @@ export default function ClaimGeneralTab({
         </span>
       </div>
 
+
+
       {/* Grid cu 2 Coloane Spațioase: Date Dosar & Date Vehicul */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
 
@@ -299,90 +301,12 @@ export default function ClaimGeneralTab({
               />
               {form.telefonClient && (
                 <>
-                  <a href={telLink(form.telefonClient)} title="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
-                  <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
+                  <a href={telLink(form.telefonClient)} title="Sună client" aria-label="Sună client" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-border-soft)] text-[var(--app-muted)] transition-colors"><Phone size={12} /></a>
+                  <a href={waLink(form.telefonClient, `Buna ziua! Va contactam de la ${loadCachedBranding()?.atelierNume || "service"} referitor la dosarul dvs. ${form.numarDosar || ""} (${form.numarInmatriculare || ""}).`)} target="_blank" rel="noreferrer" title="WhatsApp" aria-label="Trimite WhatsApp" className="shrink-0 p-1.5 rounded-lg bg-[var(--app-success-muted)] border border-[var(--app-success)]/30 hover:bg-[var(--app-success)]/15 text-[var(--app-success)] transition-colors"><MessageCircle size={12} /></a>
                 </>
               )}
             </div>
           </div>
-        </div>
-
-        {/* BARA INTERACTIVĂ DE STADII FLUX */}
-        <div className="col-span-1 md:col-span-2 bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-2.5 shadow-2xs space-y-2">
-          {/* 9 Segmented Progress Bar */}
-          <div className="flex items-center gap-1 h-2.5 w-full bg-[var(--app-border-soft)] rounded-full overflow-hidden p-0.5">
-            {STATUSES.map((s, idx) => {
-              const curIdx = Math.max(0, STATUSES.findIndex((x) => x.key === form.status));
-              const isDone = idx < curIdx;
-              const isCurrent = idx === curIdx;
-              const phaseColor = getPhaseColors(s.phase)?.bar || "var(--app-muted)";
-
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => {
-                    setForm((f) => applyClaimStatusChange(f, s.key));
-                  }}
-                  title={`${s.num}. ${s.label}`}
-                  className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
-                  style={{
-                    backgroundColor: isDone || isCurrent ? phaseColor : "var(--app-border)",
-                    opacity: isCurrent ? 1 : isDone ? 0.75 : 0.3,
-                  }}
-                />
-              );
-            })}
-          </div>
-
-          {/* Status Label */}
-          <div className="flex items-center justify-between text-[11.5px] pt-0.5">
-            <span className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
-              Etapa {Math.max(1, STATUSES.findIndex((s) => s.key === getStatusDefinition(form.status).key) + 1)} din {STATUSES.length} — click pe segment pentru a schimba
-            </span>
-
-            <select
-              value={form.status}
-              onChange={(e) => {
-                setForm((f) => applyClaimStatusChange(f, e.target.value));
-              }}
-              className="font-bold text-[11.5px] py-1 px-2.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface-2)] text-[var(--app-text-strong)] focus:border-[var(--app-muted)] cursor-pointer"
-            >
-              {STATUSES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {String(s.num).padStart(2, "0")}. {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {form.status === "programat" && (
-            <ClaimScheduleFields
-              dataProgramare={form.dataProgramare}
-              readOnly={readOnly}
-              onChange={(iso) => set("dataProgramare", iso)}
-            />
-          )}
-
-          {isPieseComandateStatus(form.status) && (
-            <MobilePieseSositeRow
-              claim={form}
-              canEdit={!readOnly}
-              onToggle={(_c, val) => set("pieseSosite", val)}
-              onSchedule={(_c, iso) => {
-                setForm((f) => applyClaimStatusChange({
-                  ...f,
-                  pieseSosite: true,
-                  dataProgramare: iso,
-                }, "programat"));
-                onNotify?.(
-                  `Programare setată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""} — salvează dosarul.`.trim(),
-                  "success"
-                );
-                return true;
-              }}
-            />
-          )}
         </div>
       </div>
 
