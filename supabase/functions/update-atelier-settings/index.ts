@@ -23,9 +23,6 @@ const PATCH_KEYS = [
   "prag_inactivitate_zile",
   "asiguratori",
   "termene_alerta_status",
-  "plan",
-  "trial_ends_at",
-  "seat_limit",
 ] as const;
 
 Deno.serve(async (req: Request) => {
@@ -153,9 +150,6 @@ Deno.serve(async (req: Request) => {
     if ("prag_inactivitate_zile" in patch) {
       patch.prag_inactivitate_zile = Math.max(1, Number(patch.prag_inactivitate_zile) || 1);
     }
-    if ("seat_limit" in patch) {
-      patch.seat_limit = Math.max(1, Number(patch.seat_limit) || 1);
-    }
 
     const { data: row, error: updErr } = await admin
       .from("ateliere")
@@ -179,9 +173,7 @@ Deno.serve(async (req: Request) => {
       if ("prag_inactivitate_zile" in patch) mirror.prag_inactivitate_zile = row.prag_inactivitate_zile;
       if ("asiguratori" in patch) mirror.asiguratori = row.asiguratori;
       if ("termene_alerta_status" in patch) mirror.termene_alerta_status = row.termene_alerta_status;
-      if ("plan" in patch) mirror.plan = row.plan;
-      if ("trial_ends_at" in patch) mirror.trial_ends_at = row.trial_ends_at;
-      if ("seat_limit" in patch) mirror.seat_limit = row.seat_limit;
+
       if (Object.keys(mirror).length > 1) {
         const { error: mirrorErr } = await admin.from("setari").upsert(mirror);
         if (mirrorErr) console.warn("Mirror setari failed:", mirrorErr.message);
