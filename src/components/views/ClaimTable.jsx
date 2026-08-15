@@ -29,6 +29,7 @@ export default function ClaimTable({
   onScheduleFromPiese,
   onPatchPieseDates,
   density = "cozy",
+  activeClaimId,
 }) {
   const [sortKey, setSortKey] = useState("dataDeschiderii");
   const [sortDir, setSortDir] = useState("desc");
@@ -132,9 +133,15 @@ export default function ClaimTable({
         key={c.id}
         id={`claim-row-${c.id}`}
         onClick={() => onOpen(c)}
-        className={`group app-table-row cursor-pointer ${i % 2 ? "is-alt" : ""} ${inGroup ? "is-grouped" : ""} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+        className={`group cursor-pointer transition-colors relative 
+          ${i % 2 ? "bg-[var(--app-surface-2)]" : "bg-[var(--app-surface)]"} 
+          hover:bg-slate-50/80 dark:hover:bg-zinc-800/80
+          ${inGroup ? "is-grouped" : ""} 
+          ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}
+          ${activeClaimId === c.id ? "ring-2 ring-inset ring-amber-400 bg-amber-50/30 dark:bg-amber-400/10 z-10" : "border-b border-slate-100 dark:border-zinc-800/60 last:border-b-0"}
+        `}
       >
-        <td className={`${cell} font-mono font-semibold whitespace-nowrap`} onClick={(e) => e.stopPropagation()}>
+        <td className={`${cell} font-mono font-semibold whitespace-nowrap relative`} onClick={(e) => e.stopPropagation()}>
           {inGroup && <span className="text-[var(--app-muted)] mr-1">↳</span>}
           <DosarNumber value={c.numarDosar} onNotify={onNotify} prefix="" />
         </td>
@@ -144,7 +151,7 @@ export default function ClaimTable({
         <td className={`${cell} font-mono`}>
           <div className="flex flex-col gap-0.5 min-w-0 items-start">
             <div className="whitespace-nowrap flex items-center gap-1.5">
-              <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+              <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
                 {c.numarInmatriculare || "—"}
               </span>
               {c.blocat && <span className="text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>}

@@ -50,6 +50,8 @@ export default function AppViewRouter({
   capacitateZilnica,
   saveCapacitate,
   programatorFocusDate,
+  density,
+  activeClaimId,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
@@ -152,6 +154,7 @@ export default function AppViewRouter({
                   }}
                   onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
                   density={density}
+                  activeClaimId={activeClaimId}
                 />
               </div>
             ) : (
@@ -160,6 +163,7 @@ export default function AppViewRouter({
                 onOpen={openExisting}
                 onOpenClaim={handleOpenClaim}
                 onMoveToStatus={handleMoveToStatus}
+                activeClaimId={activeClaimId}
                 onTogglePieseSosite={(claim, val) =>
                   handlePatchClaim(claim.id, { pieseSosite: val })
                 }

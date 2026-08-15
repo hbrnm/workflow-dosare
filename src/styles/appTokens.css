@@ -15,7 +15,7 @@
 .app-sidebar {
   background: var(--app-chrome, #0a0a0a);
   color: var(--app-chrome-text, #ededed);
-  border-right: 1px solid var(--app-border, #2a2a2a);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .app-surface {

@@ -75,7 +75,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-            <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+            <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
               <Car size={12} className="text-[var(--app-accent)]" />
               {claim.numarInmatriculare || "—"}
             </span>
@@ -242,7 +242,7 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
         {/* Car & Insurer */}
         <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-          <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+          <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
             <Car size={11} className="text-[var(--app-muted)]" />
             {claim.numarInmatriculare || "—"}
           </span>

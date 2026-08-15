@@ -59,8 +59,10 @@ export default function DesktopSidebar({
             <button
               key={id}
               onClick={() => setView(id)}
-              className={`w-full flex items-center justify-center p-2.5 transition-all app-nav-btn ${
-                active ? "is-active" : ""
+              className={`w-full flex items-center justify-center p-2.5 transition-all rounded-xl ${
+                active 
+                  ? "bg-amber-400 text-zinc-950 font-bold shadow-sm" 
+                  : "app-nav-btn hover:bg-[var(--app-surface-2)]"
               }`}
               title={label}
             >
@@ -82,8 +84,10 @@ export default function DesktopSidebar({
         <button
           type="button"
           onClick={openSettings}
-          className={`w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all ${
-            setariOpen ? "is-active" : ""
+          className={`w-full flex items-center justify-center p-2 rounded-xl transition-all ${
+            setariOpen 
+              ? "bg-amber-400 text-zinc-950 font-bold shadow-sm" 
+              : "app-nav-btn hover:bg-[var(--app-surface-2)]"
           }`}
           title="Setări"
           aria-label="Setări"

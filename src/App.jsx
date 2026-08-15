@@ -1019,6 +1019,7 @@ export default function App() {
           saveCapacitate={saveCapacitate}
           programatorFocusDate={programatorFocusDate}
           density={density}
+          activeClaimId={drawerClaim?.id}
         />
       </div>
 

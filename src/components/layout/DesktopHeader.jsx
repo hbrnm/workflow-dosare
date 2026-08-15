@@ -150,7 +150,7 @@ export default function DesktopHeader({
           <AppButton
             variant="primary"
             onClick={() => openNew()}
-            className="app-header-action-btn"
+            className="app-header-action-btn bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold border-amber-400"
           >
             <Plus size={14} /> <span>Dosar nou</span>
           </AppButton>

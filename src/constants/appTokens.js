@@ -62,22 +62,22 @@ export const APP_TOKEN_DARK = {
 /** Zi — alb curat, ca aplicațiile native light. */
 export const APP_TOKEN_LIGHT = {
   ...SHARED_TOKENS,
-  "--app-bg": "#f6f8fa",
-  "--app-surface": "#ffffff",
-  "--app-surface-2": "#f6f8fa",
-  "--app-surface-muted": "#eaeef2",
-  "--app-text": "#24292f",
-  "--app-text-strong": "#1f2328",
-  "--app-muted": "#656d76",
-  "--app-muted-2": "#8c959f",
-  "--app-border": "#d0d7de",
-  "--app-border-soft": "#eaeef2",
-  "--app-chrome": "#ffffff",
-  "--app-chrome-text": "#1f2328",
-  "--app-chrome-muted": "#656d76",
-  "--app-accent": "#1f2328",
-  "--app-accent-hover": "#424a53",
-  "--app-accent-text": "#ffffff",
+  "--app-bg": "#f8fafc",          // slate-50 canvas
+  "--app-surface": "#ffffff",     // white cards/containers
+  "--app-surface-2": "#f1f5f9",   // slate-100 borders/minor surfaces
+  "--app-surface-muted": "#f1f5f9",
+  "--app-text": "#334155",        // slate-700
+  "--app-text-strong": "#0f172a", // slate-900
+  "--app-muted": "#64748b",       // slate-500
+  "--app-muted-2": "#94a3b8",     // slate-400
+  "--app-border": "#e2e8f0",      // slate-200
+  "--app-border-soft": "#f1f5f9", // slate-100
+  "--app-chrome": "#09090b",      // zinc-950 (Dark chrome)
+  "--app-chrome-text": "#d4d4d8", // zinc-300
+  "--app-chrome-muted": "#a1a1aa",// zinc-400
+  "--app-accent": "#fbbf24",      // amber-400
+  "--app-accent-hover": "#fcd34d",// amber-300
+  "--app-accent-text": "#09090b", // zinc-950
 };
 
 /** @deprecated — folosește APP_TOKEN_DARK */
