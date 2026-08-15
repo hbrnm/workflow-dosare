@@ -131,6 +131,34 @@ export default function ClaimHeader({
               </button>
             )}
 
+            <button
+              type="button"
+              onClick={duplicateFn}
+              className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+                desktopUi
+                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                  : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+              }`}
+              title="Duplică / Copiază datele acestui dosar"
+            >
+              <Copy size={12} /><span className="hidden md:inline"> Copiază</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={downloadZipFn}
+              disabled={downloadingZip}
+              className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+                desktopUi
+                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                  : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+              }`}
+              title="Descarcă toate pozele și documentele într-o arhivă ZIP"
+            >
+              {downloadingZip ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+              <span className="hidden md:inline"> ZIP</span>
+            </button>
+
             {onOpenSettlement && (
               <button
                 type="button"
@@ -145,26 +173,6 @@ export default function ClaimHeader({
                 <FolderArchive size={12} /><span className="hidden md:inline"> Pachet Decont</span>
               </button>
             )}
-
-            <button
-              type="button"
-              onClick={duplicateFn}
-              className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
-              title="Duplică / Copiază datele acestui dosar"
-            >
-              <Copy size={12} /><span className="hidden md:inline"> Copiază</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={downloadZipFn}
-              disabled={downloadingZip}
-              className="flex items-center gap-1 text-white/80 hover:text-white text-[10.5px] font-semibold border border-white/20 rounded-lg px-2 py-1 hover:bg-white/10 transition-colors cursor-pointer"
-              title="Descarcă toate pozele și documentele într-o arhivă ZIP"
-            >
-              {downloadingZip ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-              <span className="hidden md:inline"> ZIP</span>
-            </button>
 
             {/* Print / PDF — icon-only printer */}
             <div ref={pdfMenuRef} className="relative">
