@@ -124,10 +124,15 @@
   color: var(--app-text);
 }
 
-/* Bottom chrome: floating search pill (no tab nav) */
+/* Bottom chrome: floating search pill + floating Dark Bento bottom nav */
 .mobile-shell.app-shell {
-  --mobile-bottom-chrome: 3.6rem;
+  --mobile-bottom-chrome: 8.6rem;
   background: var(--app-bg);
+}
+
+/* Search pill stacks above the floating bottom nav bar instead of the screen edge */
+.mobile-shell.app-shell .mobile-bottom-chrome--stacked {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px) * 0.6);
 }
 
 .mobile-shell.app-shell .mobile-main {
@@ -1534,6 +1539,10 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   font-weight: 800;
 }
 
+.m-claim-sheet.app-shell {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .m-claim-sheet .m-sheet-body {
   flex: 1;
   overflow-y: auto;
@@ -2475,4 +2484,27 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 .m-themed-modal textarea.text-\[16px\],
 .m-claim-sheet input.text-\[16px\] {
   font-size: 16px !important;
+}
+
+/* Bottom-sheet open/close animation for MobileClaimSheet */
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheetFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.m-claim-sheet.app-shell {
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.4);
 }

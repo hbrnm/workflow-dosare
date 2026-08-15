@@ -22,6 +22,7 @@ import {
   countAlertsForGroup,
 } from "../../constants/alertCategories";
 import { getStatusDefinition, getStatusShortLabel, getStageAccent } from "../../constants/config";
+import MobileBentoSummary from "./MobileBentoSummary";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -193,6 +194,7 @@ export default function MobileBrief({
   onNotify,
   homeStyle = "inbox",
   atelierNume = "Dosare Daună",
+  capacitateZilnica = 3,
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
   const [focus, setFocus] = useState(readStoredFocus);
@@ -779,6 +781,14 @@ export default function MobileBrief({
         <header className="m-brief-hero">
           <h1 className="m-brief-title">Brief</h1>
         </header>
+
+        <MobileBentoSummary
+          claims={claims}
+          totalAlertsCount={totalAlertsCount}
+          blockedCount={blockedCount}
+          capacitateZilnica={capacitateZilnica}
+          onOpenAlerts={onOpenAlerts}
+        />
 
         <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
           {pipelineTiles.map((tile) => {

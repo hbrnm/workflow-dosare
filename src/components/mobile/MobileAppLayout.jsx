@@ -7,6 +7,7 @@ import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
+import MobileBottomNav from "./MobileBottomNav";
 import EmptyWorkspace from "../common/EmptyWorkspace";
 import ListSkeleton from "../common/ListSkeleton";
 import LoadError from "../common/LoadError";
@@ -51,6 +52,7 @@ export default function MobileAppLayout({
   alertBuckets = null,
   totalAlertsCount = 0,
   blockedCount = 0,
+  capacitateZilnica = 3,
   branding = null,
   captureFocusClaimId = null,
   onCaptureFocusConsumed,
@@ -392,6 +394,7 @@ export default function MobileAppLayout({
             homeStyle="inbox"
             atelierNume={branding?.atelierNume}
             searchActive={Boolean(search.trim())}
+            capacitateZilnica={capacitateZilnica}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
@@ -421,10 +424,19 @@ export default function MobileAppLayout({
       </main>
 
       {!hideBottomChrome && (
-        <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
+        <div className="mobile-bottom-chrome mobile-bottom-chrome--float mobile-bottom-chrome--stacked fixed bottom-0 left-0 right-0 z-40">
           <MobileSearchBar value={search} onChange={handleSearchChange} />
         </div>
       )}
+
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onOpenAlerts={onOpenAlerts}
+        onNewClaim={onNewClaim}
+        totalAlertsCount={totalAlertsCount}
+        hidden={hideBottomChrome}
+      />
     </div>
   );
 }

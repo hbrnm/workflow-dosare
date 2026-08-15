@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, Phone, ChevronRight, Camera, FileText, Car, User,
   ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive
@@ -42,6 +42,37 @@ export default function MobileClaimSheet({
   const [previewIndex, setPreviewIndex] = useState(null);
   const [isReceptieOpen, setIsReceptieOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
+
+  // Swipe-down-to-close (bottom sheet drag)
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragScrollTop = useRef(0);
+
+  const handleDragStart = (e) => {
+    const sheetBody = e.currentTarget.querySelector(".m-sheet-body") || e.currentTarget;
+    dragScrollTop.current = sheetBody.scrollTop || 0;
+    // Only start a close-drag when the sheet content is already scrolled to top,
+    // so normal scrolling inside the sheet isn't hijacked.
+    if (dragScrollTop.current > 0) return;
+    dragStartY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleDragMove = (e) => {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta > 0) setDragY(delta);
+  };
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (dragY > 120) {
+      onClose?.();
+    }
+    setDragY(0);
+  };
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -135,10 +166,30 @@ export default function MobileClaimSheet({
   if (!claim) return null;
 
   return (
-    <div
-      className="m-claim-sheet app-shell fixed inset-0 z-[9100] flex flex-col font-sans"
-      style={{ background: "var(--app-bg)", color: "var(--app-text)" }}
-    >
+    <div className="fixed inset-0 z-[9100] flex flex-col justify-end font-sans">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/55 backdrop-blur-[2px] animate-[sheetFadeIn_.22s_ease]"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Bottom sheet */}
+      <div
+        className="m-claim-sheet app-shell relative z-[1] flex flex-col rounded-t-3xl overflow-hidden max-h-[92vh] animate-[sheetSlideUp_.28s_cubic-bezier(0.22,1,0.36,1)]"
+        style={{
+          background: "var(--app-bg)",
+          color: "var(--app-text)",
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          transition: isDragging ? "none" : "transform .22s ease",
+        }}
+        onTouchStart={handleDragStart}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
+      >
+        <div className="w-full flex justify-center pt-2 pb-1 shrink-0" aria-hidden="true">
+          <span className="block w-10 h-1.5 rounded-full bg-zinc-500/40" />
+        </div>
       <header className="m-sheet-header shrink-0">
         <div className="min-w-0 flex-1">
           <div className="m-sheet-header-kicker">
@@ -460,6 +511,7 @@ export default function MobileClaimSheet({
           atelierBranding={loadCachedBranding()}
         />
       )}
+      </div>
     </div>
   );
 }

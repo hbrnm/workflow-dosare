@@ -55,11 +55,12 @@ function CompactClaimCard({
   const subline = noteText || c.client || "";
   const showPieseRow = isPieseComandateStatus(c.status);
   const canEdit = !canEditFn || canEditFn(c);
+  const insurerOrClient = c.asigurator || c.client || "";
 
   return (
     <article
       id={`mobile-claim-${c.id}`}
-      className={`app-alerte-row m-flow-card is-compact ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+      className={`m-flow-card is-compact ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""} bg-[#202225] border border-zinc-700/40 rounded-xl p-3.5 flex items-center justify-between gap-2.5 active:scale-[0.99] transition-transform`}
       onClick={() => onOpen(c)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -69,72 +70,91 @@ function CompactClaimCard({
       }}
       role="button"
       tabIndex={0}
+      style={{ background: "#202225", borderColor: "rgba(63,63,70,0.4)" }}
     >
-      <div className="app-alerte-metric is-icon" title={sDef.label}>
-        <Icon size={14} />
-      </div>
-      <div className="app-alerte-row-body min-w-0">
-        <div className="app-alerte-row-main">
-          <DosarNumber
-            value={c.numarDosar}
-            onNotify={onNotify}
-            empty="fără nr."
-            className="app-alerte-dosar"
-          />
-          <span className="app-alerte-plate font-mono font-bold">
-            {c.numarInmatriculare || "—"}
-          </span>
-          <span className="app-alerte-status-chip" title={sDef.label}>
-            {stShort}
-          </span>
-          {c.blocat ? (
-            <span className="m-brief-claim-blocked" title={blockedReason || "Blocat"}>
-              B
+      {/* Stânga — badge stadiu */}
+        <span
+          className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-white"
+          style={{ background: stageAccent.color || "#3B5166" }}
+          title={sDef.label}
+        >
+          <Icon size={16} strokeWidth={2.4} />
+        </span>
+
+        {/* Centru — plate + asigurător/client */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-base font-bold text-white truncate">
+              {c.numarInmatriculare || "—"}
             </span>
-          ) : null}
+            <span
+              className="text-[9.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md text-white/90"
+              style={{ background: stageAccent.color || "#3B5166" }}
+              title={sDef.label}
+            >
+              {stShort}
+            </span>
+            {c.blocat ? (
+              <span className="m-brief-claim-blocked" title={blockedReason || "Blocat"}>
+                B
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-zinc-400 truncate">
+            <DosarNumber
+              value={c.numarDosar}
+              onNotify={onNotify}
+              empty="fără nr."
+              className="app-alerte-dosar shrink-0"
+            />
+            {insurerOrClient ? (
+              <span className="truncate">· {insurerOrClient}</span>
+            ) : null}
+          </div>
           {sinceBits.length ? (
-            <span className="m-brief-alerte-since" title={stageSince.title || undefined}>
+            <span className="m-brief-alerte-since block text-[10px]" title={stageSince.title || undefined}>
               {sinceBits.join(" · ")}
             </span>
           ) : null}
+          {programareLabel ? (
+            <p className="m-brief-claim-date" title={`Programare ${programareLabel}`}>
+              {programareLabel}
+            </p>
+          ) : null}
+          {showPieseRow ? (
+            <MobilePieseSositeRow
+              claim={c}
+              canEdit={canEdit}
+              layout="inline"
+              onToggle={onTogglePieseSosite}
+              onSchedule={onScheduleFromPiese}
+              onPatchDates={onPatchPieseDates}
+            />
+          ) : null}
+          {c.blocat && blockedReason ? (
+            <p className="m-brief-alerte-why text-[var(--app-danger)]" title={`Motiv blocare: ${blockedReason}`}>
+              Motiv blocare: {blockedReason}
+            </p>
+          ) : null}
+          {subline && subline !== insurerOrClient ? (
+            <p className="m-brief-alerte-why is-muted" title={subline}>
+              {subline}
+            </p>
+          ) : null}
         </div>
-        {programareLabel ? (
-          <p className="m-brief-claim-date" title={`Programare ${programareLabel}`}>
-            {programareLabel}
-          </p>
-        ) : null}
-        {showPieseRow ? (
-          <MobilePieseSositeRow
-            claim={c}
-            canEdit={canEdit}
-            layout="inline"
-            onToggle={onTogglePieseSosite}
-            onSchedule={onScheduleFromPiese}
-            onPatchDates={onPatchPieseDates}
-          />
-        ) : null}
-        {c.blocat && blockedReason ? (
-          <p className="m-brief-alerte-why text-[var(--app-danger)]" title={`Motiv blocare: ${blockedReason}`}>
-            Motiv blocare: {blockedReason}
-          </p>
-        ) : null}
-        {subline ? (
-          <p className="m-brief-alerte-why is-muted" title={subline}>
-            {subline}
-          </p>
-        ) : null}
-      </div>
-      <div className="app-alerte-actions" onClick={(e) => e.stopPropagation()}>
-        <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
-        <button
-          type="button"
-          className="app-alerte-btn-open"
-          onClick={() => onOpen(c)}
-          aria-label="Deschide dosarul"
-        >
-          <ChevronRight size={16} />
-        </button>
-      </div>
+
+        {/* Dreapta — acțiuni rapide + săgeată */}
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <ClaimPhoneActions phone={phone} claim={c} waSize={11} phoneSize={13} />
+          <button
+            type="button"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 bg-zinc-800/70"
+            onClick={() => onOpen(c)}
+            aria-label="Deschide dosarul"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
     </article>
   );
 }

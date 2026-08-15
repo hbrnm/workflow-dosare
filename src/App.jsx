@@ -740,6 +740,7 @@ export default function App() {
             alertBuckets={alertBuckets}
             totalAlertsCount={totalAlertsCount}
             blockedCount={blockedCount}
+            capacitateZilnica={capacitateZilnica}
             branding={branding}
             captureFocusClaimId={captureFocusClaimId}
             onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
