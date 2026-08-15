@@ -120,7 +120,11 @@ export default function ClaimHeader({
               <button
                 type="button"
                 onClick={onOpenReceptie}
-                className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 text-[10.5px] font-semibold border border-emerald-500/40 bg-emerald-500/10 rounded-lg px-2 py-1 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+                  desktopUi
+                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                }`}
                 title="Recepție auto & Semnătură digitală pe ecran"
               >
                 <FileCheck size={12} /><span className="hidden md:inline"> Recepție</span>
@@ -131,7 +135,11 @@ export default function ClaimHeader({
               <button
                 type="button"
                 onClick={onOpenSettlement}
-                className="flex items-center gap-1 text-indigo-300 hover:text-indigo-200 text-[10.5px] font-semibold border border-indigo-500/40 bg-indigo-500/10 rounded-lg px-2 py-1 hover:bg-indigo-500/20 transition-colors cursor-pointer"
+                className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
+                  desktopUi
+                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                }`}
                 title="Pachet decont complet pentru asigurător (1-Click ZIP)"
               >
                 <FolderArchive size={12} /><span className="hidden md:inline"> Pachet Decont</span>
