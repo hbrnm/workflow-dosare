@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus,
+  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus, Camera,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -17,7 +17,8 @@ import { emailInitial } from "../../utils/userDisplay";
 import { loadCachedBranding } from "../../constants/branding";
 
 const INVENTAR_NAV_ITEMS = [
-  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
+  { id: "capture", label: "Foto si documente", Icon: Camera, hint: "Adauga foto si documente la dosar" },
+  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Lista completa, piese sosite, blocate" },
 ];
 
 export default function MobileAppLayout({
@@ -257,7 +258,7 @@ export default function MobileAppLayout({
             ) : null}
             {memberships.length > 1 ? (
               <>
-                <div className="m-float-menu-label mt-1">Schimbă Atelier</div>
+                <div className="m-float-menu-label mt-1">Schimba atelier</div>
                 {memberships.map((m) => {
                   const active = m.id === activeAtelierId;
                   return (
@@ -297,7 +298,7 @@ export default function MobileAppLayout({
                 <span className="m-float-menu-icon">
                   <Settings size={15} />
                 </span>
-                <span className="m-float-menu-item-label">Setări</span>
+                <span className="m-float-menu-item-label">Setari</span>
               </button>
             ) : null}
             <button

@@ -3,7 +3,7 @@ import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
   List, Plus, ArrowRight, ChevronRight, ChevronLeft, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
-  LayoutGrid, Crosshair, RotateCcw, Folder,
+  Crosshair, RotateCcw, Folder,
 } from "lucide-react";
 import { telLink, formatProgramareDate, todayISO, getSinceMeta, formatDateDMY } from "../../utils/dateUtils";
 import {
@@ -56,58 +56,58 @@ const ATTENTION_STAGE_FILTERS = [
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
   air: {
-    title: "AIR",
-    hint: "Acord intrare în reparație.",
-    emptyTitle: "Niciun dosar AIR",
-    emptyHint: "Dosarele în acord de intrare apar aici.",
+    title: "Acord reparatie",
+    hint: "Acord de intrare in reparatie.",
+    emptyTitle: "Niciun dosar in acord reparatie",
+    emptyHint: "Dosarele in acord de intrare apar aici.",
     statusKey: "deschidere",
     Icon: ClipboardCheck,
   },
   piese: {
     title: "Piese",
-    hint: "Piese comandate — așteaptă livrare / programare.",
+    hint: "Piese comandate — asteapta livrare / programare.",
     emptyTitle: "Niciun dosar pe piese",
     emptyHint: "Dosarele cu piese comandate apar aici.",
     statusKey: "piese_comandate",
     Icon: Package,
   },
   programat: {
-    title: "Programări",
-    hint: "Mașini programate în atelier.",
+    title: "Programari",
+    hint: "Masini programate in atelier.",
     emptyTitle: "Nicio programare",
-    emptyHint: "Dosarele cu status Programări apar aici.",
+    emptyHint: "Dosarele cu status Programari apar aici.",
     statusKey: "programat",
     Icon: CalendarDays,
   },
   lucru: {
-    title: "Reparație",
-    hint: "Mașini aflate acum în reparație.",
-    emptyTitle: "Niciun dosar în reparație",
-    emptyHint: "Dosarele în reparație apar aici.",
+    title: "Reparatie",
+    hint: "Masini aflate acum in reparatie.",
+    emptyTitle: "Niciun dosar in reparatie",
+    emptyHint: "Dosarele in reparatie apar aici.",
     statusKey: "in_lucru",
     Icon: Wrench,
   },
   accept: {
-    title: "Accept plată",
-    hint: "AP = stadiul Accept plată — după reparație, înainte de facturare.",
-    emptyTitle: "Niciun dosar în Accept plată",
-    emptyHint: "Când un dosar ajunge în stadiul Accept plată (AP), apare aici.",
+    title: "Accept plata",
+    hint: "AP = stadiul Accept plata — dupa reparatie, inainte de facturare.",
+    emptyTitle: "Niciun dosar in Accept plata",
+    emptyHint: "Cand un dosar ajunge in stadiul Accept plata (AP), apare aici.",
     statusKey: "accept_plata",
     Icon: BadgeCheck,
   },
   facturat: {
     title: "Facturat",
-    hint: "Dosare facturate / închise operațional.",
+    hint: "Dosare facturate / inchise operational.",
     emptyTitle: "Niciun dosar facturat",
     emptyHint: "Dosarele facturate apar aici.",
     statusKey: "facturat",
     Icon: CheckCircle2,
   },
   atentie: {
-    title: "Atenție",
-    hint: "Întârzieri, piese, predare și plăți care cer reacție.",
-    emptyTitle: "Nimic care necesită atenție",
-    emptyHint: "Alertele operaționale apar aici.",
+    title: "Atentie",
+    hint: "Intarzieri, piese, predare si plati care cer reactie.",
+    emptyTitle: "Nimic care necesita atentie",
+    emptyHint: "Alertele operationale apar aici.",
     statusKey: null,
     Icon: Ban,
   },
@@ -275,7 +275,7 @@ export default function MobileBrief({
       const filtered = attentionFilter !== "toate";
       return {
         kind: "alerts",
-        title: filtered ? `Atenție · ${attentionFilterMeta.label}` : meta.title,
+        title: filtered ? `Atentie · ${attentionFilterMeta.label}` : meta.title,
         hint: filtered
           ? `Filtru: ${attentionFilterMeta.label} (${attentionRows.length})`
           : meta.hint,
@@ -342,7 +342,7 @@ export default function MobileBrief({
     { key: "piese", label: "Piese", count: stageLists.piese.length, tone: "steel" },
     { key: "programat", label: "Prog.", count: countUniqueVehicles(stageLists.programat), tone: "accent" },
     { key: "lucru", label: "Repar.", count: countUniqueVehicles(stageLists.lucru), tone: "accent" },
-    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok", title: "AP — Accept plată" },
+    { key: "accept", label: "AP", count: stageLists.accept.length, tone: "ok", title: "AP — Accept plata" },
     { key: "facturat", label: "Fact.", count: stageLists.facturat.length, tone: "ok" },
   ];
 
@@ -367,28 +367,6 @@ export default function MobileBrief({
     softHaptic(8);
     if (onCloseInboxFocus) onCloseInboxFocus();
     else setFocus(null);
-  };
-
-  const openReceptieForSearch = () => {
-    softHaptic(8);
-    const q = String(searchQuery || "").trim();
-    if (!q) {
-      onNotify?.("Caută un dosar, apoi apasă Recepție.", "info");
-      return;
-    }
-    const hits = listClaims || claims || [];
-    const hit = hits[0];
-    if (!hit) {
-      onNotify?.("Niciun dosar găsit. Ajustează căutarea.", "error");
-      return;
-    }
-    if (hits.length > 1) {
-      onNotify?.(
-        `Recepție: ${hit.numarInmatriculare || hit.numarDosar || "dosar"} (${hits.length} rezultate).`,
-        "info"
-      );
-    }
-    onOpenReceptie?.(hit);
   };
 
   const openAttentionAll = () => {
@@ -795,7 +773,7 @@ export default function MobileBrief({
               className="m-brief-ghost-btn m-brief-action-primary"
               onClick={(e) => saveSchedule(e, c)}
             >
-              Salvează
+              Salveaza
             </button>
             <button
               type="button"
@@ -805,7 +783,7 @@ export default function MobileBrief({
                 setSchedulingId(null);
               }}
             >
-              Anulează
+              Anuleaza
             </button>
           </div>
         ) : null}
@@ -816,17 +794,17 @@ export default function MobileBrief({
   if (homeStyle === "inbox") {
     const inboxStats = [
       {
-        key: "receptie",
-        label: "Recepție",
+        key: "capture",
+        label: "Foto si documente",
         count: null,
         hideCount: true,
-        Icon: LayoutGrid,
+        Icon: Camera,
         tone: "all",
-        action: openReceptieForSearch,
+        action: () => go("capture"),
       },
       {
         key: "lucru",
-        label: "Reparație",
+        label: "Reparatie",
         count: countUniqueVehicles(stageLists.lucru),
         Icon: Crosshair,
         tone: "work",
@@ -834,7 +812,7 @@ export default function MobileBrief({
       },
       {
         key: "atentie",
-        label: "Atenție",
+        label: "Atentie",
         count: totalAlertsCount,
         Icon: RotateCcw,
         tone: "attention",
@@ -842,7 +820,7 @@ export default function MobileBrief({
       },
       {
         key: "air",
-        label: "Acord reparație (AIR)",
+        label: "Acord reparatie",
         count: stageLists.air.length,
         Icon: CheckCircle2,
         tone: "review",
@@ -853,7 +831,7 @@ export default function MobileBrief({
     const workspaces = [
       {
         id: "air",
-        label: "AIR",
+        label: "ACORD REPARATIE",
         count: stageLists.air.length,
         action: () => setBoardFocus("air"),
       },
@@ -865,25 +843,25 @@ export default function MobileBrief({
       },
       {
         id: "programari",
-        label: "PROGRAMĂRI",
+        label: "PROGRAMARI",
         count: countUniqueVehicles(stageLists.programat),
         action: () => go("programari"),
       },
       {
         id: "lucru",
-        label: "Reparație",
+        label: "REPARATIE",
         count: countUniqueVehicles(stageLists.lucru),
         action: () => setBoardFocus("lucru"),
       },
       {
         id: "accept",
-        label: "Accept plată",
+        label: "ACCEPT PLATA",
         count: stageLists.accept.length,
         action: () => setBoardFocus("accept"),
       },
       {
         id: "facturat",
-        label: "Facturat",
+        label: "FACTURAT",
         count: stageLists.facturat.length,
         action: () => setBoardFocus("facturat"),
       },
@@ -899,7 +877,7 @@ export default function MobileBrief({
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
                 <h2 className="m-brief-board-title">
-                  {focus === "accept" ? "Accept plată (AP)" : focusBoard.title}
+                  {focus === "accept" ? "Accept plata (AP)" : focusBoard.title}
                 </h2>
                 <span className="m-brief-board-count shrink-0">
                   {focusBoardCount}
@@ -910,7 +888,7 @@ export default function MobileBrief({
           </div>
 
           {focus === "atentie" && attentionStageChips.length > 1 ? (
-            <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtrează alertele pe stadiu">
+            <div className="m-brief-alert-stage-filters" role="toolbar" aria-label="Filtreaza alertele pe stadiu">
               {attentionStageChips.map((chip) => {
                 const active = attentionFilter === chip.key;
                 return (
@@ -956,7 +934,7 @@ export default function MobileBrief({
             onClick={closeBoard}
           >
             <ChevronLeft size={18} strokeWidth={2.2} />
-            Înapoi
+            Inapoi
           </button>
           {inboxBoard}
         </div>
@@ -993,7 +971,7 @@ export default function MobileBrief({
           })}
         </section>
 
-        <section className="m-inbox-section" aria-label="Spații de lucru">
+        <section className="m-inbox-section" aria-label="Spatii de lucru">
           <p className="m-inbox-section-label">Workspaces</p>
           <div className="m-inbox-workspaces">
             {workspaces.map((row) => (

@@ -1,12 +1,12 @@
 import React from "react";
 import { X } from "lucide-react";
 
-/** Căutare dosar — pill jos, fără + / microfon. */
+/** Cautare dosar — pill jos, fara + / microfon. */
 export default function MobileSearchBar({
   value,
   onChange,
   inputRef = null,
-  placeholder = "căutare dosar",
+  placeholder = "cautare dosar",
 }) {
   return (
     <div className="mobile-search-dock m-cursor-composer">
@@ -22,14 +22,14 @@ export default function MobileSearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="mobile-search-input app-search m-cursor-composer-input"
-        aria-label="Căutare dosar"
+        aria-label="Cautare dosar"
       />
       {value ? (
         <button
           type="button"
           onClick={() => onChange("")}
           className="m-cursor-composer-mic"
-          aria-label="Șterge căutarea"
+          aria-label="Sterge cautarea"
         >
           <X size={16} />
         </button>

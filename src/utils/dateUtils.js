@@ -30,7 +30,7 @@ export function formatDateYMD(d) {
 export const todayISO = () => formatDateYMD(new Date());
 export const nowISO = () => new Date().toISOString();
 
-export function formatDateDMY(date = new Date(), sep = ":") {
+export function formatDateDMY(date = new Date(), sep = "/") {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return "";
   const day = String(d.getDate()).padStart(2, "0");
