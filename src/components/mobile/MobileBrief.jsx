@@ -23,7 +23,8 @@ import {
   ALERT_TYPE_META,
   countAlertsForGroup,
 } from "../../constants/alertCategories";
-import { getStatusDefinition, getStatusShortLabel, getStageAccent } from "../../constants/config";
+import { getStatusDefinition, getStatusShortLabel, getStatusFolderLabel, getStageAccent } from "../../constants/config";
+import { UI_COPY } from "../../constants/uiCopy";
 
 const FILTER_CHIPS = [
   { key: "toate", label: "Toate" },
@@ -57,58 +58,58 @@ const ATTENTION_STAGE_FILTERS = [
 /** Brief stage tiles — pipeline + Atenție (probleme). */
 const STAGE_FOCUS = {
   air: {
-    title: "Acord reparatie",
-    hint: "Acord de intrare in reparatie.",
-    emptyTitle: "Niciun dosar in acord reparatie",
-    emptyHint: "Dosarele in acord de intrare apar aici.",
+    title: UI_COPY.acordReparatie,
+    hint: "Acord de intrare în reparație.",
+    emptyTitle: "Niciun dosar în acord reparație",
+    emptyHint: "Dosarele în acord de intrare apar aici.",
     statusKey: "deschidere",
     Icon: ClipboardCheck,
   },
   piese: {
-    title: "Piese",
-    hint: "Piese comandate — asteapta livrare / programare.",
+    title: UI_COPY.piese,
+    hint: "Piese comandate — așteaptă livrare / programare.",
     emptyTitle: "Niciun dosar pe piese",
     emptyHint: "Dosarele cu piese comandate apar aici.",
     statusKey: "piese_comandate",
     Icon: Package,
   },
   programat: {
-    title: "Programari",
-    hint: "Masini programate in atelier.",
+    title: UI_COPY.programari,
+    hint: "Mașini programate în atelier.",
     emptyTitle: "Nicio programare",
-    emptyHint: "Dosarele cu status Programari apar aici.",
+    emptyHint: "Dosarele cu status Programări apar aici.",
     statusKey: "programat",
     Icon: CalendarDays,
   },
   lucru: {
-    title: "Reparatie",
-    hint: "Masini aflate acum in reparatie.",
-    emptyTitle: "Niciun dosar in reparatie",
-    emptyHint: "Dosarele in reparatie apar aici.",
+    title: UI_COPY.reparatie,
+    hint: "Mașini aflate acum în reparație.",
+    emptyTitle: "Niciun dosar în reparație",
+    emptyHint: "Dosarele în reparație apar aici.",
     statusKey: "in_lucru",
     Icon: Wrench,
   },
   accept: {
-    title: "Accept plata",
-    hint: "AP = stadiul Accept plata — dupa reparatie, inainte de facturare.",
-    emptyTitle: "Niciun dosar in Accept plata",
-    emptyHint: "Cand un dosar ajunge in stadiul Accept plata (AP), apare aici.",
+    title: UI_COPY.acceptPlata,
+    hint: "AP = stadiul Accept plată — după reparație, înainte de facturare.",
+    emptyTitle: "Niciun dosar în Accept plată",
+    emptyHint: "Când un dosar ajunge în stadiul Accept plată (AP), apare aici.",
     statusKey: "accept_plata",
     Icon: BadgeCheck,
   },
   facturat: {
-    title: "Facturat",
-    hint: "Dosare facturate / inchise operational.",
+    title: UI_COPY.facturat,
+    hint: "Dosare facturate / închise operațional.",
     emptyTitle: "Niciun dosar facturat",
     emptyHint: "Dosarele facturate apar aici.",
     statusKey: "facturat",
     Icon: CheckCircle2,
   },
   atentie: {
-    title: "Atentie",
-    hint: "Intarzieri, piese, predare si plati care cer reactie.",
-    emptyTitle: "Nimic care necesita atentie",
-    emptyHint: "Alertele operationale apar aici.",
+    title: UI_COPY.atentie,
+    hint: "Întârzieri, piese, predare și plăți care cer reacție.",
+    emptyTitle: "Nimic care necesită atenție",
+    emptyHint: "Alertele operaționale apar aici.",
     statusKey: null,
     Icon: Ban,
   },
@@ -195,7 +196,7 @@ export default function MobileBrief({
   onPatchClaim,
   onNotify,
   homeStyle = "inbox",
-  atelierNume = "Dosare Daună",
+  atelierNume = "",
   searchQuery = "",
   inboxFocus = undefined,
   onInboxFocusChange = null,
@@ -276,7 +277,7 @@ export default function MobileBrief({
       const filtered = attentionFilter !== "toate";
       return {
         kind: "alerts",
-        title: filtered ? `Atentie · ${attentionFilterMeta.label}` : meta.title,
+        title: filtered ? `${UI_COPY.atentie} · ${attentionFilterMeta.label}` : meta.title,
         hint: filtered
           ? `Filtru: ${attentionFilterMeta.label} (${attentionRows.length})`
           : meta.hint,
@@ -798,7 +799,7 @@ export default function MobileBrief({
     const inboxStats = [
       {
         key: "capture",
-        label: "Foto si documente",
+        label: UI_COPY.fotoSiDocumente,
         count: null,
         hideCount: true,
         Icon: Camera,
@@ -807,7 +808,7 @@ export default function MobileBrief({
       },
       {
         key: "lucru",
-        label: "Reparatie",
+        label: UI_COPY.reparatie,
         count: countUniqueVehicles(stageLists.lucru),
         Icon: Crosshair,
         tone: "work",
@@ -815,7 +816,7 @@ export default function MobileBrief({
       },
       {
         key: "atentie",
-        label: "Atentie",
+        label: UI_COPY.atentie,
         count: totalAlertsCount,
         Icon: RotateCcw,
         tone: "attention",
@@ -823,7 +824,7 @@ export default function MobileBrief({
       },
       {
         key: "air",
-        label: "Acord reparatie",
+        label: UI_COPY.acordReparatie,
         count: stageLists.air.length,
         Icon: CheckCircle2,
         tone: "review",
@@ -834,37 +835,37 @@ export default function MobileBrief({
     const workspaces = [
       {
         id: "air",
-        label: "ACORD REPARATIE",
+        label: getStatusFolderLabel("deschidere", { upper: true }),
         count: stageLists.air.length,
         action: () => setBoardFocus("air"),
       },
       {
         id: "piese",
-        label: "PIESE",
+        label: getStatusFolderLabel("piese_comandate", { upper: true }),
         count: stageLists.piese.length,
         action: () => setBoardFocus("piese"),
       },
       {
         id: "programari",
-        label: "PROGRAMARI",
+        label: getStatusFolderLabel("programat", { upper: true }),
         count: countUniqueVehicles(stageLists.programat),
         action: () => go("programari"),
       },
       {
         id: "lucru",
-        label: "REPARATIE",
+        label: getStatusFolderLabel("in_lucru", { upper: true }),
         count: countUniqueVehicles(stageLists.lucru),
         action: () => setBoardFocus("lucru"),
       },
       {
         id: "accept",
-        label: "ACCEPT PLATA",
+        label: getStatusFolderLabel("accept_plata", { upper: true }),
         count: stageLists.accept.length,
         action: () => setBoardFocus("accept"),
       },
       {
         id: "facturat",
-        label: "FACTURAT",
+        label: getStatusFolderLabel("facturat", { upper: true }),
         count: stageLists.facturat.length,
         action: () => setBoardFocus("facturat"),
       },
@@ -1004,7 +1005,9 @@ export default function MobileBrief({
     return (
       <div className="space-y-4 flex flex-col flex-1 min-h-0 pb-4">
         <div>
+          {atelierNume ? (
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] m-muted">{atelierNume}</p>
+          ) : null}
           <h1 className="m-hub-greeting mt-1">{greetingForNow()}</h1>
         </div>
 
@@ -1053,7 +1056,7 @@ export default function MobileBrief({
 
         <div className="m-hub-grid">
           {[
-            { id: "capture", label: "Foto & Doc", Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
+            { id: "capture", label: UI_COPY.fotoSiDocumente, Icon: Camera, color: "var(--m-hub-c)", action: () => go("capture") },
             {
               id: "alerte",
               label: `Alerte (${totalAlertsCount})`,

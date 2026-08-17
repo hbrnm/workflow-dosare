@@ -19,12 +19,12 @@ describe("exportClaimsList", () => {
     ]);
 
     expect(rows[0]["Nr. dosar"]).toBe("10326304");
-    expect(rows[0].Status).toBe("01. AIR — Acord intrare în reparație");
+    expect(rows[0].Status).toBe("01. Acord reparație");
     expect(rows[0].Telefon).toBe("0712345678");
   });
 
   it("builds filename with stage slug when filtered", () => {
-    expect(claimsListFilename({ focusedStage: "deschidere" })).toMatch(/^lista-dosare-01-air-acord-intrare-in-reparatie-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    expect(claimsListFilename({ focusedStage: "deschidere" })).toMatch(/^lista-dosare-01-acord-reparatie-\d{4}-\d{2}-\d{2}\.xlsx$/);
     expect(claimsListFilename({ focusedStage: null })).toMatch(/^lista-dosare-toate-\d{4}-\d{2}-\d{2}\.xlsx$/);
     expect(claimsListFilename({ focusedStage: "deschidere", format: "pdf" })).toMatch(/\.pdf$/);
   });

@@ -3,6 +3,7 @@ import {
   Bell, Phone, ChevronDown, ChevronUp, X
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
+import ClaimPlate from "../common/ClaimPlate";
 import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, isDeliveryDeadlineOverdue, isPartsOrderOverdue, getDaysPastDeliveryDeadline, getDaysInStage } from "../../utils/alertUtils";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -86,9 +87,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       <div className="flex items-center justify-between gap-2 flex-1">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate drop-shadow-sm">
-              {claim.numarInmatriculare || "FĂRĂ NR."}
-            </span>
+            <ClaimPlate
+              value={claim.numarInmatriculare}
+              empty="FĂRĂ NR."
+              className="text-[15px] sm:text-[16.5px] drop-shadow-sm truncate"
+            />
             {claim.numarDosar && (
               <DosarNumber
                 value={claim.numarDosar}

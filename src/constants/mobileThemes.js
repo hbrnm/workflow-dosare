@@ -33,10 +33,10 @@ export const MOBILE_THEMES = {
       theme: Palette,
     },
     labels: {
-      capture: "Foto & Doc",
+      capture: "Foto și documente",
       brief: "Brief Alerte",
       dosare: "Dosare",
-      programari: "Programari",
+      programari: "Programări",
     },
     vars: {
       "--m-bg": "#EFEAE1",

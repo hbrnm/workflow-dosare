@@ -5,6 +5,7 @@ import { getStatusDefinition, getStatusShortLabel } from "../../constants/config
 import { formatProgramareShort, telLink } from "../../utils/dateUtils";
 import { getLatestClaimNoteText } from "../../utils/alertUtils";
 import DosarNumber from "./DosarNumber";
+import ClaimPlate from "./ClaimPlate";
 import WhatsAppButton from "./WhatsAppButton";
 
 function readVisualViewport() {
@@ -160,9 +161,7 @@ export default function SearchResultsOverlay({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="m-plate truncate">
-                        {c.numarInmatriculare || "—"}
-                      </span>
+                      <ClaimPlate value={c.numarInmatriculare} className="m-plate truncate" />
                       {c.blocat && (
                         <span className="px-1.5 py-0.5 text-[9px] bg-[var(--app-danger)] text-white font-bold rounded shrink-0">
                           BLOCAT

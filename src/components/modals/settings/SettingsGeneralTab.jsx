@@ -49,12 +49,12 @@ export default function SettingsGeneralTab({
             <img src={logoUrl} alt="" className="w-10 h-10 rounded-xl object-contain bg-white/10" />
           ) : (
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-[13px] bg-[#21262d] border border-[#30363d] text-[#e6edf3]">
-              {(atelierShort || "WD").slice(0, 3)}
+              {(atelierShort || atelierNume || "AT").toString().slice(0, 3)}
             </div>
           )}
           <div className="min-w-0">
             <div className="font-extrabold text-[14px] truncate" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {atelierNume || "Dosare Daună"}
+              {atelierNume || "Numele atelierului"}
             </div>
             <div className="text-[11px] text-white/60">Previzualizare header</div>
           </div>
@@ -83,7 +83,7 @@ export default function SettingsGeneralTab({
               title={!isAdmin ? "Doar administratorul poate modifica" : undefined}
               maxLength={4}
               className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-mono font-extrabold bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed uppercase"
-              placeholder="WD"
+              placeholder="ex. AP"
             />
           </div>
           <div className="space-y-1 sm:col-span-2">

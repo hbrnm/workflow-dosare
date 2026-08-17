@@ -37,12 +37,12 @@ export default function DesktopSidebar({
               : "var(--app-surface-2)",
             color: branding?.logoUrl ? undefined : "var(--app-text-strong)",
           }}
-          title={branding?.atelierNume || "Dosare Daună"}
+          title={branding?.atelierNume || "Atelier"}
         >
           {branding?.logoUrl ? (
             <img src={branding.logoUrl} alt="" className="w-full h-full object-contain" />
           ) : (
-            branding?.atelierShort || "WD"
+            branding?.atelierShort || "AT"
           )}
         </div>
       </button>

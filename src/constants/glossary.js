@@ -5,7 +5,7 @@
 export const GLOSSARY = {
   deschidere: {
     short: "AIR",
-    title: "AIR — Acord intrare în reparație",
+    title: "AIR — Acord reparație",
     hint: "Dosarul e deschis; se strâng date, poze și acordul pentru reparație.",
   },
   piese_comandate: {

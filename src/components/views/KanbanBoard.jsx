@@ -16,6 +16,7 @@ function getCardTint(claim, overdue) {
   return "bg-[#202225] border-zinc-700/40 hover:border-zinc-500/60";
 }
 import { STATUSES, getStatusDefinition, getPhaseColors, getClaimAlertDays } from "../../constants/config";
+import ClaimPlate from "../common/ClaimPlate";
 import { daysBetween, telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
 import { isStageOverdue, getDaysInStage } from "../../utils/alertUtils";
 import Pill from "../common/Pill";
@@ -91,9 +92,9 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
           </div>
 
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-            <span className="font-mono font-black text-[13px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+            <span className="flex items-center gap-1">
               <Car size={12} className="text-[var(--app-accent)]" />
-              {claim.numarInmatriculare || "—"}
+              <ClaimPlate value={claim.numarInmatriculare} />
             </span>
             <span className="truncate max-w-[90px]">{claim.marcaModel || claim.asigurator}</span>
           </div>
@@ -269,9 +270,9 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
 
         {/* Car & Insurer */}
         <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
-          <span className="font-mono font-black text-[14px] text-[var(--app-text-strong)] tracking-wider uppercase flex items-center gap-1 bg-slate-200 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-[var(--app-border)]">
+          <span className="flex items-center gap-1">
             <Car size={11} className="text-[var(--app-muted)]" />
-            {claim.numarInmatriculare || "—"}
+            <ClaimPlate value={claim.numarInmatriculare} />
           </span>
           <span className="truncate max-w-[100px]" title={claim.marcaModel || claim.asigurator}>
             {claim.marcaModel || claim.asigurator}
@@ -374,9 +375,7 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
         title={expanded ? "Restrânge dosarele" : "Apasă pentru a deschide toate dosarele comasate"}
       >
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono font-extrabold text-[12.5px] text-[var(--app-text-strong)] uppercase">
-            {groupKey}
-          </span>
+          <ClaimPlate value={groupKey} className="text-[12.5px]" />
           <span className="text-[10.5px] font-semibold text-[var(--app-muted)] truncate max-w-[100px]">
             {marcaModel}
           </span>

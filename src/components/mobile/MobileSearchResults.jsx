@@ -7,7 +7,7 @@ export default function MobileSearchResults({ query, matches, onSelect }) {
   if (!q) return null;
 
   return (
-    <div className="m-search-hits" role="listbox" aria-label="Rezultate cautare">
+    <div className="m-search-hits" role="listbox" aria-label="Rezultate căutare">
       {matches.length === 0 ? (
         <p className="m-search-hits-empty">Niciun dosar pentru „{q}”</p>
       ) : (
