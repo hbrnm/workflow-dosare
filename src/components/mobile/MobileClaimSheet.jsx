@@ -30,6 +30,9 @@ export default function MobileClaimSheet({
   onNotify,
   onCapturePhotos,
   userEmail = "",
+  liveCameraOpen = undefined,
+  onLiveCameraOpen = null,
+  onLiveCameraClose = null,
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -45,6 +48,17 @@ export default function MobileClaimSheet({
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [showLiveCam, setShowLiveCam] = useState(false);
+  const cameraOpen = liveCameraOpen ?? showLiveCam;
+
+  const openLiveCam = () => {
+    if (onLiveCameraOpen) onLiveCameraOpen();
+    else setShowLiveCam(true);
+  };
+
+  const closeLiveCam = () => {
+    if (onLiveCameraClose) onLiveCameraClose();
+    else setShowLiveCam(false);
+  };
 
   const suggestedCategory = useMemo(() => {
     const s = claim?.status;
@@ -419,7 +433,7 @@ export default function MobileClaimSheet({
               {/* Buton Cameră Live cu Shutter */}
               <button
                 type="button"
-                onClick={() => setShowLiveCam(true)}
+                onClick={openLiveCam}
                 className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs"
               >
                 <Camera size={15} />
@@ -429,7 +443,7 @@ export default function MobileClaimSheet({
               {/* Buton Galerie */}
               <label className="py-2.5 px-3 rounded-xl bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-strong)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all">
                 <ImageIcon size={15} />
-                <span>Din Galerie</span>
+                <span>Galerie</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -552,11 +566,11 @@ export default function MobileClaimSheet({
       )}
 
       {/* Modal Cameră Foto Live — Fotografiază direct pe cardul dosarului fără să închidă fișa */}
-      {showLiveCam && (
+      {cameraOpen && (
         <LiveStreamCameraModal
           initialCategorie={suggestedCategory}
           onSavePhoto={(files, cat) => handleDirectPhotoUpload(files, cat)}
-          onClose={() => setShowLiveCam(false)}
+          onClose={closeLiveCam}
         />
       )}
     </div>

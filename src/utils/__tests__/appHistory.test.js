@@ -93,6 +93,13 @@ describe("createBackStack", () => {
     expect(stack.handlePopState()).toEqual({ t: "home" });
   });
 
+  it("liveCamera on field Back returns to field", () => {
+    stack.push({ t: "overlay", name: "field", id: "c1", tab: "brief" });
+    stack.push({ t: "overlay", name: "liveCamera", id: "c1", tab: "brief" });
+    expect(stack.handlePopState()).toMatchObject({ name: "field", id: "c1" });
+    expect(stack.handlePopState()).toEqual({ t: "home" });
+  });
+
   it("inbox overlay Back returns home", () => {
     stack.push({ t: "overlay", name: "inbox", id: "lucru", tab: "brief" });
     expect(stack.handlePopState()).toEqual({ t: "home" });

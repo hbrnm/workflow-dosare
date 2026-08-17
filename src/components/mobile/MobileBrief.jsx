@@ -15,6 +15,7 @@ import {
 import WhatsAppButton from "../common/WhatsAppButton";
 import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
+import ClaimCardOpenHit from "./ClaimCardOpenHit";
 import { softHaptic } from "../../utils/mobilePrefs";
 import { countUniqueVehicles } from "../../utils/plateSchedule";
 import {
@@ -417,6 +418,7 @@ export default function MobileBrief({
           role="button"
           tabIndex={0}
         >
+          <ClaimCardOpenHit onOpen={() => onOpen(c)} />
           {metric ? (
             <div className="app-alerte-metric" title={metric.hint}>
               <span className="app-alerte-metric-value">{metric.value}</span>
@@ -649,6 +651,7 @@ export default function MobileBrief({
           role="button"
           tabIndex={0}
         >
+          <ClaimCardOpenHit onOpen={() => onOpen(c)} />
           <div className="app-alerte-metric is-icon" title={stFull}>
             <RowIcon size={14} />
           </div>

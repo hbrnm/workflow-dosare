@@ -26,6 +26,7 @@ export function createBackStack() {
       if (frame.name === "quickCreate") return `#${frame.name}`;
       if (frame.name === "inbox") return `#inbox-${frame.id || ""}`;
       if (frame.name === "receptie") return `#receptie-${frame.id || ""}`;
+      if (frame.name === "liveCamera") return `#camera-${frame.id || ""}`;
       return `#${frame.name}`;
     }
     return "#m-brief";

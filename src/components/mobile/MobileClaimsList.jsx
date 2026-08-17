@@ -12,6 +12,7 @@ import {
 import WhatsAppButton from "../common/WhatsAppButton";
 import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
+import ClaimCardOpenHit from "./ClaimCardOpenHit";
 import { telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
@@ -70,6 +71,7 @@ function CompactClaimCard({
       role="button"
       tabIndex={0}
     >
+      <ClaimCardOpenHit onOpen={() => onOpen(c)} />
       <div className="app-alerte-metric is-icon" title={sDef.label}>
         <Icon size={14} />
       </div>

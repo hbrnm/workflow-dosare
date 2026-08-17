@@ -30,6 +30,7 @@ export function useMobileBackStack({
       a.closeQuickCapture?.();
       a.closeInboxFocus?.();
       a.closeReceptie?.();
+      a.closeLiveCamera?.();
       setMobileTab("brief");
       mobileTabRef.current = "brief";
       return;
@@ -43,6 +44,7 @@ export function useMobileBackStack({
       a.closeQuickCapture?.();
       a.closeInboxFocus?.();
       a.closeReceptie?.();
+      a.closeLiveCamera?.();
       const tab = frame.tab || "brief";
       setMobileTab(tab);
       mobileTabRef.current = tab;
@@ -57,6 +59,7 @@ export function useMobileBackStack({
       if (frame.name !== "quickCapture") a.closeQuickCapture?.();
       if (frame.name !== "inbox") a.closeInboxFocus?.();
       if (frame.name !== "receptie") a.closeReceptie?.();
+      if (frame.name !== "liveCamera") a.closeLiveCamera?.();
       if (frame.tab) {
         setMobileTab(frame.tab);
         mobileTabRef.current = frame.tab;
@@ -106,6 +109,9 @@ export function useMobileBackStack({
     }
     if (flags.fieldClaimId) {
       stack.push({ t: "overlay", name: "field", id: flags.fieldClaimId, tab });
+      if (flags.liveCameraOpen) {
+        stack.push({ t: "overlay", name: "liveCamera", id: flags.fieldClaimId, tab });
+      }
       return;
     }
     if (flags.alerteModalTab) {
@@ -146,6 +152,7 @@ export function useMobileBackStack({
     flags.quickCaptureOpen,
     flags.receptieClaimId,
     flags.inboxFocus,
+    flags.liveCameraOpen,
   ]);
 
   const goTab = useCallback((tab) => {
@@ -183,6 +190,7 @@ export function useMobileBackStack({
     else if (targetName === "quickCapture") a.closeQuickCapture?.();
     else if (targetName === "inbox") a.closeInboxFocus?.();
     else if (targetName === "receptie") a.closeReceptie?.();
+    else if (targetName === "liveCamera") a.closeLiveCamera?.();
 
     if (targetName) {
       stackRef.current.dismiss((f) => f.t === "overlay" && f.name === targetName);
@@ -195,6 +203,7 @@ export function useMobileBackStack({
       a.closeQuickCapture?.();
       a.closeInboxFocus?.();
       a.closeReceptie?.();
+      a.closeLiveCamera?.();
     }
   }, []);
 

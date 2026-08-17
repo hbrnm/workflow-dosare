@@ -329,6 +329,7 @@ export default function App() {
   const [drawerClaim, setDrawerClaim] = useState(null);
   const [inboxFocus, setInboxFocus] = useState(null);
   const [receptieClaimId, setReceptieClaimId] = useState(null);
+  const [liveCameraOpen, setLiveCameraOpen] = useState(false);
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -336,6 +337,7 @@ export default function App() {
   }, []);
 
   const closeFieldClaim = useCallback(() => {
+    setLiveCameraOpen(false);
     setFieldClaimId(null);
   }, []);
 
@@ -349,6 +351,7 @@ export default function App() {
     setDrawerClaim(null);
     setInboxFocus(null);
     setReceptieClaimId(null);
+    setLiveCameraOpen(false);
     setIsCommandPaletteOpen(false);
     setView("dosare");
     setDosareSubView("brief");
@@ -444,6 +447,7 @@ export default function App() {
       quickCaptureOpen,
       inboxFocus,
       receptieClaimId,
+      liveCameraOpen,
     },
     api: {
       closeClaim: closeClaimModal,
@@ -454,6 +458,7 @@ export default function App() {
       closeQuickCapture,
       closeInboxFocus: () => setInboxFocus(null),
       closeReceptie: () => setReceptieClaimId(null),
+      closeLiveCamera: () => setLiveCameraOpen(false),
       openAlerts,
       openSettings,
       openField: (id) => setFieldClaimId(id),
@@ -865,6 +870,9 @@ export default function App() {
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
               userEmail={myEmail}
+              liveCameraOpen={liveCameraOpen}
+              onLiveCameraOpen={() => setLiveCameraOpen(true)}
+              onLiveCameraClose={() => requestClose("liveCamera")}
               onCapturePhotos={(c) => {
                 setCaptureFocusClaimId(c.id);
                 requestCloseFieldClaim();
