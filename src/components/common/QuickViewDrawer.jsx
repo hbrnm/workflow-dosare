@@ -80,16 +80,18 @@ export default function QuickViewDrawer({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [claim, onClose]);
 
+  const nextStatus = useMemo(() => {
+    if (!claim?.status) return null;
+    const statusDef = getStatusDefinition(claim.status);
+    const idx = STATUSES.findIndex((s) => s.key === statusDef.key);
+    if (idx < 0 || idx >= STATUSES.length - 1) return null;
+    return STATUSES[idx + 1];
+  }, [claim?.status]);
+
   if (!claim) return null;
 
   const statusDef = getStatusDefinition(claim.status);
   const stageSince = getSinceMeta(claim.dataSchimbareStatus || claim.dataDeschiderii || null);
-
-  const nextStatus = useMemo(() => {
-    const idx = STATUSES.findIndex((s) => s.key === statusDef.key);
-    if (idx < 0 || idx >= STATUSES.length - 1) return null;
-    return STATUSES[idx + 1];
-  }, [statusDef.key]);
 
   const latestNote = Array.isArray(claim?.note) && claim.note.length > 0 ? claim.note[0] : null;
 
