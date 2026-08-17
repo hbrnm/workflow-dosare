@@ -1092,6 +1092,10 @@ export default function App() {
           setDrawerClaim(null);
           openExisting(c);
         }}
+        onPatch={handlePatchClaim}
+        onMoveToStatus={handleMoveToStatus}
+        onNotify={notify}
+        canEdit={canEdit ? canEdit(drawerClaim) : true}
       />
 
       {/* Global Command Palette (Ctrl+K) */}
