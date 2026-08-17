@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban,
+  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Bell, Building2, Check, Ban,
+  Search, FolderPlus,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -23,6 +24,13 @@ const PRIMARY_NAV_ITEMS = [
 const SECONDARY_NAV_ITEMS = [
   { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
 ];
+
+function avatarLetter(email, atelierName) {
+  const fromEmail = String(email || "").trim();
+  if (fromEmail) return fromEmail[0].toUpperCase();
+  const fromName = String(atelierName || "").trim();
+  return (fromName[0] || "D").toUpperCase();
+}
 
 export default function MobileAppLayout({
   claims,
@@ -74,6 +82,7 @@ export default function MobileAppLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
   const menuRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   const openBlockedDosare = () => {
     softHaptic(8);
@@ -150,14 +159,16 @@ export default function MobileAppLayout({
   };
 
   const atelierName = branding?.atelierNume || "Dosare Daună";
+  const letter = avatarLetter(userEmail, atelierName);
 
   return (
     <div
-      className={`mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden ${
+      className={`mobile-shell app-shell m-cursor-shell fixed inset-0 flex flex-col overflow-hidden ${
         hideBottomChrome ? "is-chrome-hidden" : ""
       }`}
     >
       {!hideBottomChrome && (
+      <div className="m-cursor-header">
       <div className="m-float-brand-wrap" ref={menuRef}>
         <button
           type="button"
@@ -179,7 +190,7 @@ export default function MobileAppLayout({
             />
           ) : (
             <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
-              <Menu size={18} strokeWidth={2.25} />
+              {letter}
             </span>
           )}
         </button>
@@ -342,9 +353,36 @@ export default function MobileAppLayout({
           </div>
         ) : null}
       </div>
+      <div className="m-cursor-header-actions">
+        <button
+          type="button"
+          className="m-cursor-icon-btn"
+          onClick={() => {
+            softHaptic(8);
+            searchInputRef.current?.focus?.();
+          }}
+          aria-label="Caută"
+        >
+          <Search size={22} strokeWidth={2} />
+        </button>
+        {onNewClaim ? (
+          <button
+            type="button"
+            className="m-cursor-icon-btn"
+            onClick={() => {
+              softHaptic(8);
+              onNewClaim();
+            }}
+            aria-label="Dosar nou"
+          >
+            <FolderPlus size={22} strokeWidth={2} />
+          </button>
+        ) : null}
+      </div>
+      </div>
       )}
 
-      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 pb-28 overflow-y-auto scrollbar-thin">
+      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 px-4 pb-28 overflow-y-auto scrollbar-thin">
         {loading ? (
           <ListSkeleton rows={5} />
         ) : loadError || isOffline ? (
@@ -391,7 +429,6 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             homeStyle="inbox"
             atelierNume={branding?.atelierNume}
-            searchActive={Boolean(search.trim())}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
@@ -422,7 +459,12 @@ export default function MobileAppLayout({
 
       {!hideBottomChrome && (
         <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
-          <MobileSearchBar value={search} onChange={handleSearchChange} />
+          <MobileSearchBar
+            value={search}
+            onChange={handleSearchChange}
+            onAdd={onNewClaim || undefined}
+            inputRef={searchInputRef}
+          />
         </div>
       )}
     </div>

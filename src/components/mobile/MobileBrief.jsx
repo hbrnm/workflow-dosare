@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
-  List, Plus, ArrowRight, ChevronRight, FolderOpen, CalendarDays,
+  List, Plus, ArrowRight, ChevronRight, ChevronLeft, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
+  LayoutGrid, Crosshair, RotateCcw, Folder, FolderPlus,
 } from "lucide-react";
 import { telLink, formatProgramareDate, todayISO, getSinceMeta } from "../../utils/dateUtils";
 import {
@@ -115,9 +116,10 @@ const STAGE_FOCUS = {
 function readStoredFocus() {
   try {
     const v = sessionStorage.getItem(BRIEF_FOCUS_KEY);
-    return FOCUS_KEYS.has(v) ? v : "atentie";
+    if (v === "home" || v === "") return null;
+    return FOCUS_KEYS.has(v) ? v : null;
   } catch {
-    return "atentie";
+    return null;
   }
 }
 
@@ -208,7 +210,7 @@ export default function MobileBrief({
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(BRIEF_FOCUS_KEY, focus);
+      sessionStorage.setItem(BRIEF_FOCUS_KEY, focus || "home");
     } catch {
       /* ignore */
     }
@@ -774,82 +776,96 @@ export default function MobileBrief({
   };
 
   if (homeStyle === "inbox") {
-    return (
-      <div className="m-brief space-y-3.5 flex flex-col flex-1 min-h-0 pb-2">
-        <header className="m-brief-hero">
-          <h1 className="m-brief-title">Brief</h1>
-        </header>
+    const inboxStats = [
+      {
+        key: "toate",
+        label: "All Agents",
+        count: (claims || []).length,
+        hideCount: true,
+        Icon: LayoutGrid,
+        tone: "all",
+        action: () => go("dosare"),
+      },
+      {
+        key: "lucru",
+        label: "Working",
+        count: countUniqueVehicles(stageLists.lucru),
+        Icon: Crosshair,
+        tone: "work",
+        action: () => setBoardFocus("lucru"),
+      },
+      {
+        key: "atentie",
+        label: "Needs Attention",
+        count: totalAlertsCount,
+        Icon: RotateCcw,
+        tone: "attention",
+        action: openAttentionAll,
+      },
+      {
+        key: "accept",
+        label: "In Review",
+        count: stageLists.accept.length,
+        Icon: CheckCircle2,
+        tone: "review",
+        action: () => setBoardFocus("accept"),
+      },
+    ];
 
-        <section className="m-brief-tiles m-brief-tiles--stages" aria-label="Stadii operaționale">
-          {pipelineTiles.map((tile) => {
-            const active = focus === tile.key;
-            const Icon = STAGE_FOCUS[tile.key].Icon;
-            const empty = tile.count === 0;
-            return (
-              <button
-                key={tile.key}
-                type="button"
-                className={`m-brief-tile is-compact tone-${tile.tone} ${active ? "is-active" : ""} ${empty ? "is-empty" : ""}`}
-                onClick={() => setBoardFocus(tile.key)}
-                aria-pressed={active}
-                title={tile.title || STAGE_FOCUS[tile.key]?.hint}
-              >
-                <span className="m-brief-tile-top">
-                  <span className="m-brief-tile-icon">
-                    <Icon size={13} strokeWidth={2.4} />
-                  </span>
-                  <span className="m-brief-tile-count">{tile.count}</span>
-                </span>
-                <span className="m-brief-tile-label">{tile.label}</span>
-              </button>
-            );
-          })}
-        </section>
-
-        <button
-          type="button"
-          className={`m-brief-attention m-press ${focus === "atentie" ? "is-active" : ""} ${totalAlertsCount > 0 ? "has-items" : ""}`}
-          onClick={openAttentionAll}
-          aria-pressed={focus === "atentie" && attentionFilter === "toate"}
-          title={STAGE_FOCUS.atentie.hint}
-        >
-          <span className="m-brief-attention-icon">
-            <Ban size={14} strokeWidth={2.4} />
-          </span>
-          <span className="m-brief-attention-copy">
-            <span className="m-brief-attention-title">Atenție</span>
-            <span className="m-brief-attention-hint">
-              {totalAlertsCount > 0
-                ? attentionFilter !== "toate" && focus === "atentie"
-                  ? `Filtru activ: ${attentionFilterMeta.label}`
-                  : "Întârzieri, piese, predare, plăți"
-                : "Nicio alertă activă"}
-            </span>
-          </span>
-          <span className="m-brief-attention-count">{totalAlertsCount}</span>
-        </button>
-
-        {blockedCount > 0 && onOpenBlocked ? (
-          <button
-            type="button"
-            className="m-brief-attention m-press has-items"
-            onClick={() => {
+    const workspaces = [
+      {
+        id: "atelier",
+        label: atelierNume || "workflow-dosare",
+        count: totalAlertsCount,
+        action: () => go("dosare"),
+      },
+      {
+        id: "programari",
+        label: "Programări",
+        count: countUniqueVehicles(stageLists.programat),
+        action: () => go("programari"),
+      },
+      {
+        id: "piese",
+        label: "Piese",
+        count: stageLists.piese.length,
+        action: () => setBoardFocus("piese"),
+      },
+      {
+        id: "air",
+        label: "AIR",
+        count: stageLists.air.length,
+        action: () => setBoardFocus("air"),
+      },
+      {
+        id: "dosare",
+        label: "Toate dosarele",
+        count: null,
+        action: () => go("dosare"),
+      },
+      blockedCount > 0 && onOpenBlocked
+        ? {
+            id: "blocate",
+            label: "Dosare blocate",
+            count: blockedCount,
+            action: () => {
               softHaptic(8);
               onOpenBlocked();
-            }}
-            title="Dosare blocate — inventar separat de alerte"
-          >
-            <span className="m-brief-attention-icon">
-              <AlertTriangle size={14} strokeWidth={2.4} />
-            </span>
-            <span className="m-brief-attention-copy">
-              <span className="m-brief-attention-title">Blocate</span>
-              <span className="m-brief-attention-hint">Inventar — nu apar în alerte</span>
-            </span>
-            <span className="m-brief-attention-count">{blockedCount}</span>
-          </button>
-        ) : null}
+            },
+          }
+        : null,
+      onNew
+        ? {
+            id: "new",
+            label: "Add Workspace",
+            count: null,
+            add: true,
+            action: () => onNew(),
+          }
+        : null,
+    ].filter(Boolean);
 
+    const inboxBoard = (
         <section
           ref={boardRef}
           className="m-brief-board space-y-2 flex-1 min-h-0 flex flex-col"
@@ -905,21 +921,79 @@ export default function MobileBrief({
             )}
           </div>
         </section>
+    );
 
-        <nav className="m-brief-quick" aria-label="Acces rapid">
-          {shortcuts.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`m-brief-quick-btn m-press ${item.id === "dosare" ? "is-secondary" : ""}`}
-              onClick={item.action}
-              title={item.title || item.label}
-            >
-              <item.Icon size={14} strokeWidth={2.3} />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
+    if (focus) {
+      return (
+        <div className="m-brief m-inbox space-y-0 flex flex-col flex-1 min-h-0 pb-2">
+          <button
+            type="button"
+            className="m-inbox-back m-press"
+            onClick={() => {
+              softHaptic(8);
+              setFocus(null);
+            }}
+          >
+            <ChevronLeft size={18} strokeWidth={2.2} />
+            Inbox
+          </button>
+          {inboxBoard}
+        </div>
+      );
+    }
+
+    return (
+      <div className="m-brief m-inbox space-y-0 flex flex-col flex-1 min-h-0 pb-2">
+        <header className="m-brief-hero">
+          <h1 className="m-inbox-title">Inbox</h1>
+        </header>
+
+        <section className="m-inbox-grid" aria-label="Statusuri">
+          {inboxStats.map((tile) => {
+            const Icon = tile.Icon;
+            return (
+              <button
+                key={tile.key}
+                type="button"
+                className="m-inbox-stat m-press"
+                onClick={tile.action}
+              >
+                <span className={`m-inbox-stat-icon is-${tile.tone}`}>
+                  <Icon size={18} strokeWidth={2.2} />
+                </span>
+                <span className="m-inbox-stat-copy">
+                  <span className="m-inbox-stat-label">{tile.label}</span>
+                  {tile.hideCount ? null : (
+                    <span className="m-inbox-stat-count">{tile.count}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </section>
+
+        <section className="m-inbox-section" aria-label="Spații de lucru">
+          <p className="m-inbox-section-label">Workspaces</p>
+          <div className="m-inbox-workspaces">
+            {workspaces.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                className="m-inbox-row m-press"
+                onClick={row.action}
+              >
+                <span className="m-inbox-row-icon">
+                  {row.add ? <FolderPlus size={18} strokeWidth={1.8} /> : <Folder size={18} strokeWidth={1.8} />}
+                </span>
+                <span className="m-inbox-row-label">{row.label}</span>
+                {row.count != null && row.count > 0 ? (
+                  <span className="m-inbox-row-meta">{row.count}</span>
+                ) : null}
+                <ChevronRight size={16} className="m-inbox-row-chevron" />
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }
