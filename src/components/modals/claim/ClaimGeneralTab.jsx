@@ -62,17 +62,30 @@ export default function ClaimGeneralTab({
             />
           </div>
 
-          {/* Dată Deschidere Dosar */}
-          <div>
-            <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-0.5 flex items-center gap-1">
-              <Calendar size={12} className="text-[var(--app-muted)]" /> Dată Deschidere / Intrare Dosar
-            </label>
-            <DatePickerInput
-              value={form.dataDeschiderii}
-              onChange={(v) => set("dataDeschiderii", v)}
-              withTime={false}
-              placeholder="zi/lună/an"
-            />
+          {/* Dată Deschidere & Dată Eveniment (Accident) în grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-0.5 flex items-center gap-1">
+                <Calendar size={12} className="text-[var(--app-muted)]" /> Dată Deschidere Dosar
+              </label>
+              <DatePickerInput
+                value={form.dataDeschiderii}
+                onChange={(v) => set("dataDeschiderii", v)}
+                withTime={false}
+                placeholder="zi/lună/an"
+              />
+            </div>
+            <div>
+              <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-0.5 flex items-center gap-1">
+                <Calendar size={12} className="text-[var(--app-warning)]" /> Dată Eveniment (Accident)
+              </label>
+              <DatePickerInput
+                value={form.dataEveniment}
+                onChange={(v) => set("dataEveniment", v)}
+                withTime={false}
+                placeholder="zi/lună/an (accident)"
+              />
+            </div>
           </div>
 
           {/* Asigurător & Tip */}
