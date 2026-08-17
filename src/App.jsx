@@ -1094,7 +1094,7 @@ export default function App() {
         }}
         onPatch={handlePatchClaim}
         onMoveToStatus={handleMoveToStatus}
-        onNotify={notify}
+        onNotify={showNotify}
         canEdit={canEdit ? canEdit(drawerClaim) : true}
       />
 
