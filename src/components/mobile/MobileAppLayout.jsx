@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus, Camera,
+  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus, Camera, Share, X,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -22,6 +22,11 @@ import {
 } from "../../utils/mobileSearchNav";
 import { emailInitial } from "../../utils/userDisplay";
 import { loadCachedBranding } from "../../constants/branding";
+import {
+  dismissPwaInstallPrompt,
+  isStandaloneDisplay,
+  shouldPromptPwaInstall,
+} from "../../utils/pwaInstall";
 
 const INVENTAR_NAV_ITEMS = [
   { id: "capture", label: "Foto si documente", Icon: Camera, hint: "Adauga foto si documente la dosar" },
@@ -70,6 +75,7 @@ export default function MobileAppLayout({
   receptieClaimId = null,
   onOpenReceptie = null,
   onCloseReceptie = null,
+  onOpenPwaInstall = null,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
   const [internalTab, setInternalTab] = useState("brief");
@@ -82,6 +88,7 @@ export default function MobileAppLayout({
   const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
+  const [showPwaHint, setShowPwaHint] = useState(() => shouldPromptPwaInstall());
   const menuRef = useRef(null);
   const searchInputRef = useRef(null);
   const autoOpenedQueryRef = useRef("");
@@ -362,6 +369,23 @@ export default function MobileAppLayout({
                 <span className="m-float-menu-item-label">Setari</span>
               </button>
             ) : null}
+            {onOpenPwaInstall && !isStandaloneDisplay() ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenPwaInstall();
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Share size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Pe ecranul principal</span>
+              </button>
+            ) : null}
             <button
               type="button"
               role="menuitem"
@@ -381,7 +405,7 @@ export default function MobileAppLayout({
         ) : null}
       </div>
       <div className="m-cursor-header-actions">
-        {onNewClaim ? (
+        {onNewClaim && activeTab !== "capture" ? (
           <button
             type="button"
             className="m-cursor-icon-btn"
@@ -486,6 +510,31 @@ export default function MobileAppLayout({
               matches={searchHits}
               onSelect={openSearchClaim}
             />
+          ) : null}
+          {showPwaHint && onOpenPwaInstall ? (
+            <div className="pwa-install-banner">
+              <button
+                type="button"
+                className="pwa-install-banner-go"
+                onClick={() => {
+                  softHaptic(8);
+                  onOpenPwaInstall();
+                }}
+              >
+                Adauga pe ecranul principal
+              </button>
+              <button
+                type="button"
+                className="pwa-install-banner-x"
+                aria-label="Nu arata iar"
+                onClick={() => {
+                  dismissPwaInstallPrompt();
+                  setShowPwaHint(false);
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
           ) : null}
           <MobileSearchBar
             value={search}

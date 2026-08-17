@@ -27,6 +27,8 @@ export function createBackStack() {
       if (frame.name === "inbox") return `#inbox-${frame.id || ""}`;
       if (frame.name === "receptie") return `#receptie-${frame.id || ""}`;
       if (frame.name === "liveCamera") return `#camera-${frame.id || ""}`;
+      if (frame.name === "whatsapp") return "#whatsapp";
+      if (frame.name === "pwaInstall") return "#pwa";
       return `#${frame.name}`;
     }
     return "#m-brief";

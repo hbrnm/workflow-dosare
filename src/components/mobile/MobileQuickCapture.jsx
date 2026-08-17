@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Camera, Upload, FileText, Loader2, Car, ImageIcon,
-  CheckCircle2, FolderOpen, Plus, ArrowRight, ShieldCheck, X, Trash2,
+  CheckCircle2, FolderOpen, ArrowRight, ShieldCheck, X, Trash2,
   Eye, FileCheck, RefreshCw, Check, ChevronDown
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
@@ -22,7 +22,7 @@ export default function MobileQuickCapture({
   claims,
   searchQuery = "",
   onOpen,
-  onNew,
+  onNew: _onNew,
   onPatch,
   canEditFn,
   onNotify,
@@ -408,18 +408,6 @@ export default function MobileQuickCapture({
             Selectează dosarul pentru fotografiere
           </p>
         </div>
-        {onNew && (
-          <button
-            type="button"
-            onClick={() => { softHaptic(8); onNew(); }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[var(--app-accent)] text-[var(--app-accent-text)] rounded-xl text-[12px] font-extrabold shadow-sm active:scale-95 transition-transform shrink-0"
-            aria-label="Dosar nou"
-            title="Dosar nou"
-          >
-            <Plus size={15} strokeWidth={2.5} />
-            <span>Nou</span>
-          </button>
-        )}
       </div>
 
       {/* 2. CARD DOSAR ACTIV SELECTAT */}

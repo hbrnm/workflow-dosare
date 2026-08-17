@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
+import { listenForPwaInstallPrompt, isStandaloneDisplay } from './utils/pwaInstall'
 import App from './App.jsx'
 import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 import './utils/telemetry'
@@ -10,6 +11,11 @@ import './styles/appShellIntegrations.css'
 import './styles/mobileThemes.css'
 import './styles/mobileAppShell.css'
 import './styles/alerteCenter.css'
+
+listenForPwaInstallPrompt()
+if (isStandaloneDisplay()) {
+  document.documentElement.dataset.displayMode = "standalone"
+}
 
 registerSW({
   immediate: true,

@@ -31,6 +31,8 @@ export function useMobileBackStack({
       a.closeInboxFocus?.();
       a.closeReceptie?.();
       a.closeLiveCamera?.();
+      a.closeWhatsApp?.();
+      a.closePwaInstall?.();
       setMobileTab("brief");
       mobileTabRef.current = "brief";
       return;
@@ -45,6 +47,8 @@ export function useMobileBackStack({
       a.closeInboxFocus?.();
       a.closeReceptie?.();
       a.closeLiveCamera?.();
+      a.closeWhatsApp?.();
+      a.closePwaInstall?.();
       const tab = frame.tab || "brief";
       setMobileTab(tab);
       mobileTabRef.current = tab;
@@ -60,6 +64,8 @@ export function useMobileBackStack({
       if (frame.name !== "inbox") a.closeInboxFocus?.();
       if (frame.name !== "receptie") a.closeReceptie?.();
       if (frame.name !== "liveCamera") a.closeLiveCamera?.();
+      if (frame.name !== "whatsapp") a.closeWhatsApp?.();
+      if (frame.name !== "pwaInstall") a.closePwaInstall?.();
       if (frame.tab) {
         setMobileTab(frame.tab);
         mobileTabRef.current = frame.tab;
@@ -112,6 +118,12 @@ export function useMobileBackStack({
       if (flags.liveCameraOpen) {
         stack.push({ t: "overlay", name: "liveCamera", id: flags.fieldClaimId, tab });
       }
+      if (flags.whatsappOpen) {
+        stack.push({ t: "overlay", name: "whatsapp", tab });
+      }
+      if (flags.pwaInstallOpen) {
+        stack.push({ t: "overlay", name: "pwaInstall", tab });
+      }
       return;
     }
     if (flags.alerteModalTab) {
@@ -142,6 +154,12 @@ export function useMobileBackStack({
     if (flags.inboxFocus) {
       stack.push({ t: "overlay", name: "inbox", id: flags.inboxFocus, tab: "brief" });
     }
+    if (flags.whatsappOpen) {
+      stack.push({ t: "overlay", name: "whatsapp", tab });
+    }
+    if (flags.pwaInstallOpen) {
+      stack.push({ t: "overlay", name: "pwaInstall", tab });
+    }
   }, [
     enabled,
     flags.modalClaim,
@@ -153,6 +171,8 @@ export function useMobileBackStack({
     flags.receptieClaimId,
     flags.inboxFocus,
     flags.liveCameraOpen,
+    flags.whatsappOpen,
+    flags.pwaInstallOpen,
   ]);
 
   const goTab = useCallback((tab) => {
@@ -191,6 +211,8 @@ export function useMobileBackStack({
     else if (targetName === "inbox") a.closeInboxFocus?.();
     else if (targetName === "receptie") a.closeReceptie?.();
     else if (targetName === "liveCamera") a.closeLiveCamera?.();
+    else if (targetName === "whatsapp") a.closeWhatsApp?.();
+    else if (targetName === "pwaInstall") a.closePwaInstall?.();
 
     if (targetName) {
       stackRef.current.dismiss((f) => f.t === "overlay" && f.name === targetName);
@@ -204,6 +226,8 @@ export function useMobileBackStack({
       a.closeInboxFocus?.();
       a.closeReceptie?.();
       a.closeLiveCamera?.();
+      a.closeWhatsApp?.();
+      a.closePwaInstall?.();
     }
   }, []);
 

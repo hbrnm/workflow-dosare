@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { MessageCircle, ChevronDown } from "lucide-react";
-import { WA_TEMPLATES, getWaTemplateLink, waLink } from "../../utils/dateUtils";
 import { loadCachedBranding } from "../../constants/branding";
+import { isCompactMobileViewport } from "../../utils/viewport";
+import { WhatsAppTemplateList } from "./WhatsAppSheet";
+import { useWhatsAppSheet } from "./WhatsAppSheetContext";
 
 export default function WhatsAppButton({ phone, claim, size = 13, className = "", brandName }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, right: 0 });
   const buttonRef = useRef(null);
   const atelierName = brandName || loadCachedBranding()?.atelierNume || "service";
+  const sheet = useWhatsAppSheet();
 
   useEffect(() => {
     if (open && buttonRef.current) {
@@ -18,7 +21,6 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
       const spaceAbove = rect.top;
 
       let topPos = rect.bottom + 4;
-      // Dacă nu este loc dedesubt, deschide în sus
       if (spaceBelow < popoverHeight && spaceAbove > spaceBelow) {
         topPos = Math.max(10, rect.top - popoverHeight - 4);
       }
@@ -36,16 +38,25 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
 
   if (!phone) return null;
 
+  const openMenu = (e) => {
+    e.stopPropagation();
+    if (sheet?.open && isCompactMobileViewport()) {
+      sheet.open({ phone, claim, atelierName });
+      return;
+    }
+    setOpen((v) => !v);
+  };
+
   return (
     <div className="inline-block" onClick={(e) => e.stopPropagation()}>
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={openMenu}
         title="Trimite mesaj WhatsApp (Apasă pentru șabloane)"
         aria-label="Mesaj WhatsApp"
-        aria-expanded={open}
-        aria-haspopup="menu"
+        aria-expanded={open || Boolean(sheet?.isOpen)}
+        aria-haspopup="dialog"
         className={`wa-btn p-1.5 rounded-md transition-colors flex items-center gap-0.5 ${className}`}
       >
         <MessageCircle size={size} />
@@ -76,47 +87,13 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
                 <span>Șablon WhatsApp:</span>
                 <span className="text-[9px] text-emerald-400 font-bold">Auto-Selectat</span>
               </div>
-
-              <div className="space-y-0.5 max-h-56 overflow-y-auto">
-                {WA_TEMPLATES.map((tmpl) => {
-                  const isRec =
-                    (claim?.status === "reparatie_finalizata" && tmpl.key === "gata") ||
-                    (claim?.status === "piese_comandate" && tmpl.key === "piese") ||
-                    (claim?.status === "deschidere" && tmpl.key === "acte");
-
-                  return (
-                    <a
-                      key={tmpl.key}
-                      role="menuitem"
-                      href={getWaTemplateLink(phone, tmpl.key, claim, atelierName)}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => setOpen(false)}
-                      className={`wa-popover-item block w-full text-left px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-[11.5px] ${
-                        isRec ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{tmpl.label}</span>
-                        {isRec && <span className="text-[9px] uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded">Recomandat</span>}
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-
-              <div className="wa-popover-footer border-t pt-1">
-                <a
-                  role="menuitem"
-                  href={waLink(phone)}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => setOpen(false)}
-                  className="wa-popover-muted block w-full text-left px-2.5 py-1.5 rounded-lg italic font-semibold text-[11px]"
-                >
-                  Deschide chat fără mesaj pre-definit
-                </a>
-              </div>
+              <WhatsAppTemplateList
+                phone={phone}
+                claim={claim}
+                atelierName={atelierName}
+                onPick={() => setOpen(false)}
+                compact
+              />
             </div>
           </div>,
           document.body
