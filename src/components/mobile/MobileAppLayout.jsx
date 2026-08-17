@@ -7,12 +7,19 @@ import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
+import MobileSearchResults from "./MobileSearchResults";
 import EmptyWorkspace from "../common/EmptyWorkspace";
 import ListSkeleton from "../common/ListSkeleton";
 import LoadError from "../common/LoadError";
 import ReceptieAutoModal from "../modals/ReceptieAutoModal";
-import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
+import { loadLastCaptureClaimId, saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
+import {
+  mobileSearchHits,
+  resolveInboxFotoClaim,
+  shouldShowMobileSearchHits,
+  uniqueSearchMatch,
+} from "../../utils/mobileSearchNav";
 import { emailInitial } from "../../utils/userDisplay";
 import { loadCachedBranding } from "../../constants/branding";
 
@@ -49,8 +56,7 @@ export default function MobileAppLayout({
   totalAlertsCount = 0,
   blockedCount = 0,
   branding = null,
-  captureFocusClaimId = null,
-  onCaptureFocusConsumed,
+  onOpenClaimWithCamera = null,
   search = "",
   setSearch,
   highlightClaimIds = null,
@@ -78,6 +84,7 @@ export default function MobileAppLayout({
   const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
   const menuRef = useRef(null);
   const searchInputRef = useRef(null);
+  const autoOpenedQueryRef = useRef("");
 
   const openBlockedDosare = () => {
     softHaptic(8);
@@ -89,15 +96,6 @@ export default function MobileAppLayout({
   useEffect(() => {
     saveMobileTab(activeTab);
   }, [activeTab]);
-
-  useEffect(() => {
-    if (!captureFocusClaimId) return;
-    setFocusClaimId(captureFocusClaimId);
-    setFocusCaptureCategory(null);
-    setActiveTab("capture");
-    setMenuOpen(false);
-    onCaptureFocusConsumed?.();
-  }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -123,9 +121,43 @@ export default function MobileAppLayout({
     return claims.filter((c) => claimMatchesSearch(c, q));
   }, [claims, search]);
 
+  const searchHits = useMemo(() => mobileSearchHits(claims, search), [claims, search]);
+  const uniqueHit = useMemo(() => uniqueSearchMatch(claims, search), [claims, search]);
+  const showSearchHits = shouldShowMobileSearchHits(search, uniqueHit ? 1 : searchHits.length);
+
+  const openSearchClaim = (claim) => {
+    if (!claim) return;
+    autoOpenedQueryRef.current = search.trim();
+    setSearch?.("");
+    onOpenClaim?.(claim);
+  };
+
   const handleSearchChange = (value) => {
     setSearch?.(value);
   };
+
+  const handleSearchSubmit = () => {
+    const q = search.trim();
+    if (!q) return;
+    if (uniqueHit) {
+      openSearchClaim(uniqueHit);
+      return;
+    }
+    if (searchHits.length > 0) openSearchClaim(searchHits[0]);
+  };
+
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) {
+      autoOpenedQueryRef.current = "";
+      return;
+    }
+    if (!uniqueHit) return;
+    if (autoOpenedQueryRef.current === q) return;
+    autoOpenedQueryRef.current = q;
+    setSearch?.("");
+    onOpenClaim?.(uniqueHit);
+  }, [search, uniqueHit, setSearch, onOpenClaim]);
 
   useEffect(() => {
     if (!highlightClaimIds?.size) return;
@@ -140,12 +172,38 @@ export default function MobileAppLayout({
     setMenuOpen(false);
   };
 
-  const openCaptureForClaim = (claimId, category = null) => {
-    softHaptic(8);
-    if (claimId) setFocusClaimId(claimId);
-    setFocusCaptureCategory(category || null);
-    setActiveTab("capture");
+  const openClaimCamera = (claim, category = null) => {
+    if (!claim || !onOpenClaimWithCamera) return false;
+    setSearch?.("");
     setMenuOpen(false);
+    onOpenClaimWithCamera(claim, category);
+    return true;
+  };
+
+  const openInboxFoto = (category = null) => {
+    const target = resolveInboxFotoClaim({
+      claims,
+      searchQuery: search,
+      lastClaimId: loadLastCaptureClaimId(),
+    });
+    if (openClaimCamera(target, category)) return;
+    const q = search.trim();
+    onNotify?.(
+      q
+        ? "Alege un dosar din lista de deasupra cautarii."
+        : "Cauta numarul auto sau deschide un dosar, apoi Foto.",
+      "info"
+    );
+  };
+
+  const openCaptureForClaim = (claimId = null, category = null) => {
+    softHaptic(8);
+    setMenuOpen(false);
+    if (claimId) {
+      const claim = (claims || []).find((c) => c.id === claimId);
+      if (openClaimCamera(claim, category)) return;
+    }
+    openInboxFoto(category);
   };
 
   const consumeCaptureFocus = () => {
@@ -196,7 +254,10 @@ export default function MobileAppLayout({
                   type="button"
                   role="menuitem"
                   className={`m-float-menu-item is-secondary ${active ? "is-active" : ""}`}
-                  onClick={() => handleTabChange(id)}
+                  onClick={() => {
+                    if (id === "capture") openCaptureForClaim();
+                    else handleTabChange(id);
+                  }}
                   title={hint}
                 >
                   <span className="m-float-menu-icon">
@@ -419,9 +480,17 @@ export default function MobileAppLayout({
 
       {!hideBottomChrome && (
         <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
+          {showSearchHits ? (
+            <MobileSearchResults
+              query={search}
+              matches={searchHits}
+              onSelect={openSearchClaim}
+            />
+          ) : null}
           <MobileSearchBar
             value={search}
             onChange={handleSearchChange}
+            onSubmit={handleSearchSubmit}
             inputRef={searchInputRef}
           />
         </div>

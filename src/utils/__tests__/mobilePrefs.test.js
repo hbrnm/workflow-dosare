@@ -28,11 +28,13 @@ describe("mobilePrefs", () => {
 
   it("persists valid tabs and falls back for invalid ones", () => {
     expect(loadMobileTab()).toBe("brief");
+    saveMobileTab("dosare");
+    expect(localStorage.getItem(MOBILE_TAB_KEY)).toBe("dosare");
+    expect(loadMobileTab()).toBe("dosare");
     saveMobileTab("capture");
-    expect(localStorage.getItem(MOBILE_TAB_KEY)).toBe("capture");
-    expect(loadMobileTab()).toBe("capture");
+    expect(loadMobileTab()).toBe("brief");
     saveMobileTab("not-a-tab");
-    expect(loadMobileTab()).toBe("capture");
+    expect(loadMobileTab()).toBe("brief");
   });
 
   it("remembers last capture claim id", () => {

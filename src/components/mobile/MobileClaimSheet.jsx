@@ -28,11 +28,11 @@ export default function MobileClaimSheet({
   onMoveToStatus,
   canEdit,
   onNotify,
-  onCapturePhotos,
   userEmail = "",
   liveCameraOpen = undefined,
   onLiveCameraOpen = null,
   onLiveCameraClose = null,
+  initialCameraCategory = null,
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -61,12 +61,15 @@ export default function MobileClaimSheet({
   };
 
   const suggestedCategory = useMemo(() => {
+    if (["receptie", "predare", "reconstatare"].includes(initialCameraCategory)) {
+      return initialCameraCategory;
+    }
     const s = claim?.status;
     if (["deschidere", "intrare_in_lucru"].includes(s)) return "receptie";
     if (["constatare_efectuata", "piese_comandate", "in_lucru"].includes(s)) return "reconstatare";
     if (["reparatie_finalizata", "predat"].includes(s)) return "predare";
     return "receptie";
-  }, [claim?.status]);
+  }, [claim?.status, initialCameraCategory]);
 
   const handleDirectPhotoUpload = async (files, targetCategory = null) => {
     if (!claim?.id || readOnly || !files?.length) return;

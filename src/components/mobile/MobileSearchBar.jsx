@@ -1,15 +1,22 @@
 import React from "react";
 import { X } from "lucide-react";
 
-/** Cautare dosar — pill jos, fara + / microfon. */
+/** Cautare dosar — pill jos, fara + / microfon. Enter deschide primul rezultat. */
 export default function MobileSearchBar({
   value,
   onChange,
+  onSubmit = null,
   inputRef = null,
   placeholder = "cautare dosar",
 }) {
   return (
-    <div className="mobile-search-dock m-cursor-composer">
+    <form
+      className="mobile-search-dock m-cursor-composer"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.();
+      }}
+    >
       <input
         ref={inputRef}
         type="search"
@@ -34,6 +41,6 @@ export default function MobileSearchBar({
           <X size={16} />
         </button>
       ) : null}
-    </div>
+    </form>
   );
 }

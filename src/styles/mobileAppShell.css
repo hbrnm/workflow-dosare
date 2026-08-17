@@ -631,6 +631,10 @@ html:not([data-app-theme="dark"]) .mobile-shell.app-shell.m-cursor-shell .m-curs
   background: transparent !important;
   border: none;
   box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
   padding: 0 0.75rem max(0.35rem, env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
@@ -645,12 +649,84 @@ html:not([data-app-theme="dark"]) .mobile-shell.app-shell.m-cursor-shell .m-curs
   border: 1px solid color-mix(in srgb, var(--app-border) 65%, transparent);
   border-radius: 999px;
   padding: 0.3rem 0.35rem;
+  margin: 0;
   box-shadow: 0 10px 28px color-mix(in srgb, var(--app-text) 14%, transparent);
+}
+
+.mobile-shell.app-shell .mobile-bottom-chrome--float .m-search-hits {
+  pointer-events: auto;
+  max-height: min(42vh, 20rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, var(--app-border) 65%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--app-text) 16%, transparent);
+  padding: 0.3rem;
+}
+
+.mobile-shell.app-shell .m-search-hit {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.58rem 0.7rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.85rem;
+  color: var(--app-text);
+}
+
+.mobile-shell.app-shell .m-search-hit:hover,
+.mobile-shell.app-shell .m-search-hit:active {
+  background: var(--app-surface-2);
+}
+
+.mobile-shell.app-shell .m-search-hit-meta {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mobile-shell.app-shell .m-search-hit-client {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mobile-shell.app-shell .m-search-hit-status {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--app-muted);
+}
+
+.mobile-shell.app-shell .m-search-hits-empty {
+  margin: 0;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--app-muted);
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .mobile-search-dock {
   background: color-mix(in srgb, var(--app-surface) 78%, transparent);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome--float .m-search-hits {
+  background: color-mix(in srgb, var(--app-surface) 88%, transparent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
 }
 
 html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {

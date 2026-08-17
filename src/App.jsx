@@ -8,7 +8,6 @@ import Login from "./components/auth/Login";
 import Signup from "./components/auth/Signup";
 import RecoveryPassword from "./components/auth/RecoveryPassword";
 import CommandPalette from "./components/common/CommandPalette";
-import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import OnboardingModal from "./components/common/OnboardingModal";
 import QuickViewDrawer from "./components/common/QuickViewDrawer";
@@ -28,6 +27,7 @@ import { normalizeBilling } from "./constants/billing";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
 import { useMobileBackStack } from "./hooks/useMobileBackStack";
+import { saveLastCaptureClaimId } from "./utils/mobilePrefs";
 
 // Desktop Layout Components
 import DesktopSidebar from "./components/layout/DesktopSidebar";
@@ -324,7 +324,7 @@ export default function App() {
   } = useClaimModal(showNotice);
 
   const [fieldClaimId, setFieldClaimId] = useState(null);
-  const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+  const [fieldCameraCategory, setFieldCameraCategory] = useState(null);
   const [mobileTab, setMobileTab] = useState("brief");
   const [drawerClaim, setDrawerClaim] = useState(null);
   const [inboxFocus, setInboxFocus] = useState(null);
@@ -333,11 +333,25 @@ export default function App() {
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
+    saveLastCaptureClaimId(claim.id);
+    setLiveCameraOpen(false);
+    setFieldCameraCategory(null);
     setFieldClaimId(claim.id);
+  }, []);
+
+  const openMobileClaimWithCamera = useCallback((claim, category = null) => {
+    if (!claim?.id) return;
+    saveLastCaptureClaimId(claim.id);
+    setFieldCameraCategory(
+      ["receptie", "predare", "reconstatare"].includes(category) ? category : null
+    );
+    setFieldClaimId(claim.id);
+    setLiveCameraOpen(true);
   }, []);
 
   const closeFieldClaim = useCallback(() => {
     setLiveCameraOpen(false);
+    setFieldCameraCategory(null);
     setFieldClaimId(null);
   }, []);
 
@@ -348,6 +362,7 @@ export default function App() {
     closeQuickCreate();
     closeQuickCapture();
     setFieldClaimId(null);
+    setFieldCameraCategory(null);
     setDrawerClaim(null);
     setInboxFocus(null);
     setReceptieClaimId(null);
@@ -701,18 +716,6 @@ export default function App() {
       <ErrorBoundary>
         <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
-        {!modalClaim && !fieldClaim && (
-          <SearchResultsOverlay
-            query={search}
-            claims={userClaims}
-            onSelect={(claim) => {
-              setSearch("");
-              openMobileClaim(claim);
-            }}
-            onClear={() => setSearch("")}
-            onNotify={showNotice}
-          />
-        )}
         <OnboardingModal
           open={onboardingOpen}
           onDismiss={dismissTour}
@@ -758,8 +761,7 @@ export default function App() {
             totalAlertsCount={totalAlertsCount}
             blockedCount={blockedCount}
             branding={branding}
-            captureFocusClaimId={captureFocusClaimId}
-            onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
+            onOpenClaimWithCamera={openMobileClaimWithCamera}
             search={search}
             setSearch={setSearch}
             highlightClaimIds={highlightClaimIds}
@@ -873,10 +875,7 @@ export default function App() {
               liveCameraOpen={liveCameraOpen}
               onLiveCameraOpen={() => setLiveCameraOpen(true)}
               onLiveCameraClose={() => requestClose("liveCamera")}
-              onCapturePhotos={(c) => {
-                setCaptureFocusClaimId(c.id);
-                requestCloseFieldClaim();
-              }}
+              initialCameraCategory={fieldCameraCategory}
             />
           </Suspense>
         )}

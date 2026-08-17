@@ -803,7 +803,7 @@ export default function MobileBrief({
         hideCount: true,
         Icon: Camera,
         tone: "all",
-        action: () => go("capture"),
+        action: () => (onGoCapture ? onGoCapture() : go("capture")),
       },
       {
         key: "lucru",
