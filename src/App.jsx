@@ -8,7 +8,6 @@ import Login from "./components/auth/Login";
 import Signup from "./components/auth/Signup";
 import RecoveryPassword from "./components/auth/RecoveryPassword";
 import CommandPalette from "./components/common/CommandPalette";
-import SearchResultsOverlay from "./components/common/SearchResultsOverlay";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import OnboardingModal from "./components/common/OnboardingModal";
 import QuickViewDrawer from "./components/common/QuickViewDrawer";
@@ -28,6 +27,15 @@ import { normalizeBilling } from "./constants/billing";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
 import { useMobileBackStack } from "./hooks/useMobileBackStack";
+import { saveLastCaptureClaimId } from "./utils/mobilePrefs";
+import { WhatsAppSheetProvider } from "./components/common/WhatsAppSheetContext";
+import WhatsAppSheet from "./components/common/WhatsAppSheet";
+import PwaInstallSheet from "./components/common/PwaInstallSheet";
+import {
+  dismissPwaInstallPrompt,
+  hasNativePwaInstallPrompt,
+  promptNativePwaInstall,
+} from "./utils/pwaInstall";
 
 // Desktop Layout Components
 import DesktopSidebar from "./components/layout/DesktopSidebar";
@@ -324,16 +332,37 @@ export default function App() {
   } = useClaimModal(showNotice);
 
   const [fieldClaimId, setFieldClaimId] = useState(null);
-  const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
+  const [fieldCameraCategory, setFieldCameraCategory] = useState(null);
   const [mobileTab, setMobileTab] = useState("brief");
   const [drawerClaim, setDrawerClaim] = useState(null);
+  const [inboxFocus, setInboxFocus] = useState(null);
+  const [receptieClaimId, setReceptieClaimId] = useState(null);
+  const [liveCameraOpen, setLiveCameraOpen] = useState(false);
+  const [whatsappSheet, setWhatsappSheet] = useState(null);
+  const [pwaInstallOpen, setPwaInstallOpen] = useState(false);
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
+    saveLastCaptureClaimId(claim.id);
+    setLiveCameraOpen(false);
+    setFieldCameraCategory(null);
     setFieldClaimId(claim.id);
   }, []);
 
+  const openMobileClaimWithCamera = useCallback((claim, category = null) => {
+    if (!claim?.id) return;
+    saveLastCaptureClaimId(claim.id);
+    setFieldCameraCategory(
+      ["receptie", "predare", "reconstatare"].includes(category) ? category : null
+    );
+    setFieldClaimId(claim.id);
+    setLiveCameraOpen(true);
+  }, []);
+
   const closeFieldClaim = useCallback(() => {
+    setLiveCameraOpen(false);
+    setWhatsappSheet(null);
+    setFieldCameraCategory(null);
     setFieldClaimId(null);
   }, []);
 
@@ -344,7 +373,13 @@ export default function App() {
     closeQuickCreate();
     closeQuickCapture();
     setFieldClaimId(null);
+    setFieldCameraCategory(null);
     setDrawerClaim(null);
+    setInboxFocus(null);
+    setReceptieClaimId(null);
+    setLiveCameraOpen(false);
+    setWhatsappSheet(null);
+    setPwaInstallOpen(false);
     setIsCommandPaletteOpen(false);
     setView("dosare");
     setDosareSubView("brief");
@@ -438,6 +473,11 @@ export default function App() {
       setariOpen,
       quickCreateOpen,
       quickCaptureOpen,
+      inboxFocus,
+      receptieClaimId,
+      liveCameraOpen,
+      whatsappOpen: Boolean(whatsappSheet),
+      pwaInstallOpen,
     },
     api: {
       closeClaim: closeClaimModal,
@@ -446,12 +486,19 @@ export default function App() {
       closeSettings,
       closeQuickCreate,
       closeQuickCapture,
+      closeInboxFocus: () => setInboxFocus(null),
+      closeReceptie: () => setReceptieClaimId(null),
+      closeLiveCamera: () => setLiveCameraOpen(false),
+      closeWhatsApp: () => setWhatsappSheet(null),
+      closePwaInstall: () => setPwaInstallOpen(false),
       openAlerts,
       openSettings,
       openField: (id) => setFieldClaimId(id),
       openClaim: openExisting,
       openQuickCreate: () => openNew(),
       openQuickCapture: () => openQuickCapture(),
+      openInboxFocus: (id) => setInboxFocus(id || null),
+      openReceptie: (id) => setReceptieClaimId(id || null),
     },
   });
 
@@ -496,6 +543,7 @@ export default function App() {
   }, [activeMode, requestClose, closeQuickCreate]);
 
   useEffect(() => {
+    if (activeMode === "mobile") return undefined;
     const handlePopState = (event) => {
       if (isNavigatingHistoryRef.current) return;
       isNavigatingHistoryRef.current = true;
@@ -512,6 +560,7 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [
+    activeMode,
     modalClaim,
     alerteModalTab,
     quickCreateOpen,
@@ -682,20 +731,13 @@ export default function App() {
 
     return (
       <ErrorBoundary>
+        <WhatsAppSheetProvider
+          payload={whatsappSheet}
+          onOpen={setWhatsappSheet}
+          onClose={() => requestClose("whatsapp")}
+        >
         <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
-        {!modalClaim && !fieldClaim && (
-          <SearchResultsOverlay
-            query={search}
-            claims={userClaims}
-            onSelect={(claim) => {
-              setSearch("");
-              openMobileClaim(claim);
-            }}
-            onClear={() => setSearch("")}
-            onNotify={showNotice}
-          />
-        )}
         <OnboardingModal
           open={onboardingOpen}
           onDismiss={dismissTour}
@@ -741,17 +783,25 @@ export default function App() {
             totalAlertsCount={totalAlertsCount}
             blockedCount={blockedCount}
             branding={branding}
-            captureFocusClaimId={captureFocusClaimId}
-            onCaptureFocusConsumed={() => setCaptureFocusClaimId(null)}
+            onOpenClaimWithCamera={openMobileClaimWithCamera}
             search={search}
             setSearch={setSearch}
             highlightClaimIds={highlightClaimIds}
             onMobileShellLockChange={setLockMobileShell}
             hideBottomChrome={Boolean(
-              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen
+              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen || receptieClaimId
             )}
             mobileTab={mobileTab}
             onMobileTabChange={handleMobileTabChange}
+            inboxFocus={inboxFocus}
+            onInboxFocusChange={setInboxFocus}
+            onCloseInboxFocus={() => requestClose("inbox")}
+            receptieClaimId={receptieClaimId}
+            onOpenReceptie={(claim) => {
+              if (claim?.id) setReceptieClaimId(claim.id);
+            }}
+            onCloseReceptie={() => requestClose("receptie")}
+            onOpenPwaInstall={() => setPwaInstallOpen(true)}
           />
         </Suspense>
 
@@ -845,10 +895,10 @@ export default function App() {
               canEdit={canEdit(fieldClaim)}
               onNotify={showNotice}
               userEmail={myEmail}
-              onCapturePhotos={(c) => {
-                setCaptureFocusClaimId(c.id);
-                requestCloseFieldClaim();
-              }}
+              liveCameraOpen={liveCameraOpen}
+              onLiveCameraOpen={() => setLiveCameraOpen(true)}
+              onLiveCameraClose={() => requestClose("liveCamera")}
+              initialCameraCategory={fieldCameraCategory}
             />
           </Suspense>
         )}
@@ -881,6 +931,22 @@ export default function App() {
             />
           </Suspense>
         )}
+
+        <WhatsAppSheet
+          payload={whatsappSheet}
+          onClose={() => requestClose("whatsapp")}
+        />
+        <PwaInstallSheet
+          open={pwaInstallOpen}
+          onClose={() => requestClose("pwaInstall")}
+          canNativeInstall={hasNativePwaInstallPrompt()}
+          onInstallNative={async () => {
+            await promptNativePwaInstall();
+            dismissPwaInstallPrompt();
+            requestClose("pwaInstall");
+          }}
+        />
+        </WhatsAppSheetProvider>
       </ErrorBoundary>
     );
   }

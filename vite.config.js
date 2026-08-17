@@ -17,6 +17,8 @@ export default defineConfig({
         theme_color: "#0d1117",
         background_color: "#0d1117",
         display: "standalone",
+        display_override: ["standalone", "minimal-ui"],
+        lang: "ro",
         orientation: "any",
         start_url: "/",
         icons: [

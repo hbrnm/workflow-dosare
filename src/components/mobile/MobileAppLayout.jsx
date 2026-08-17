@@ -1,27 +1,36 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Menu, Bell, Building2, Check, Ban,
+  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus, Camera, Share, X,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
 import MobileClaimsList from "./MobileClaimsList";
 import MobileProgramari from "./MobileProgramari";
 import MobileSearchBar from "./MobileSearchBar";
+import MobileSearchResults from "./MobileSearchResults";
 import EmptyWorkspace from "../common/EmptyWorkspace";
 import ListSkeleton from "../common/ListSkeleton";
 import LoadError from "../common/LoadError";
-import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
+import ReceptieAutoModal from "../modals/ReceptieAutoModal";
+import { loadLastCaptureClaimId, saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
+import {
+  mobileSearchHits,
+  resolveInboxFotoClaim,
+  shouldShowMobileSearchHits,
+  uniqueSearchMatch,
+} from "../../utils/mobileSearchNav";
+import { emailInitial } from "../../utils/userDisplay";
+import { loadCachedBranding } from "../../constants/branding";
+import {
+  dismissPwaInstallPrompt,
+  isStandaloneDisplay,
+  shouldPromptPwaInstall,
+} from "../../utils/pwaInstall";
 
-/** Navigare principală mobil — Brief e hub-ul; Dosare e inventar secundar. */
-const PRIMARY_NAV_ITEMS = [
-  { id: "brief", label: "Brief", Icon: BarChart3 },
-  { id: "capture", label: "Foto & Doc", Icon: Camera },
-  { id: "programari", label: "Programări", Icon: CalendarClock },
-];
-
-const SECONDARY_NAV_ITEMS = [
-  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
+const INVENTAR_NAV_ITEMS = [
+  { id: "capture", label: "Foto si documente", Icon: Camera, hint: "Adauga foto si documente la dosar" },
+  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Lista completa, piese sosite, blocate" },
 ];
 
 export default function MobileAppLayout({
@@ -52,8 +61,7 @@ export default function MobileAppLayout({
   totalAlertsCount = 0,
   blockedCount = 0,
   branding = null,
-  captureFocusClaimId = null,
-  onCaptureFocusConsumed,
+  onOpenClaimWithCamera = null,
   search = "",
   setSearch,
   highlightClaimIds = null,
@@ -61,6 +69,13 @@ export default function MobileAppLayout({
   hideBottomChrome = false,
   mobileTab = null,
   onMobileTabChange = null,
+  inboxFocus = null,
+  onInboxFocusChange = null,
+  onCloseInboxFocus = null,
+  receptieClaimId = null,
+  onOpenReceptie = null,
+  onCloseReceptie = null,
+  onOpenPwaInstall = null,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
   const [internalTab, setInternalTab] = useState("brief");
@@ -73,7 +88,10 @@ export default function MobileAppLayout({
   const [focusCaptureCategory, setFocusCaptureCategory] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dosareStatusFilter, setDosareStatusFilter] = useState("toate");
+  const [showPwaHint, setShowPwaHint] = useState(() => shouldPromptPwaInstall());
   const menuRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const autoOpenedQueryRef = useRef("");
 
   const openBlockedDosare = () => {
     softHaptic(8);
@@ -85,15 +103,6 @@ export default function MobileAppLayout({
   useEffect(() => {
     saveMobileTab(activeTab);
   }, [activeTab]);
-
-  useEffect(() => {
-    if (!captureFocusClaimId) return;
-    setFocusClaimId(captureFocusClaimId);
-    setFocusCaptureCategory(null);
-    setActiveTab("capture");
-    setMenuOpen(false);
-    onCaptureFocusConsumed?.();
-  }, [captureFocusClaimId, onCaptureFocusConsumed]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -119,9 +128,43 @@ export default function MobileAppLayout({
     return claims.filter((c) => claimMatchesSearch(c, q));
   }, [claims, search]);
 
+  const searchHits = useMemo(() => mobileSearchHits(claims, search), [claims, search]);
+  const uniqueHit = useMemo(() => uniqueSearchMatch(claims, search), [claims, search]);
+  const showSearchHits = shouldShowMobileSearchHits(search, uniqueHit ? 1 : searchHits.length);
+
+  const openSearchClaim = (claim) => {
+    if (!claim) return;
+    autoOpenedQueryRef.current = search.trim();
+    setSearch?.("");
+    onOpenClaim?.(claim);
+  };
+
   const handleSearchChange = (value) => {
     setSearch?.(value);
   };
+
+  const handleSearchSubmit = () => {
+    const q = search.trim();
+    if (!q) return;
+    if (uniqueHit) {
+      openSearchClaim(uniqueHit);
+      return;
+    }
+    if (searchHits.length > 0) openSearchClaim(searchHits[0]);
+  };
+
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) {
+      autoOpenedQueryRef.current = "";
+      return;
+    }
+    if (!uniqueHit) return;
+    if (autoOpenedQueryRef.current === q) return;
+    autoOpenedQueryRef.current = q;
+    setSearch?.("");
+    onOpenClaim?.(uniqueHit);
+  }, [search, uniqueHit, setSearch, onOpenClaim]);
 
   useEffect(() => {
     if (!highlightClaimIds?.size) return;
@@ -136,12 +179,38 @@ export default function MobileAppLayout({
     setMenuOpen(false);
   };
 
-  const openCaptureForClaim = (claimId, category = null) => {
-    softHaptic(8);
-    if (claimId) setFocusClaimId(claimId);
-    setFocusCaptureCategory(category || null);
-    setActiveTab("capture");
+  const openClaimCamera = (claim, category = null) => {
+    if (!claim || !onOpenClaimWithCamera) return false;
+    setSearch?.("");
     setMenuOpen(false);
+    onOpenClaimWithCamera(claim, category);
+    return true;
+  };
+
+  const openInboxFoto = (category = null) => {
+    const target = resolveInboxFotoClaim({
+      claims,
+      searchQuery: search,
+      lastClaimId: loadLastCaptureClaimId(),
+    });
+    if (openClaimCamera(target, category)) return;
+    const q = search.trim();
+    onNotify?.(
+      q
+        ? "Alege un dosar din lista de deasupra cautarii."
+        : "Cauta numarul auto sau deschide un dosar, apoi Foto.",
+      "info"
+    );
+  };
+
+  const openCaptureForClaim = (claimId = null, category = null) => {
+    softHaptic(8);
+    setMenuOpen(false);
+    if (claimId) {
+      const claim = (claims || []).find((c) => c.id === claimId);
+      if (openClaimCamera(claim, category)) return;
+    }
+    openInboxFoto(category);
   };
 
   const consumeCaptureFocus = () => {
@@ -150,14 +219,19 @@ export default function MobileAppLayout({
   };
 
   const atelierName = branding?.atelierNume || "Dosare Daună";
+  const letter = emailInitial(userEmail);
+  const receptieClaim = receptieClaimId
+    ? (claims || []).find((c) => c.id === receptieClaimId) || null
+    : null;
 
   return (
     <div
-      className={`mobile-shell app-shell fixed inset-0 flex flex-col overflow-hidden ${
+      className={`mobile-shell app-shell m-cursor-shell fixed inset-0 flex flex-col overflow-hidden ${
         hideBottomChrome ? "is-chrome-hidden" : ""
       }`}
     >
       {!hideBottomChrome && (
+      <div className="m-cursor-header">
       <div className="m-float-brand-wrap" ref={menuRef}>
         <button
           type="button"
@@ -168,50 +242,18 @@ export default function MobileAppLayout({
           }}
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          aria-label={`Meniu ${atelierName}`}
-          title={atelierName}
+          aria-label={`Meniu ${userEmail || atelierName}`}
+          title={userEmail || atelierName}
         >
-          {branding?.logoUrl ? (
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="m-float-brand-mark object-contain"
-            />
-          ) : (
-            <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
-              <Menu size={18} strokeWidth={2.25} />
-            </span>
-          )}
+          <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
+            {letter}
+          </span>
         </button>
 
         {menuOpen ? (
           <div className="m-float-menu" role="menu">
-            <div className="m-float-menu-label">Navigare</div>
-            {PRIMARY_NAV_ITEMS.map(({ id, label, Icon }) => {
-              const active = activeTab === id;
-              const badge = id === "brief" ? totalAlertsCount : 0;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="menuitem"
-                  className={`m-float-menu-item ${active ? "is-active" : ""}`}
-                  onClick={() => handleTabChange(id)}
-                >
-                  <span className="m-float-menu-icon">
-                    <Icon size={15} />
-                  </span>
-                  <span className="m-float-menu-item-label">{label}</span>
-                  {badge > 0 ? (
-                    <span className="m-float-menu-badge">{badge > 99 ? "99+" : badge}</span>
-                  ) : null}
-                </button>
-              );
-            })}
-
-            <div className="m-float-menu-divider" />
             <div className="m-float-menu-label">Inventar</div>
-            {SECONDARY_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
+            {INVENTAR_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
               const active = activeTab === id;
               return (
                 <button
@@ -219,7 +261,10 @@ export default function MobileAppLayout({
                   type="button"
                   role="menuitem"
                   className={`m-float-menu-item is-secondary ${active ? "is-active" : ""}`}
-                  onClick={() => handleTabChange(id)}
+                  onClick={() => {
+                    if (id === "capture") openCaptureForClaim();
+                    else handleTabChange(id);
+                  }}
                   title={hint}
                 >
                   <span className="m-float-menu-icon">
@@ -281,7 +326,7 @@ export default function MobileAppLayout({
             ) : null}
             {memberships.length > 1 ? (
               <>
-                <div className="m-float-menu-label mt-1">Schimbă Atelier</div>
+                <div className="m-float-menu-label mt-1">Schimba atelier</div>
                 {memberships.map((m) => {
                   const active = m.id === activeAtelierId;
                   return (
@@ -321,7 +366,24 @@ export default function MobileAppLayout({
                 <span className="m-float-menu-icon">
                   <Settings size={15} />
                 </span>
-                <span className="m-float-menu-item-label">Setări</span>
+                <span className="m-float-menu-item-label">Setari</span>
+              </button>
+            ) : null}
+            {onOpenPwaInstall && !isStandaloneDisplay() ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="m-float-menu-item"
+                onClick={() => {
+                  softHaptic(8);
+                  setMenuOpen(false);
+                  onOpenPwaInstall();
+                }}
+              >
+                <span className="m-float-menu-icon">
+                  <Share size={15} />
+                </span>
+                <span className="m-float-menu-item-label">Pe ecranul principal</span>
               </button>
             ) : null}
             <button
@@ -342,9 +404,25 @@ export default function MobileAppLayout({
           </div>
         ) : null}
       </div>
+      <div className="m-cursor-header-actions">
+        {onNewClaim && activeTab !== "capture" ? (
+          <button
+            type="button"
+            className="m-cursor-icon-btn"
+            onClick={() => {
+              softHaptic(8);
+              onNewClaim();
+            }}
+            aria-label="Dosar nou"
+          >
+            <FolderPlus size={22} strokeWidth={2} />
+          </button>
+        ) : null}
+      </div>
+      </div>
       )}
 
-      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 p-3 pb-28 overflow-y-auto scrollbar-thin">
+      <main className="mobile-main mobile-main--no-header flex-1 min-h-0 px-4 pb-28 overflow-y-auto scrollbar-thin">
         {loading ? (
           <ListSkeleton rows={5} />
         ) : loadError || isOffline ? (
@@ -391,7 +469,11 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             homeStyle="inbox"
             atelierNume={branding?.atelierNume}
-            searchActive={Boolean(search.trim())}
+            searchQuery={search}
+            inboxFocus={inboxFocus}
+            onInboxFocusChange={onInboxFocusChange}
+            onCloseInboxFocus={onCloseInboxFocus}
+            onOpenReceptie={onOpenReceptie}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
@@ -422,9 +504,57 @@ export default function MobileAppLayout({
 
       {!hideBottomChrome && (
         <div className="mobile-bottom-chrome mobile-bottom-chrome--float fixed bottom-0 left-0 right-0 z-50">
-          <MobileSearchBar value={search} onChange={handleSearchChange} />
+          {showSearchHits ? (
+            <MobileSearchResults
+              query={search}
+              matches={searchHits}
+              onSelect={openSearchClaim}
+            />
+          ) : null}
+          {showPwaHint && onOpenPwaInstall ? (
+            <div className="pwa-install-banner">
+              <button
+                type="button"
+                className="pwa-install-banner-go"
+                onClick={() => {
+                  softHaptic(8);
+                  onOpenPwaInstall();
+                }}
+              >
+                Adauga pe ecranul principal
+              </button>
+              <button
+                type="button"
+                className="pwa-install-banner-x"
+                aria-label="Nu arata iar"
+                onClick={() => {
+                  dismissPwaInstallPrompt();
+                  setShowPwaHint(false);
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : null}
+          <MobileSearchBar
+            value={search}
+            onChange={handleSearchChange}
+            onSubmit={handleSearchSubmit}
+            inputRef={searchInputRef}
+          />
         </div>
       )}
+
+      {receptieClaim ? (
+        <ReceptieAutoModal
+          isOpen
+          onClose={() => (onCloseReceptie ? onCloseReceptie() : null)}
+          claim={receptieClaim}
+          onPatchClaim={onPatchClaim}
+          onNotify={onNotify}
+          atelierBranding={branding || loadCachedBranding()}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  X, Phone, ChevronRight, Camera, FileText, Car, User,
+  X, Phone, ChevronRight, ChevronDown, Camera, FileText, Car, User,
   ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
@@ -14,6 +14,7 @@ import ClaimAuditMeta from "../common/ClaimAuditMeta";
 import ReceptieAutoModal from "../modals/ReceptieAutoModal";
 import SettlementPackageModal from "../modals/SettlementPackageModal";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { loadCachedBranding } from "../../constants/branding";
 
 /**
@@ -28,8 +29,11 @@ export default function MobileClaimSheet({
   onMoveToStatus,
   canEdit,
   onNotify,
-  onCapturePhotos,
   userEmail = "",
+  liveCameraOpen = undefined,
+  onLiveCameraOpen = null,
+  onLiveCameraClose = null,
+  initialCameraCategory = null,
 }) {
   const readOnly = !canEdit;
   const [plate, setPlate] = useState(claim?.numarInmatriculare || "");
@@ -45,14 +49,29 @@ export default function MobileClaimSheet({
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [showLiveCam, setShowLiveCam] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const cameraOpen = liveCameraOpen ?? showLiveCam;
+
+  const openLiveCam = () => {
+    if (onLiveCameraOpen) onLiveCameraOpen();
+    else setShowLiveCam(true);
+  };
+
+  const closeLiveCam = () => {
+    if (onLiveCameraClose) onLiveCameraClose();
+    else setShowLiveCam(false);
+  };
 
   const suggestedCategory = useMemo(() => {
+    if (["receptie", "predare", "reconstatare"].includes(initialCameraCategory)) {
+      return initialCameraCategory;
+    }
     const s = claim?.status;
     if (["deschidere", "intrare_in_lucru"].includes(s)) return "receptie";
     if (["constatare_efectuata", "piese_comandate", "in_lucru"].includes(s)) return "reconstatare";
     if (["reparatie_finalizata", "predat"].includes(s)) return "predare";
     return "receptie";
-  }, [claim?.status]);
+  }, [claim?.status, initialCameraCategory]);
 
   const handleDirectPhotoUpload = async (files, targetCategory = null) => {
     if (!claim?.id || readOnly || !files?.length) return;
@@ -226,7 +245,6 @@ export default function MobileClaimSheet({
             className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
             style={{ color: "inherit" }}
           />
-          <ClaimAuditMeta claim={claim} compact className="mt-1" />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
           {saving && <Loader2 size={16} className="animate-spin text-[var(--app-accent)]" />}
@@ -288,50 +306,10 @@ export default function MobileClaimSheet({
               })}
             </div>
           )}
-
-          {isPieseComandateStatus(claim.status) && (
-            <div className="mt-3 pt-3 border-t border-[var(--app-border)]">
-              <MobilePieseSositeRow
-                claim={claim}
-                canEdit={!readOnly}
-                onToggle={async (c, val) => {
-                  const ok = await onPatch?.(c.id, { pieseSosite: val });
-                  if (ok === false) return;
-                  onNotify?.(
-                    val
-                      ? "Piese marcate ca sosite — apasă Programare ca să alegi data."
-                      : "Bifa „Piese sosite” a fost stearsă.",
-                    val ? "success" : "info"
-                  );
-                }}
-                onSchedule={async (c, iso) => {
-                  const ok = await onPatch?.(c.id, { dataProgramare: iso });
-                  if (ok === false) return false;
-                  onNotify?.(
-                    `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
-                    "success"
-                  );
-                  return true;
-                }}
-              />
-            </div>
-          )}
         </section>
 
-        {/* Client + phone */}
-        <section className="m-sheet-card space-y-3">
-          <div className="flex items-center gap-2">
-            <User size={15} className="m-muted shrink-0" />
-            <input
-              type="text"
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              onBlur={handleBlurClient}
-              disabled={readOnly}
-              placeholder="Nume client"
-              className="flex-1 min-w-0 bg-transparent font-bold text-[14px] outline-none placeholder:opacity-40 disabled:opacity-80"
-            />
-          </div>
+        {/* Telefon */}
+        <section className="m-sheet-card">
           <div className="flex items-center gap-2">
             <Phone size={15} className="m-muted shrink-0" />
             <input
@@ -359,46 +337,28 @@ export default function MobileClaimSheet({
           </div>
         </section>
 
-        {/* Next step CTA */}
         {nextStatus && !readOnly && (
           <button
             type="button"
             onClick={() => onMoveToStatus?.(claim, nextStatus.key)}
-            className="m-sheet-cta"
+            className="m-sheet-next-row"
           >
-            <div className="text-left min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">Pas următor</div>
-              <div className="font-extrabold text-[15px] truncate" style={{ fontFamily: "var(--app-font-display)" }}>
-                {nextStatus.label}
-              </div>
-            </div>
-            <ArrowRight size={22} className="shrink-0" />
+            <span className="truncate">
+              Pas următor · {nextStatus.short || nextStatus.label}
+            </span>
+            <ArrowRight size={16} className="shrink-0" />
           </button>
         )}
 
-        {/* Photos strip */}
+        {/* Foto + Galerie */}
         <section className="m-sheet-card space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h3 className="font-extrabold text-[13px] flex items-center gap-1.5" style={{ fontFamily: "var(--app-font-display)" }}>
-              <Camera size={15} className="text-[var(--app-accent)]" />
-              Poze ({photos.length})
-            </h3>
-            <span className="m-ui-chip flex items-center gap-1">
-              <FileText size={12} /> {docs.length} doc
-            </span>
-          </div>
-
           {uploadingPhotos && (
             <div className="flex items-center justify-center gap-2 p-2 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/30 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
               <Loader2 size={15} className="animate-spin" /> Se încarcă fotografia...
             </div>
           )}
 
-          {photos.length === 0 ? (
-            <div className="m-ui-hint space-y-2">
-              <p>Nicio poză încă pe acest dosar.</p>
-            </div>
-          ) : (
+          {photos.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {photos.slice(0, 12).map((p, idx) => (
                 <button
@@ -406,30 +366,27 @@ export default function MobileClaimSheet({
                   type="button"
                   onClick={() => setPreviewIndex(idx)}
                   aria-label={`Vezi poza ${idx + 1}`}
-                  className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
+                  className="w-16 h-16 shrink-0 rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
                 >
                   <img src={p.url || p} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
           {!readOnly && (
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--app-border)]">
-              {/* Buton Cameră Live cu Shutter */}
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setShowLiveCam(true)}
+                onClick={openLiveCam}
                 className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs"
               >
                 <Camera size={15} />
                 <span>Foto</span>
               </button>
-
-              {/* Buton Galerie */}
               <label className="py-2.5 px-3 rounded-xl bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-strong)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all">
                 <ImageIcon size={15} />
-                <span>Din Galerie</span>
+                <span>Galerie</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -446,78 +403,136 @@ export default function MobileClaimSheet({
           )}
         </section>
 
-        {/* Quick note */}
-        <section className="m-sheet-card space-y-2.5">
-          <h3 className="font-extrabold text-[13px]" style={{ fontFamily: "var(--app-font-display)" }}>
-            Notiță rapidă
-          </h3>
-          {latestNote && (
-            <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-2xl px-3 py-2 border border-[var(--app-border)]">
-              <div className="text-[10px] font-bold mb-0.5 opacity-80">
-                {fmtDateTime(latestNote.data)}
-                {latestNote.author ? (
-                  <span className="ml-1.5 font-semibold text-[var(--app-text)]">
-                    · {latestNote.author}
-                  </span>
-                ) : null}
-              </div>
-              <div className="line-clamp-3 text-[var(--app-text)]">{latestNote.text}</div>
-            </div>
-          )}
-          {!readOnly && (
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={noteDraft}
-                onChange={(e) => setNoteDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddNote();
-                  }
-                }}
-                placeholder="Adaugă notiță…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-full border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[13px] font-semibold outline-none focus:bg-[var(--app-surface)]"
-              />
-              <button
-                type="button"
-                onClick={handleAddNote}
-                disabled={!noteDraft.trim()}
-                className="m-btn-primary px-3.5 py-2 rounded-full text-[12px] font-extrabold disabled:opacity-40"
-              >
-                Adaugă
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Butoane Rapide: Recepție cu Semnătură & Pachet Decont */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => setIsReceptieOpen(true)}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[12px] hover:bg-emerald-500/20 active:scale-95 transition-all"
-          >
-            <FileCheck size={14} /> Recepție &amp; Semnează
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsSettlementOpen(true)}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold text-[12px] hover:bg-indigo-500/20 active:scale-95 transition-all"
-          >
-            <FolderArchive size={14} /> Pachet Decont (ZIP)
-          </button>
-        </div>
-
         <button
           type="button"
-          onClick={() => onOpenFull?.(claim)}
-          className="m-sheet-link"
+          className="m-sheet-more-btn"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((v) => !v)}
         >
-          <ExternalLink size={15} />
-          Detalii complete
+          <span>{moreOpen ? "Mai putin" : "Mai mult"}</span>
+          <ChevronDown size={15} className={`transition-transform ${moreOpen ? "rotate-180" : ""}`} />
         </button>
+
+        {moreOpen ? (
+          <>
+            <section className="m-sheet-card space-y-3">
+              <ClaimAuditMeta claim={claim} compact />
+              <div className="flex items-center gap-2">
+                <User size={15} className="m-muted shrink-0" />
+                <input
+                  type="text"
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  onBlur={handleBlurClient}
+                  disabled={readOnly}
+                  placeholder="Nume client"
+                  className="flex-1 min-w-0 bg-transparent font-bold text-[14px] outline-none placeholder:opacity-40 disabled:opacity-80"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 text-[12px] m-muted">
+                <FileText size={12} /> {docs.length} doc · {photos.length} poze
+              </div>
+            </section>
+
+            {isPieseComandateStatus(claim.status) && (
+              <section className="m-sheet-card">
+                <MobilePieseSositeRow
+                  claim={claim}
+                  canEdit={!readOnly}
+                  onToggle={async (c, val) => {
+                    const ok = await onPatch?.(c.id, { pieseSosite: val });
+                    if (ok === false) return;
+                    onNotify?.(
+                      val
+                        ? "Piese marcate ca sosite — apasă Programare ca să alegi data."
+                        : "Bifa „Piese sosite” a fost stearsă.",
+                      val ? "success" : "info"
+                    );
+                  }}
+                  onSchedule={async (c, iso) => {
+                    const ok = await onPatch?.(c.id, { dataProgramare: iso });
+                    if (ok === false) return false;
+                    onNotify?.(
+                      `Programare salvată: ${String(iso).slice(0, 10)} ${String(iso).slice(11, 16) || ""}`.trim(),
+                      "success"
+                    );
+                    return true;
+                  }}
+                />
+              </section>
+            )}
+
+            <section className="m-sheet-card space-y-2.5">
+              <h3 className="font-extrabold text-[13px]" style={{ fontFamily: "var(--app-font-display)" }}>
+                Notiță rapidă
+              </h3>
+              {latestNote && (
+                <div className="text-[12px] m-muted bg-[var(--app-surface-2)] rounded-2xl px-3 py-2 border border-[var(--app-border)]">
+                  <div className="text-[10px] font-bold mb-0.5 opacity-80">
+                    {fmtDateTime(latestNote.data)}
+                    {latestNote.author ? (
+                      <span className="ml-1.5 font-semibold text-[var(--app-text)]">
+                        · {latestNote.author}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="line-clamp-3 text-[var(--app-text)]">{latestNote.text}</div>
+                </div>
+              )}
+              {!readOnly && (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddNote();
+                      }
+                    }}
+                    placeholder="Adaugă notiță…"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-full border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[13px] font-semibold outline-none focus:bg-[var(--app-surface)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNote}
+                    disabled={!noteDraft.trim()}
+                    className="m-btn-primary px-3.5 py-2 rounded-full text-[12px] font-extrabold disabled:opacity-40"
+                  >
+                    Adaugă
+                  </button>
+                </div>
+              )}
+            </section>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsReceptieOpen(true)}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold text-[12px] hover:bg-emerald-500/20 active:scale-95 transition-all"
+              >
+                <FileCheck size={14} /> Recepție &amp; Semnează
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSettlementOpen(true)}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-bold text-[12px] hover:bg-indigo-500/20 active:scale-95 transition-all"
+              >
+                <FolderArchive size={14} /> Pachet Decont (ZIP)
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onOpenFull?.(claim)}
+              className="m-sheet-link"
+            >
+              <ExternalLink size={15} />
+              Detalii complete
+            </button>
+          </>
+        ) : null}
       </div>
 
       {previewIndex != null && photos.length > 0 && (
@@ -552,11 +567,11 @@ export default function MobileClaimSheet({
       )}
 
       {/* Modal Cameră Foto Live — Fotografiază direct pe cardul dosarului fără să închidă fișa */}
-      {showLiveCam && (
+      {cameraOpen && (
         <LiveStreamCameraModal
           initialCategorie={suggestedCategory}
           onSavePhoto={(files, cat) => handleDirectPhotoUpload(files, cat)}
-          onClose={() => setShowLiveCam(false)}
+          onClose={closeLiveCam}
         />
       )}
     </div>

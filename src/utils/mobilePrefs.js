@@ -7,6 +7,7 @@ export const MOBILE_TABS = ["capture", "brief", "dosare", "programari"];
 export function loadMobileTab() {
   try {
     const id = localStorage.getItem(MOBILE_TAB_KEY);
+    if (id === "capture") return "brief";
     return MOBILE_TABS.includes(id) ? id : "brief";
   } catch {
     return "brief";

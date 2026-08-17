@@ -93,6 +93,19 @@ describe("createBackStack", () => {
     expect(stack.handlePopState()).toEqual({ t: "home" });
   });
 
+  it("whatsapp sheet Back returns to field", () => {
+    stack.push({ t: "overlay", name: "field", id: "c1", tab: "brief" });
+    stack.push({ t: "overlay", name: "whatsapp", tab: "brief" });
+    expect(stack.handlePopState()).toMatchObject({ name: "field", id: "c1" });
+    expect(stack.handlePopState()).toEqual({ t: "home" });
+  });
+
+  it("inbox overlay Back returns home", () => {
+    stack.push({ t: "overlay", name: "inbox", id: "lucru", tab: "brief" });
+    expect(stack.handlePopState()).toEqual({ t: "home" });
+    expect(stack.handlePopState()).toBe(null);
+  });
+
   it("dedupes identical pushes", () => {
     stack.push({ t: "tab", tab: "dosare" });
     stack.push({ t: "tab", tab: "dosare" });

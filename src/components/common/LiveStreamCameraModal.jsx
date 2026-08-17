@@ -1,8 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { X, Camera, AlertCircle, RefreshCw } from "lucide-react";
+import { X } from "lucide-react";
 import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
 import { useModalEscape } from "../../hooks/useModalEscape";
 import { compressImage } from "../../utils/imageUtils";
+import {
+  clearLiveCameraDenied,
+  isCameraPermissionDeniedError,
+  isLiveCameraDenied,
+  markLiveCameraDenied,
+} from "../../utils/cameraFallback";
 import "../../styles/liveCamera.css";
 
 export default function LiveStreamCameraModal({
@@ -11,7 +17,9 @@ export default function LiveStreamCameraModal({
   onSavePhoto,
   onClose,
 }) {
+  const isScan = String(initialCategorie || "").startsWith("scan_");
   const [categorie, setCategorie] = useState(initialCategorie);
+  const [pendingFiles, setPendingFiles] = useState(null);
   const [photoCount, setPhotoCount] = useState(0);
   const [lastThumbUrl, setLastThumbUrl] = useState(null);
   const [flash, setFlash] = useState(false);
@@ -23,6 +31,7 @@ export default function LiveStreamCameraModal({
   const aliveRef = useRef(true);
   const flashTimerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const nativePromptedRef = useRef(false);
 
   useModalEscape(onClose);
 
@@ -53,15 +62,30 @@ export default function LiveStreamCameraModal({
       videoRef.current.srcObject = stream;
       void videoRef.current.play().catch(() => {});
     }
+    clearLiveCameraDenied();
     setCameraError(null);
+  }, []);
+
+  const openNativeCamera = useCallback(() => {
+    if (nativePromptedRef.current) return;
+    nativePromptedRef.current = true;
+    fileInputRef.current?.click();
+    window.setTimeout(() => {
+      nativePromptedRef.current = false;
+    }, 800);
   }, []);
 
   const startCamera = useCallback(async () => {
     setCameraReady(false);
     setCameraError(null);
 
+    if (isLiveCameraDenied()) {
+      setCameraError("native");
+      return;
+    }
+
     if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Camera video nu este suportată de acest browser.");
+      setCameraError("native");
       return;
     }
 
@@ -79,7 +103,8 @@ export default function LiveStreamCameraModal({
       attachStream(stream);
     } catch (err) {
       console.warn("Camera video stream failed:", err);
-      setCameraError("Permisiunea camerei a fost refuzată sau camera este indisponibilă.");
+      if (isCameraPermissionDeniedError(err)) markLiveCameraDenied();
+      setCameraError("native");
     }
   }, [attachStream, stopStream]);
 
@@ -89,7 +114,6 @@ export default function LiveStreamCameraModal({
     if (initialStream) attachStream(initialStream);
     else startCamera();
 
-    // Reia stream-ul la revenirea din background pe telefoane mobile (iOS Safari / Android)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && aliveRef.current && !streamRef.current) {
         startCamera();
@@ -112,12 +136,38 @@ export default function LiveStreamCameraModal({
     };
   }, [initialStream, startCamera, attachStream, stopStream]);
 
+  useEffect(() => {
+    if (!cameraError || pendingFiles?.length) return undefined;
+    const coarse = typeof window !== "undefined"
+      && window.matchMedia?.("(pointer: coarse)")?.matches;
+    if (!coarse) return undefined;
+    const t = window.setTimeout(() => openNativeCamera(), 0);
+    return () => window.clearTimeout(t);
+  }, [cameraError, pendingFiles, openNativeCamera]);
+
   const setThumbFromBlob = (blob) => {
     if (!blob || !aliveRef.current) return;
     const nextUrl = URL.createObjectURL(blob);
     if (thumbUrlRef.current) URL.revokeObjectURL(thumbUrlRef.current);
     thumbUrlRef.current = nextUrl;
     setLastThumbUrl(nextUrl);
+  };
+
+  const saveFiles = async (files, cat) => {
+    if (!files?.length) return;
+    if (aliveRef.current) setPhotoCount((c) => c + files.length);
+    if (typeof onSavePhoto === "function") {
+      await onSavePhoto(files, cat);
+    }
+  };
+
+  const queueFiles = (files) => {
+    if (!files?.length || !aliveRef.current) return;
+    if (isScan) {
+      void saveFiles(files, categorie);
+      return;
+    }
+    setPendingFiles(files);
   };
 
   const capturePhotoInstantly = async () => {
@@ -152,18 +202,13 @@ export default function LiveStreamCameraModal({
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(async (blob) => {
-        // Zero-memory cleanup pe WebKit
         canvas.width = 0;
         canvas.height = 0;
-
         if (!blob || !aliveRef.current) return;
         try {
           setThumbFromBlob(blob);
-          const file = new File([blob], `Foto_${categorie}_${Date.now()}.jpg`, { type: "image/jpeg" });
-          if (aliveRef.current) setPhotoCount((c) => c + 1);
-          if (typeof onSavePhoto === "function") {
-            await onSavePhoto([file], categorie);
-          }
+          const file = new File([blob], `Foto_${Date.now()}.jpg`, { type: "image/jpeg" });
+          queueFiles([file]);
         } catch (err) {
           console.error("Camera save failed:", err);
         }
@@ -176,6 +221,7 @@ export default function LiveStreamCameraModal({
   const handleNativeFallbackInput = async (e) => {
     if (!e.target.files || !e.target.files.length) return;
     const rawFiles = Array.from(e.target.files);
+    e.target.value = "";
     try {
       const optimizedFiles = [];
       for (const file of rawFiles) {
@@ -183,75 +229,60 @@ export default function LiveStreamCameraModal({
         optimizedFiles.push(opt);
         setThumbFromBlob(opt);
       }
-      if (aliveRef.current) setPhotoCount((c) => c + optimizedFiles.length);
-      if (typeof onSavePhoto === "function") {
-        await onSavePhoto(optimizedFiles, categorie);
-      }
+      queueFiles(optimizedFiles);
     } catch (err) {
       console.error("Native capture save error:", err);
     }
   };
 
-  const activeCat = PHOTO_CATEGORIES.find((c) => c.key === categorie);
+  const assignFolder = async (key) => {
+    const files = pendingFiles;
+    setCategorie(key);
+    setPendingFiles(null);
+    await saveFiles(files, key);
+  };
+
+  const handleClose = async () => {
+    if (pendingFiles?.length) {
+      const cat = ["receptie", "predare", "reconstatare"].includes(categorie)
+        ? categorie
+        : initialCategorie;
+      await saveFiles(pendingFiles, cat);
+      setPendingFiles(null);
+    }
+    onClose?.();
+  };
+
+  const waitingFolder = Boolean(pendingFiles?.length) && !isScan;
+  const useNativeShutter = Boolean(cameraError) && !waitingFolder;
 
   return (
     <div className="live-cam fixed inset-0 z-[10000] bg-black text-white overflow-hidden select-none">
       <div className="live-cam-rail live-cam-rail--start">
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="live-cam-icon-btn min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Închide camera"
         >
           <X size={22} />
         </button>
-        <div className="live-cam-cats">
-          {categorie.startsWith("scan_") ? (
+        {isScan ? (
+          <div className="live-cam-cats">
             <div className="live-cam-cat is-active bg-[var(--app-accent)] text-white">
               {categorie === "scan_crop" ? "Scan Document" : "Scan Multi-pagină"}
             </div>
-          ) : (
-            PHOTO_CATEGORIES.map(({ key, label, color }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setCategorie(key)}
-                className={`live-cam-cat ${categorie === key ? `is-active ${color}` : ""}`}
-              >
-                {label}
-              </button>
-            ))
-          )}
-        </div>
+          </div>
+        ) : (
+          <p className="live-cam-hint">
+            {waitingFolder ? "Alege folderul pozei" : "Fotografiază, apoi alege folderul"}
+          </p>
+        )}
       </div>
 
       <div className="live-cam-stage">
         {cameraError ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm mx-auto">
-            <AlertCircle size={40} className="text-amber-400" />
-            <div>
-              <p className="text-[14px] font-bold text-white">{cameraError}</p>
-              <p className="text-[12px] text-white/60 mt-1">
-                Poți face fotografii folosind camera nativă a telefonului.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={startCamera}
-                className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[12px] font-semibold flex items-center gap-1.5"
-              >
-                <RefreshCw size={14} /> Reîncearcă
-              </button>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] rounded-xl text-[12px] font-bold flex items-center gap-1.5 text-white"
-              >
-                <Camera size={14} /> Fă Foto Nativ
-              </button>
-            </div>
-          </div>
+          <div className="live-cam-native-stage" aria-hidden="true" />
         ) : (
           <video
             ref={videoRef}
@@ -273,40 +304,55 @@ export default function LiveStreamCameraModal({
             aria-label={`${photoCount} ${photoCount === 1 ? "poză salvată" : "poze salvate"}`}
           >
             <img src={lastThumbUrl} alt="Ultima poză salvată" draggable={false} />
-            <span className="live-cam-thumb-count">{photoCount}</span>
+            <span className="live-cam-thumb-count">{photoCount + (waitingFolder ? pendingFiles.length : 0)}</span>
           </div>
         ) : null}
       </div>
 
-      {/* Input nativ ascuns pentru fallback */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        multiple
         className="hidden"
         onChange={handleNativeFallbackInput}
       />
 
       <div className="live-cam-rail live-cam-rail--end">
-        <div className="live-cam-cat-label">{activeCat?.label || categorie}</div>
-        <button
-          type="button"
-          onClick={cameraError ? () => fileInputRef.current?.click() : capturePhotoInstantly}
-          className="live-cam-shutter"
-          disabled={!cameraReady && !cameraError}
-          aria-label="Fotografiază"
-        >
-          <span className="live-cam-shutter-inner" />
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="live-cam-done min-w-[44px] min-h-[44px] flex items-center justify-center font-bold"
-        >
-          Gata
-        </button>
+        {waitingFolder ? (
+          <div className="live-cam-folder-pick" role="group" aria-label="Folder poză">
+            {PHOTO_CATEGORIES.map(({ key, label, color }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => assignFolder(key)}
+                className={`live-cam-cat live-cam-folder-btn ${key === initialCategorie ? `is-active ${color}` : ""}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="live-cam-cat-label">Foto</div>
+            <button
+              type="button"
+              onClick={useNativeShutter ? openNativeCamera : capturePhotoInstantly}
+              className="live-cam-shutter"
+              disabled={!cameraReady && !cameraError}
+              aria-label="Fotografiază"
+            >
+              <span className="live-cam-shutter-inner" />
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="live-cam-done min-w-[44px] min-h-[44px] flex items-center justify-center font-bold"
+            >
+              Gata
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
