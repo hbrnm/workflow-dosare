@@ -11,9 +11,9 @@ import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
 import PhotoLightbox from "../common/PhotoLightbox";
 import ClaimAuditMeta from "../common/ClaimAuditMeta";
-import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import ReceptieAutoModal from "../modals/ReceptieAutoModal";
 import SettlementPackageModal from "../modals/SettlementPackageModal";
+import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadCachedBranding } from "../../constants/branding";
 
 /**
@@ -44,8 +44,9 @@ export default function MobileClaimSheet({
   const [isReceptieOpen, setIsReceptieOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [showLiveCam, setShowLiveCam] = useState(false);
 
-  const handleDirectPhotoUpload = async (files) => {
+  const handleDirectPhotoUpload = async (files, targetCategory = "generale") => {
     if (!claim?.id || readOnly || !files?.length) return;
     setUploadingPhotos(true);
     try {
@@ -63,7 +64,7 @@ export default function MobileClaimSheet({
           folder: "poze",
           bucketName: "poze-dosare",
           extraFields: {
-            categoria: "generale",
+            categoria: targetCategory || "generale",
             nume: file.name || `foto_mobil_${todayISO()}.jpg`,
             data: todayISO(),
           },
@@ -391,22 +392,15 @@ export default function MobileClaimSheet({
 
           {!readOnly && (
             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--app-border)]">
-              {/* Buton Cameră Directă */}
-              <label className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs">
+              {/* Buton Cameră Live cu Shutter */}
+              <button
+                type="button"
+                onClick={() => setShowLiveCam(true)}
+                className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs"
+              >
                 <Camera size={15} />
-                <span>Fă o poză</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) handleDirectPhotoUpload(files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+                <span>Cameră Foto Live</span>
+              </button>
 
               {/* Buton Galerie */}
               <label className="py-2.5 px-3 rounded-xl bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-strong)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all">
@@ -419,7 +413,7 @@ export default function MobileClaimSheet({
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    if (files.length > 0) handleDirectPhotoUpload(files);
+                    if (files.length > 0) handleDirectPhotoUpload(files, "generale");
                     e.target.value = "";
                   }}
                 />
@@ -427,14 +421,25 @@ export default function MobileClaimSheet({
             </div>
           )}
 
-          {onCapturePhotos && !readOnly && (
-            <button
-              type="button"
-              onClick={() => onCapturePhotos(claim)}
-              className="m-sheet-link text-[11.5px] font-bold text-[var(--app-muted)] hover:text-[var(--app-text-strong)]"
-            >
-              <Camera size={14} /> Deschide Modul Studio / Scanner
-            </button>
+          {!readOnly && (
+            <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--app-muted)] pt-0.5">
+              <span>Opțiune foto nativă:</span>
+              <label className="cursor-pointer font-bold text-[var(--app-text)] hover:underline flex items-center gap-1">
+                <Camera size={13} />
+                <span>Cameră Nativă Phone</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) handleDirectPhotoUpload(files, "generale");
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           )}
         </section>
 
@@ -540,6 +545,15 @@ export default function MobileClaimSheet({
           claim={claim}
           onNotify={onNotify}
           atelierBranding={loadCachedBranding()}
+        />
+      )}
+
+      {/* Modal Cameră Foto Live — Fotografiază direct pe cardul dosarului fără să închidă fișa */}
+      {showLiveCam && (
+        <LiveStreamCameraModal
+          initialCategorie="receptie"
+          onSavePhoto={(files, cat) => handleDirectPhotoUpload(files, cat)}
+          onClose={() => setShowLiveCam(false)}
         />
       )}
     </div>
