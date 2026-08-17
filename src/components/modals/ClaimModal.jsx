@@ -1216,15 +1216,7 @@ export default function ClaimModal({
                 />
               )}
 
-              {/* Galerie fullscreen — swipe între poze */}
-              {previewPozaIndex != null && form.poze?.length > 0 && (
-                <PhotoLightbox
-                  items={form.poze}
-                  startIndex={previewPozaIndex}
-                  onClose={() => setPreviewPozaIndex(null)}
-                  zIndexClass="z-[10050]"
-                />
-              )}
+
 
               {/* Crop Modal */}
               {cropImageSrc && (
@@ -1345,6 +1337,16 @@ export default function ClaimModal({
             claim={form}
             onNotify={onNotify}
             atelierBranding={loadCachedBranding()}
+          />
+        )}
+
+        {/* Galerie foto fullscreen — deschisă peste întregul card al dosarului (z-20000) */}
+        {previewPozaIndex != null && form.poze?.length > 0 && (
+          <PhotoLightbox
+            items={form.poze}
+            startIndex={previewPozaIndex}
+            onClose={() => setPreviewPozaIndex(null)}
+            zIndexClass="z-[20000]"
           />
         )}
       </div>

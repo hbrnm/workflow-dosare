@@ -103,26 +103,26 @@ export default function PhotoLightbox({
 
   return (
     <div
-      className={`photo-lightbox fixed inset-0 ${zIndexClass} bg-black/92 flex flex-col text-white`}
+      className={`photo-lightbox fixed inset-0 ${zIndexClass} bg-black/95 backdrop-blur-md flex flex-col text-white select-none`}
       role="dialog"
       aria-modal="true"
       aria-label="Galerie fotografii"
     >
-      <div className="flex items-center justify-between gap-2 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 pt-[max(0.85rem,env(safe-area-inset-top))] pb-3 shrink-0 bg-black/40 border-b border-white/10">
         <div className="min-w-0 flex-1">
           <div className="text-[13px] font-bold truncate">{title}</div>
-          <div className="text-[11px] text-white/60 font-semibold tabular-nums">
+          <div className="text-[11px] text-white/70 font-semibold tabular-nums mt-0.5">
             {index + 1} / {list.length}
             {category ? ` · ${category}` : ""}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {originalUrl ? (
             <a
               href={originalUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-[11px] font-bold text-emerald-300 hover:underline px-2 py-1"
+              className="text-[11px] font-extrabold text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 px-2.5 py-1 rounded-lg transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               Original
@@ -131,10 +131,10 @@ export default function PhotoLightbox({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full bg-white/10 hover:bg-[#B23A2E] transition-colors"
+            className="p-2 rounded-full bg-white/10 hover:bg-[#B23A2E] text-white transition-colors cursor-pointer active:scale-95"
             aria-label="Închide"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
       </div>
