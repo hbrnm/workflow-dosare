@@ -423,7 +423,7 @@ export default function MobileClaimSheet({
                 className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs"
               >
                 <Camera size={15} />
-                <span>Cameră Foto Live</span>
+                <span>Foto</span>
               </button>
 
               {/* Buton Galerie */}

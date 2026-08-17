@@ -421,7 +421,7 @@ export default function QuickViewDrawer({
                   onClick={() => setShowLiveCam(true)}
                   className="py-2 px-2.5 rounded-lg bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[11.5px] font-extrabold flex items-center justify-center gap-1 active:scale-95 transition-all shadow-xs cursor-pointer"
                 >
-                  <Camera size={13} /> Live Cam
+                  <Camera size={13} /> Foto
                 </button>
                 <label className="py-2 px-2.5 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-strong)] text-[11.5px] font-extrabold flex items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all">
                   <ImageIcon size={13} /> Galerie

@@ -131,7 +131,7 @@ export default function CommandPalette({
     // Acțiuni rapide
     const actions = [
       { type: "action", id: "new", label: "Creează Dosar Nou", sub: "Adaugă un dosar de daună în sistem", icon: Plus, handler: onOpenNewClaim },
-      { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte, cameră live", icon: Camera, handler: onOpenQuickCapture },
+      { type: "action", id: "capture", label: "Poze & Documente Rapid", sub: "Captură foto, scan acte, galerie", icon: Camera, handler: onOpenQuickCapture },
       { type: "action", id: "ai", label: "Importă Deviz (Audatex / DAT)", sub: "Extrage automat datele din devize", icon: FileText, handler: onOpenAiScan },
       { type: "action", id: "alerts", label: "Centru de Alerte", sub: "Deschide alertele active și acțiunile urgente", icon: Sparkles, handler: onOpenAlerts },
       { type: "action", id: "blocked", label: "Dosare Blocate", sub: "Vezi inventarul de dosare blocate", icon: FileText, handler: onOpenBlocked },
