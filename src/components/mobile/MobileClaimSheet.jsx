@@ -46,8 +46,17 @@ export default function MobileClaimSheet({
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [showLiveCam, setShowLiveCam] = useState(false);
 
-  const handleDirectPhotoUpload = async (files, targetCategory = "generale") => {
+  const suggestedCategory = useMemo(() => {
+    const s = claim?.status;
+    if (["deschidere", "intrare_in_lucru"].includes(s)) return "receptie";
+    if (["constatare_efectuata", "piese_comandate", "in_lucru"].includes(s)) return "reconstatare";
+    if (["reparatie_finalizata", "predat"].includes(s)) return "predare";
+    return "receptie";
+  }, [claim?.status]);
+
+  const handleDirectPhotoUpload = async (files, targetCategory = null) => {
     if (!claim?.id || readOnly || !files?.length) return;
+    const cat = targetCategory || suggestedCategory;
     setUploadingPhotos(true);
     try {
       const uploadedPhotos = [];
@@ -64,8 +73,8 @@ export default function MobileClaimSheet({
           folder: "poze",
           bucketName: "poze-dosare",
           extraFields: {
-            categoria: targetCategory || "generale",
-            nume: file.name || `foto_mobil_${todayISO()}.jpg`,
+            categoria: cat,
+            nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
             data: todayISO(),
           },
         });
@@ -74,14 +83,29 @@ export default function MobileClaimSheet({
         }
       }
       if (uploadedPhotos.length > 0) {
-        await onPatch?.(claim.id, { appendPoze: uploadedPhotos }, { canEditFn: () => !readOnly });
+        const patchData = { appendPoze: uploadedPhotos };
+        
+        // Automatism 1: Dacă dosarul este la "Deschidere", avansează automat la "Intrare în lucru" la adăugarea primelor foto
+        let statusAdvanced = false;
+        if (claim.status === "deschidere") {
+          patchData.status = "intrare_in_lucru";
+          patchData.dataSchimbareStatus = todayISO();
+          statusAdvanced = true;
+        }
+
+        await onPatch?.(claim.id, patchData, { canEditFn: () => !readOnly });
         const updatedPoze = await refreshStorageUrls(
           [...(claim.poze || []), ...uploadedPhotos],
           "poze-dosare",
           supabase
         );
         setPhotos(updatedPoze);
-        onNotify?.(`S-au salvat ${uploadedPhotos.length} foto în dosar.`, "success");
+
+        if (statusAdvanced) {
+          onNotify?.(`S-au salvat ${uploadedPhotos.length} foto. Status avansat automat la „Intrare în lucru”.`, "success");
+        } else {
+          onNotify?.(`S-au salvat ${uploadedPhotos.length} foto [${cat.toUpperCase()}] în dosar.`, "success");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -413,28 +437,7 @@ export default function MobileClaimSheet({
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
-                    if (files.length > 0) handleDirectPhotoUpload(files, "generale");
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          )}
-
-          {!readOnly && (
-            <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--app-muted)] pt-0.5">
-              <span>Opțiune foto nativă:</span>
-              <label className="cursor-pointer font-bold text-[var(--app-text)] hover:underline flex items-center gap-1">
-                <Camera size={13} />
-                <span>Cameră Nativă Phone</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) handleDirectPhotoUpload(files, "generale");
+                    if (files.length > 0) handleDirectPhotoUpload(files);
                     e.target.value = "";
                   }}
                 />
@@ -551,7 +554,7 @@ export default function MobileClaimSheet({
       {/* Modal Cameră Foto Live — Fotografiază direct pe cardul dosarului fără să închidă fișa */}
       {showLiveCam && (
         <LiveStreamCameraModal
-          initialCategorie="receptie"
+          initialCategorie={suggestedCategory}
           onSavePhoto={(files, cat) => handleDirectPhotoUpload(files, cat)}
           onClose={() => setShowLiveCam(false)}
         />
