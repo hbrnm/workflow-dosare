@@ -147,15 +147,26 @@ export function useMobileBackStack({
 
   const requestClose = useCallback((name) => {
     const a = apiRef.current;
-    // Close UI immediately; sync History stack afterward
-    if (name === "alerte") a.closeAlerts?.();
-    else if (name === "setari") a.closeSettings?.();
-    else if (name === "claim") a.closeClaim?.();
-    else if (name === "field") a.closeField?.();
-    else if (name === "quickCreate") a.closeQuickCreate?.();
-    else if (name === "quickCapture") a.closeQuickCapture?.();
+    const topFrame = stackRef.current?.top?.();
+    const targetName = name || (topFrame?.t === "overlay" ? topFrame?.name : null);
 
-    stackRef.current.dismiss((f) => f.t === "overlay" && f.name === name);
+    if (targetName === "alerte") a.closeAlerts?.();
+    else if (targetName === "setari") a.closeSettings?.();
+    else if (targetName === "claim") a.closeClaim?.();
+    else if (targetName === "field") a.closeField?.();
+    else if (targetName === "quickCreate") a.closeQuickCreate?.();
+    else if (targetName === "quickCapture") a.closeQuickCapture?.();
+
+    if (targetName) {
+      stackRef.current.dismiss((f) => f.t === "overlay" && f.name === targetName);
+    } else {
+      a.closeClaim?.();
+      a.closeField?.();
+      a.closeAlerts?.();
+      a.closeSettings?.();
+      a.closeQuickCreate?.();
+      a.closeQuickCapture?.();
+    }
   }, []);
 
   const openClaimFromAlerts = useCallback((claim) => {

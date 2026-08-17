@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   X, Phone, ChevronRight, Camera, FileText, Car, User,
-  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive
+  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon
 } from "lucide-react";
-import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus } from "../../constants/config";
-import { telLink, nowISO, uid, fmtDateTime } from "../../utils/dateUtils";
-import { refreshStorageUrls } from "../../utils/claimUtils";
+import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
+import { telLink, nowISO, uid, fmtDateTime, todayISO } from "../../utils/dateUtils";
+import { refreshStorageUrls, uploadStorageItem } from "../../utils/claimUtils";
+import { compressImage } from "../../utils/imageUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
 import PhotoLightbox from "../common/PhotoLightbox";
@@ -42,6 +43,52 @@ export default function MobileClaimSheet({
   const [previewIndex, setPreviewIndex] = useState(null);
   const [isReceptieOpen, setIsReceptieOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  const handleDirectPhotoUpload = async (files) => {
+    if (!claim?.id || readOnly || !files?.length) return;
+    setUploadingPhotos(true);
+    try {
+      const uploadedPhotos = [];
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+          onNotify?.(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
+          continue;
+        }
+        const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
+          claimId: claim.id,
+          file: optimizedFile,
+          folder: "poze",
+          bucketName: "poze-dosare",
+          extraFields: {
+            categoria: "generale",
+            nume: file.name || `foto_mobil_${todayISO()}.jpg`,
+            data: todayISO(),
+          },
+        });
+        if (uploaded) {
+          uploadedPhotos.push(uploaded);
+        }
+      }
+      if (uploadedPhotos.length > 0) {
+        await onPatch?.(claim.id, { appendPoze: uploadedPhotos }, { canEditFn: () => !readOnly });
+        const updatedPoze = await refreshStorageUrls(
+          [...(claim.poze || []), ...uploadedPhotos],
+          "poze-dosare",
+          supabase
+        );
+        setPhotos(updatedPoze);
+        onNotify?.(`S-au salvat ${uploadedPhotos.length} foto în dosar.`, "success");
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify?.("Eroare la încărcarea fotografiilor: " + err.message, "error");
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
 
   // Keep local fields in sync when realtime / patch refreshes the claim
   useEffect(() => {
@@ -316,18 +363,15 @@ export default function MobileClaimSheet({
             </span>
           </div>
 
+          {uploadingPhotos && (
+            <div className="flex items-center justify-center gap-2 p-2 bg-[var(--app-surface-2)] border border-[var(--app-accent)]/30 rounded-xl text-[12px] font-bold text-[var(--app-accent)]">
+              <Loader2 size={15} className="animate-spin" /> Se încarcă fotografia...
+            </div>
+          )}
+
           {photos.length === 0 ? (
             <div className="m-ui-hint space-y-2">
               <p>Nicio poză încă pe acest dosar.</p>
-              {onCapturePhotos && !readOnly && (
-                <button
-                  type="button"
-                  onClick={() => onCapturePhotos(claim)}
-                  className="m-btn-primary inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-extrabold active:scale-[0.98]"
-                >
-                  <Camera size={14} /> Fotografiază acum
-                </button>
-              )}
             </div>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
@@ -345,13 +389,51 @@ export default function MobileClaimSheet({
             </div>
           )}
 
-          {onCapturePhotos && !readOnly && photos.length > 0 && (
+          {!readOnly && (
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--app-border)]">
+              {/* Buton Cameră Directă */}
+              <label className="py-2.5 px-3 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all shadow-xs">
+                <Camera size={15} />
+                <span>Fă o poză</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) handleDirectPhotoUpload(files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+
+              {/* Buton Galerie */}
+              <label className="py-2.5 px-3 rounded-xl bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-hover)] border border-[var(--app-border)] text-[var(--app-text-strong)] text-[12px] font-extrabold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all">
+                <ImageIcon size={15} />
+                <span>Din Galerie</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) handleDirectPhotoUpload(files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          )}
+
+          {onCapturePhotos && !readOnly && (
             <button
               type="button"
               onClick={() => onCapturePhotos(claim)}
-              className="m-sheet-link"
+              className="m-sheet-link text-[11.5px] font-bold text-[var(--app-muted)] hover:text-[var(--app-text-strong)]"
             >
-              <Camera size={16} /> Adaugă poze
+              <Camera size={14} /> Deschide Modul Studio / Scanner
             </button>
           )}
         </section>

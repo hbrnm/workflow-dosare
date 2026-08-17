@@ -457,7 +457,7 @@ export default function App() {
 
   const requestCloseClaimModal = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose();
+      requestClose("claim");
       return;
     }
     closeClaimModal();
@@ -465,7 +465,7 @@ export default function App() {
 
   const requestCloseFieldClaim = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose();
+      requestClose("field");
       return;
     }
     closeFieldClaim();
@@ -473,7 +473,7 @@ export default function App() {
 
   const requestCloseAlerts = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose();
+      requestClose("alerte");
       return;
     }
     closeAlerts();
@@ -481,7 +481,7 @@ export default function App() {
 
   const requestCloseSettings = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose();
+      requestClose("setari");
       return;
     }
     closeSettings();
@@ -489,7 +489,7 @@ export default function App() {
 
   const requestCloseQuickCreate = useCallback(() => {
     if (activeMode === "mobile") {
-      requestClose();
+      requestClose("quickCreate");
       return;
     }
     closeQuickCreate();
