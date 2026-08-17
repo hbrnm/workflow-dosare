@@ -18,6 +18,7 @@ import AlertBadge from "../common/AlertBadge";
 import WhatsAppButton from "../common/WhatsAppButton";
 import DosarNumber from "../common/DosarNumber";
 import FluxHeaderBar from "../common/FluxHeaderBar";
+import ClaimPlate from "../common/ClaimPlate";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 import {
   isSearchHighlighted,
@@ -206,7 +207,7 @@ export default function ClaimTable({
             <span className="font-mono font-black text-[13px] tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1.5">
               {inGroup && <span className="text-[var(--app-muted)] text-[10px]">↳</span>}
               <span className="bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-zinc-700">
-                {c.numarInmatriculare || "—"}
+                <ClaimPlate value={c.numarInmatriculare} />
               </span>
               {c.blocat && (
                 <span className="text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>

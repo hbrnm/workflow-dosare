@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
+import { UI_COPY } from "../../constants/uiCopy";
 import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
 import { compressImage } from "../../utils/imageUtils";
 import { fileToDataUrl, buildScanPdfBlob } from "../../utils/documentScanner";
@@ -402,7 +403,7 @@ export default function MobileQuickCapture({
       <div className="flex items-center justify-between gap-3 pl-12 pr-1 pt-1 min-h-[44px]">
         <div className="min-w-0">
           <h1 className="text-[17px] font-black text-[var(--app-text-strong)] tracking-tight truncate" style={{ fontFamily: "var(--app-font-display)" }}>
-            Captură Foto &amp; Doc
+            {UI_COPY.fotoSiDocumente}
           </h1>
           <p className="text-[11px] text-[var(--app-muted)] font-medium truncate">
             Selectează dosarul pentru fotografiere

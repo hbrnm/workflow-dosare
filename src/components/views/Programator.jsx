@@ -318,7 +318,7 @@ export default function Programator({
     printWindow.document.write(`
       <html>
         <head>
-          <title>Programari Service - ${activeDayFormatted}</title>
+          <title>Programări Service - ${activeDayFormatted}</title>
           <style>
             body { font-family: system-ui, sans-serif; padding: 25px; color: #111; }
             h2 { border-bottom: 2px solid #23282E; padding-bottom: 6px; margin-bottom: 12px; font-size: 18px; }

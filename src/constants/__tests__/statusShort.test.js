@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { getStatusShortLabel } from "../config";
+import { getStatusShortLabel, getStatusFolderLabel } from "../config";
 import { copyClaimNumber } from "../../utils/copyClaimNumber";
 
 describe("getStatusShortLabel", () => {
@@ -10,6 +10,16 @@ describe("getStatusShortLabel", () => {
     expect(getStatusShortLabel("piese_sosite")).toBe("Piese"); // migrated
     expect(getStatusShortLabel("in_lucru")).toBe("Repar.");
     expect(getStatusShortLabel("predat_client")).toBe("AP"); // migrated → accept_plata
+  });
+});
+
+describe("getStatusFolderLabel", () => {
+  it("uses the same stage words on desktop and mobile", () => {
+    expect(getStatusFolderLabel("deschidere")).toBe("Acord reparație");
+    expect(getStatusFolderLabel("deschidere", { upper: true })).toBe("ACORD REPARAȚIE");
+    expect(getStatusFolderLabel("programat", { upper: true })).toBe("PROGRAMĂRI");
+    expect(getStatusFolderLabel("in_lucru")).toBe("Reparație");
+    expect(getStatusFolderLabel("accept_plata", { upper: true })).toBe("ACCEPT PLATĂ");
   });
 });
 

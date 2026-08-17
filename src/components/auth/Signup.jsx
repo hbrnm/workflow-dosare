@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Building2, Lock, Mail, ArrowLeft, Sparkles } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
-import { DEFAULT_BRANDING, loadCachedBranding, normalizeBranding, cacheBranding } from "../../constants/branding";
+import { loadCachedBranding, normalizeBranding, cacheBranding, resolveDisplayBranding } from "../../constants/branding";
 import { useDayNightTheme } from "../../hooks/useDayNightTheme";
 import {
   slugifyAtelierName,
@@ -23,7 +23,7 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [acceptDataResponsibility, setAcceptDataResponsibility] = useState(false);
-  const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
+  const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding());
 
   useEffect(() => {
     if (brandingProp) setBranding(brandingProp);
@@ -186,22 +186,23 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
     }
   };
 
-  const short = (branding?.atelierShort || "WD").slice(0, 2);
+  const display = resolveDisplayBranding(branding);
+  const shortMark = (display.atelierShort || "").slice(0, 2);
 
   return (
     <div className="app-shell app-login">
       <div className="app-login-glow" aria-hidden />
       <form onSubmit={handleSubmit} className="app-login-card space-y-4">
         <div className="flex items-center gap-3">
-          {branding?.logoUrl ? (
+          {display.logoUrl ? (
             <img
-              src={branding.logoUrl}
+              src={display.logoUrl}
               alt=""
               className="app-login-logo w-11 h-11 rounded-xl object-contain"
             />
           ) : (
             <div className="app-login-mark w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-[13px]">
-              {short}
+              {shortMark || "AT"}
             </div>
           )}
           <div className="min-w-0">

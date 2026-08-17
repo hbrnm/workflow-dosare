@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Lock, ShieldCheck } from "lucide-react";
 import { supabase } from "../../supabaseClient";
+import { resolveDisplayBranding } from "../../constants/branding";
 
 /** Set new password after email recovery link. */
 export default function RecoveryPassword({ onDone, branding }) {
@@ -9,7 +10,8 @@ export default function RecoveryPassword({ onDone, branding }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const name = branding?.atelierNume || "Dosare Daună";
+  const display = resolveDisplayBranding(branding);
+  const name = display.atelierNume || "Parolă nouă";
 
   const handleSubmit = async (e) => {
     e.preventDefault();

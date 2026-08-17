@@ -6,6 +6,7 @@ import {
   normalizeBranding,
   loadCachedBranding,
   cacheBranding,
+  isPlaceholderAtelierName,
 } from "../constants/branding";
 import {
   shouldMirrorSetari,
@@ -781,6 +782,9 @@ export async function fetchPublicBranding(slug = null) {
           atelier_short: row.short,
           logo_url: row.logo_url,
         });
+        if (isPlaceholderAtelierName(next.atelierNume) && !next.logoUrl) {
+          return { ...DEFAULT_BRANDING };
+        }
         cacheBranding(next);
         return next;
       }
@@ -797,11 +801,18 @@ export async function fetchPublicBranding(slug = null) {
       .maybeSingle();
     if (!error && data) {
       const next = normalizeBranding(data);
+      if (isPlaceholderAtelierName(next.atelierNume) && !next.logoUrl) {
+        return cached && !isPlaceholderAtelierName(cached.atelierNume)
+          ? cached
+          : { ...DEFAULT_BRANDING };
+      }
       cacheBranding(next);
       return next;
     }
   } catch {
     /* ignore */
   }
-  return cached || { ...DEFAULT_BRANDING };
+  return cached && !isPlaceholderAtelierName(cached.atelierNume)
+    ? cached
+    : { ...DEFAULT_BRANDING };
 }
