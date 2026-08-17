@@ -30,7 +30,7 @@ export function atelierRowToSettings(row) {
 export function brandingToAtelierPatch(branding) {
   return {
     nume: branding?.atelierNume ?? branding?.atelier_nume ?? "",
-    short: branding?.atelierShort ?? branding?.atelier_short ?? "WD",
+    short: branding?.atelierShort ?? branding?.atelier_short ?? "",
     logo_url: branding?.logoUrl ?? branding?.logo_url ?? null,
   };
 }

@@ -8,12 +8,12 @@
  * Cheile DB rămân stabile; etapele scoase din pipeline se mapează prin STATUS_MIGRATION.
  */
 export const STATUSES = [
-  { key: "deschidere",      num: 1, label: "AIR — Acord intrare în reparație", short: "AIR",      phase: "start",  alertDays: 3 },
-  { key: "piese_comandate", num: 2, label: "Piese",                           short: "Piese",    phase: "lucru",  alertDays: 4 },
-  { key: "programat",       num: 3, label: "Programări",                      short: "Prog.",    phase: "lucru",  alertDays: 3 },
-  { key: "in_lucru",        num: 4, label: "Reparație",                       short: "Repar.",   phase: "lucru",  alertDays: 7 },
-  { key: "accept_plata",    num: 5, label: "Accept plată",                    short: "AP",       phase: "final",  alertDays: 5 },
-  { key: "facturat",        num: 6, label: "Facturat",                        short: "Facturat", phase: "final",  alertDays: 30 },
+  { key: "deschidere",      num: 1, label: "Acord reparație", short: "AIR",      phase: "start",  alertDays: 3 },
+  { key: "piese_comandate", num: 2, label: "Piese",           short: "Piese",    phase: "lucru",  alertDays: 4 },
+  { key: "programat",       num: 3, label: "Programări",      short: "Prog.",    phase: "lucru",  alertDays: 3 },
+  { key: "in_lucru",        num: 4, label: "Reparație",       short: "Repar.",   phase: "lucru",  alertDays: 7 },
+  { key: "accept_plata",    num: 5, label: "Accept plată",    short: "AP",       phase: "final",  alertDays: 5 },
+  { key: "facturat",        num: 6, label: "Facturat",        short: "Facturat", phase: "final",  alertDays: 30 },
 ];
 
 export const STATUS_MIGRATION = {
@@ -81,6 +81,13 @@ export function getStatusDefinition(statusKey) {
 export function getStatusShortLabel(statusKey) {
   const def = getStatusDefinition(statusKey);
   return def.short || def.label;
+}
+
+/** Numele de folder al stadiului — același pe mobil (ALL CAPS) și desktop. */
+export function getStatusFolderLabel(statusKey, { upper = false } = {}) {
+  const def = getStatusDefinition(statusKey);
+  const label = def.label || "";
+  return upper ? String(label).toLocaleUpperCase("ro-RO") : label;
 }
 
 /** True for pipeline step „Piese” (incl. legacy status piese_sosite). */
@@ -158,7 +165,7 @@ export const PIPELINE_PHASES = [
   {
     key: "start",
     label: "1. AIR",
-    description: "Acord intrare în reparație",
+    description: "Acord reparație",
     barColor: "#3B5166",
     bgColor: "#EEF1F3",
     statuses: ["deschidere"],

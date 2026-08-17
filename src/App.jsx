@@ -10,6 +10,7 @@ import RecoveryPassword from "./components/auth/RecoveryPassword";
 import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import OnboardingModal from "./components/common/OnboardingModal";
+import BrandingSetupModal from "./components/common/BrandingSetupModal";
 import QuickViewDrawer from "./components/common/QuickViewDrawer";
 import SetariModal from "./components/modals/SetariModal";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
@@ -24,6 +25,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { normalizeBilling } from "./constants/billing";
+import { mergeAtelierBranding, needsBrandingSetup } from "./constants/branding";
 import { getSearchHighlightIds } from "./utils/searchUtils";
 import { isCompactMobileViewport } from "./utils/viewport";
 import { useMobileBackStack } from "./hooks/useMobileBackStack";
@@ -189,29 +191,15 @@ export default function App() {
     [saveBrandingBase, refreshAtelier]
   );
 
-  const branding = useMemo(() => {
-    if (tenancyReady && atelier) {
-      const cachedIsColdDefault =
-        settingsBranding?.atelierNume === "Dosare Daună" &&
-        settingsBranding?.atelierShort === "WD" &&
-        !settingsBranding?.logoUrl &&
-        atelier.nume &&
-        atelier.nume !== "Dosare Daună";
-      if (cachedIsColdDefault) {
-        return {
-          atelierNume: atelier.nume,
-          atelierShort: atelier.short || "WD",
-          logoUrl: atelier.logo_url || "",
-        };
-      }
-      return {
-        atelierNume: settingsBranding?.atelierNume || atelier.nume || "Dosare Daună",
-        atelierShort: settingsBranding?.atelierShort || atelier.short || "WD",
-        logoUrl: settingsBranding?.logoUrl || atelier.logo_url || "",
-      };
-    }
-    return settingsBranding;
-  }, [tenancyReady, atelier, settingsBranding]);
+  const branding = useMemo(
+    () => mergeAtelierBranding(settingsBranding, tenancyReady ? atelier : null),
+    [tenancyReady, atelier, settingsBranding]
+  );
+
+  useEffect(() => {
+    const name = String(branding?.atelierNume || "").trim();
+    document.title = name || "Atelier";
+  }, [branding]);
 
   const effectiveBilling = useMemo(() => {
     if (tenancyReady && atelier && atelierBilling) return atelierBilling;
@@ -260,6 +248,8 @@ export default function App() {
     }
     return false;
   }, [myEmail, myRole, adminEmails, usersList, activeRole, memberCount, atelierId]);
+
+  const brandingGateOpen = !!(session && tenancyReady && isAdmin && needsBrandingSetup(branding));
 
   const {
     search,
@@ -739,10 +729,17 @@ export default function App() {
         <NotificationQueue notice={notice} />
         <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
         <OnboardingModal
-          open={onboardingOpen}
+          open={onboardingOpen && !brandingGateOpen}
           onDismiss={dismissTour}
           onCreateClaim={userCanCreate ? () => openNew() : null}
           roleLabel={myRoleLabel}
+        />
+        <BrandingSetupModal
+          open={brandingGateOpen}
+          branding={branding}
+          onSave={saveBranding}
+          onUploadLogo={uploadBrandingLogo}
+          onNotify={showNotice}
         />
 
         <Suspense
@@ -957,11 +954,19 @@ export default function App() {
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
 
       <OnboardingModal
-        open={onboardingOpen}
+        open={onboardingOpen && !brandingGateOpen}
         onDismiss={dismissTour}
         onCreateClaim={userCanCreate ? () => openNew() : null}
         desktopUi
         roleLabel={myRoleLabel}
+      />
+      <BrandingSetupModal
+        open={brandingGateOpen}
+        branding={branding}
+        onSave={saveBranding}
+        onUploadLogo={uploadBrandingLogo}
+        onNotify={showNotice}
+        desktopUi
       />
 
       {/* Desktop Minimal Sidebar */}

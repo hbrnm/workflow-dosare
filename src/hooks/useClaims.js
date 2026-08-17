@@ -440,7 +440,7 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
 
       // Notify parent for undo toast
       const STATUSES_LABELS = {
-        deschidere: "AIR",
+        deschidere: "Acord reparație",
         piese_comandate: "Piese",
         programat: "Programări",
         in_lucru: "Reparație",

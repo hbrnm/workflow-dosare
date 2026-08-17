@@ -481,7 +481,9 @@
 .app-alerte-plate {
   font-family: var(--alerte-mono);
   font-size: var(--alerte-type);
-  font-weight: var(--alerte-weight);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--app-text-strong, #23282e);
   white-space: nowrap;
   flex-shrink: 0;

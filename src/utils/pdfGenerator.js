@@ -23,7 +23,7 @@ const sd = (t) => stripDiacritics(t || "—");
 export async function generateazaPDF(claim, istoric = [], branding = null) {
   const doc = await createPdf();
   const s = getStatusDefinition(claim.status);
-  const atelier = branding?.atelierNume || "Dosare Daună";
+  const atelier = branding?.atelierNume || "Atelier";
   let y = 20;
 
   doc.setFontSize(16);

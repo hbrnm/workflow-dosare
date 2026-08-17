@@ -117,8 +117,8 @@ export default function SetariModal({
   const [insurersList, setInsurersList] = useState(initialInsurersList);
   const [newInsurer, setNewInsurer] = useState("");
   const [saving, setSaving] = useState(false);
-  const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "Dosare Daună");
-  const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "WD");
+  const [atelierNume, setAtelierNume] = useState(brandingProp?.atelierNume || "");
+  const [atelierShort, setAtelierShort] = useState(brandingProp?.atelierShort || "");
   const [logoUrl, setLogoUrl] = useState(brandingProp?.logoUrl || "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [themePref, setThemePref] = useState(() => loadThemePreference());
@@ -147,8 +147,8 @@ export default function SetariModal({
   const brandingLogo = brandingProp?.logoUrl;
   useEffect(() => {
     if (brandingNume == null && brandingShort == null && brandingLogo == null) return;
-    setAtelierNume(brandingNume || "Dosare Daună");
-    setAtelierShort(brandingShort || "WD");
+    setAtelierNume(brandingNume || "");
+    setAtelierShort(brandingShort || "");
     setLogoUrl(brandingLogo || "");
   }, [brandingNume, brandingShort, brandingLogo]);
 
@@ -584,7 +584,7 @@ export default function SetariModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--app-surface-2)] border-t border-[var(--app-border)] shrink-0 text-[12px]">
-          <span className="text-[var(--app-muted)]">{atelierNume || "Workflow Dosare"} · setări</span>
+          <span className="text-[var(--app-muted)]">{atelierNume || "Atelier"} · setări</span>
           <AppButton variant="secondary" onClick={onClose}>
             Închide
           </AppButton>

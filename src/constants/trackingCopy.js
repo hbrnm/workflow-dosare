@@ -70,7 +70,7 @@ export function getClientProgressPercent(data) {
 }
 
 export const CLIENT_PHASE_HINTS = {
-  start: "Acord intrare în reparație",
+  start: "Acord reparație",
   lucru: "Piese, programări și reparație",
   final: "Accept plată și facturare",
   eval: "Evaluare",

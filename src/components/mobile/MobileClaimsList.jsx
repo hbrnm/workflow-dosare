@@ -12,6 +12,7 @@ import {
 import WhatsAppButton from "../common/WhatsAppButton";
 import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
+import ClaimPlate from "../common/ClaimPlate";
 import ClaimCardOpenHit from "./ClaimCardOpenHit";
 import { telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
@@ -83,9 +84,7 @@ function CompactClaimCard({
             empty="fără nr."
             className="app-alerte-dosar"
           />
-          <span className="app-alerte-plate font-mono font-bold">
-            {c.numarInmatriculare || "—"}
-          </span>
+          <ClaimPlate value={c.numarInmatriculare} className="app-alerte-plate" />
           <span className="app-alerte-status-chip" title={sDef.label}>
             {stShort}
           </span>

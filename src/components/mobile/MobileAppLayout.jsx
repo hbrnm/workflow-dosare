@@ -20,7 +20,7 @@ import {
   shouldShowMobileSearchHits,
   uniqueSearchMatch,
 } from "../../utils/mobileSearchNav";
-import { emailInitial } from "../../utils/userDisplay";
+import { UI_COPY } from "../../constants/uiCopy";
 import { loadCachedBranding } from "../../constants/branding";
 import {
   dismissPwaInstallPrompt,
@@ -29,8 +29,8 @@ import {
 } from "../../utils/pwaInstall";
 
 const INVENTAR_NAV_ITEMS = [
-  { id: "capture", label: "Foto si documente", Icon: Camera, hint: "Adauga foto si documente la dosar" },
-  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Lista completa, piese sosite, blocate" },
+  { id: "capture", label: UI_COPY.fotoSiDocumente, Icon: Camera, hint: UI_COPY.fotoSiDocumenteHint },
+  { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
 ];
 
 export default function MobileAppLayout({
@@ -197,8 +197,8 @@ export default function MobileAppLayout({
     const q = search.trim();
     onNotify?.(
       q
-        ? "Alege un dosar din lista de deasupra cautarii."
-        : "Cauta numarul auto sau deschide un dosar, apoi Foto.",
+        ? UI_COPY.cautareAlegeDinLista
+        : UI_COPY.cautareDosarHint,
       "info"
     );
   };
@@ -218,7 +218,7 @@ export default function MobileAppLayout({
     setFocusCaptureCategory(null);
   };
 
-  const atelierName = branding?.atelierNume || "Dosare Daună";
+  const atelierName = branding?.atelierNume || "Atelier";
   const letter = emailInitial(userEmail);
   const receptieClaim = receptieClaimId
     ? (claims || []).find((c) => c.id === receptieClaimId) || null

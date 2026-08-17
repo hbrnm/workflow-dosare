@@ -1,13 +1,14 @@
 import React from "react";
 import { X } from "lucide-react";
+import { UI_COPY } from "../../constants/uiCopy";
 
-/** Cautare dosar — pill jos, fara + / microfon. Enter deschide primul rezultat. */
+/** Căutare dosar — pill jos, fără + / microfon. Enter deschide primul rezultat. */
 export default function MobileSearchBar({
   value,
   onChange,
   onSubmit = null,
   inputRef = null,
-  placeholder = "cautare dosar",
+  placeholder = UI_COPY.cautareDosar,
 }) {
   return (
     <form
@@ -29,14 +30,14 @@ export default function MobileSearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="mobile-search-input app-search m-cursor-composer-input"
-        aria-label="Cautare dosar"
+        aria-label={UI_COPY.cautareDosar}
       />
       {value ? (
         <button
           type="button"
           onClick={() => onChange("")}
           className="m-cursor-composer-mic"
-          aria-label="Sterge cautarea"
+          aria-label={UI_COPY.stergeCautarea}
         >
           <X size={16} />
         </button>

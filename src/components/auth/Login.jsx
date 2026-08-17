@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ShieldCheck, Lock, Mail, ArrowLeft } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { fetchPublicBranding } from "../../hooks/useSettings";
-import { DEFAULT_BRANDING, loadCachedBranding } from "../../constants/branding";
+import { loadCachedBranding, resolveDisplayBranding } from "../../constants/branding";
 import { useDayNightTheme } from "../../hooks/useDayNightTheme";
 import { readAtelierSlugFromUrl } from "../../utils/atelierPrefs";
 
@@ -13,7 +13,7 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding() || DEFAULT_BRANDING);
+  const [branding, setBranding] = useState(() => brandingProp || loadCachedBranding());
 
   useEffect(() => {
     if (brandingProp) setBranding(brandingProp);
@@ -80,8 +80,9 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
     setInfo("Dacă există un cont cu acest email, vei primi un link de resetare. Verifică și spam-ul.");
   };
 
-  const short = (branding?.atelierShort || "WD").slice(0, 2);
-  const name = branding?.atelierNume || DEFAULT_BRANDING.atelierNume;
+  const display = resolveDisplayBranding(branding);
+  const short = (display.atelierShort || "").slice(0, 2);
+  const atelierName = display.atelierNume;
 
   return (
     <div className="app-shell app-login">
@@ -91,21 +92,29 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
         className="app-login-card space-y-4"
       >
         <div className="flex items-center gap-3">
-          {branding?.logoUrl ? (
+          {display.logoUrl ? (
             <img
-              src={branding.logoUrl}
+              src={display.logoUrl}
               alt=""
               className="app-login-logo w-11 h-11 rounded-xl object-contain"
             />
           ) : (
             <div className="app-login-mark w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-[13px]">
-              {short}
+              {short || "AT"}
             </div>
           )}
           <div className="min-w-0">
-            <div className="app-login-title truncate">{name}</div>
+            <div className="app-login-title truncate">
+              {atelierName || (mode === "forgot" ? "Resetare parolă" : "Autentificare atelier")}
+            </div>
             <div className="app-login-sub">
-              {mode === "forgot" ? "Resetare parolă" : "Autentificare atelier"}
+              {atelierName
+                ? mode === "forgot"
+                  ? "Resetare parolă"
+                  : "Autentificare atelier"
+                : mode === "forgot"
+                  ? "Introdu emailul contului"
+                  : "Contul atelierului tău"}
             </div>
           </div>
         </div>

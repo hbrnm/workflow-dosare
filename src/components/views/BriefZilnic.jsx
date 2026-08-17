@@ -18,6 +18,7 @@ import { getAlertStyle, getAlertIcon, ALERT_GROUPS, countAlertsForGroup } from "
 import WhatsAppButton from "../common/WhatsAppButton";
 import ClaimPhoneActions from "../common/ClaimPhoneActions";
 import DosarNumber from "../common/DosarNumber";
+import ClaimPlate from "../common/ClaimPlate";
 import Pill from "../common/Pill";
 import { alertTabClass } from "../common/alertTabClasses";
 import StageTabLabel from "../common/StageTabLabel";
@@ -39,7 +40,7 @@ const ATTENTION_DANGER_TYPES = new Set([
 ]);
 
 const STAGE_FOCUS = {
-  air: { title: "AIR", statusKey: "deschidere", Icon: ClipboardCheck, hint: "Acord intrare în reparație — dosar deschis, date și poze." },
+  air: { title: "Acord reparație", statusKey: "deschidere", Icon: ClipboardCheck, hint: "Acord reparație — dosar deschis, date și poze." },
   piese: { title: "Piese", statusKey: "piese_comandate", Icon: Package, hint: "Piese comandate. Marchează Sosite când ajung în atelier." },
   programat: { title: "Programări", statusKey: "programat", Icon: CalendarClock, hint: "Mașina are slot rezervat în calendar." },
   lucru: { title: "Reparație", statusKey: "in_lucru", Icon: Wrench, hint: "Lucrări de tinichigerie / vopsitorie în curs." },
@@ -250,9 +251,7 @@ export default function BriefZilnic({
                 empty="fără nr."
                 className="app-brief-flow-dosar font-mono font-bold text-[12px]"
               />
-              <span className="font-mono font-bold text-[12px] uppercase truncate">
-                {c.numarInmatriculare || "—"}
-              </span>
+              <ClaimPlate value={c.numarInmatriculare} className="text-[12px]" />
               <span className="app-brief-flow-status" title={getStatusDefinition(c.status).label}>
                 {stShort}
               </span>

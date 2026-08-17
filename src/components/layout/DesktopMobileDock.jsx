@@ -84,7 +84,7 @@ export default function DesktopMobileDock({
                   type="button"
                   onClick={() => openQuickCapture()}
                   className="col-span-1 flex items-center justify-center p-3 rounded-full bg-gradient-to-tr from-[var(--app-accent)] to-[#E5A84B] text-white shadow-lg -mt-5 border-[3px] border-[var(--app-surface)] active:scale-95 transition-transform"
-                  title="Captură rapidă foto & scanner cameră"
+                  title="Foto și documente"
                 >
                   <Icon size={20} />
                   <span className="text-[8.5px] font-black tracking-tight uppercase mt-0.5">Scan</span>
