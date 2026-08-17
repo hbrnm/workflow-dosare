@@ -327,6 +327,8 @@ export default function App() {
   const [captureFocusClaimId, setCaptureFocusClaimId] = useState(null);
   const [mobileTab, setMobileTab] = useState("brief");
   const [drawerClaim, setDrawerClaim] = useState(null);
+  const [inboxFocus, setInboxFocus] = useState(null);
+  const [receptieClaimId, setReceptieClaimId] = useState(null);
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -345,6 +347,8 @@ export default function App() {
     closeQuickCapture();
     setFieldClaimId(null);
     setDrawerClaim(null);
+    setInboxFocus(null);
+    setReceptieClaimId(null);
     setIsCommandPaletteOpen(false);
     setView("dosare");
     setDosareSubView("brief");
@@ -438,6 +442,8 @@ export default function App() {
       setariOpen,
       quickCreateOpen,
       quickCaptureOpen,
+      inboxFocus,
+      receptieClaimId,
     },
     api: {
       closeClaim: closeClaimModal,
@@ -446,12 +452,16 @@ export default function App() {
       closeSettings,
       closeQuickCreate,
       closeQuickCapture,
+      closeInboxFocus: () => setInboxFocus(null),
+      closeReceptie: () => setReceptieClaimId(null),
       openAlerts,
       openSettings,
       openField: (id) => setFieldClaimId(id),
       openClaim: openExisting,
       openQuickCreate: () => openNew(),
       openQuickCapture: () => openQuickCapture(),
+      openInboxFocus: (id) => setInboxFocus(id || null),
+      openReceptie: (id) => setReceptieClaimId(id || null),
     },
   });
 
@@ -496,6 +506,7 @@ export default function App() {
   }, [activeMode, requestClose, closeQuickCreate]);
 
   useEffect(() => {
+    if (activeMode === "mobile") return undefined;
     const handlePopState = (event) => {
       if (isNavigatingHistoryRef.current) return;
       isNavigatingHistoryRef.current = true;
@@ -512,6 +523,7 @@ export default function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [
+    activeMode,
     modalClaim,
     alerteModalTab,
     quickCreateOpen,
@@ -748,10 +760,18 @@ export default function App() {
             highlightClaimIds={highlightClaimIds}
             onMobileShellLockChange={setLockMobileShell}
             hideBottomChrome={Boolean(
-              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen
+              alerteModalTab || setariOpen || modalClaim || fieldClaim || quickCreateOpen || receptieClaimId
             )}
             mobileTab={mobileTab}
             onMobileTabChange={handleMobileTabChange}
+            inboxFocus={inboxFocus}
+            onInboxFocusChange={setInboxFocus}
+            onCloseInboxFocus={() => requestClose("inbox")}
+            receptieClaimId={receptieClaimId}
+            onOpenReceptie={(claim) => {
+              if (claim?.id) setReceptieClaimId(claim.id);
+            }}
+            onCloseReceptie={() => requestClose("receptie")}
           />
         </Suspense>
 

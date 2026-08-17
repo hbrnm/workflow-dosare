@@ -93,6 +93,12 @@ describe("createBackStack", () => {
     expect(stack.handlePopState()).toEqual({ t: "home" });
   });
 
+  it("inbox overlay Back returns home", () => {
+    stack.push({ t: "overlay", name: "inbox", id: "lucru", tab: "brief" });
+    expect(stack.handlePopState()).toEqual({ t: "home" });
+    expect(stack.handlePopState()).toBe(null);
+  });
+
   it("dedupes identical pushes", () => {
     stack.push({ t: "tab", tab: "dosare" });
     stack.push({ t: "tab", tab: "dosare" });

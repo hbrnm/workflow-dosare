@@ -3,9 +3,9 @@ import {
   CheckCircle2, Phone, ExternalLink, Camera, AlertTriangle,
   List, Plus, ArrowRight, ChevronRight, ChevronLeft, FolderOpen, CalendarDays,
   Package, ClipboardCheck, BadgeCheck, Ban, Wrench,
-  LayoutGrid, Crosshair, RotateCcw, Folder, FolderPlus,
+  LayoutGrid, Crosshair, RotateCcw, Folder,
 } from "lucide-react";
-import { telLink, formatProgramareDate, todayISO, getSinceMeta } from "../../utils/dateUtils";
+import { telLink, formatProgramareDate, todayISO, getSinceMeta, formatDateDMY } from "../../utils/dateUtils";
 import {
   buildAlertBuckets,
   filterAlertItems,
@@ -195,9 +195,19 @@ export default function MobileBrief({
   onNotify,
   homeStyle = "inbox",
   atelierNume = "Dosare Daună",
+  searchQuery = "",
+  inboxFocus = undefined,
+  onInboxFocusChange = null,
+  onCloseInboxFocus = null,
+  onOpenReceptie = null,
 }) {
   const [activeAlertTab, setActiveAlertTab] = useState("toate");
-  const [focus, setFocus] = useState(readStoredFocus);
+  const [internalFocus, setInternalFocus] = useState(readStoredFocus);
+  const focus = onInboxFocusChange ? inboxFocus ?? null : internalFocus;
+  const setFocus = (next) => {
+    if (onInboxFocusChange) onInboxFocusChange(next);
+    else setInternalFocus(next);
+  };
   const [attentionFilter, setAttentionFilter] = useState("toate");
   const [schedulingId, setSchedulingId] = useState(null);
   const [editDate, setEditDate] = useState(todayISO);
@@ -351,6 +361,34 @@ export default function MobileBrief({
     requestAnimationFrame(() => {
       boardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  };
+
+  const closeBoard = () => {
+    softHaptic(8);
+    if (onCloseInboxFocus) onCloseInboxFocus();
+    else setFocus(null);
+  };
+
+  const openReceptieForSearch = () => {
+    softHaptic(8);
+    const q = String(searchQuery || "").trim();
+    if (!q) {
+      onNotify?.("Caută un dosar, apoi apasă Recepție.", "info");
+      return;
+    }
+    const hits = listClaims || claims || [];
+    const hit = hits[0];
+    if (!hit) {
+      onNotify?.("Niciun dosar găsit. Ajustează căutarea.", "error");
+      return;
+    }
+    if (hits.length > 1) {
+      onNotify?.(
+        `Recepție: ${hit.numarInmatriculare || hit.numarDosar || "dosar"} (${hits.length} rezultate).`,
+        "info"
+      );
+    }
+    onOpenReceptie?.(hit);
   };
 
   const openAttentionAll = () => {
@@ -778,17 +816,17 @@ export default function MobileBrief({
   if (homeStyle === "inbox") {
     const inboxStats = [
       {
-        key: "toate",
-        label: "All Agents",
-        count: (claims || []).length,
+        key: "receptie",
+        label: "Recepție",
+        count: null,
         hideCount: true,
         Icon: LayoutGrid,
         tone: "all",
-        action: () => go("dosare"),
+        action: openReceptieForSearch,
       },
       {
         key: "lucru",
-        label: "Working",
+        label: "Reparație",
         count: countUniqueVehicles(stageLists.lucru),
         Icon: Crosshair,
         tone: "work",
@@ -796,41 +834,23 @@ export default function MobileBrief({
       },
       {
         key: "atentie",
-        label: "Needs Attention",
+        label: "Atenție",
         count: totalAlertsCount,
         Icon: RotateCcw,
         tone: "attention",
         action: openAttentionAll,
       },
       {
-        key: "accept",
-        label: "In Review",
-        count: stageLists.accept.length,
+        key: "air",
+        label: "Acord reparație (AIR)",
+        count: stageLists.air.length,
         Icon: CheckCircle2,
         tone: "review",
-        action: () => setBoardFocus("accept"),
+        action: () => setBoardFocus("air"),
       },
     ];
 
     const workspaces = [
-      {
-        id: "atelier",
-        label: atelierNume || "workflow-dosare",
-        count: totalAlertsCount,
-        action: () => go("dosare"),
-      },
-      {
-        id: "programari",
-        label: "Programări",
-        count: countUniqueVehicles(stageLists.programat),
-        action: () => go("programari"),
-      },
-      {
-        id: "piese",
-        label: "Piese",
-        count: stageLists.piese.length,
-        action: () => setBoardFocus("piese"),
-      },
       {
         id: "air",
         label: "AIR",
@@ -838,32 +858,36 @@ export default function MobileBrief({
         action: () => setBoardFocus("air"),
       },
       {
-        id: "dosare",
-        label: "Toate dosarele",
-        count: null,
-        action: () => go("dosare"),
+        id: "piese",
+        label: "PIESE",
+        count: stageLists.piese.length,
+        action: () => setBoardFocus("piese"),
       },
-      blockedCount > 0 && onOpenBlocked
-        ? {
-            id: "blocate",
-            label: "Dosare blocate",
-            count: blockedCount,
-            action: () => {
-              softHaptic(8);
-              onOpenBlocked();
-            },
-          }
-        : null,
-      onNew
-        ? {
-            id: "new",
-            label: "Add Workspace",
-            count: null,
-            add: true,
-            action: () => onNew(),
-          }
-        : null,
-    ].filter(Boolean);
+      {
+        id: "programari",
+        label: "PROGRAMĂRI",
+        count: countUniqueVehicles(stageLists.programat),
+        action: () => go("programari"),
+      },
+      {
+        id: "lucru",
+        label: "Reparație",
+        count: countUniqueVehicles(stageLists.lucru),
+        action: () => setBoardFocus("lucru"),
+      },
+      {
+        id: "accept",
+        label: "Accept plată",
+        count: stageLists.accept.length,
+        action: () => setBoardFocus("accept"),
+      },
+      {
+        id: "facturat",
+        label: "Facturat",
+        count: stageLists.facturat.length,
+        action: () => setBoardFocus("facturat"),
+      },
+    ];
 
     const inboxBoard = (
         <section
@@ -929,13 +953,10 @@ export default function MobileBrief({
           <button
             type="button"
             className="m-inbox-back m-press"
-            onClick={() => {
-              softHaptic(8);
-              setFocus(null);
-            }}
+            onClick={closeBoard}
           >
             <ChevronLeft size={18} strokeWidth={2.2} />
-            Inbox
+            Înapoi
           </button>
           {inboxBoard}
         </div>
@@ -945,7 +966,7 @@ export default function MobileBrief({
     return (
       <div className="m-brief m-inbox space-y-0 flex flex-col flex-1 min-h-0 pb-2">
         <header className="m-brief-hero">
-          <h1 className="m-inbox-title">Inbox</h1>
+          <h1 className="m-inbox-title">{formatDateDMY(new Date())}</h1>
         </header>
 
         <section className="m-inbox-grid" aria-label="Statusuri">
@@ -983,7 +1004,7 @@ export default function MobileBrief({
                 onClick={row.action}
               >
                 <span className="m-inbox-row-icon">
-                  {row.add ? <FolderPlus size={18} strokeWidth={1.8} /> : <Folder size={18} strokeWidth={1.8} />}
+                  <Folder size={18} strokeWidth={1.8} />
                 </span>
                 <span className="m-inbox-row-label">{row.label}</span>
                 {row.count != null && row.count > 0 ? (

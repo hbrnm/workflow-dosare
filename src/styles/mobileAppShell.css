@@ -559,7 +559,7 @@ html:not([data-app-theme="dark"]) .mobile-shell.app-shell.m-cursor-shell .m-inbo
   align-items: center;
   gap: 0.1rem;
   min-height: 3.05rem;
-  padding: 0.22rem 0.32rem 0.22rem 0.38rem !important;
+  padding: 0.22rem 0.55rem 0.22rem 1rem !important;
   background: #2c2c2e !important;
   border: none !important;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38) !important;

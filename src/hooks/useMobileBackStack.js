@@ -28,6 +28,8 @@ export function useMobileBackStack({
       a.closeSettings?.();
       a.closeQuickCreate?.();
       a.closeQuickCapture?.();
+      a.closeInboxFocus?.();
+      a.closeReceptie?.();
       setMobileTab("brief");
       mobileTabRef.current = "brief";
       return;
@@ -39,6 +41,8 @@ export function useMobileBackStack({
       a.closeSettings?.();
       a.closeQuickCreate?.();
       a.closeQuickCapture?.();
+      a.closeInboxFocus?.();
+      a.closeReceptie?.();
       const tab = frame.tab || "brief";
       setMobileTab(tab);
       mobileTabRef.current = tab;
@@ -51,6 +55,8 @@ export function useMobileBackStack({
       if (frame.name !== "setari") a.closeSettings?.();
       if (frame.name !== "quickCreate") a.closeQuickCreate?.();
       if (frame.name !== "quickCapture") a.closeQuickCapture?.();
+      if (frame.name !== "inbox") a.closeInboxFocus?.();
+      if (frame.name !== "receptie") a.closeReceptie?.();
       if (frame.tab) {
         setMobileTab(frame.tab);
         mobileTabRef.current = frame.tab;
@@ -60,6 +66,8 @@ export function useMobileBackStack({
       if (frame.name === "field" && frame.id) a.openField?.(frame.id);
       if (frame.name === "claim" && frame.claim) a.openClaim?.(frame.claim);
       if (frame.name === "quickCreate") a.openQuickCreate?.();
+      if (frame.name === "inbox" && frame.id) a.openInboxFocus?.(frame.id);
+      if (frame.name === "receptie" && frame.id) a.openReceptie?.(frame.id);
     }
   };
 
@@ -119,6 +127,14 @@ export function useMobileBackStack({
     }
     if (flags.quickCaptureOpen) {
       stack.push({ t: "overlay", name: "quickCapture", tab });
+      return;
+    }
+    if (flags.receptieClaimId) {
+      stack.push({ t: "overlay", name: "receptie", id: flags.receptieClaimId, tab });
+      return;
+    }
+    if (flags.inboxFocus) {
+      stack.push({ t: "overlay", name: "inbox", id: flags.inboxFocus, tab: "brief" });
     }
   }, [
     enabled,
@@ -128,14 +144,23 @@ export function useMobileBackStack({
     flags.setariOpen,
     flags.quickCreateOpen,
     flags.quickCaptureOpen,
+    flags.receptieClaimId,
+    flags.inboxFocus,
   ]);
 
   const goTab = useCallback((tab) => {
     mobileTabRef.current = tab;
     setMobileTab(tab);
     if (!enabled) return;
+    if (tab !== "brief") {
+      apiRef.current.closeInboxFocus?.();
+      const topNow = stackRef.current.top();
+      if (topNow.t === "overlay" && topNow.name === "inbox") {
+        stackRef.current.replaceTop({ t: "tab", tab });
+        return;
+      }
+    }
     if (tab === "brief") {
-      // Collapse tab frame if present
       const top = stackRef.current.top();
       if (top.t === "tab") {
         stackRef.current.dismiss(() => true);
@@ -156,6 +181,8 @@ export function useMobileBackStack({
     else if (targetName === "field") a.closeField?.();
     else if (targetName === "quickCreate") a.closeQuickCreate?.();
     else if (targetName === "quickCapture") a.closeQuickCapture?.();
+    else if (targetName === "inbox") a.closeInboxFocus?.();
+    else if (targetName === "receptie") a.closeReceptie?.();
 
     if (targetName) {
       stackRef.current.dismiss((f) => f.t === "overlay" && f.name === targetName);
@@ -166,6 +193,8 @@ export function useMobileBackStack({
       a.closeSettings?.();
       a.closeQuickCreate?.();
       a.closeQuickCapture?.();
+      a.closeInboxFocus?.();
+      a.closeReceptie?.();
     }
   }, []);
 

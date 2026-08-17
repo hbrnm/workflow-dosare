@@ -23,6 +23,9 @@ export function createBackStack() {
       if (frame.name === "alerte") return `#alerte-${frame.tab || "all"}`;
       if (frame.name === "field") return `#field-${frame.id || ""}`;
       if (frame.name === "claim") return `#claim-${frame.id || "nou"}`;
+      if (frame.name === "quickCreate") return `#${frame.name}`;
+      if (frame.name === "inbox") return `#inbox-${frame.id || ""}`;
+      if (frame.name === "receptie") return `#receptie-${frame.id || ""}`;
       return `#${frame.name}`;
     }
     return "#m-brief";

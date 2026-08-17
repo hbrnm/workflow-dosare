@@ -1,26 +1,15 @@
 import React from "react";
-import { Plus, Mic, X } from "lucide-react";
+import { X } from "lucide-react";
 
-/** Composer jos — pill Cursor: + | câmp | microfon. */
+/** Căutare dosar — pill jos, fără + / microfon. */
 export default function MobileSearchBar({
   value,
   onChange,
-  onAdd = null,
   inputRef = null,
-  placeholder = "Plan, ask, build...",
+  placeholder = "căutare dosar",
 }) {
   return (
     <div className="mobile-search-dock m-cursor-composer">
-      {onAdd ? (
-        <button
-          type="button"
-          className="m-cursor-composer-add"
-          onClick={onAdd}
-          aria-label="Dosar nou"
-        >
-          <Plus size={18} strokeWidth={2.2} />
-        </button>
-      ) : null}
       <input
         ref={inputRef}
         type="search"
@@ -33,7 +22,7 @@ export default function MobileSearchBar({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="mobile-search-input app-search m-cursor-composer-input"
-        aria-label="Căutare dosare"
+        aria-label="Căutare dosar"
       />
       {value ? (
         <button
@@ -44,16 +33,7 @@ export default function MobileSearchBar({
         >
           <X size={16} />
         </button>
-      ) : (
-        <button
-          type="button"
-          className="m-cursor-composer-mic"
-          onClick={() => inputRef?.current?.focus?.()}
-          aria-label="Căutare vocală"
-        >
-          <Mic size={18} strokeWidth={2} />
-        </button>
-      )}
+      ) : null}
     </div>
   );
 }

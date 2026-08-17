@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
-  Settings, LogOut, Camera, BarChart3, List, CalendarClock, Bell, Building2, Check, Ban,
-  Search, FolderPlus,
+  Settings, LogOut, List, Bell, Building2, Check, Ban, FolderPlus,
 } from "lucide-react";
 import MobileQuickCapture from "./MobileQuickCapture";
 import MobileBrief from "./MobileBrief";
@@ -11,26 +10,15 @@ import MobileSearchBar from "./MobileSearchBar";
 import EmptyWorkspace from "../common/EmptyWorkspace";
 import ListSkeleton from "../common/ListSkeleton";
 import LoadError from "../common/LoadError";
+import ReceptieAutoModal from "../modals/ReceptieAutoModal";
 import { saveMobileTab, softHaptic } from "../../utils/mobilePrefs";
 import { claimMatchesSearch, scrollToFirstHighlight } from "../../utils/searchUtils";
+import { emailInitial } from "../../utils/userDisplay";
+import { loadCachedBranding } from "../../constants/branding";
 
-/** Navigare principală mobil — Brief e hub-ul; Dosare e inventar secundar. */
-const PRIMARY_NAV_ITEMS = [
-  { id: "brief", label: "Brief", Icon: BarChart3 },
-  { id: "capture", label: "Foto & Doc", Icon: Camera },
-  { id: "programari", label: "Programări", Icon: CalendarClock },
-];
-
-const SECONDARY_NAV_ITEMS = [
+const INVENTAR_NAV_ITEMS = [
   { id: "dosare", label: "Toate dosarele", Icon: List, hint: "Listă completă, piese sosite, blocate" },
 ];
-
-function avatarLetter(email, atelierName) {
-  const fromEmail = String(email || "").trim();
-  if (fromEmail) return fromEmail[0].toUpperCase();
-  const fromName = String(atelierName || "").trim();
-  return (fromName[0] || "D").toUpperCase();
-}
 
 export default function MobileAppLayout({
   claims,
@@ -69,6 +57,12 @@ export default function MobileAppLayout({
   hideBottomChrome = false,
   mobileTab = null,
   onMobileTabChange = null,
+  inboxFocus = null,
+  onInboxFocusChange = null,
+  onCloseInboxFocus = null,
+  receptieClaimId = null,
+  onOpenReceptie = null,
+  onCloseReceptie = null,
 }) {
   // Home mobil = Brief; navigarea e din brand-ul floating.
   const [internalTab, setInternalTab] = useState("brief");
@@ -159,7 +153,10 @@ export default function MobileAppLayout({
   };
 
   const atelierName = branding?.atelierNume || "Dosare Daună";
-  const letter = avatarLetter(userEmail, atelierName);
+  const letter = emailInitial(userEmail);
+  const receptieClaim = receptieClaimId
+    ? (claims || []).find((c) => c.id === receptieClaimId) || null
+    : null;
 
   return (
     <div
@@ -179,50 +176,18 @@ export default function MobileAppLayout({
           }}
           aria-expanded={menuOpen}
           aria-haspopup="menu"
-          aria-label={`Meniu ${atelierName}`}
-          title={atelierName}
+          aria-label={`Meniu ${userEmail || atelierName}`}
+          title={userEmail || atelierName}
         >
-          {branding?.logoUrl ? (
-            <img
-              src={branding.logoUrl}
-              alt=""
-              className="m-float-brand-mark object-contain"
-            />
-          ) : (
-            <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
-              {letter}
-            </span>
-          )}
+          <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
+            {letter}
+          </span>
         </button>
 
         {menuOpen ? (
           <div className="m-float-menu" role="menu">
-            <div className="m-float-menu-label">Navigare</div>
-            {PRIMARY_NAV_ITEMS.map(({ id, label, Icon }) => {
-              const active = activeTab === id;
-              const badge = id === "brief" ? totalAlertsCount : 0;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  role="menuitem"
-                  className={`m-float-menu-item ${active ? "is-active" : ""}`}
-                  onClick={() => handleTabChange(id)}
-                >
-                  <span className="m-float-menu-icon">
-                    <Icon size={15} />
-                  </span>
-                  <span className="m-float-menu-item-label">{label}</span>
-                  {badge > 0 ? (
-                    <span className="m-float-menu-badge">{badge > 99 ? "99+" : badge}</span>
-                  ) : null}
-                </button>
-              );
-            })}
-
-            <div className="m-float-menu-divider" />
             <div className="m-float-menu-label">Inventar</div>
-            {SECONDARY_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
+            {INVENTAR_NAV_ITEMS.map(({ id, label, Icon, hint }) => {
               const active = activeTab === id;
               return (
                 <button
@@ -354,17 +319,6 @@ export default function MobileAppLayout({
         ) : null}
       </div>
       <div className="m-cursor-header-actions">
-        <button
-          type="button"
-          className="m-cursor-icon-btn"
-          onClick={() => {
-            softHaptic(8);
-            searchInputRef.current?.focus?.();
-          }}
-          aria-label="Caută"
-        >
-          <Search size={22} strokeWidth={2} />
-        </button>
         {onNewClaim ? (
           <button
             type="button"
@@ -429,6 +383,11 @@ export default function MobileAppLayout({
             onNotify={onNotify}
             homeStyle="inbox"
             atelierNume={branding?.atelierNume}
+            searchQuery={search}
+            inboxFocus={inboxFocus}
+            onInboxFocusChange={onInboxFocusChange}
+            onCloseInboxFocus={onCloseInboxFocus}
+            onOpenReceptie={onOpenReceptie}
           />
         ) : activeTab === "dosare" ? (
           <MobileClaimsList
@@ -462,11 +421,21 @@ export default function MobileAppLayout({
           <MobileSearchBar
             value={search}
             onChange={handleSearchChange}
-            onAdd={onNewClaim || undefined}
             inputRef={searchInputRef}
           />
         </div>
       )}
+
+      {receptieClaim ? (
+        <ReceptieAutoModal
+          isOpen
+          onClose={() => (onCloseReceptie ? onCloseReceptie() : null)}
+          claim={receptieClaim}
+          onPatchClaim={onPatchClaim}
+          onNotify={onNotify}
+          atelierBranding={branding || loadCachedBranding()}
+        />
+      ) : null}
     </div>
   );
 }
