@@ -38,6 +38,7 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
 
   const myEmail = session?.user?.email || "";
   const myId = session?.user?.id || null;
+  const sessionUserId = session?.user?.id || null;
 
   const enqueueClaimWrite = useCallback((id, task) => {
     const prev = claimWriteQueues.current.get(id) || Promise.resolve();
@@ -83,8 +84,15 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
     setLoading(false);
   }, [showNotice]);
 
-  // Real-time subscription
+  // Real-time subscription — reload when the user actually logs in (not only on mount).
   useEffect(() => {
+    if (!sessionUserId) {
+      setClaims([]);
+      setLoadError(null);
+      setLoading(false);
+      return undefined;
+    }
+
     loadAll();
 
     const channel = supabase
@@ -99,7 +107,7 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadAll]);
+  }, [loadAll, sessionUserId, atelierId]);
 
   const saveClaim = useCallback(
     async (claim, { openProgramator = false } = {}) => {

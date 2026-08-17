@@ -21,6 +21,7 @@ import {
   uniqueSearchMatch,
 } from "../../utils/mobileSearchNav";
 import { UI_COPY } from "../../constants/uiCopy";
+import { emailInitial } from "../../utils/userDisplay";
 import { loadCachedBranding } from "../../constants/branding";
 import {
   dismissPwaInstallPrompt,
