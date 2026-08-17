@@ -44,18 +44,53 @@ import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
 export function applyClaimStatusChange(prev, newStatusKey) {
   const mappedKey = getStatusDefinition(newStatusKey).key;
-  const statusChanged = getStatusDefinition(prev.status).key !== mappedKey;
+  const statusChanged = getStatusDefinition(prev?.status || "").key !== mappedKey;
+  const now = nowISO();
+  const today = todayISO();
+
   const updates = {
     status: mappedKey,
-    dataSchimbareStatus: statusChanged ? nowISO() : prev.dataSchimbareStatus,
+    dataSchimbareStatus: statusChanged ? now : prev.dataSchimbareStatus,
   };
 
   if (statusChanged) {
     updates.alerteAck = false;
   }
 
+  // Automatism: Auto-completare Dată Eveniment dacă lipsește
+  if (!prev.dataEveniment) {
+    updates.dataEveniment = prev.dataDeschiderii ? String(prev.dataDeschiderii).slice(0, 10) : today;
+  }
+
+  // Automatism: Programare implicită pe azi la 09:00
   if (mappedKey === "programat" && !prev.dataProgramare) {
-    updates.dataProgramare = `${todayISO()}T09:00:00`;
+    updates.dataProgramare = `${today}T09:00:00`;
+  }
+
+  // Automatism: Reparație -> Marchează mașina ca adusă fizic
+  if (mappedKey === "in_lucru") {
+    updates.adusaFizic = true;
+    updates.financiar = {
+      ...(prev.financiar || {}),
+      dataAdusaFizic: prev.financiar?.dataAdusaFizic || now,
+    };
+  }
+
+  // Automatism: Reparație Finalizată -> Marchează gata de ridicare cu timestamp
+  if (mappedKey === "reparatie_finalizata" || mappedKey === "gata_de_ridicare") {
+    updates.gataDeRidicare = true;
+    updates.dataGataRidicare = prev.dataGataRidicare || now;
+  }
+
+  // Automatism: Predat -> Marchează ridicată de client cu timestamp
+  if (mappedKey === "predat" || mappedKey === "predat_client") {
+    updates.ridicata = true;
+    updates.dataRidicare = prev.dataRidicare || now;
+  }
+
+  // Automatism: Comandă piese -> Setează data comenzii de piese dacă e goală
+  if (mappedKey === "piese_comandate" && !prev.dataComandaPiese) {
+    updates.dataComandaPiese = today;
   }
 
   if (PRE_PROGRAMAT_STATUSES.includes(mappedKey) || PRE_PROGRAMAT_STATUSES.includes(newStatusKey)) {

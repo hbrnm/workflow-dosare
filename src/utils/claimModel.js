@@ -108,17 +108,20 @@ export function parseNumber(val, defaultVal = 0) {
 export function sanitizeClaim(c) {
   const base = emptyClaim();
   if (!c) return base;
+
+  const defaultEventDate = c.dataEveniment || c.dataDeschiderii?.slice(0, 10) || todayISO();
+
   return {
     ...base,
     ...c,
-    numarDosar: c.numarDosar || "",
+    numarDosar: c.numarDosar ? String(c.numarDosar).trim() : "",
     tipAsigurare: c.tipAsigurare || "CASCO",
-    asigurator: c.asigurator || "",
-    client: c.client || "",
-    delegat: c.delegat || "",
-    telefonClient: c.telefonClient || "",
-    numarInmatriculare: c.numarInmatriculare || "",
-    vin: c.vin || "",
+    asigurator: c.asigurator ? String(c.asigurator).trim() : "",
+    client: c.client ? String(c.client).trim() : "",
+    delegat: c.delegat ? String(c.delegat).trim() : "",
+    telefonClient: c.telefonClient ? String(c.telefonClient).trim() : "",
+    numarInmatriculare: c.numarInmatriculare ? String(c.numarInmatriculare).trim() : "",
+    vin: c.vin ? String(c.vin).trim() : "",
     marca: c.marca || "",
     model: c.model || "",
     marcaModel: c.marcaModel || [c.marca, c.model].filter(Boolean).join(" ") || "",
@@ -133,7 +136,7 @@ export function sanitizeClaim(c) {
     devize: Array.isArray(c.devize) ? c.devize : [],
     mesajClient: c.mesajClient || "",
     status: c.status || "primit",
-    dataEveniment: c.dataEveniment || null,
+    dataEveniment: defaultEventDate,
     dataComandaPiese: c.dataComandaPiese || null,
     termenLivrarePiese: c.termenLivrarePiese || null,
     ceEsteDeReparat: c.ceEsteDeReparat || "",

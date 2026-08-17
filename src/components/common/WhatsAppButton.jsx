@@ -72,24 +72,37 @@ export default function WhatsAppButton({ phone, claim, size = 13, className = ""
               className="wa-popover fixed z-[99999] rounded-xl shadow-2xl p-1.5 w-60 text-[11.5px] space-y-1"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="wa-popover-label px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider border-b">
-                Alege șablon WhatsApp:
+              <div className="wa-popover-label px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider border-b flex items-center justify-between">
+                <span>Șablon WhatsApp:</span>
+                <span className="text-[9px] text-emerald-400 font-bold">Auto-Selectat</span>
               </div>
 
               <div className="space-y-0.5 max-h-56 overflow-y-auto">
-                {WA_TEMPLATES.map((tmpl) => (
-                  <a
-                    key={tmpl.key}
-                    role="menuitem"
-                    href={getWaTemplateLink(phone, tmpl.key, claim, atelierName)}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setOpen(false)}
-                    className="wa-popover-item block w-full text-left px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-[11.5px]"
-                  >
-                    {tmpl.label}
-                  </a>
-                ))}
+                {WA_TEMPLATES.map((tmpl) => {
+                  const isRec =
+                    (claim?.status === "reparatie_finalizata" && tmpl.key === "gata") ||
+                    (claim?.status === "piese_comandate" && tmpl.key === "piese") ||
+                    (claim?.status === "deschidere" && tmpl.key === "acte");
+
+                  return (
+                    <a
+                      key={tmpl.key}
+                      role="menuitem"
+                      href={getWaTemplateLink(phone, tmpl.key, claim, atelierName)}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => setOpen(false)}
+                      className={`wa-popover-item block w-full text-left px-2.5 py-1.5 rounded-lg transition-colors font-semibold text-[11.5px] ${
+                        isRec ? "bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{tmpl.label}</span>
+                        {isRec && <span className="text-[9px] uppercase font-black tracking-widest text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded">Recomandat</span>}
+                      </div>
+                    </a>
+                  );
+                })}
               </div>
 
               <div className="wa-popover-footer border-t pt-1">
