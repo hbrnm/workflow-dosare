@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Bell, Phone, ChevronDown, ChevronUp
+  Bell, Phone, ChevronDown, ChevronUp, X
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import { telLink, formatProgramareShort, getSinceMeta } from "../../utils/dateUtils";
@@ -256,89 +256,107 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
     );
   }
 
-  if (expanded) {
-    return (
-      <div className="app-flux-stack-expanded space-y-1">
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          className={`app-flux-card app-flux-stack-card w-full border-l-[3px] rounded-lg p-2 text-left transition-colors ${groupHasAlert ? "is-alert" : ""}`}
-          style={{ borderLeftColor: phaseColorHex }}
-          title="Restrânge dosarele"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
-                  {plate}
-                </span>
-                <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-                  {groupClaims.length} dosare
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5">
-                {subline || "—"}
-                {badgeText && leadClaim.status === "programat" ? ` · ${badgeText}` : ""}
-              </p>
-            </div>
-            <ChevronUp size={14} className="shrink-0 text-[var(--app-muted)] mt-0.5" />
-          </div>
-        </button>
-        <div className="space-y-1">
-          {groupClaims.map((c) => (
-            <PhaseCardRedesign
-              key={c.id}
-              claim={c}
-              onOpen={onOpen}
-              onMoveToStatus={onMoveToStatus}
-              onTogglePieseSosite={onTogglePieseSosite}
-              onScheduleFromPiese={onScheduleFromPiese}
-              onPatchPieseDates={onPatchPieseDates}
-              canEdit={canEditFn(c)}
-              pragRidicare={pragRidicare}
-              onNotify={onNotify}
-              hideStatusSelect={hideStatusSelect}
-              isSearchHighlight={isSearchHighlighted(c.id, highlightClaimIds)}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setExpanded(true)}
-      className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
-      style={{ borderLeftColor: phaseColorHex }}
-      title={`${groupClaims.length} dosare — click pentru detalii`}
-    >
-      <div className="flex items-center justify-between gap-2 flex-1">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 min-w-0 flex-wrap">
-            <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
-              {plate}
-            </span>
-            <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
-              ×{groupClaims.length}
-            </span>
+    <>
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
+        style={{ borderLeftColor: phaseColorHex }}
+        title={`${groupClaims.length} dosare stivuite — click pentru a deschide în aer`}
+      >
+        <div className="flex items-center justify-between gap-2 flex-1">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1 min-w-0 flex-wrap">
+              <span className="font-mono font-black text-[15px] sm:text-[16.5px] text-[var(--app-text-strong)] tracking-wider uppercase truncate">
+                {plate}
+              </span>
+              <span className="app-flux-stack-badge text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                ×{groupClaims.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={subline}>
+              {subline || "—"}
+            </p>
           </div>
-          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={subline}>
-            {subline || "—"}
-          </p>
+          <div className="shrink-0 flex items-center gap-1">
+            <span
+              className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+              title={badgeTitle}
+            >
+              {badgeText}
+            </span>
+            <ChevronDown size={14} className="text-[var(--app-muted)]" />
+          </div>
         </div>
-        <div className="shrink-0 flex items-center gap-1">
-          <span
-            className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
-            title={badgeTitle}
+      </button>
+
+      {/* Pop-up în aer pentru dosarele stivuite (nu mai lungește celulele din grid) */}
+      {expanded && (
+        <div
+          className="fixed inset-0 z-[9500] flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setExpanded(false)}
+        >
+          <div
+            className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
           >
-            {badgeText}
-          </span>
-          <ChevronDown size={14} className="text-[var(--app-muted)]" />
+            {/* Header Pop-up */}
+            <div
+              className="flex items-center justify-between gap-3 p-3.5 border-b border-[var(--app-border)] bg-[var(--app-surface-2)] shrink-0"
+              style={{ borderLeftWidth: 4, borderLeftColor: phaseColorHex }}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-black text-lg text-[var(--app-text-strong)] tracking-wider uppercase">
+                    {plate}
+                  </span>
+                  <span className="bg-[var(--app-accent)] text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                    {groupClaims.length} dosare stivuite
+                  </span>
+                </div>
+                {subline && (
+                  <p className="text-[12px] text-[var(--app-muted)] font-semibold truncate mt-0.5">
+                    {subline}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                className="p-1.5 rounded-full hover:bg-[var(--app-surface-hover)] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer"
+                title="Închide"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Listă Carduri stivuite */}
+            <div className="p-3 overflow-y-auto space-y-2.5 max-h-[calc(85vh-80px)] scrollbar-thin">
+              {groupClaims.map((c) => (
+                <PhaseCardRedesign
+                  key={c.id}
+                  claim={c}
+                  onOpen={(claimToOpen) => {
+                    setExpanded(false);
+                    onOpen?.(claimToOpen);
+                  }}
+                  onMoveToStatus={onMoveToStatus}
+                  onTogglePieseSosite={onTogglePieseSosite}
+                  onScheduleFromPiese={onScheduleFromPiese}
+                  onPatchPieseDates={onPatchPieseDates}
+                  canEdit={canEditFn(c)}
+                  pragRidicare={pragRidicare}
+                  onNotify={onNotify}
+                  hideStatusSelect={hideStatusSelect}
+                  isSearchHighlight={isSearchHighlighted(c.id, highlightClaimIds)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </button>
+      )}
+    </>
   );
 }
 

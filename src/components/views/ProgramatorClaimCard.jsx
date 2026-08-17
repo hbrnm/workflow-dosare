@@ -39,69 +39,102 @@ export default function ProgramatorClaimCard({
 
   if (stack) {
     return (
-      <div
-        className={`app-prog-claim-card border rounded-lg text-[13px] overflow-hidden ${cardClass} ${stageAccent.className}`}
-        style={{ borderLeftWidth: 3, borderLeftColor: stageAccent.color }}
-      >
+      <>
         <div
-          draggable={true}
-          onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", lead.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          className="p-1.5 cursor-pointer active:opacity-60"
+          className={`app-prog-claim-card border rounded-lg text-[13px] overflow-hidden ${cardClass} ${stageAccent.className}`}
+          style={{ borderLeftWidth: 3, borderLeftColor: stageAccent.color }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded((v) => !v);
+          <div
+            draggable={true}
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", lead.id);
+              e.dataTransfer.effectAllowed = "move";
             }}
-            className="w-full flex items-start justify-between gap-1.5 text-left"
+            className="p-1.5 cursor-pointer active:opacity-60"
           >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-mono font-bold uppercase shrink-0">{plate}</span>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[var(--app-accent)] text-white">
-                  ×{stack.length}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2 mt-1">
-                <span className="font-bold truncate text-[12px]">{lead.client || "—"}</span>
-                <span className="text-[11px] text-[var(--app-muted)] font-semibold truncate shrink-0 max-w-[100px]">
-                  {lead.marcaModel || "—"}
-                </span>
-              </div>
-              {!expanded && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(true);
+              }}
+              className="w-full flex items-start justify-between gap-1.5 text-left cursor-pointer"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-mono font-bold uppercase shrink-0">{plate}</span>
+                  <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-[var(--app-accent)] text-white">
+                    ×{stack.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <span className="font-bold truncate text-[12px]">{lead.client || "—"}</span>
+                  <span className="text-[11px] text-[var(--app-muted)] font-semibold truncate shrink-0 max-w-[100px]">
+                    {lead.marcaModel || "—"}
+                  </span>
+                </div>
                 <div className="text-[10px] text-[var(--app-muted)] font-mono mt-1 truncate">
                   {stack.map((c) => `#${c.numarDosar || "?"}`).join(" · ")}
                 </div>
-              )}
-            </div>
-            <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold text-[var(--app-muted)] pt-0.5">
-              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </span>
-          </button>
+              </div>
+              <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold text-[var(--app-muted)] pt-0.5">
+                <ChevronDown size={14} />
+              </span>
+            </button>
+          </div>
         </div>
 
         {expanded && (
-          <div className="border-t border-[var(--app-border)]/60 p-1 space-y-1 bg-[var(--app-surface-2)]/30">
-            {stack.map((c) => (
-              <ProgramatorClaimCard
-                key={c.id}
-                claim={c}
-                claims={claims}
-                onOpen={onOpen}
-                onPatch={onPatch}
-                canEdit={canEdit}
-                onMarkNeonorata={onMarkNeonorata}
-                checkMasinaSchimbConflict={checkMasinaSchimbConflict}
-                onNotify={onNotify}
-              />
-            ))}
+          <div
+            className="fixed inset-0 z-[9500] flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setExpanded(false)}
+          >
+            <div
+              className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-3 p-3.5 border-b border-[var(--app-border)] bg-[var(--app-surface-2)] shrink-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-lg text-[var(--app-text-strong)] tracking-wider uppercase">
+                      {plate}
+                    </span>
+                    <span className="bg-[var(--app-accent)] text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">
+                      {stack.length} dosare programate
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setExpanded(false)}
+                  className="p-1.5 rounded-full hover:bg-[var(--app-surface-hover)] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer"
+                  title="Închide"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-3 overflow-y-auto space-y-2 max-h-[calc(85vh-80px)] scrollbar-thin">
+                {stack.map((c) => (
+                  <ProgramatorClaimCard
+                    key={c.id}
+                    claim={c}
+                    claims={claims}
+                    onOpen={(claimToOpen) => {
+                      setExpanded(false);
+                      onOpen?.(claimToOpen);
+                    }}
+                    onPatch={onPatch}
+                    canEdit={canEdit}
+                    onMarkNeonorata={onMarkNeonorata}
+                    checkMasinaSchimbConflict={checkMasinaSchimbConflict}
+                    onNotify={onNotify}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
-      </div>
+      </>
     );
   }
 

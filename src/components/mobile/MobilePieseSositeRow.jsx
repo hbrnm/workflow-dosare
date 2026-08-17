@@ -202,7 +202,7 @@ export default function MobilePieseSositeRow({
             <label
               className={`m-piese-inline-chip group relative ${canEditDates ? "is-editable" : ""}`}
             >
-              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-50 bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max">
+              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-[100] bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
                 <ShoppingBag size={12} className="text-[var(--app-muted)]" />
                 <span>
                   {claim.dataComandaPiese
@@ -219,6 +219,7 @@ export default function MobilePieseSositeRow({
                   className="m-piese-inline-input-overlay"
                   value={toInputDate(claim.dataComandaPiese)}
                   disabled={savingDates}
+                  title=""
                   onChange={(e) => handleDateFieldBlur("dataComandaPiese", e.target.value || null)}
                   onClick={(e) => e.stopPropagation()}
                   aria-label="Data comandă piese"
@@ -228,7 +229,7 @@ export default function MobilePieseSositeRow({
             <label
               className={`m-piese-inline-chip group relative ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
             >
-              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-50 bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max">
+              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-[100] bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
                 <Truck size={12} className="text-[var(--app-muted)]" />
                 <span>
                   {claim.termenLivrarePiese
@@ -245,6 +246,7 @@ export default function MobilePieseSositeRow({
                   className="m-piese-inline-input-overlay"
                   value={toInputDate(claim.termenLivrarePiese)}
                   disabled={savingDates}
+                  title=""
                   onChange={(e) => handleDateFieldBlur("termenLivrarePiese", e.target.value || null)}
                   onClick={(e) => e.stopPropagation()}
                   aria-label="Termen livrare piese"
