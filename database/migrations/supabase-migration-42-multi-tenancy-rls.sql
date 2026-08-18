@@ -1,12 +1,9 @@
 -- Migrare 42: Complete Multi-Tenancy & Strict Row Level Security (RLS) Isolation
--- Această migrare asigură izolarea completă și garantată la nivel de bază de date (RLS fail-closed)
--- pentru toate resursele (dosare, arhivă, istoric, membri, setari, storage).
---
--- Rulează în Supabase SQL Editor.
+-- Execută în Supabase SQL Editor.
 
 begin;
 
--- ── 1. Verificare & Creare Structură Tabele Multi-Tenant ────────
+-- ── 1. Structură Tabele Multi-Tenant ───────────────────────────
 create table if not exists public.ateliere (
   id uuid primary key default gen_random_uuid(),
   slug text unique,
@@ -19,9 +16,10 @@ create table if not exists public.ateliere (
   asiguratori jsonb not null default '[]'::jsonb,
   termene_alerta_status jsonb not null default '{}'::jsonb,
   plan text not null default 'trial'
-    check (plan in ('trial', 'active', 'past_due', 'canceled')),
-  trial_ends_at timestamptz default (now() + interval '30 days'),
+    check (plan in ('trial', 'starter', 'pro', 'enterprise', 'active', 'past_due', 'canceled')),
+  trial_ends_at timestamptz default (now() + interval '14 days'),
   seat_limit int not null default 10,
+  monthly_claim_limit int default null,
   stripe_customer_id text,
   stripe_subscription_id text,
   created_at timestamptz not null default now()
@@ -119,145 +117,75 @@ alter table public.dosare_arhiva enable row level security;
 
 -- ── 4. Politici RLS: Tablou Ateliere ──────────────────────────────
 drop policy if exists "ateliere_select_members" on public.ateliere;
-create policy "ateliere_select_members"
-on public.ateliere
-for select
-to authenticated
-using (
-  public.is_atelier_member(id)
-);
+create policy "ateliere_select_members" on public.ateliere
+for select to authenticated
+using (public.is_atelier_member(id));
 
 drop policy if exists "ateliere_update_admins" on public.ateliere;
-create policy "ateliere_update_admins"
-on public.ateliere
-for update
-to authenticated
-using (
-  public.is_atelier_admin(id)
-)
-with check (
-  public.is_atelier_admin(id)
-);
+create policy "ateliere_update_admins" on public.ateliere
+for update to authenticated
+using (public.is_atelier_admin(id))
+with check (public.is_atelier_admin(id));
 
 -- ── 5. Politici RLS: Membri Atelier ───────────────────────────────
 drop policy if exists "atelier_membri_select_same_atelier" on public.atelier_membri;
-create policy "atelier_membri_select_same_atelier"
-on public.atelier_membri
-for select
-to authenticated
-using (
-  user_id = auth.uid()
-  or public.is_atelier_member(atelier_id)
-);
+create policy "atelier_membri_select_same_atelier" on public.atelier_membri
+for select to authenticated
+using (user_id = auth.uid() or public.is_atelier_member(atelier_id));
 
 drop policy if exists "atelier_membri_all_admins" on public.atelier_membri;
-create policy "atelier_membri_all_admins"
-on public.atelier_membri
-for all
-to authenticated
-using (
-  public.is_atelier_admin(atelier_id)
-)
-with check (
-  public.is_atelier_admin(atelier_id)
-);
+create policy "atelier_membri_all_admins" on public.atelier_membri
+for all to authenticated
+using (public.is_atelier_admin(atelier_id))
+with check (public.is_atelier_admin(atelier_id));
 
 -- ── 6. Politici RLS: Tablou Dosare (Izolare Strictă per Tenant) ──
 drop policy if exists "dosare_select_atelier_member" on public.dosare;
-create policy "dosare_select_atelier_member"
-on public.dosare
-for select
-to authenticated
-using (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-);
+create policy "dosare_select_atelier_member" on public.dosare
+for select to authenticated
+using (atelier_id is not null and public.is_atelier_member(atelier_id));
 
 drop policy if exists "dosare_insert_atelier_member" on public.dosare;
-create policy "dosare_insert_atelier_member"
-on public.dosare
-for insert
-to authenticated
-with check (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-);
+create policy "dosare_insert_atelier_member" on public.dosare
+for insert to authenticated
+with check (atelier_id is not null and public.is_atelier_member(atelier_id));
 
 drop policy if exists "dosare_update_atelier_member" on public.dosare;
-create policy "dosare_update_atelier_member"
-on public.dosare
-for update
-to authenticated
-using (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-)
-with check (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-);
+create policy "dosare_update_atelier_member" on public.dosare
+for update to authenticated
+using (atelier_id is not null and public.is_atelier_member(atelier_id))
+with check (atelier_id is not null and public.is_atelier_member(atelier_id));
 
 drop policy if exists "dosare_delete_atelier_member" on public.dosare;
-create policy "dosare_delete_atelier_member"
-on public.dosare
-for delete
-to authenticated
-using (
-  atelier_id is not null
-  and (created_by = auth.uid() or public.is_atelier_admin(atelier_id))
-);
+create policy "dosare_delete_atelier_member" on public.dosare
+for delete to authenticated
+using (atelier_id is not null and (created_by = auth.uid() or public.is_atelier_admin(atelier_id)));
 
 -- ── 7. Politici RLS: Arhivă Dosare ────────────────────────────────
 drop policy if exists "dosare_arhiva_select_member" on public.dosare_arhiva;
-create policy "dosare_arhiva_select_member"
-on public.dosare_arhiva
-for select
-to authenticated
-using (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-);
+create policy "dosare_arhiva_select_member" on public.dosare_arhiva
+for select to authenticated
+using (atelier_id is not null and public.is_atelier_member(atelier_id));
 
 drop policy if exists "dosare_arhiva_insert_member" on public.dosare_arhiva;
-create policy "dosare_arhiva_insert_member"
-on public.dosare_arhiva
-for insert
-to authenticated
-with check (
-  atelier_id is not null
-  and public.is_atelier_member(atelier_id)
-);
+create policy "dosare_arhiva_insert_member" on public.dosare_arhiva
+for insert to authenticated
+with check (atelier_id is not null and public.is_atelier_member(atelier_id));
 
 -- ── 8. Politici Storage RLS: Poze & Documente ────────────────────
--- Regula garantează că niciun fișier media nu poate fi descărcat de un alt tenant
 drop policy if exists "poze_dosare_select_member" on storage.objects;
-create policy "poze_dosare_select_member"
-on storage.objects
-for select
-to authenticated
-using (
-  bucket_id in ('poze_dosare', 'documente_dosare')
-  and public.can_access_dosar_storage_object(name)
-);
+create policy "poze_dosare_select_member" on storage.objects
+for select to authenticated
+using (bucket_id in ('poze_dosare', 'documente_dosare') and public.can_access_dosar_storage_object(name));
 
 drop policy if exists "poze_dosare_insert_member" on storage.objects;
-create policy "poze_dosare_insert_member"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id in ('poze_dosare', 'documente_dosare')
-  and public.can_access_dosar_storage_object(name)
-);
+create policy "poze_dosare_insert_member" on storage.objects
+for insert to authenticated
+with check (bucket_id in ('poze_dosare', 'documente_dosare') and public.can_access_dosar_storage_object(name));
 
 drop policy if exists "poze_dosare_delete_member" on storage.objects;
-create policy "poze_dosare_delete_member"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id in ('poze_dosare', 'documente_dosare')
-  and public.can_access_dosar_storage_object(name)
-);
+create policy "poze_dosare_delete_member" on storage.objects
+for delete to authenticated
+using (bucket_id in ('poze_dosare', 'documente_dosare') and public.can_access_dosar_storage_object(name));
 
 commit;
