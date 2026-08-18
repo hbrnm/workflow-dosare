@@ -14,6 +14,8 @@ export default function AtelierSwitcher({
   onOpenSettings,
   onLogout,
   compact = false,
+  trigger = "avatar",
+  setariOpen = false,
 }) {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState(null);
@@ -73,7 +75,6 @@ export default function AtelierSwitcher({
 
   const openSettingsSafely = () => {
     setOpen(false);
-    // After menu unmount, defer open so the same click cannot hit a future backdrop.
     window.setTimeout(() => onOpenSettings?.(), 0);
   };
 
@@ -83,77 +84,85 @@ export default function AtelierSwitcher({
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[80] rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-lg p-1.5 min-w-[220px]"
+            className="fixed z-[80] rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] shadow-2xl p-1.5 min-w-[220px] animate-in zoom-in-95 duration-100"
             style={{ left: menuPos.left, bottom: menuPos.bottom }}
           >
-            {active ? (
+            {active || userEmail ? (
               <div className="px-2.5 py-2 border-b border-[var(--app-border)] mb-1">
-                <div className="text-[11px] font-bold text-[var(--app-muted)] uppercase tracking-wide">
-                  Atelier
-                </div>
-                <div className="text-[13px] font-semibold text-[var(--app-text-strong)] truncate">
-                  {active.nume}
-                </div>
+                {active ? (
+                  <div className="text-[13px] font-bold text-[var(--app-text-strong)] truncate">
+                    {active.nume}
+                  </div>
+                ) : null}
+                {userEmail ? (
+                  <div className="text-[11px] text-[var(--app-muted)] truncate">
+                    {userEmail}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
             {multi ? (
-              <div className="max-h-48 overflow-y-auto mb-1">
-                {memberships.map((m) => {
-                  const isActive = m.id === activeId;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      role="menuitem"
-                      className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left text-[12px] ${
-                        isActive
-                          ? "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)]"
-                          : "hover:bg-[var(--app-surface-2)] text-[var(--app-text)]"
-                      }`}
-                      onClick={async () => {
-                        if (!isActive) await onSwitch?.(m.id);
-                        setOpen(false);
-                      }}
-                    >
-                      <Building2 size={14} className="shrink-0 opacity-70" />
-                      <span className="min-w-0 flex-1 truncate font-semibold">{m.nume}</span>
-                      {isActive ? <Check size={14} className="text-[var(--app-accent)]" /> : null}
-                    </button>
-                  );
-                })}
+              <div className="mb-1 space-y-0.5">
+                <div className="px-2.5 py-1 text-[10px] font-bold text-[var(--app-muted)] uppercase tracking-wide">
+                  Ateliere Disponibile ({memberships.length})
+                </div>
+                <div className="max-h-44 overflow-y-auto space-y-0.5">
+                  {memberships.map((m) => {
+                    const isActive = m.id === activeId;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        role="menuitem"
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[12px] transition-colors ${
+                          isActive
+                            ? "bg-[var(--app-surface-muted)] text-[var(--app-text-strong)] font-bold"
+                            : "hover:bg-[var(--app-surface-2)] text-[var(--app-text)] font-semibold"
+                        }`}
+                        onClick={async () => {
+                          if (!isActive) await onSwitch?.(m.id);
+                          setOpen(false);
+                        }}
+                      >
+                        <Building2 size={14} className="shrink-0 opacity-70" />
+                        <span className="min-w-0 flex-1 truncate">{m.nume}</span>
+                        {isActive ? <Check size={14} className="text-[var(--app-accent)]" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="border-b border-[var(--app-border)] my-1" />
               </div>
             ) : null}
 
             <button
               type="button"
               role="menuitem"
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] transition-colors"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 openSettingsSafely();
               }}
             >
-              <Settings size={14} /> Setări
+              <Settings size={15} className="text-[var(--app-accent)] shrink-0" />
+              <span>Setări &amp; Configurare</span>
             </button>
+
             {onLogout ? (
               <button
                 type="button"
                 role="menuitem"
-                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-semibold text-[var(--app-danger)] hover:bg-[var(--app-danger)]/10"
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-bold text-[var(--app-danger)] hover:bg-[var(--app-danger)]/10 transition-colors mt-0.5"
                 onClick={() => {
                   setOpen(false);
                   onLogout();
                 }}
               >
-                <LogOut size={14} /> Deconectare
+                <LogOut size={15} className="shrink-0" />
+                <span>Deconectare</span>
               </button>
-            ) : null}
-            {multi ? (
-              <div className="px-2.5 py-1 text-[10px] text-[var(--app-muted)] flex items-center gap-1">
-                <ChevronUp size={10} /> Schimbă atelierul
-              </div>
             ) : null}
           </div>,
           document.body
@@ -165,15 +174,19 @@ export default function AtelierSwitcher({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-center p-2 rounded-lg app-nav-btn transition-all ${
-          open ? "is-active" : ""
+        className={`w-full flex items-center justify-center p-2 rounded-xl transition-all ${
+          open || setariOpen
+            ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm"
+            : "app-nav-btn hover:bg-[var(--app-surface-2)]"
         }`}
-        title={active ? `${active.nume}${userEmail ? ` — ${userEmail}` : ""}` : "Cont"}
+        title={active ? `Setări, Atelier (${active.nume}) & Delogare` : "Setări & Cont"}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={active ? `Atelier ${active.nume}` : "Meniu cont"}
+        aria-label="Meniu setări și cont"
       >
-        {active?.logoUrl ? (
+        {trigger === "gear" ? (
+          <Settings size={20} className="shrink-0" />
+        ) : active?.logoUrl ? (
           <img src={active.logoUrl} alt="" className="w-7 h-7 rounded-md object-contain bg-[var(--app-surface)]" />
         ) : (
           <div className="w-7 h-7 rounded-md app-accent-bg font-bold text-[10px] flex items-center justify-center shrink-0">

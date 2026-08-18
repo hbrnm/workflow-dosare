@@ -19,21 +19,16 @@ export default function DesktopSidebar({
 }) {
   return (
     <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
-      {/* Top Organization / Atelier Switcher (1-click popover) */}
+      {/* Top App Logo — 1 click to Dosare main view */}
       <div className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 w-full p-1.5">
-        <AtelierSwitcher
-          memberships={memberships}
-          activeId={atelierId}
-          userEmail={userEmail}
-          onSwitch={async (id) => {
-            if (switchAtelier) {
-              const ok = await switchAtelier(id);
-              if (ok && showNotice) showNotice("Atelier schimbat.", "success");
-            }
-          }}
-          onOpenSettings={openSettings}
-          onLogout={handleLogout}
-        />
+        <button
+          type="button"
+          onClick={() => setView("dosare")}
+          className="p-1 rounded-xl hover:bg-[var(--app-surface-2)] transition-all flex items-center justify-center"
+          title="Workflow Daune — Înapoi la Dosare"
+        >
+          <img src="/icon.svg" alt="Workflow Daune" className="w-8 h-8 rounded-lg shadow-sm object-contain" />
+        </button>
       </div>
 
       {/* Navigare principală — doar icoane */}
@@ -68,26 +63,14 @@ export default function DesktopSidebar({
         })}
       </div>
 
-      {/* Setări (1 click) + profil / switcher atelier */}
-      <div className="p-1.5 shrink-0 border-t border-[var(--app-border)] space-y-1">
-        <button
-          type="button"
-          onClick={openSettings}
-          className={`w-full flex items-center justify-center p-2 rounded-xl transition-all ${
-            setariOpen 
-              ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm" 
-              : "app-nav-btn hover:bg-[var(--app-surface-2)]"
-          }`}
-          title="Setări"
-          aria-label="Setări"
-          aria-pressed={setariOpen}
-        >
-          <Settings size={20} className="shrink-0" />
-        </button>
+      {/* Singurul buton la baza barei — Roată de Setări cu meniu unificat (Setări, Schimbă Atelier, Deconectare) */}
+      <div className="p-1.5 shrink-0 border-t border-[var(--app-border)]">
         <AtelierSwitcher
           memberships={memberships}
           activeId={atelierId}
           userEmail={userEmail}
+          trigger="gear"
+          setariOpen={setariOpen}
           onSwitch={async (id) => {
             if (switchAtelier) {
               const ok = await switchAtelier(id);
