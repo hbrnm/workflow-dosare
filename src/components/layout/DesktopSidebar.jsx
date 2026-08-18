@@ -32,16 +32,16 @@ export default function DesktopSidebar({
               key={id}
               onClick={() => setView(id)}
               className={`w-full flex items-center justify-center p-2.5 transition-all rounded-xl ${
-                active 
-                  ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm" 
-                  : "app-nav-btn hover:bg-[var(--app-surface-2)]"
+                active
+                  ? "bg-[var(--app-accent)] text-white font-bold shadow-md shadow-sky-500/20"
+                  : "text-slate-400 hover:text-white hover:bg-white/10 hover:border hover:border-white/15 hover:backdrop-blur-md hover:shadow-sm"
               }`}
               title={label}
             >
               <span className="relative inline-flex">
                 <Icon size={20} className="shrink-0" />
                 {badge !== undefined && badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[9px] font-bold leading-[15px] text-center">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-0.5 rounded-full bg-[var(--app-accent)] text-white text-[9px] font-bold leading-[15px] text-center shadow-xs">
                     {badge > 99 ? "99+" : badge}
                   </span>
                 )}

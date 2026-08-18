@@ -180,8 +180,8 @@ export default function AtelierSwitcher({
         onClick={() => setOpen((v) => !v)}
         className={`w-full flex items-center justify-center p-2 rounded-xl transition-all ${
           open || setariOpen
-            ? "bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold shadow-sm"
-            : "app-nav-btn hover:bg-[var(--app-surface-2)]"
+            ? "bg-[var(--app-accent)] text-white font-bold shadow-md shadow-sky-500/20"
+            : "text-slate-400 hover:text-white hover:bg-white/10 hover:border hover:border-white/15 hover:backdrop-blur-md hover:shadow-sm"
         }`}
         title={active ? `Setări, Atelier (${active.nume}) & Delogare` : "Setări & Cont"}
         aria-expanded={open}
