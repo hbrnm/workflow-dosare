@@ -44,10 +44,10 @@ export default function ClaimHeader({
       )}
     >
       <div className="flex items-center gap-2 min-w-0 pr-2">
-        <FileText size={16} className={`shrink-0 ${desktopUi ? "text-[var(--app-muted)]" : "text-white/80"}`} />
+        <FileText size={16} className="shrink-0 text-slate-600 dark:text-slate-300" />
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <span className={`font-semibold text-[13px] tracking-tight truncate ${desktopUi ? "text-[var(--app-text)]" : "text-white"}`}>
+            <span className="font-extrabold text-[14px] tracking-tight truncate text-slate-900 dark:text-white">
               {isNew ? "Dosar Nou" : (form.numarDosar ? `Dosar ${form.numarDosar}` : "Dosar Fără Număr")}
             </span>
             {/* Single status chip */}
@@ -73,15 +73,15 @@ export default function ClaimHeader({
               </span>
             )}
           </div>
-          <span className={`text-[11px] font-mono font-bold flex items-center gap-1.5 truncate mt-0.5 ${desktopUi ? "text-slate-900 dark:text-slate-100" : "text-white"}`}>
-            <Car size={12} className="shrink-0 text-slate-600 dark:text-slate-300" />
+          <span className="text-[12px] font-mono font-bold flex items-center gap-1.5 truncate mt-0.5 text-slate-800 dark:text-slate-200">
+            <Car size={12} className="shrink-0 text-slate-600 dark:text-slate-400" />
             <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
           </span>
           {!isNew && (
             <ClaimAuditMeta
               claim={form}
               compact
-              className={`mt-0.5 ${desktopUi ? "text-slate-800 dark:text-slate-200" : "text-white/90 [&_span.font-extrabold]:text-white"}`}
+              className="mt-0.5 text-slate-800 dark:text-slate-200"
             />
           )}
         </div>
@@ -106,9 +106,7 @@ export default function ClaimHeader({
               className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
                 form.blocat
                   ? "text-[var(--app-danger-text)] bg-[var(--app-danger)] border-[var(--app-danger)] hover:bg-[var(--app-danger-hover)]"
-                  : desktopUi
-                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
+                  : "text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
               title={form.blocat ? "Deblochează dosarul" : "Marchează dosarul ca blocat"}
             >
@@ -120,11 +118,7 @@ export default function ClaimHeader({
               <button
                 type="button"
                 onClick={onOpenReceptie}
-                className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
-                  desktopUi
-                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
-                }`}
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                 title="Recepție auto & Semnătură digitală pe ecran"
               >
                 <FileCheck size={12} /><span className="hidden md:inline"> Recepție</span>
@@ -134,11 +128,7 @@ export default function ClaimHeader({
             <button
               type="button"
               onClick={duplicateFn}
-              className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
-                desktopUi
-                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                  : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
-              }`}
+              className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Duplică / Copiază datele acestui dosar"
             >
               <Copy size={12} /><span className="hidden md:inline"> Copiază</span>
@@ -148,11 +138,7 @@ export default function ClaimHeader({
               type="button"
               onClick={downloadZipFn}
               disabled={downloadingZip}
-              className={`flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer ${
-                desktopUi
-                  ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                  : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
-              }`}
+              className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Descarcă toate pozele și documentele într-o arhivă ZIP"
             >
               {downloadingZip ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
@@ -165,11 +151,7 @@ export default function ClaimHeader({
               <button
                 type="button"
                 onClick={() => setPdfMenuOpen((v) => !v)}
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer ${
-                  desktopUi
-                    ? "text-[var(--app-muted)] hover:text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
-                    : "text-white/80 hover:text-white border-white/20 hover:bg-white/10"
-                }`}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-lg border transition-colors cursor-pointer text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                 title="Printează / exportă PDF"
                 aria-label="Printează / exportă PDF"
                 aria-expanded={pdfMenuOpen}
@@ -180,20 +162,12 @@ export default function ClaimHeader({
               {pdfMenuOpen && (
                 <div
                   role="menu"
-                  className={`absolute right-0 top-[calc(100%+0.3rem)] z-[70] min-w-[11rem] rounded-lg border py-1 shadow-lg ${
-                    desktopUi
-                      ? "bg-[var(--app-surface)] border-[var(--app-border)]"
-                      : "bg-[var(--app-surface-muted)] border-white/20"
-                  }`}
+                  className="absolute right-0 top-[calc(100%+0.3rem)] z-[70] min-w-[11rem] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 shadow-2xl"
                 >
                   <button
                     type="button"
                     role="menuitem"
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                      desktopUi
-                        ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                        : "text-white hover:bg-white/10"
-                    }`}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                     onClick={async () => {
                       setPdfMenuOpen(false);
                       await generateazaFisaIntrareService(form);
@@ -205,11 +179,7 @@ export default function ClaimHeader({
                     <button
                       type="button"
                       role="menuitem"
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                        desktopUi
-                          ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                       onClick={() => {
                         setPdfMenuOpen(false);
                         onOpenSettlement();
@@ -222,11 +192,7 @@ export default function ClaimHeader({
                     <button
                       type="button"
                       role="menuitem"
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                        desktopUi
-                          ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                       onClick={async () => {
                         setPdfMenuOpen(false);
                         const branding = loadCachedBranding();
@@ -247,11 +213,7 @@ export default function ClaimHeader({
                     <button
                       type="button"
                       role="menuitem"
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                        desktopUi
-                          ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                       onClick={async () => {
                         setPdfMenuOpen(false);
                         const branding = loadCachedBranding();
@@ -265,11 +227,7 @@ export default function ClaimHeader({
                     <button
                       type="button"
                       role="menuitem"
-                      className={`w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold ${
-                        desktopUi
-                          ? "text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-                          : "text-white hover:bg-white/10"
-                      }`}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                       onClick={() => {
                         setPdfMenuOpen(false);
                         generateazaProcesVerbalMasinaSchimb(form);
@@ -286,11 +244,7 @@ export default function ClaimHeader({
         <button
           type="button"
           onClick={requestClose}
-          className={`min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-lg transition-colors ml-1 cursor-pointer active:scale-95 ${
-            desktopUi
-              ? "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]"
-              : "text-white/80 hover:text-white hover:bg-white/10"
-          }`}
+          className="min-w-[40px] min-h-[40px] flex items-center justify-center p-2 rounded-lg transition-colors ml-1 cursor-pointer active:scale-95 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
           aria-label="Închide dosarul"
         >
           <X size={20} />
