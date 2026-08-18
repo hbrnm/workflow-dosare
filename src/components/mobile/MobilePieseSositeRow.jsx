@@ -200,16 +200,16 @@ export default function MobilePieseSositeRow({
         <div className="m-piese-inline-row">
           <div className="m-piese-inline-dates">
             <label
-              className={`m-piese-inline-chip group relative ${canEditDates ? "is-editable" : ""}`}
+              className={`m-piese-inline-chip group/chip relative ${canEditDates ? "is-editable" : ""}`}
             >
-              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-[100] bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
-                <ShoppingBag size={12} className="text-[var(--app-muted)]" />
+              <div className="absolute hidden group-hover/chip:flex items-center gap-1.5 z-[110] bottom-[calc(100%+6px)] left-0 text-xs bg-[var(--app-surface)] text-[var(--app-text-strong)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
+                <ShoppingBag size={12} className="text-[var(--app-accent)] shrink-0" />
                 <span>
                   {claim.dataComandaPiese
                     ? `Data comenzii: ${toInputDate(claim.dataComandaPiese)}`
                     : "Data comandă piese"}
                 </span>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
+                <div className="absolute top-full left-3 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
               </div>
               <span className="m-piese-inline-k">C</span>
               <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
@@ -227,16 +227,16 @@ export default function MobilePieseSositeRow({
               ) : null}
             </label>
             <label
-              className={`m-piese-inline-chip group relative ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
+              className={`m-piese-inline-chip group/chip relative ${livrareOverdue ? "is-overdue" : ""} ${canEditDates ? "is-editable" : ""}`}
             >
-              <div className="absolute hidden group-hover:flex items-center gap-1.5 z-[100] bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 text-xs bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
-                <Truck size={12} className="text-[var(--app-muted)]" />
+              <div className="absolute hidden group-hover/chip:flex items-center gap-1.5 z-[110] bottom-[calc(100%+6px)] right-0 text-xs bg-[var(--app-surface)] text-[var(--app-text-strong)] border border-[var(--app-border)] px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap min-w-max pointer-events-none select-none">
+                <Truck size={12} className="text-[var(--app-accent)] shrink-0" />
                 <span>
                   {claim.termenLivrarePiese
                     ? `Termen livrare: ${toInputDate(claim.termenLivrarePiese)}`
                     : "Termen livrare piese"}
                 </span>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
+                <div className="absolute top-full right-3 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
               </div>
               <span className="m-piese-inline-k">T</span>
               <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
