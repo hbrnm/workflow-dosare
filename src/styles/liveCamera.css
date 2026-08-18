@@ -88,6 +88,15 @@
   font-size: 0.82rem;
 }
 
+.live-cam-folder-cancel {
+  padding: 0.7rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
 .live-cam-cats {
   display: flex;
   align-items: center;
@@ -188,6 +197,24 @@
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.6);
   flex-shrink: 0;
+}
+
+.live-cam-folder-locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  max-width: 6.5rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .live-cam-thumb {
