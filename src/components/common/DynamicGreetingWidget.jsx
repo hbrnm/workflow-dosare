@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Filter, Edit2 } from "lucide-react";
 import {
   getUserNickname,
   getDynamicGreetingObject,
@@ -89,15 +88,7 @@ export default function DynamicGreetingWidget({
           : "Apasă pentru a edita numele/porecla în setări"
       }
     >
-      <span className="truncate max-w-[280px] xl:max-w-[440px]">{greetingObj.text}</span>
-      {greetingObj.targetStage ? (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider opacity-80 group-hover:opacity-100 shrink-0 ml-1">
-          <Filter size={11} className={isFilterActive ? "text-white" : "text-[var(--app-accent)]"} />
-          <span>{isFilterActive ? "Filtrat" : "Filtrează"}</span>
-        </span>
-      ) : (
-        <Edit2 size={10} className="text-[var(--app-muted)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-0.5" />
-      )}
+      <span className="truncate max-w-[320px] xl:max-w-[520px]">{greetingObj.text}</span>
     </div>
   );
 }
