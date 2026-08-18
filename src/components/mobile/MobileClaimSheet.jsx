@@ -243,7 +243,7 @@ export default function MobileClaimSheet({
             disabled={readOnly}
             placeholder="NR. AUTO"
             className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
-            style={{ color: "inherit" }}
+            style={{ color: "var(--app-chrome-text, inherit)" }}
           />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
