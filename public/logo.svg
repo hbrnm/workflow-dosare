@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f4c81"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="grad3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Logo Mark Group -->
+  <g transform="translate(40, 20)">
+    <!-- Lower Polygon -->
+    <path d="M 40 200 L 95 145 L 130 180 L 75 235 Z" fill="url(#grad1)"/>
+    <!-- Middle Polygon -->
+    <path d="M 90 150 L 155 85 L 190 120 L 125 185 Z" fill="url(#grad2)"/>
+    <!-- Upper Arrow Head -->
+    <path d="M 150 90 L 235 5 L 235 110 L 195 70 L 175 90 L 175 55 Z" fill="url(#grad3)"/>
+    <path d="M 150 90 L 235 5 L 235 105 L 190 150 Z" fill="url(#grad3)"/>
+    <!-- Wrench -->
+    <path d="M 180 180 C 168 168 168 148 180 136 C 188 128 200 124 212 128 L 196 144 L 204 164 L 224 156 L 240 140 C 244 152 240 164 232 172 C 220 184 200 184 188 172 L 140 220 C 132 228 120 228 112 220 C 104 212 104 200 112 192 Z" fill="#0284c7"/>
+  </g>
+
+  <!-- Text Group -->
+  <g transform="translate(300, 140)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="72" fill="#0284c7">Workflow</text>
+    <text x="0" y="65" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="72" fill="#0f2942">Daune</text>
+    <text x="0" y="110" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="28" fill="#475569" letter-spacing="0.5">Gestionare Digitală Daune Auto</text>
+  </g>
+</svg>

@@ -1,11 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Dosare Dauna">
-  <rect width="512" height="512" fill="#000000"/>
-  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="156" cy="334" r="42"/>
-    <circle cx="356" cy="334" r="42"/>
-    <path d="M104 334h36l28-58 62-38h108l62 38 28 58h36"/>
-    <path d="M206 238l34-62h72l34 62"/>
-    <line x1="276" y1="176" x2="276" y2="238"/>
-    <path d="M422 334l18-24"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0f2942"/>
+    </linearGradient>
+    <linearGradient id="p1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="p2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="p3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+
+  <!-- Logo Mark -->
+  <g transform="translate(60, 50)">
+    <!-- Lower Polygon -->
+    <path d="M 70 320 L 150 240 L 200 290 L 120 370 Z" fill="url(#p1)"/>
+    <!-- Middle Polygon -->
+    <path d="M 140 250 L 240 150 L 290 200 L 190 300 Z" fill="url(#p2)"/>
+    <!-- Arrowhead -->
+    <path d="M 230 160 L 350 40 L 350 190 L 295 135 L 265 165 L 265 110 Z" fill="url(#p3)"/>
+    <path d="M 230 160 L 350 40 L 350 185 L 285 250 Z" fill="url(#p3)"/>
+
+    <!-- Wrench -->
+    <path d="M 280 290 C 262 272 262 242 280 224 C 292 212 310 206 328 212 L 304 236 L 316 266 L 346 254 L 370 230 C 376 248 370 266 358 278 C 340 296 310 296 292 278 L 220 350 C 208 362 190 362 178 350 C 166 338 166 320 178 308 Z" fill="#38bdf8"/>
   </g>
 </svg>
