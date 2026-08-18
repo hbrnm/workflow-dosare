@@ -4,6 +4,7 @@ import { supabase } from "../supabaseClient";
 export function useAuth() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authScreen, setAuthScreen] = useState("login"); // "login" | "signup"
   /** True while user arrived via recovery email link and must set a new password. */
   const [passwordRecovery, setPasswordRecovery] = useState(false);
 
@@ -51,6 +52,8 @@ export function useAuth() {
     session,
     authLoading,
     setSession,
+    authScreen,
+    setAuthScreen,
     handleLogout,
     authLogout: handleLogout,
     passwordRecovery,

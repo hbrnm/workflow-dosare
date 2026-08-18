@@ -116,45 +116,51 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
       <div className="app-login-glow" aria-hidden />
       <form
         onSubmit={mode === "forgot" ? handleForgot : handleLogin}
-        className="app-login-card space-y-4"
+        className="app-login-card space-y-4 max-w-[400px] shadow-2xl border border-[var(--app-border)] bg-[var(--app-surface)] rounded-2xl p-6"
       >
-        <div className="flex items-center gap-3">
-          {display.logoUrl ? (
-            <img
-              src={display.logoUrl}
-              alt=""
-              className="app-login-logo w-11 h-11 rounded-xl object-contain"
-            />
-          ) : (
-            <div className="app-login-mark w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-[13px]">
-              {short || "AT"}
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="app-login-title truncate">
-              {atelierName || (mode === "forgot" ? "Resetare parolă" : "Autentificare atelier")}
-            </div>
-            <div className="app-login-sub">
+        {/* Header - Clean Centered Logo & Title */}
+        <div className="text-center space-y-2 pt-1 pb-1">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[var(--app-surface-2)] border border-[var(--app-border)] shadow-sm mb-1">
+            {display.logoUrl ? (
+              <img
+                src={display.logoUrl}
+                alt=""
+                className="w-10 h-10 object-contain rounded-xl"
+              />
+            ) : (
+              <img
+                src="/icon.svg"
+                alt="Workflow Daune"
+                className="w-10 h-10 object-contain rounded-xl"
+              />
+            )}
+          </div>
+          <div>
+            <h1 className="text-xl font-extrabold text-[var(--app-text-strong)] tracking-tight">
+              {atelierName || (mode === "forgot" ? "Resetare parolă" : "Workflow Daune")}
+            </h1>
+            <p className="text-xs font-semibold text-[var(--app-muted)] mt-0.5">
               {atelierName
                 ? mode === "forgot"
-                  ? "Resetare parolă"
-                  : "Autentificare atelier"
+                  ? "Resetare parolă atelier"
+                  : "Autentificare atelier digital"
                 : mode === "forgot"
-                  ? "Introdu emailul contului"
-                  : "Contul atelierului tău"}
-            </div>
+                  ? "Introdu adresa de email a contului"
+                  : "Gestionare digitală daune auto"}
+            </p>
           </div>
         </div>
 
         {mode === "login" ? (
-          <div className="space-y-2">
+          <div className="space-y-3 pt-1">
+            {/* Google SSO Button */}
             <button
               type="button"
               disabled={Boolean(ssoLoading)}
               onClick={() => handleOAuthLogin("google")}
-              className="w-full flex items-center justify-center gap-2.5 p-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[13px] font-semibold text-[var(--app-text)] transition-all shadow-sm"
+              className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[13px] font-bold text-[var(--app-text-strong)] transition-all shadow-sm active:scale-[0.99]"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -172,10 +178,10 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              {ssoLoading === "google" ? "Se conectează..." : "Conectare cu Google"}
+              <span>{ssoLoading === "google" ? "Se conectează..." : "Conectare cu Google"}</span>
             </button>
 
-            <div className="flex items-center gap-2 text-[11px] font-medium text-[var(--app-muted)] my-2">
+            <div className="flex items-center gap-3 text-[11px] font-semibold text-[var(--app-muted)] my-2">
               <div className="flex-1 h-px bg-[var(--app-border)]" />
               <span>sau cu email și parolă</span>
               <div className="flex-1 h-px bg-[var(--app-border)]" />
@@ -183,64 +189,76 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
           </div>
         ) : null}
 
-        <div className="space-y-1.5">
-          <label className="app-login-label">
-            <Mail size={12} /> Email
-          </label>
-          <input
-            type="email"
-            required
-            className="app-login-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoFocus
-            autoComplete="username"
-            placeholder="nume@atelier.ro"
-          />
-        </div>
-
-        {mode === "login" ? (
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <label className="app-login-label mb-0">
-                <Lock size={12} /> Parolă
-              </label>
-              <button
-                type="button"
-                className="text-[11px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                onClick={() => {
-                  setMode("forgot");
-                  setError("");
-                  setInfo("");
-                }}
-              >
-                Am uitat parola
-              </button>
-            </div>
+        {/* Input Form Fields */}
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--app-muted)] flex items-center gap-1.5">
+              <Mail size={12} /> Email
+            </label>
             <input
-              type="password"
+              type="email"
               required
-              className="app-login-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              placeholder="••••••••"
+              className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl text-[14px] font-semibold text-[var(--app-text-strong)] px-3.5 py-2.5 outline-none focus:border-[var(--app-accent)] focus:ring-2 focus:ring-[var(--app-accent)]/20 transition-all placeholder:text-[var(--app-muted-2)]"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
+              autoComplete="username"
+              placeholder="nume@atelier.ro"
             />
           </div>
-        ) : (
-          <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
-            Trimitem un link pe email. După click, setezi o parolă nouă în aplicație.
-          </p>
-        )}
 
-        {error ? <div className="app-login-error">{error}</div> : null}
+          {mode === "login" ? (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--app-muted)] flex items-center gap-1.5 mb-0">
+                  <Lock size={12} /> Parolă
+                </label>
+                <button
+                  type="button"
+                  className="text-[11.5px] font-semibold text-[var(--app-accent)] hover:underline"
+                  onClick={() => {
+                    setMode("forgot");
+                    setError("");
+                    setInfo("");
+                  }}
+                >
+                  Am uitat parola
+                </button>
+              </div>
+              <input
+                type="password"
+                required
+                className="w-full bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl text-[14px] font-semibold text-[var(--app-text-strong)] px-3.5 py-2.5 outline-none focus:border-[var(--app-accent)] focus:ring-2 focus:ring-[var(--app-accent)]/20 transition-all placeholder:text-[var(--app-muted-2)]"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                placeholder="••••••••"
+              />
+            </div>
+          ) : (
+            <p className="text-[12px] text-[var(--app-muted)] leading-relaxed">
+              Trimitem un link pe email. După click, setezi o parolă nouă în aplicație.
+            </p>
+          )}
+        </div>
+
+        {error ? (
+          <div className="rounded-xl border border-[var(--app-danger)]/30 bg-[var(--app-danger)]/10 px-3.5 py-2.5 text-[12px] font-bold text-[var(--app-danger)]">
+            {error}
+          </div>
+        ) : null}
         {info ? (
-          <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3 py-2 text-[12px] text-[var(--app-text)] leading-relaxed">
+          <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] px-3.5 py-2.5 text-[12px] font-semibold text-[var(--app-text)] leading-relaxed">
             {info}
           </div>
         ) : null}
 
-        <button type="submit" disabled={loading} className="app-login-submit">
+        {/* Submit Primary Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-text)] font-bold text-[14px] shadow-sm hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
           {loading ? (
             mode === "forgot" ? "Se trimite..." : "Se conectează..."
           ) : mode === "forgot" ? (
@@ -254,10 +272,11 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
           )}
         </button>
 
+        {/* Footer Actions — Create New Workshop */}
         {mode === "forgot" ? (
           <button
             type="button"
-            className="w-full flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)]"
+            className="w-full flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[var(--app-muted)] hover:text-[var(--app-text)] pt-1"
             onClick={() => {
               setMode("login");
               setError("");
@@ -267,18 +286,19 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
             <ArrowLeft size={14} /> Înapoi la conectare
           </button>
         ) : (
-          <div className="space-y-2 text-center">
+          <div className="pt-2 text-center border-t border-[var(--app-border)] mt-4 space-y-2">
             {onGoSignup ? (
               <button
                 type="button"
-                className="w-full text-[12.5px] font-semibold text-[var(--app-text)] hover:underline"
+                className="w-full py-2.5 px-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] text-[13px] font-bold text-[var(--app-text-strong)] transition-all flex items-center justify-center gap-1.5"
                 onClick={onGoSignup}
               >
-                Creează atelier nou (trial)
+                <span>Creează atelier nou (14 zile trial)</span>
+                <span className="text-[var(--app-accent)]">→</span>
               </button>
             ) : null}
-            <p className="app-login-hint">
-              Coleg? Cere invitație din Setări → Utilizatori. Parolă uitată: linkul de mai sus.
+            <p className="text-[11px] text-[var(--app-muted)] leading-relaxed">
+              Dacă ești mecanic/coleg, cere o invitație administratorului din atelier.
             </p>
           </div>
         )}
