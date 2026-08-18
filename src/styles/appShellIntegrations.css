@@ -65,32 +65,25 @@
   background: color-mix(in srgb, var(--app-danger) 8%, var(--app-surface));
 }
 
-/* ── Flux: carduri ── */
 .app-shell .app-flux-card {
   background: var(--app-surface);
   border: 1px solid var(--app-border);
-  color: var(--app-text);
-  min-height: 3.75rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
-}
-
-.app-shell .app-flux-stack-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.app-shell .app-flux-stack-card:hover {
-  border-color: var(--app-muted-2);
-  background: var(--app-surface-2);
+  padding: 0.5rem 0.75rem;
+  height: auto !important;
 }
 
 .app-shell .app-flux-card:hover {
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.08);
   border-color: var(--app-muted-2);
 }
 
 .app-shell .app-flux-card.is-alert {
-  background: color-mix(in srgb, var(--app-danger) 6%, var(--app-surface));
+  background: var(--app-surface);
+  border-left: 4px solid var(--app-danger, #ef4444) !important;
 }
 
 .app-shell .app-flux-card select {

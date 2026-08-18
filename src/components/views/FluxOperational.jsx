@@ -78,7 +78,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2 h-full transition-colors duration-150 cursor-pointer select-none ${
+      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2.5 transition-all duration-150 cursor-pointer select-none ${
         claim.blocat || overdue ? "is-alert" : ""
       } ${isSearchHighlight ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}
@@ -106,9 +106,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               <span className="text-[8px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
             )}
           </div>
-          <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 min-h-[1.25rem] leading-5" title={claim.client || claim.marcaModel}>
-            {claim.client || claim.marcaModel || "—"}
-          </p>
+          {(claim.client || claim.marcaModel) && (
+            <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 leading-4" title={claim.client || claim.marcaModel}>
+              {claim.client || claim.marcaModel}
+            </p>
+          )}
           {stageSinceLabel ? (
             <p className="text-[10px] text-[var(--app-muted)] truncate leading-4" title={stageSinceLabel}>
               {stageSinceLabel}
@@ -192,7 +194,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
 function renderClaimGroups(stageClaims, props, pieseAlertDays, highlightClaimIds) {
   return groupAndSortStageClaims(stageClaims, STAGE_SORT_KEY, pieseAlertDays).map(([groupKey, groupClaims]) => (
-    <div key={groupKey} className="min-w-0 h-full">
+    <div key={groupKey} className="min-w-0">
       <StackedPhaseCardGroup groupKey={groupKey} groupClaims={groupClaims} highlightClaimIds={highlightClaimIds} hideStatusSelect {...props} />
     </div>
   ));
@@ -264,7 +266,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
       <button
         type="button"
         onClick={() => setExpanded(true)}
-        className={`app-flux-card app-flux-stack-card w-full h-full border-l-[3px] rounded-lg p-2 text-left transition-colors cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
+        className={`app-flux-card app-flux-stack-card w-full border-l-[3px] rounded-lg p-2.5 text-left transition-all cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
         style={{ borderLeftColor: phaseColorHex }}
         title={`${groupClaims.length} dosare stivuite — click pentru a deschide în aer`}
       >
@@ -537,7 +539,7 @@ export default function TablouPeFazeRedesign({
                     Niciun dosar aici · trage un card sau schimbă etapa din dosar
                   </div>
                 ) : (
-                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 items-stretch auto-rows-fr">
+                  <div className="p-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 items-start auto-rows-min">
                     {renderClaimGroups(stageClaims, cardProps, pieseAlertDays, highlightClaimIds)}
                   </div>
                 )}
