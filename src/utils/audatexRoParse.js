@@ -527,40 +527,64 @@ export function parseAudatexRoTotals(text) {
   return { values, hints };
 }
 
+function parseRoFloat(val) {
+  if (val == null || val === "") return null;
+  const str = String(val).replace(/\s+/g, "").replace(",", ".");
+  const num = parseFloat(str);
+  return isNaN(num) ? null : num;
+}
+
 /** Extrage ore lucrate tinichigerie/vopsitorie din deviz (UT sau ORE). */
 export function extractAudatexLaborHours(text) {
   const raw = String(text || "");
   let oreTinichigerieAudatex = null;
   let oreVopsitorieAudatex = null;
 
+  const is100UtScale = /100\s*UT\s*=\s*1\s*ORA/i.test(raw) || /100\s*UT\/ORA/i.test(raw);
+
+  // --- TINICHIGERIE / MANOPERA GENERALA ---
   const oreTinMatch =
-    raw.match(/TOTAL\s+([\d.]+)\s+ORE\s+X\s+[\d.]+\s+RON/i) ||
-    raw.match(/TOTAL\s+TINICHIGERIE\s*[:\s]\s*([\d.]+)\s+ORE/i) ||
-    raw.match(/MANOPERA\s+TINICHIGERIE\s*[:\s]\s*([\d.]+)\s+ORE/i);
+    raw.match(/TOTAL\s+([\d.,]+)\s+ORE\s+X\s+[\d.,]+\s+RON/i) ||
+    raw.match(/TOTAL\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/MANOPER[AĂ]\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/ORE\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)/i);
+
   if (oreTinMatch) {
-    oreTinichigerieAudatex = Math.round(parseFloat(oreTinMatch[1]) * 100) / 100;
+    const parsed = parseRoFloat(oreTinMatch[1]);
+    if (parsed != null && parsed > 0) {
+      oreTinichigerieAudatex = Math.round(parsed * 100) / 100;
+    }
   }
 
-  if (oreTinichigerieAudatex == null && /100\s+UT\s*=\s*1\s+ORA/i.test(raw)) {
-    const clMatches = [...raw.matchAll(/TOTAL\s+CL\s+\d+\s+(\d+)\s+UT/gi)];
+  if (oreTinichigerieAudatex == null && is100UtScale) {
+    const clMatches = [...raw.matchAll(/TOTAL\s+CL\s+\d+\s+([\d.,]+)\s+UT/gi)];
     if (clMatches.length) {
-      const totalUt = clMatches.reduce((sum, m) => sum + parseInt(m[1], 10), 0);
+      const totalUt = clMatches.reduce((sum, m) => sum + (parseRoFloat(m[1]) || 0), 0);
       if (totalUt > 0) oreTinichigerieAudatex = Math.round((totalUt / 100) * 100) / 100;
     }
   }
 
+  // --- VOPSITORIE ---
   const oreVopsMatch =
-    raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.]+)\s+ORE/i) ||
-    raw.match(/TOTAL\s+VOPSITORIE\s*[:\s]\s*([\d.]+)\s+ORE/i) ||
-    raw.match(/MANOPERA\s+VOPSITORIE\s*[:\s]\s*([\d.]+)\s+ORE/i);
+    raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/TOTAL\s+VOPSITORIE\s*:\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/MANOPER[AĂ]\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/ORE\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)/i);
+
   if (oreVopsMatch) {
-    oreVopsitorieAudatex = Math.round(parseFloat(oreVopsMatch[1]) * 100) / 100;
+    const parsed = parseRoFloat(oreVopsMatch[1]);
+    if (parsed != null && parsed > 0) {
+      oreVopsitorieAudatex = Math.round(parsed * 100) / 100;
+    }
   }
 
   if (oreVopsitorieAudatex == null) {
-    const utVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+100\s+UT\/ORA\s*:\s*(\d+)\s+UT/i);
-    if (utVopsMatch) {
-      oreVopsitorieAudatex = Math.round((parseInt(utVopsMatch[1], 10) / 100) * 100) / 100;
+    const utVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+100\s+UT\/ORA\s*:\s*([\d.,]+)\s+UT/i);
+    if (utVopsMatch?.[1]) {
+      const ut = parseRoFloat(utVopsMatch[1]);
+      if (ut != null && ut > 0) {
+        oreVopsitorieAudatex = Math.round((ut / 100) * 100) / 100;
+      }
     }
   }
 

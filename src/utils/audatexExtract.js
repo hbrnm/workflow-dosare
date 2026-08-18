@@ -1,5 +1,5 @@
 import { uid } from "./dateUtils";
-import { isAudatexRoText, parseAudatexRoEstimate } from "./audatexRoParse";
+import { isAudatexRoText, parseAudatexRoEstimate, extractAudatexLaborHours } from "./audatexRoParse";
 import { parseRoMoney } from "./audatexTypes";
 import { createOperation } from "./estimateUtils";
 
@@ -367,6 +367,16 @@ export function parseEstimateText(text) {
   if (zile != null && zile > 0 && zile < 365) {
     values.zileChirieAudatex = Math.round(zile);
     hints.push("zile_chirie");
+  }
+
+  const laborHours = extractAudatexLaborHours(raw);
+  if (laborHours.oreTinichigerieAudatex != null) {
+    values.oreTinichigerieAudatex = laborHours.oreTinichigerieAudatex;
+    hints.push("ore_tinichigerie");
+  }
+  if (laborHours.oreVopsitorieAudatex != null) {
+    values.oreVopsitorieAudatex = laborHours.oreVopsitorieAudatex;
+    hints.push("ore_vopsitorie");
   }
 
   const lineItems = extractEstimateLineItems(raw);
