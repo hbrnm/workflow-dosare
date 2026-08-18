@@ -387,6 +387,19 @@ export default function ClaimModal({
           },
         };
       }
+      if (key === "manoperaVopsitorie") {
+        patch.financiar.manoperaVopsitorie = n;
+        patch.manopera = {
+          ...(f.manopera || {}),
+          vopsitorie: {
+            ...(f.manopera?.vopsitorie || { facturat: 0, alocat: 0, dataIntrareEtapa: null }),
+            facturat: n,
+          },
+        };
+      }
+      if (key === "materialeVopsitorie") {
+        patch.financiar.materialeVopsitorie = n;
+      }
       if (key === "costReparatieFaraTva") {
         patch.valoareDevizAudatex = n;
         patch.financiar.valoareDevizAudatex = n;
@@ -432,11 +445,13 @@ export default function ClaimModal({
     if (v != null && v !== "") return parseNumber(v, 0);
     if (key === "totalPiese") return parseNumber(form.valoarePieseAudatex ?? financial.pieseFacturateFaraTva, 0);
     if (key === "totalManopera") return parseNumber(financial.manoperaTinichigerie ?? form.manopera?.tinichigerie?.facturat, 0);
+    if (key === "manoperaVopsitorie") return parseNumber(financial.manoperaVopsitorie ?? form.manopera?.vopsitorie?.facturat, 0);
+    if (key === "materialeVopsitorie") return parseNumber(financial.materialeVopsitorie, 0);
     if (key === "totalCosturiSuplimentare") return parseNumber(audatexDeviz.totalCosturiSuplimentare, 0);
     if (key === "totalVopsitorie") {
       return parseNumber(
         audatexDeviz.totalVopsitorie ??
-          parseNumber(financial.manoperaVopsitorie, 0) + parseNumber(financial.materialeVopsitorie, 0),
+          (parseNumber(financial.manoperaVopsitorie, 0) + parseNumber(financial.materialeVopsitorie, 0)),
         0
       );
     }
