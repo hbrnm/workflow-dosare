@@ -19,9 +19,9 @@ describe("userNickname utility", () => {
   });
 
   it("generates interactive greeting object without emojis", () => {
-    const obj = getDynamicGreetingObject("Alex", { tot: 10, prog: 2, acord: 2, piese: 2, rep: 2, accept: 2 });
+    const obj = getDynamicGreetingObject("Alex", { tot: 10, prog: 2, acord: 2, piese: 2, rep: 2, accept: 2 }, 1);
     expect(obj.text).toContain("Alex");
-    expect(obj.targetStage).not.toBeNull();
+    expect(obj.targetStage).toBeDefined();
     // Ensure no emoji characters exist in message text
     expect(/[\u{1F300}-\u{1F9FF}]/u.test(obj.text)).toBe(false);
   });

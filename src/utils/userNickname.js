@@ -37,13 +37,13 @@ export function setUserNickname(nickname) {
 }
 
 /**
- * Cronologie zilnică pentru fluxul operațional din service:
- * - 05:00 - 08:59: Programări / Intrări (programare_efectuata)
- * - 09:00 - 11:59: Acord reparație & Constatări (constatare_efectuata)
- * - 12:00 - 14:29: Comenzi piese (piese_comandate)
- * - 14:30 - 16:29: Reparații & Predări mașini gata (reparatie_in_curs)
- * - 16:30 - 19:59: Facturare & Accept plată (accept_plata)
- * - 20:00 - 04:59: Sinteză zi & pregătire mâine
+ * Cronologie zilnică pentru fluxul operațional din service (Program 08:00 - 17:00):
+ * - 08:00 - 09:59: Programări / Intrări (programare_efectuata)
+ * - 10:00 - 11:59: Acord reparație & Constatări (constatare_efectuata)
+ * - 12:00 - 13:59: Comenzi piese (piese_comandate)
+ * - 14:00 - 15:29: Reparații & Predări mașini (reparatie_in_curs)
+ * - 15:30 - 17:00: Facturare & Accept plată (accept_plata)
+ * - În afara programului (17:00 - 07:59): Sinteză zi / Atelier închis
  */
 export function getDynamicGreetingObject(nickname = "Alex", claimStats = {}, cycleIndex = 0) {
   const now = new Date();
@@ -62,50 +62,50 @@ export function getDynamicGreetingObject(nickname = "Alex", claimStats = {}, cyc
   } = claimStats;
 
   const timelineMessages = [
-    // 1. Programări (Prima oră a dimineții: 05:00 - 08:59)
+    // 1. Programări (08:00 - 09:59)
     {
       id: "prog",
-      timeWindow: "Dimineață",
+      timeWindow: "08:00 - 10:00",
       text: prog > 0
         ? `Bună dimineața, ${name}! Avem ${prog} ${prog === 1 ? "programare confirmată" : "programări confirmate"} astăzi.`
         : `Bună dimineața, ${name}! Nicio programare nouă în așteptare.`,
       targetStage: prog > 0 ? "programare_efectuata" : null,
       stageLabel: "Programări",
     },
-    // 2. Constatări & Acord reparație (Ora 09:00 - 11:59)
+    // 2. Constatări & Acord reparație (10:00 - 11:59)
     {
       id: "acord",
-      timeWindow: "Ora 09:00",
+      timeWindow: "10:00 - 12:00",
       text: acord > 0
         ? `Salut, ${name}! Avem ${acord} ${acord === 1 ? "dosar în acord reparație" : "dosare în acord reparație"}.`
         : `Salut, ${name}! Toate acordurile de reparație sunt la zi.`,
       targetStage: acord > 0 ? "constatare_efectuata" : null,
       stageLabel: "Acord reparație",
     },
-    // 3. Comenzi Piese (După-amiază: 12:00 - 14:29)
+    // 3. Comenzi Piese (12:00 - 13:59)
     {
       id: "piese",
-      timeWindow: "După-amiază",
+      timeWindow: "12:00 - 14:00",
       text: piese > 0
         ? `Salut, ${name}! Avem ${piese} ${piese === 1 ? "comandă de piese în așteptare" : "comenzi de piese în așteptare"}.`
         : `Salut, ${name}! Toate piesele comandate sunt recepționate.`,
       targetStage: piese > 0 ? "piese_comandate" : null,
       stageLabel: "Piese",
     },
-    // 4. Reparații & Predări mașini (Ora 15:00: 14:30 - 16:29)
+    // 4. Reparații & Predări mașini (14:00 - 15:29)
     {
       id: "rep",
-      timeWindow: "Predări",
+      timeWindow: "14:00 - 15:30",
       text: rep > 0
         ? `Spor la treabă, ${name}! Avem ${rep} ${rep === 1 ? "autovehicul în reparație" : "autovehicule în reparație"} de predat.`
         : `Spor la treabă, ${name}! Mașinile din reparație avansează conform planului.`,
       targetStage: rep > 0 ? "reparatie_in_curs" : null,
       stageLabel: "Reparație",
     },
-    // 5. Facturare & Accept plată (Spre orele 16:30 - 19:59)
+    // 5. Facturare & Accept plată (15:30 - 17:00)
     {
       id: "accept",
-      timeWindow: "Facturare",
+      timeWindow: "15:30 - 17:00",
       text: accept > 0
         ? `Salutare, ${name}! Avem ${accept} ${accept === 1 ? "dosar gata de facturat" : "dosare gata de facturat"} cu accept plată.`
         : `Salutare, ${name}! Toate facturările și accepturile de plată sunt verificate.`,
@@ -114,24 +114,26 @@ export function getDynamicGreetingObject(nickname = "Alex", claimStats = {}, cyc
     },
   ];
 
-  // Determinăm indexul de bază în funcție de ora curentă a zilei
+  // Determinăm indexul de bază conform orarului de lucru 08:00 - 17:00
   let baseIndex = 0;
-  if (timeVal >= 5 && timeVal < 9) {
-    baseIndex = 0; // Programări
-  } else if (timeVal >= 9 && timeVal < 12) {
-    baseIndex = 1; // Acord reparație
-  } else if (timeVal >= 12 && timeVal < 14.5) {
-    baseIndex = 2; // Piese
-  } else if (timeVal >= 14.5 && timeVal < 16.5) {
-    baseIndex = 3; // Reparații & Predări
-  } else if (timeVal >= 16.5 && timeVal < 20) {
-    baseIndex = 4; // Facturare & Accept plată
+  if (timeVal >= 8 && timeVal < 10) {
+    baseIndex = 0; // Programări (08:00 - 10:00)
+  } else if (timeVal >= 10 && timeVal < 12) {
+    baseIndex = 1; // Acord reparație (10:00 - 12:00)
+  } else if (timeVal >= 12 && timeVal < 14) {
+    baseIndex = 2; // Piese (12:00 - 14:00)
+  } else if (timeVal >= 14 && timeVal < 15.5) {
+    baseIndex = 3; // Reparații & Predări (14:00 - 15:30)
+  } else if (timeVal >= 15.5 && timeVal < 17) {
+    baseIndex = 4; // Facturare & Accept plată (15:30 - 17:00)
   } else {
-    // În afara orelor de program (noaptea)
+    // În afara orelor de program (după ora 17:00 sau înainte de 08:00)
     return {
       id: "night",
-      timeWindow: "Noapte",
-      text: `Seară bună, ${name}! O zi productivă cu ${tot} dosare gestionate în atelier.`,
+      timeWindow: "În afara programului",
+      text: timeVal >= 17
+        ? `Seară bună, ${name}! O zi productivă cu ${tot} dosare gestionate în atelier.`
+        : `Bună dimineața, ${name}! Programul atelierului începe la ora 08:00 (${tot} dosare active).`,
       targetStage: null,
       stageLabel: null,
     };
