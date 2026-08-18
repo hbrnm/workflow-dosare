@@ -28,6 +28,7 @@ import SettingsBackupTab from "./settings/SettingsBackupTab";
 import SettingsGdprTab from "./settings/SettingsGdprTab";
 import SettingsAccountTab from "./settings/SettingsAccountTab";
 import SettingsProfileSecurityTab from "./settings/SettingsProfileSecurityTab";
+import SettingsBillingTab from "./settings/SettingsBillingTab";
 
 export default function SetariModal({
   claims = [],
@@ -520,7 +521,7 @@ export default function SetariModal({
             />
           )}
 
-          {/* TAB 5: PROFIL UTILIZATOR & SECURITATE 2FA */}
+          {/* TAB 5A: PROFIL UTILIZATOR & SECURITATE 2FA */}
           {(activeTab === "profil" || activeTab === "cont") && (
             <SettingsProfileSecurityTab
               userEmail={userEmail}
@@ -569,6 +570,19 @@ export default function SetariModal({
               handleAddUserSubmit={handleAddUserSubmit}
               onToggleAdminRole={onToggleAdminRole}
               setPendingDeleteEmail={setPendingDeleteEmail}
+            />
+          )}
+
+          {/* TAB 5C: PLAN & FACTURARE (BILLING ENGINE) */}
+          {activeTab === "abonament" && (
+            <SettingsBillingTab
+              billingView={billingView}
+              tenancyReady={tenancyReady}
+              atelierId={atelierId}
+              stripeBusy={stripeBusy}
+              handleStripeCheckout={handleStripeCheckout}
+              handleStripePortal={handleStripePortal}
+              isAdmin={isAdmin}
             />
           )}
 

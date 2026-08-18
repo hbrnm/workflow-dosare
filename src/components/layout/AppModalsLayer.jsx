@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "../common/ErrorBoundary";
 import SetariModal from "../modals/SetariModal";
+import UpgradeModal from "../common/UpgradeModal";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 
 const ClaimModal = lazyWithRetry(() => import("../modals/ClaimModal"));
@@ -73,6 +74,10 @@ export default function AppModalsLayer({
   isAiModalOpenHeader = false,
   setIsAiModalOpenHeader,
   openNew,
+  // Upgrade Modal
+  upgradeModalOpen = false,
+  requestCloseUpgradeModal,
+  upgradeModalReason,
 }) {
   return (
     <Suspense
@@ -201,6 +206,15 @@ export default function AppModalsLayer({
               "success"
             );
           }}
+        />
+      )}
+
+      {upgradeModalOpen && (
+        <UpgradeModal
+          open={upgradeModalOpen}
+          onClose={requestCloseUpgradeModal}
+          reason={upgradeModalReason}
+          onSelectPlan={startStripeCheckout}
         />
       )}
     </Suspense>

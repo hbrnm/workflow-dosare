@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Building, User, Wrench, Sparkles, Bell, Database, Scale } from "lucide-react";
+import { X, Building, User, Wrench, Sparkles, Bell, Database, Scale, CreditCard } from "lucide-react";
 
 export default function SettingsNav({
   desktopUi = false,
@@ -15,7 +15,7 @@ export default function SettingsNav({
       <div className="flex items-center gap-1.5">
         {[
           { id: "atelier", label: "Atelier", icon: Building },
-          { id: "cont", label: "Cont", icon: User },
+          { id: "cont", label: "Cont & Facturare", icon: User },
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -80,6 +80,7 @@ export default function SettingsNav({
           {[
             { id: "profil", label: "Profil & Securitate 2FA", icon: User },
             { id: "echipa", label: "Echipă & Locuri", icon: Sparkles },
+            { id: "abonament", label: "Plan & Facturare", icon: CreditCard },
           ].map(({ id, label, icon: Icon }) => {
             const active = activeTab === id || (activeTab === "cont" && id === "profil");
             return (

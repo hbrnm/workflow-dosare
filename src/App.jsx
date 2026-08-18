@@ -330,6 +330,13 @@ export default function App() {
   const [liveCameraOpen, setLiveCameraOpen] = useState(false);
   const [whatsappSheet, setWhatsappSheet] = useState(null);
   const [pwaInstallOpen, setPwaInstallOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeModalReason, setUpgradeModalReason] = useState("");
+
+  const handleOpenUpgradeModal = useCallback((reason = "") => {
+    setUpgradeModalReason(reason);
+    setUpgradeModalOpen(true);
+  }, []);
 
   const openMobileClaim = useCallback((claim) => {
     if (!claim?.id) return;
@@ -1153,6 +1160,9 @@ export default function App() {
         isAiModalOpenHeader={isAiModalOpenHeader}
         setIsAiModalOpenHeader={setIsAiModalOpenHeader}
         openNew={openNew}
+        upgradeModalOpen={upgradeModalOpen}
+        requestCloseUpgradeModal={() => setUpgradeModalOpen(false)}
+        upgradeModalReason={upgradeModalReason}
       />
 
       {/* Drawer */}
