@@ -19,10 +19,31 @@ import {
   isValidPlateKey,
 } from "../utils/plateSchedule";
 
+import { DEMO_CLAIMS } from "../utils/demoClaims";
+
+const DEMO_DISABLED_KEY = "workflow_dosare_demo_disabled";
+
 export function useClaims(session, showNotice, { atelierId = null } = {}) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [demoDisabled, setDemoDisabled] = useState(() => {
+    try {
+      return localStorage.getItem(DEMO_DISABLED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const removeDemoData = useCallback(() => {
+    setDemoDisabled(true);
+    try {
+      localStorage.setItem(DEMO_DISABLED_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const atelierIdRef = useRef(atelierId);
   atelierIdRef.current = atelierId;
 
@@ -79,10 +100,17 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       setLoadError(null);
       // Filter out pending-delete claims from display
       const pendingDeleteIds = new Set(pendingDeletes.current.keys());
-      setClaims((data || []).map(fromDb).filter((c) => !pendingDeleteIds.has(c.id)));
+      const realList = (data || []).map(fromDb).filter((c) => !pendingDeleteIds.has(c.id));
+      
+      // If no real claims and demo is enabled, supply demo claims for instant rich UI
+      if (realList.length === 0 && !demoDisabled) {
+        setClaims(DEMO_CLAIMS);
+      } else {
+        setClaims(realList);
+      }
     }
     setLoading(false);
-  }, [showNotice]);
+  }, [showNotice, demoDisabled]);
 
   // Real-time subscription — reload when the user actually logs in (not only on mount).
   useEffect(() => {
@@ -470,6 +498,8 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
     [myEmail, showNotice]
   );
 
+  const hasDemoData = claims.some((c) => c.isDemo);
+
   return {
     claims,
     loading,
@@ -481,5 +511,7 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
     moveToStatus,
     undoItem,
     setUndoItem,
+    removeDemoData,
+    hasDemoData,
   };
 }

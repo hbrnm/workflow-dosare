@@ -1,6 +1,7 @@
 import React from "react";
 import { Layers, Sunrise, List, Search, X, Plus, Bell, Ban } from "lucide-react";
 import AppButton from "../common/AppButton";
+import TooltipGuide from "../common/TooltipGuide";
 import { ROLES } from "../../constants/roles";
 
 export default function DesktopHeader({
@@ -147,13 +148,20 @@ export default function DesktopHeader({
       {/* Right Header Actions */}
       <div className="flex items-center gap-2">
         {userCanCreate ? (
-          <AppButton
-            variant="primary"
-            onClick={() => openNew()}
-            className="app-header-action-btn bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold border-amber-400"
+          <TooltipGuide
+            id="tt-dosar-nou"
+            title="Creare / Import Dosar Nou"
+            content="Apasă aici pentru a deschide modalul rapid. Poți importa direct un deviz Audatex / DAT sau crea un dosar manual în < 30 secunde!"
+            position="bottom"
           >
-            <Plus size={14} /> <span>Dosar nou</span>
-          </AppButton>
+            <AppButton
+              variant="primary"
+              onClick={() => openNew()}
+              className="app-header-action-btn bg-amber-400 hover:bg-amber-500 text-zinc-950 font-bold border-amber-400"
+            >
+              <Plus size={14} /> <span>Dosar nou</span>
+            </AppButton>
+          </TooltipGuide>
         ) : (
           <span
             className="app-type-xs text-[var(--app-muted)] px-2 hidden sm:inline"
