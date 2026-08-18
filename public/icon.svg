@@ -1,37 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="100%" stop-color="#0f2942"/>
-    </linearGradient>
-    <linearGradient id="p1" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0284c7"/>
-      <stop offset="100%" stop-color="#0369a1"/>
-    </linearGradient>
-    <linearGradient id="p2" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#38bdf8"/>
+    <!-- Ocean Blue Gradients -->
+    <linearGradient id="pwa-grad-1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#034b82"/>
       <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
-    <linearGradient id="p3" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#7dd3fc"/>
+    <linearGradient id="pwa-grad-2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
       <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="pwa-grad-3" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <!-- Background Gradients -->
+    <linearGradient id="pwa-bg-app" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#063461"/>
+      <stop offset="60%" stop-color="#094f8a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="pwa-bg-maskable" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a5482"/>
+      <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
-
-  <!-- Logo Mark -->
-  <g transform="translate(60, 50)">
-    <!-- Lower Polygon -->
-    <path d="M 70 320 L 150 240 L 200 290 L 120 370 Z" fill="url(#p1)"/>
-    <!-- Middle Polygon -->
-    <path d="M 140 250 L 240 150 L 290 200 L 190 300 Z" fill="url(#p2)"/>
-    <!-- Arrowhead -->
-    <path d="M 230 160 L 350 40 L 350 190 L 295 135 L 265 165 L 265 110 Z" fill="url(#p3)"/>
-    <path d="M 230 160 L 350 40 L 350 185 L 285 250 Z" fill="url(#p3)"/>
-
-    <!-- Wrench -->
-    <path d="M 280 290 C 262 272 262 242 280 224 C 292 212 310 206 328 212 L 304 236 L 316 266 L 346 254 L 370 230 C 376 248 370 266 358 278 C 340 296 310 296 292 278 L 220 350 C 208 362 190 362 178 350 C 166 338 166 320 178 308 Z" fill="#38bdf8"/>
-  </g>
-</svg>
+    <rect width="512" height="512" rx="96" fill="url(#pwa-bg-app)"/>
+    <g transform="translate(62, 72) scale(1.35)">
+      
+    <!-- Lower Polygon Bar -->
+    <path d="M 30 220 L 95 155 L 135 195 L 70 260 Z" fill="url(#pwa-grad-1)"/>
+    <!-- Middle Polygon Bar -->
+    <path d="M 90 160 L 165 85 L 205 125 L 130 200 Z" fill="url(#pwa-grad-2)"/>
+    <!-- Rising Arrowhead -->
+    <path d="M 155 95 L 265 5 L 265 120 L 215 70 L 195 90 L 195 55 Z" fill="url(#pwa-grad-3)"/>
+    <path d="M 155 95 L 265 5 L 265 115 L 205 170 Z" fill="url(#pwa-grad-3)"/>
+    <!-- Mechanic Wrench Tool -->
+    <path d="M 195 195 C 181 181 181 157 195 143 C 205 133 219 128 233 133 L 213 153 L 223 177 L 247 167 L 267 147 C 273 161 267 177 257 187 C 243 201 219 201 205 187 L 155 237 C 145 247 129 247 119 237 C 109 227 109 211 119 201 Z" fill="#38bdf8"/>
+  
+    </g>
+  </svg>

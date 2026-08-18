@@ -1,36 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 280" width="900" height="280">
+    
   <defs>
-    <linearGradient id="grad1" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#0f4c81"/>
+    <!-- Ocean Blue Gradients -->
+    <linearGradient id="pwa-grad-1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#034b82"/>
       <stop offset="100%" stop-color="#0284c7"/>
     </linearGradient>
-    <linearGradient id="grad2" x1="0%" y1="100%" x2="100%" y2="0%">
+    <linearGradient id="pwa-grad-2" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#0284c7"/>
       <stop offset="100%" stop-color="#38bdf8"/>
     </linearGradient>
-    <linearGradient id="grad3" x1="0%" y1="100%" x2="100%" y2="0%">
+    <linearGradient id="pwa-grad-3" x1="0%" y1="100%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#38bdf8"/>
       <stop offset="100%" stop-color="#7dd3fc"/>
     </linearGradient>
+    <!-- Background Gradients -->
+    <linearGradient id="pwa-bg-app" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#063461"/>
+      <stop offset="60%" stop-color="#094f8a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="pwa-bg-maskable" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a5482"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
   </defs>
 
-  <!-- Logo Mark Group -->
-  <g transform="translate(40, 20)">
-    <!-- Lower Polygon -->
-    <path d="M 40 200 L 95 145 L 130 180 L 75 235 Z" fill="url(#grad1)"/>
-    <!-- Middle Polygon -->
-    <path d="M 90 150 L 155 85 L 190 120 L 125 185 Z" fill="url(#grad2)"/>
-    <!-- Upper Arrow Head -->
-    <path d="M 150 90 L 235 5 L 235 110 L 195 70 L 175 90 L 175 55 Z" fill="url(#grad3)"/>
-    <path d="M 150 90 L 235 5 L 235 105 L 190 150 Z" fill="url(#grad3)"/>
-    <!-- Wrench -->
-    <path d="M 180 180 C 168 168 168 148 180 136 C 188 128 200 124 212 128 L 196 144 L 204 164 L 224 156 L 240 140 C 244 152 240 164 232 172 C 220 184 200 184 188 172 L 140 220 C 132 228 120 228 112 220 C 104 212 104 200 112 192 Z" fill="#0284c7"/>
-  </g>
-
-  <!-- Text Group -->
-  <g transform="translate(300, 140)">
-    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="72" fill="#0284c7">Workflow</text>
-    <text x="0" y="65" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="72" fill="#0f2942">Daune</text>
-    <text x="0" y="110" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="28" fill="#475569" letter-spacing="0.5">Gestionare Digitală Daune Auto</text>
-  </g>
-</svg>
+    <g transform="translate(30, 10) scale(0.95)">
+      
+    <!-- Lower Polygon Bar -->
+    <path d="M 30 220 L 95 155 L 135 195 L 70 260 Z" fill="url(#pwa-grad-1)"/>
+    <!-- Middle Polygon Bar -->
+    <path d="M 90 160 L 165 85 L 205 125 L 130 200 Z" fill="url(#pwa-grad-2)"/>
+    <!-- Rising Arrowhead -->
+    <path d="M 155 95 L 265 5 L 265 120 L 215 70 L 195 90 L 195 55 Z" fill="url(#pwa-grad-3)"/>
+    <path d="M 155 95 L 265 5 L 265 115 L 205 170 Z" fill="url(#pwa-grad-3)"/>
+    <!-- Mechanic Wrench Tool -->
+    <path d="M 195 195 C 181 181 181 157 195 143 C 205 133 219 128 233 133 L 213 153 L 223 177 L 247 167 L 267 147 C 273 161 267 177 257 187 C 243 201 219 201 205 187 L 155 237 C 145 247 129 247 119 237 C 109 227 109 211 119 201 Z" fill="#38bdf8"/>
+  
+    </g>
+    <g transform="translate(320, 135)">
+      <text x="0" y="0" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="70" fill="#0284c7" letter-spacing="-0.02em">Workflow</text>
+      <text x="0" y="65" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="800" font-size="70" fill="#0f2942" letter-spacing="-0.02em">Daune</text>
+      <text x="0" y="106" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="600" font-size="26" fill="#64748b" letter-spacing="0.04em">Gestionare Digitală Daune Auto</text>
+    </g>
+  </svg>
