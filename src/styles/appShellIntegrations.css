@@ -80,17 +80,22 @@
   justify-content: center;
 }
 
-.app-shell .app-flux-stack-card:hover {
-  border-color: var(--app-muted-2);
-  background: var(--app-surface-2);
+.app-shell .app-flux-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .app-shell .app-flux-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border-color: var(--app-muted-2);
 }
 
 .app-shell .app-flux-card.is-alert {
-  background: color-mix(in srgb, var(--app-danger) 6%, var(--app-surface));
+  background: var(--app-surface);
+  border-left: 4px solid var(--app-danger, #ef4444) !important;
 }
 
 .app-shell .app-flux-card select {

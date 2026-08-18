@@ -35,36 +35,36 @@ const SHARED_TOKENS = {
   "--app-btn-height-lg": "2.5rem",
 };
 
-/** Noapte — Warm Charcoal / Graphite cu accent verde-mentă. */
+/** Noapte — Warm Charcoal / Slate cu accent Sky Blue vibrant. */
 export const APP_TOKEN_DARK = {
   ...SHARED_TOKENS,
-  "--app-bg": "#131415",           // warm charcoal canvas
-  "--app-surface": "#101112",      // sidebar/header level
-  "--app-surface-2": "#202225",    // cards / interactive level
-  "--app-surface-muted": "#2a2d31",
-  "--app-text": "#b8bec6",         // warm light gray
-  "--app-text-strong": "#e8eaed",  // near-white warm
-  "--app-muted": "#737880",        // warm gray muted
-  "--app-muted-2": "#50545a",
-  "--app-border": "rgba(255,255,255,0.06)",
-  "--app-border-soft": "rgba(255,255,255,0.03)",
-  "--app-chrome": "#101112",       // dark sidebar/header
-  "--app-chrome-text": "#b8bec6",
-  "--app-chrome-muted": "#737880",
-  "--app-accent": "#9ae6b4",       // mint / sage green
-  "--app-accent-hover": "#86d9a3", // slightly deeper mint
-  "--app-accent-text": "#0d1a13",  // dark text over mint
-  "--app-danger-muted": "#3d1515",
-  "--app-success-muted": "#0f2d1f",
-  "--app-warning-muted": "#2e2200",
+  "--app-bg": "#0f172a",           // slate-900 canvas
+  "--app-surface": "#1e293b",      // slate-800 container/surface
+  "--app-surface-2": "#334155",    // slate-700 interactive level
+  "--app-surface-muted": "#334155",
+  "--app-text": "#cbd5e1",         // slate-300
+  "--app-text-strong": "#f8fafc",  // slate-50
+  "--app-muted": "#94a3b8",        // slate-400
+  "--app-muted-2": "#64748b",      // slate-500
+  "--app-border": "rgba(255,255,255,0.08)",
+  "--app-border-soft": "rgba(255,255,255,0.04)",
+  "--app-chrome": "#0f172a",       // dark slate sidebar/header
+  "--app-chrome-text": "#f8fafc",
+  "--app-chrome-muted": "#94a3b8",
+  "--app-accent": "#0284c7",       // vibrant sky-600 accent
+  "--app-accent-hover": "#0369a1", // sky-700
+  "--app-accent-text": "#ffffff",  // white text over sky blue
+  "--app-danger-muted": "#450a0a",
+  "--app-success-muted": "#064e3b",
+  "--app-warning-muted": "#451a03",
 };
 
-/** Zi — alb curat, ca aplicațiile native light. */
+/** Zi — alb curat & bg-slate-50, ca aplicațiile SaaS moderne. */
 export const APP_TOKEN_LIGHT = {
   ...SHARED_TOKENS,
   "--app-bg": "#f8fafc",          // slate-50 canvas
   "--app-surface": "#ffffff",     // white cards/containers
-  "--app-surface-2": "#f1f5f9",   // slate-100 borders/minor surfaces
+  "--app-surface-2": "#f1f5f9",   // slate-100 minor surfaces
   "--app-surface-muted": "#f1f5f9",
   "--app-text": "#334155",        // slate-700
   "--app-text-strong": "#0f172a", // slate-900
@@ -72,12 +72,12 @@ export const APP_TOKEN_LIGHT = {
   "--app-muted-2": "#94a3b8",     // slate-400
   "--app-border": "#e2e8f0",      // slate-200
   "--app-border-soft": "#f1f5f9", // slate-100
-  "--app-chrome": "#09090b",      // zinc-950 (Dark chrome)
-  "--app-chrome-text": "#d4d4d8", // zinc-300
-  "--app-chrome-muted": "#a1a1aa",// zinc-400
-  "--app-accent": "#fbbf24",      // amber-400
-  "--app-accent-hover": "#fcd34d",// amber-300
-  "--app-accent-text": "#09090b", // zinc-950
+  "--app-chrome": "#0f172a",      // slate-900 Dark chrome
+  "--app-chrome-text": "#f8fafc", // slate-50
+  "--app-chrome-muted": "#94a3b8",// slate-400
+  "--app-accent": "#0284c7",      // vibrant sky-600 accent
+  "--app-accent-hover": "#0369a1",// sky-700
+  "--app-accent-text": "#ffffff", // white text over sky blue
 };
 
 /** @deprecated — folosește APP_TOKEN_DARK */
