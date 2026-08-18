@@ -50,25 +50,25 @@ export default function ExportFormatMenu({
       {open && (
         <div
           role="menu"
-          className="app-export-menu-panel absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[10.5rem] rounded-lg border py-1 shadow-lg"
+          className="app-export-menu-panel absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[11rem] rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-1.5 shadow-2xl animate-in zoom-in-95 duration-100"
         >
           <button
             type="button"
             role="menuitem"
             onClick={() => pick(EXPORT_FORMAT.XLSX)}
-            className="app-export-menu-item w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold"
+            className="app-export-menu-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[12px] font-bold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] transition-colors"
           >
-            <FileSpreadsheet size={14} />
-            Excel (.xlsx)
+            <FileSpreadsheet size={15} className="text-[var(--app-accent)] shrink-0" />
+            <span>Excel (.xlsx)</span>
           </button>
           <button
             type="button"
             role="menuitem"
             onClick={() => pick(EXPORT_FORMAT.PDF)}
-            className="app-export-menu-item w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold"
+            className="app-export-menu-item w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-[12px] font-bold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] transition-colors"
           >
-            <FileText size={14} />
-            PDF (.pdf)
+            <FileText size={15} className="text-[var(--app-accent)] shrink-0" />
+            <span>PDF (.pdf)</span>
           </button>
         </div>
       )}

@@ -1369,20 +1369,22 @@
 }
 
 .app-shell .app-export-menu-panel {
-  background: var(--app-chrome);
+  background: var(--app-surface);
   border-color: var(--app-border);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  color: var(--app-text-strong);
 }
 
 .app-shell .app-export-menu-item {
-  color: var(--app-text);
+  color: var(--app-text-strong);
   background: transparent;
   border: none;
   cursor: pointer;
+  font-weight: 600;
 }
 
 .app-shell .app-export-menu-item:hover {
-  background: var(--app-surface-muted);
+  background: var(--app-surface-2);
   color: var(--app-text-strong);
 }
 
@@ -1669,4 +1671,48 @@
 .app-shell .app-prog-schimb-conflict {
   background: color-mix(in srgb, var(--app-danger) 10%, var(--app-surface));
   color: var(--app-danger);
+}
+
+/* Engine de printare cu contrast înalt pentru lizibilitate 100% la imprimare */
+@media print {
+  body, .app-shell, main, table, th, td, div, p, span, h1, h2, h3, h4, h5, h6 {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  .app-sidebar,
+  .app-header,
+  .app-export-menu,
+  .app-export-menu-panel,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 10px !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+
+  th {
+    font-weight: bold !important;
+    background-color: #f1f5f9 !important;
+  }
+
+  .claim-plate {
+    color: #000000 !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #000000 !important;
+    font-weight: bold !important;
+  }
 }
