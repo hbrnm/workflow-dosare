@@ -1850,7 +1850,33 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
 }
 
 .m-claim-sheet .m-sheet-header .m-plate {
-  color: inherit;
+  display: block;
+  width: fit-content;
+  min-width: 7.5rem;
+  max-width: 100%;
+  margin-top: 0.28rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #111;
+  -webkit-text-fill-color: #111;
+  caret-color: #111;
+  color-scheme: light;
+}
+
+.m-claim-sheet .m-sheet-header .m-plate::placeholder {
+  color: #111;
+  -webkit-text-fill-color: #111;
+  opacity: 0.35;
+}
+
+.m-claim-sheet .m-sheet-header .m-plate:-webkit-autofill,
+.m-claim-sheet .m-sheet-header .m-plate:-webkit-autofill:hover,
+.m-claim-sheet .m-sheet-header .m-plate:-webkit-autofill:focus {
+  -webkit-text-fill-color: #111;
+  box-shadow: 0 0 0 1000px #fff inset;
+  caret-color: #111;
 }
 
 .m-claim-sheet .m-sheet-header-kicker {

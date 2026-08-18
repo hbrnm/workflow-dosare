@@ -242,8 +242,7 @@ export default function MobileClaimSheet({
             onBlur={handleBlurPlate}
             disabled={readOnly}
             placeholder="NR. AUTO"
-            className="m-plate w-full bg-transparent outline-none placeholder:opacity-30 disabled:opacity-80"
-            style={{ color: "var(--app-chrome-text, inherit)" }}
+            className="m-plate outline-none disabled:opacity-80"
           />
         </div>
         <div className="flex items-center gap-1.5 shrink-0 ml-2">
