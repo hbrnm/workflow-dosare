@@ -175,21 +175,6 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
               {ssoLoading === "google" ? "Se conectează..." : "Conectare cu Google"}
             </button>
 
-            <button
-              type="button"
-              disabled={Boolean(ssoLoading)}
-              onClick={() => handleOAuthLogin("azure")}
-              className="w-full flex items-center justify-center gap-2.5 p-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[13px] font-semibold text-[var(--app-text)] transition-all shadow-sm"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 23 23">
-                <path fill="#f35325" d="M1 1h10v10H1z" />
-                <path fill="#81bc06" d="M12 1h10v10H12z" />
-                <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                <path fill="#ffba08" d="M12 12h10v10H12z" />
-              </svg>
-              {ssoLoading === "azure" ? "Se conectează..." : "Conectare cu Microsoft Work Account"}
-            </button>
-
             <div className="flex items-center gap-2 text-[11px] font-medium text-[var(--app-muted)] my-2">
               <div className="flex-1 h-px bg-[var(--app-border)]" />
               <span>sau cu email și parolă</span>

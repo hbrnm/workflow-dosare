@@ -284,7 +284,7 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
         {/* STEP 1: AUTH credentials & SSO */}
         {step === 1 ? (
           <form onSubmit={handleGoToStep2} className="space-y-3.5">
-            {/* 1-Click SSO Buttons */}
+            {/* 1-Click SSO Google Button */}
             <div className="space-y-2">
               <button
                 type="button"
@@ -311,21 +311,6 @@ export default function Signup({ onSuccess, onBackToLogin, branding: brandingPro
                   />
                 </svg>
                 {ssoLoading === "google" ? "Se conectează..." : "Continuă cu Google"}
-              </button>
-
-              <button
-                type="button"
-                disabled={Boolean(ssoLoading)}
-                onClick={() => handleOAuthSignup("azure")}
-                className="w-full flex items-center justify-center gap-2.5 p-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[13px] font-semibold text-[var(--app-text)] transition-all shadow-sm"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 23 23">
-                  <path fill="#f35325" d="M1 1h10v10H1z" />
-                  <path fill="#81bc06" d="M12 1h10v10H12z" />
-                  <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                  <path fill="#ffba08" d="M12 12h10v10H12z" />
-                </svg>
-                {ssoLoading === "azure" ? "Se conectează..." : "Continuă cu Microsoft Work Account"}
               </button>
             </div>
 
