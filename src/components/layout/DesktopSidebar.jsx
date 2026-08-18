@@ -19,20 +19,8 @@ export default function DesktopSidebar({
 }) {
   return (
     <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
-      {/* Top App Logo — 1 click to Dosare main view */}
-      <div className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 w-full p-1.5">
-        <button
-          type="button"
-          onClick={() => setView("dosare")}
-          className="p-1 rounded-xl hover:bg-[var(--app-surface-2)] transition-all flex items-center justify-center"
-          title="Workflow Daune — Înapoi la Dosare"
-        >
-          <img src="/icon.svg" alt="Workflow Daune" className="w-8 h-8 rounded-lg shadow-sm object-contain" />
-        </button>
-      </div>
-
       {/* Navigare principală — doar icoane */}
-      <div className="flex-1 py-3 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+      <div className="flex-1 py-2.5 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
         {[
           { id: "dosare", label: "Dosare (Brief / Flux / Tabel)", icon: Layers, badge: userClaimsCount },
           { id: "programator", label: "Programări", icon: CalendarClock },
