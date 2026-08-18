@@ -76,8 +76,26 @@ export default function SettingsNav({
           })}
         </div>
       ) : (
-        <div className="pb-2 text-[11px] text-[var(--app-muted)] px-1">
-          Parolă, rol și membri echipă
+        <div className="m-settings-tabs m-settings-tabs--pill flex overflow-x-auto scrollbar-thin pb-2">
+          {[
+            { id: "profil", label: "Profil & Securitate 2FA", icon: User },
+            { id: "echipa", label: "Echipă & Locuri", icon: Sparkles },
+          ].map(({ id, label, icon: Icon }) => {
+            const active = activeTab === id || (activeTab === "cont" && id === "profil");
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setActiveTab(id)}
+                className={`m-settings-tab flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold transition-all whitespace-nowrap shrink-0 border-0 ${
+                  active ? "is-active" : ""
+                }`}
+              >
+                <Icon size={15} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
