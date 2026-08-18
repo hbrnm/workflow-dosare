@@ -27,6 +27,7 @@ import SettingsAppearanceTab from "./settings/SettingsAppearanceTab";
 import SettingsBackupTab from "./settings/SettingsBackupTab";
 import SettingsGdprTab from "./settings/SettingsGdprTab";
 import SettingsAccountTab from "./settings/SettingsAccountTab";
+import SettingsProfileSecurityTab from "./settings/SettingsProfileSecurityTab";
 
 export default function SetariModal({
   claims = [],
@@ -519,8 +520,24 @@ export default function SetariModal({
             />
           )}
 
-          {/* TAB 5: PROFIL UTILIZATOR & SECURITATE & GESTIONARE ECHIPĂ */}
-          {activeTab === "profil" && (
+          {/* TAB 5: PROFIL UTILIZATOR & SECURITATE 2FA */}
+          {(activeTab === "profil" || activeTab === "cont") && (
+            <SettingsProfileSecurityTab
+              userEmail={userEmail}
+              isAdmin={isAdmin}
+              onSignOut={onSignOut}
+              myNewPassword={myNewPassword}
+              setMyNewPassword={setMyNewPassword}
+              confirmNewPassword={confirmNewPassword}
+              setConfirmNewPassword={setConfirmNewPassword}
+              updatingPassword={updatingPassword}
+              handleChangePasswordSubmit={handleChangePasswordSubmit}
+              onNotify={onNotify}
+            />
+          )}
+
+          {/* TAB 5B: GESTIONARE ECHIPĂ & ABONAMENT */}
+          {activeTab === "echipa" && (
             <SettingsAccountTab
               userEmail={userEmail}
               isAdmin={isAdmin}

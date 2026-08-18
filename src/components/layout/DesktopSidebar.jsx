@@ -19,33 +19,22 @@ export default function DesktopSidebar({
 }) {
   return (
     <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
-      {/* Top Brand Logo Button -> Acasă / Brief Zilnic */}
-      <button
-        type="button"
-        onClick={() => {
-          setView("dosare");
-          setDosareSubView("brief");
-        }}
-        className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 hover:bg-[var(--app-surface-2)] transition-colors w-full cursor-pointer"
-        title="Revenire la ecranul principal (Brief Zilnic)"
-      >
-        <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-[13px] shrink-0 overflow-hidden border border-[var(--app-border)]"
-          style={{
-            background: branding?.logoUrl
-              ? "#fff"
-              : "var(--app-surface-2)",
-            color: branding?.logoUrl ? undefined : "var(--app-text-strong)",
+      {/* Top Organization / Atelier Switcher (1-click popover) */}
+      <div className="h-14 flex items-center justify-center border-b border-[var(--app-border)] shrink-0 w-full p-1.5">
+        <AtelierSwitcher
+          memberships={memberships}
+          activeId={atelierId}
+          userEmail={userEmail}
+          onSwitch={async (id) => {
+            if (switchAtelier) {
+              const ok = await switchAtelier(id);
+              if (ok && showNotice) showNotice("Atelier schimbat.", "success");
+            }
           }}
-          title={branding?.atelierNume || "Atelier"}
-        >
-          {branding?.logoUrl ? (
-            <img src={branding.logoUrl} alt="" className="w-full h-full object-contain" />
-          ) : (
-            branding?.atelierShort || "AT"
-          )}
-        </div>
-      </button>
+          onOpenSettings={openSettings}
+          onLogout={handleLogout}
+        />
+      </div>
 
       {/* Navigare principală — doar icoane */}
       <div className="flex-1 py-3 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
