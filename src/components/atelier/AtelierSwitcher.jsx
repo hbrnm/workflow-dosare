@@ -155,9 +155,13 @@ export default function AtelierSwitcher({
                 type="button"
                 role="menuitem"
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-bold text-[var(--app-danger)] hover:bg-[var(--app-danger)]/10 transition-colors mt-0.5"
-                onClick={() => {
+                onClick={async () => {
                   setOpen(false);
-                  onLogout();
+                  try {
+                    if (onLogout) await onLogout();
+                  } catch (err) {
+                    console.error("Logout failed:", err);
+                  }
                 }}
               >
                 <LogOut size={15} className="shrink-0" />

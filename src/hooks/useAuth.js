@@ -36,7 +36,11 @@ export function useAuth() {
     } catch (err) {
       console.warn("Failed clearing localStorage on logout:", err);
     }
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.warn("Supabase signOut error:", err);
+    }
     setPasswordRecovery(false);
     setSession(null);
   };
@@ -48,6 +52,7 @@ export function useAuth() {
     authLoading,
     setSession,
     handleLogout,
+    authLogout: handleLogout,
     passwordRecovery,
     clearPasswordRecovery,
   };
