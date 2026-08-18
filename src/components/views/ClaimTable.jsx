@@ -170,12 +170,12 @@ export default function ClaimTable({
   const hasActiveFilters = searchTerm || filterAsigurator || filterTip || filterStadiu;
 
   /* ─── styles ─── */
-  const cell = "px-4 py-3 align-middle";
+  const cell = "px-4 py-3.5 align-middle";
   const cellMuted = `${cell} text-[var(--app-muted)]`;
   const thCls =
-    "px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider " +
-    "text-slate-500 dark:text-zinc-400 uppercase cursor-pointer select-none whitespace-nowrap " +
-    "bg-slate-50 dark:bg-zinc-900/50";
+    "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider " +
+    "text-slate-400 dark:text-slate-400 cursor-pointer select-none whitespace-nowrap " +
+    "bg-slate-50 dark:bg-slate-900/60";
 
   /* ─── 5-column stacked row ─── */
   const renderRow = (c, i, { inGroup = false } = {}) => {
@@ -506,7 +506,7 @@ export default function ClaimTable({
           <button
             type="button"
             onClick={() => onOpenNew()}
-            className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-amber-400 hover:bg-amber-500 text-zinc-950 text-[11px] font-bold transition shadow-sm"
+            className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-[var(--app-accent,#0284c7)] hover:bg-[var(--app-accent-hover,#0369a1)] text-white text-[11px] font-bold transition shadow-sm"
           >
             <Plus size={13} />
             <span className="hidden sm:inline">Dosar nou</span>

@@ -27,7 +27,7 @@ describe("appTokens day/night", () => {
 
   it("getTokensForScheme picks light and dark palettes", () => {
     expect(getTokensForScheme("light")["--app-bg"]).toBe("#f8fafc");
-    expect(getTokensForScheme("dark")["--app-bg"]).toBe("#131415");
+    expect(getTokensForScheme("dark")["--app-bg"]).toBe("#0f172a");
   });
 
   it("shares unified danger and type scale across schemes", () => {
