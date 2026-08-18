@@ -204,11 +204,9 @@ export default function ClaimTable({
         {/* ── Col 1: Vehicul ── */}
         <td className={cell}>
           <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="font-mono font-black text-[13px] tracking-wider uppercase text-slate-900 dark:text-white flex items-center gap-1.5">
+            <span className="font-mono font-black text-[13px] tracking-wider uppercase text-[var(--app-text-strong)] flex items-center gap-1.5">
               {inGroup && <span className="text-[var(--app-muted)] text-[10px]">↳</span>}
-              <span className="bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 inline-flex items-center">
-                <ClaimPlate value={c.numarInmatriculare} className="text-slate-900 dark:text-slate-100" />
-              </span>
+              <ClaimPlate value={c.numarInmatriculare} />
               {c.blocat && (
                 <span className="text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>
               )}
@@ -365,10 +363,8 @@ export default function ClaimTable({
         >
           {/* Vehicul */}
           <td className={`${cell} font-mono text-[11px] whitespace-nowrap`}>
-            <span className="bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-zinc-700 font-black tracking-wider uppercase">
-              {first.numarInmatriculare || "—"}
-            </span>
-            <span className="ml-2 text-slate-500 dark:text-zinc-500 text-[10px]">{sharedModel}</span>
+            <ClaimPlate value={first.numarInmatriculare} />
+            <span className="ml-2 text-[var(--app-muted)] text-[10px]">{sharedModel}</span>
           </td>
           {/* Dosar */}
           <td className={cellMuted}>
