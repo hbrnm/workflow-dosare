@@ -533,7 +533,10 @@ export function extractAudatexLaborHours(text) {
   let oreTinichigerieAudatex = null;
   let oreVopsitorieAudatex = null;
 
-  const oreTinMatch = raw.match(/TOTAL\s+([\d.]+)\s+ORE\s+X\s+[\d.]+\s+RON/i);
+  const oreTinMatch =
+    raw.match(/TOTAL\s+([\d.]+)\s+ORE\s+X\s+[\d.]+\s+RON/i) ||
+    raw.match(/TOTAL\s+TINICHIGERIE\s*[:\s]\s*([\d.]+)\s+ORE/i) ||
+    raw.match(/MANOPERA\s+TINICHIGERIE\s*[:\s]\s*([\d.]+)\s+ORE/i);
   if (oreTinMatch) {
     oreTinichigerieAudatex = Math.round(parseFloat(oreTinMatch[1]) * 100) / 100;
   }
@@ -546,7 +549,10 @@ export function extractAudatexLaborHours(text) {
     }
   }
 
-  const oreVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.]+)\s+ORE/i);
+  const oreVopsMatch =
+    raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.]+)\s+ORE/i) ||
+    raw.match(/TOTAL\s+VOPSITORIE\s*[:\s]\s*([\d.]+)\s+ORE/i) ||
+    raw.match(/MANOPERA\s+VOPSITORIE\s*[:\s]\s*([\d.]+)\s+ORE/i);
   if (oreVopsMatch) {
     oreVopsitorieAudatex = Math.round(parseFloat(oreVopsMatch[1]) * 100) / 100;
   }

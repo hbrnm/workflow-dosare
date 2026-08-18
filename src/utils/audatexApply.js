@@ -104,7 +104,7 @@ export function applyEstimateValuesToClaim(claim, values = {}, options = {}) {
     return applyLaborCostsToClaim(next, options.manoperaTarife, {
       oreTinichigerie: financiar.oreLucrateTinichigerie,
       oreVopsitorie: financiar.oreLucrateVopsitorie,
-      setOre: false,
+      setOre: true,
     });
   }
 
