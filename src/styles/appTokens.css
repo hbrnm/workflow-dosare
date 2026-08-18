@@ -81,7 +81,7 @@
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: inherit;
+  color: var(--app-text-strong, #ededed);
   line-height: 1.2;
 }
 
