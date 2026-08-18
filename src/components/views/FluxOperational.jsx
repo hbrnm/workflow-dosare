@@ -391,6 +391,14 @@ export default function TablouPeFazeRedesign({
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   useEffect(() => {
+    const handleSelectStageFilter = (e) => {
+      setFocusedStage(e.detail || null);
+    };
+    window.addEventListener("app:select_stage_filter", handleSelectStageFilter);
+    return () => window.removeEventListener("app:select_stage_filter", handleSelectStageFilter);
+  }, []);
+
+  useEffect(() => {
     if (!highlightClaimIds?.size) return;
     setFocusedStage(null);
     const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-card"), 120);

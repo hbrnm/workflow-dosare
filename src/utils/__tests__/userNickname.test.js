@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import {
   getUserNickname,
-  setUserNickname,
+  getDynamicGreetingObject,
   getDynamicGreetingMessage,
 } from "../userNickname";
 
@@ -18,10 +18,12 @@ describe("userNickname utility", () => {
     expect(getUserNickname("")).toBe("Alex");
   });
 
-  it("generates time-of-day greeting message with nickname", () => {
-    const msg = getDynamicGreetingMessage("Alex", { tot: 10, piese: 3 });
-    expect(msg).toContain("Alex");
-    expect(typeof msg).toBe("string");
-    expect(msg.length).toBeGreaterThan(5);
+  it("generates interactive greeting object without emojis", () => {
+    const obj = getDynamicGreetingObject("Alex", { tot: 0, piese: 5 });
+    expect(obj.text).toContain("Alex");
+    expect(obj.targetStage).toBe("piese_comandate");
+    expect(obj.stageLabel).toBe("Piese");
+    // Ensure no emoji characters exist in message text
+    expect(/[\u{1F300}-\u{1F9FF}]/u.test(obj.text)).toBe(false);
   });
 });
