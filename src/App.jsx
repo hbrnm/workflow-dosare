@@ -1015,6 +1015,9 @@ export default function App() {
           setIsAiModalOpenHeader={setIsAiModalOpenHeader}
           openAlerts={openAlerts}
           openBlockedClaims={openBlockedClaims}
+          claims={claims}
+          userEmail={userEmail}
+          openSettings={openSettings}
         />
 
         {/* Desktop Advanced Filter Bar */}

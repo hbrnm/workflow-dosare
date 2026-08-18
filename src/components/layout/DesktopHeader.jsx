@@ -2,6 +2,7 @@ import React from "react";
 import { Layers, Sunrise, List, Search, X, Plus, Bell, Ban } from "lucide-react";
 import AppButton from "../common/AppButton";
 import TooltipGuide from "../common/TooltipGuide";
+import DynamicGreetingWidget from "../common/DynamicGreetingWidget";
 import { ROLES } from "../../constants/roles";
 
 export default function DesktopHeader({
@@ -21,11 +22,14 @@ export default function DesktopHeader({
   setIsAiModalOpenHeader,
   openAlerts,
   openBlockedClaims,
+  claims = [],
+  userEmail = "",
+  openSettings,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
   return (
-    <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20">
+    <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20 gap-3">
       {/* Segment (dosare) — sub-vizualizări */}
       <div className="flex items-center gap-3 text-[13px] min-w-0">
         {isDosareView && (
@@ -78,6 +82,12 @@ export default function DesktopHeader({
             </button>
           </div>
         )}
+
+        <DynamicGreetingWidget
+          claims={claims}
+          userEmail={userEmail}
+          onOpenSettings={openSettings}
+        />
       </div>
 
       {/* Search — CommandPalette launcher (Ctrl+K); icon below lg */}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { User, Key, ShieldCheck, QrCode, Smartphone, Laptop, LogOut, CheckCircle2, AlertCircle, Copy, Check, Lock } from "lucide-react";
+import { User, Key, ShieldCheck, QrCode, Smartphone, Laptop, LogOut, CheckCircle2, AlertCircle, Copy, Check, Lock, Smile } from "lucide-react";
 import AppButton from "../../common/AppButton";
 import { supabase } from "../../../supabaseClient";
+import { getUserNickname, setUserNickname } from "../../../utils/userNickname";
 
 export default function SettingsProfileSecurityTab({
   userEmail = "",
@@ -150,6 +151,19 @@ export default function SettingsProfileSecurityTab({
     }
   };
 
+  // Nickname / User preferred name state
+  const [nicknameDraft, setNicknameDraft] = useState(() => getUserNickname(userEmail));
+
+  useEffect(() => {
+    setNicknameDraft(getUserNickname(userEmail));
+  }, [userEmail]);
+
+  const handleSaveNickname = (e) => {
+    e.preventDefault();
+    setUserNickname(nicknameDraft);
+    onNotify?.("Porecla / numele utilizatorului a fost actualizat!", "success");
+  };
+
   return (
     <div className="space-y-4">
       {/* Profil utilizator */}
@@ -191,6 +205,25 @@ export default function SettingsProfileSecurityTab({
             </button>
           )}
         </div>
+
+        {/* Nume / Poreclă utilizator */}
+        <form onSubmit={handleSaveNickname} className="p-3.5 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl space-y-2">
+          <label className="block text-[11px] font-bold text-[var(--app-muted)] uppercase flex items-center gap-1.5">
+            <Smile size={14} className="text-amber-500" /> Nume / Poreclă utilizator (pentru saluturi &amp; mesaje zilnice)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={nicknameDraft}
+              onChange={(e) => setNicknameDraft(e.target.value)}
+              placeholder="ex: Alex, Alexandru, Mecanic-Șef..."
+              className="flex-1 p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-[var(--app-surface-2)] text-[var(--app-text-strong)] focus:border-[var(--app-accent)]"
+            />
+            <AppButton type="submit" variant="primary" className="text-[12px] px-3 py-1.5">
+              Salvează Nume
+            </AppButton>
+          </div>
+        </form>
       </div>
 
       {/* 2FA Autentificare în Doi Pași (TOTP / Authenticator App) */}
