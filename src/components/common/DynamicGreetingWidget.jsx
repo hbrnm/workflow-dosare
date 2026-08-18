@@ -13,6 +13,7 @@ export default function DynamicGreetingWidget({
 }) {
   const [nickname, setNickname] = useState(() => getUserNickname(userEmail));
   const [activeStageFilter, setActiveStageFilter] = useState(null);
+  const [cycleIndex, setCycleIndex] = useState(0);
 
   useEffect(() => {
     setNickname(getUserNickname(userEmail));
@@ -37,6 +38,13 @@ export default function DynamicGreetingWidget({
     };
   }, [userEmail]);
 
+  // Actualizare periodică la fiecare minut pentru sinteză orară
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const claimStats = useMemo(() => {
     const tot = claims.length;
     let piese = 0;
@@ -57,16 +65,20 @@ export default function DynamicGreetingWidget({
   }, [claims]);
 
   const greetingObj = useMemo(
-    () => getDynamicGreetingObject(nickname, claimStats),
-    [nickname, claimStats]
+    () => getDynamicGreetingObject(nickname, claimStats, cycleIndex),
+    [nickname, claimStats, cycleIndex]
   );
 
   const isFilterActive = activeStageFilter === greetingObj.targetStage && greetingObj.targetStage != null;
 
   const handleClick = () => {
     if (greetingObj.targetStage) {
-      const nextStage = isFilterActive ? null : greetingObj.targetStage;
-      window.dispatchEvent(new CustomEvent("app:select_stage_filter", { detail: nextStage }));
+      if (isFilterActive) {
+        window.dispatchEvent(new CustomEvent("app:select_stage_filter", { detail: null }));
+        setCycleIndex((c) => c + 1);
+      } else {
+        window.dispatchEvent(new CustomEvent("app:select_stage_filter", { detail: greetingObj.targetStage }));
+      }
     } else {
       onOpenSettings?.();
     }

@@ -36,93 +36,111 @@ export function setUserNickname(nickname) {
   }
 }
 
-/** Generare obiect de mesaj dinamic (fără emoticoane) și etapa asociată pentru filtrare la click. */
-export function getDynamicGreetingObject(nickname = "Alex", claimStats = {}) {
-  const hour = new Date().getHours();
+/**
+ * Cronologie zilnică pentru fluxul operațional din service:
+ * - 05:00 - 08:59: Programări / Intrări (programare_efectuata)
+ * - 09:00 - 11:59: Acord reparație & Constatări (constatare_efectuata)
+ * - 12:00 - 14:29: Comenzi piese (piese_comandate)
+ * - 14:30 - 16:29: Reparații & Predări mașini gata (reparatie_in_curs)
+ * - 16:30 - 19:59: Facturare & Accept plată (accept_plata)
+ * - 20:00 - 04:59: Sinteză zi & pregătire mâine
+ */
+export function getDynamicGreetingObject(nickname = "Alex", claimStats = {}, cycleIndex = 0) {
+  const now = new Date();
+  const hour = now.getHours();
+  const mins = now.getMinutes();
+  const timeVal = hour + mins / 60;
   const name = nickname || "Alex";
+
   const {
     tot = 0,
+    prog = 0,
+    acord = 0,
     piese = 0,
     rep = 0,
     accept = 0,
-    prog = 0,
-    acord = 0,
   } = claimStats;
 
-  const stageOptions = [];
-
-  if (piese > 0) {
-    stageOptions.push({
-      text: `Salut, ${name}! ${piese} ${piese === 1 ? "dosar este" : "dosare sunt"} în etapa de piese.`,
-      targetStage: "piese_comandate",
-      stageLabel: "Piese",
-    });
-  }
-
-  if (rep > 0) {
-    stageOptions.push({
-      text: `Spor la treabă, ${name}! ${rep} ${rep === 1 ? "autovehicul este" : "autovehicule sunt"} în reparație.`,
-      targetStage: "reparatie_in_curs",
-      stageLabel: "Reparație",
-    });
-  }
-
-  if (accept > 0) {
-    stageOptions.push({
-      text: `Salutare, ${name}! ${accept} ${accept === 1 ? "dosar așteaptă" : "dosare așteaptă"} acceptul de plată.`,
-      targetStage: "accept_plata",
-      stageLabel: "Accept plată",
-    });
-  }
-
-  if (prog > 0) {
-    stageOptions.push({
-      text: `Atenție, ${name}! Avem ${prog} ${prog === 1 ? "programare confirmată" : "programări confirmate"}.`,
-      targetStage: "programare_efectuata",
+  const timelineMessages = [
+    // 1. Programări (Prima oră a dimineții: 05:00 - 08:59)
+    {
+      id: "prog",
+      timeWindow: "Dimineață",
+      text: prog > 0
+        ? `Bună dimineața, ${name}! Avem ${prog} ${prog === 1 ? "programare confirmată" : "programări confirmate"} astăzi.`
+        : `Bună dimineața, ${name}! Nicio programare nouă în așteptare.`,
+      targetStage: prog > 0 ? "programare_efectuata" : null,
       stageLabel: "Programări",
-    });
-  }
-
-  if (acord > 0) {
-    stageOptions.push({
-      text: `Salut, ${name}! ${acord} ${acord === 1 ? "dosar este" : "dosare sunt"} în acord reparație.`,
-      targetStage: "constatare_efectuata",
+    },
+    // 2. Constatări & Acord reparație (Ora 09:00 - 11:59)
+    {
+      id: "acord",
+      timeWindow: "Ora 09:00",
+      text: acord > 0
+        ? `Salut, ${name}! Avem ${acord} ${acord === 1 ? "dosar în acord reparație" : "dosare în acord reparație"}.`
+        : `Salut, ${name}! Toate acordurile de reparație sunt la zi.`,
+      targetStage: acord > 0 ? "constatare_efectuata" : null,
       stageLabel: "Acord reparație",
-    });
-  }
+    },
+    // 3. Comenzi Piese (După-amiază: 12:00 - 14:29)
+    {
+      id: "piese",
+      timeWindow: "După-amiază",
+      text: piese > 0
+        ? `Salut, ${name}! Avem ${piese} ${piese === 1 ? "comandă de piese în așteptare" : "comenzi de piese în așteptare"}.`
+        : `Salut, ${name}! Toate piesele comandate sunt recepționate.`,
+      targetStage: piese > 0 ? "piese_comandate" : null,
+      stageLabel: "Piese",
+    },
+    // 4. Reparații & Predări mașini (Ora 15:00: 14:30 - 16:29)
+    {
+      id: "rep",
+      timeWindow: "Predări",
+      text: rep > 0
+        ? `Spor la treabă, ${name}! Avem ${rep} ${rep === 1 ? "autovehicul în reparație" : "autovehicule în reparație"} de predat.`
+        : `Spor la treabă, ${name}! Mașinile din reparație avansează conform planului.`,
+      targetStage: rep > 0 ? "reparatie_in_curs" : null,
+      stageLabel: "Reparație",
+    },
+    // 5. Facturare & Accept plată (Spre orele 16:30 - 19:59)
+    {
+      id: "accept",
+      timeWindow: "Facturare",
+      text: accept > 0
+        ? `Salutare, ${name}! Avem ${accept} ${accept === 1 ? "dosar gata de facturat" : "dosare gata de facturat"} cu accept plată.`
+        : `Salutare, ${name}! Toate facturările și accepturile de plată sunt verificate.`,
+      targetStage: accept > 0 ? "accept_plata" : null,
+      stageLabel: "Accept plată",
+    },
+  ];
 
-  if (stageOptions.length > 0) {
-    return stageOptions[(tot + hour) % stageOptions.length];
-  }
-
-  // Mesaje generale fără emoticoane
-  if (hour >= 5 && hour < 12) {
-    return {
-      text: `Bună dimineața, ${name}! Spor la lucru cu cele ${tot} dosare din atelier.`,
-      targetStage: null,
-      stageLabel: null,
-    };
-  } else if (hour >= 12 && hour < 18) {
-    return {
-      text: `Salut, ${name}! Activitatea din atelier este în plină desfășurare (${tot} dosare).`,
-      targetStage: null,
-      stageLabel: null,
-    };
-  } else if (hour >= 18 && hour < 22) {
-    return {
-      text: `Bună seara, ${name}! O zi productivă în atelier (${tot} dosare gestionate).`,
-      targetStage: null,
-      stageLabel: null,
-    };
+  // Determinăm indexul de bază în funcție de ora curentă a zilei
+  let baseIndex = 0;
+  if (timeVal >= 5 && timeVal < 9) {
+    baseIndex = 0; // Programări
+  } else if (timeVal >= 9 && timeVal < 12) {
+    baseIndex = 1; // Acord reparație
+  } else if (timeVal >= 12 && timeVal < 14.5) {
+    baseIndex = 2; // Piese
+  } else if (timeVal >= 14.5 && timeVal < 16.5) {
+    baseIndex = 3; // Reparații & Predări
+  } else if (timeVal >= 16.5 && timeVal < 20) {
+    baseIndex = 4; // Facturare & Accept plată
   } else {
+    // În afara orelor de program (noaptea)
     return {
-      text: `Spor la treabă nocturnă, ${name}! Mulțumim pentru implicare.`,
+      id: "night",
+      timeWindow: "Noapte",
+      text: `Seară bună, ${name}! O zi productivă cu ${tot} dosare gestionate în atelier.`,
       targetStage: null,
       stageLabel: null,
     };
   }
+
+  const activeIndex = (baseIndex + (cycleIndex || 0)) % timelineMessages.length;
+  return timelineMessages[activeIndex];
 }
 
 export function getDynamicGreetingMessage(nickname = "Alex", claimStats = {}) {
-  return getDynamicGreetingObject(nickname, claimStats).text;
+  return getDynamicGreetingObject(nickname, claimStats, 0).text;
 }
