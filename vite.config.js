@@ -12,6 +12,13 @@ export default defineConfig({
       includeAssets: [
         "favicon.ico",
         "apple-touch-icon.png",
+        "icon-192x192.png",
+        "icon-512x512.png",
+        "maskable_icon-192.png",
+        "maskable_icon.png",
+        "logo-mark.svg",
+        "logo-mark.png",
+        "logo-mark-white.png",
         "pwa-192x192.png",
         "pwa-512x512.png",
         "maskable-icon-512x512.png",
@@ -33,14 +40,16 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "/pwa-192x192.png",
+            src: "/icon-192x192.png",
             sizes: "192x192",
-            type: "image/png"
+            type: "image/png",
+            purpose: "any"
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/icon-512x512.png",
             sizes: "512x512",
-            type: "image/png"
+            type: "image/png",
+            purpose: "any"
           },
           {
             src: "/apple-touch-icon.png",
@@ -48,7 +57,13 @@ export default defineConfig({
             type: "image/png"
           },
           {
-            src: "/maskable-icon-512x512.png",
+            src: "/maskable_icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable"
+          },
+          {
+            src: "/maskable_icon.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable"
