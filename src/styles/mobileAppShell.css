@@ -1849,6 +1849,10 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
   -webkit-backdrop-filter: blur(14px);
 }
 
+.m-claim-sheet .m-sheet-header .m-plate {
+  color: inherit;
+}
+
 .m-claim-sheet .m-sheet-header-kicker {
   font-size: var(--m-type-micro);
   font-weight: 700;
