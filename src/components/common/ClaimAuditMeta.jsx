@@ -15,20 +15,20 @@ export default function ClaimAuditMeta({ claim, className = "", compact = false 
 
   return (
     <div
-      className={`flex items-start gap-1.5 text-[11.5px] text-slate-600 dark:text-slate-400 leading-snug ${className}`.trim()}
+      className={`flex items-start gap-1.5 text-[12px] font-semibold text-slate-800 dark:text-slate-200 leading-snug ${className}`.trim()}
       title="Cine a creat dosarul si data ultimei actualizari"
     >
-      <User size={compact ? 11 : 12} className="shrink-0 mt-0.5 text-slate-500 dark:text-slate-400" aria-hidden />
+      <User size={compact ? 12 : 13} className="shrink-0 mt-0.5 text-slate-700 dark:text-slate-300" aria-hidden />
       <p className="min-w-0">
         <span>
-          Creat de <span className="font-bold text-slate-900 dark:text-slate-100">{createdLabel}</span>
+          Creat de <span className="font-extrabold text-slate-900 dark:text-white">{createdLabel}</span>
         </span>
         {whenLabel && whenLabel !== "—" ? (
           <>
-            <span className="mx-1 text-slate-400 dark:text-slate-500" aria-hidden>
+            <span className="mx-1 text-slate-500 dark:text-slate-400" aria-hidden>
               ·
             </span>
-            <span>{whenLabel}</span>
+            <span className="text-slate-700 dark:text-slate-300">{whenLabel}</span>
           </>
         ) : null}
       </p>

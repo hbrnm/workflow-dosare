@@ -54,14 +54,14 @@ export default function ClaimHeader({
             {!isNew && (() => {
               const sd = getStatusDefinition(form.status);
               const phaseClass = {
-                start: "bg-[var(--app-surface-muted)] text-[var(--app-text)]",
-                eval: "bg-[var(--app-surface-muted)] text-[var(--app-text)]",
-                lucru: "bg-[var(--app-warning-muted)] text-[var(--app-warning)]",
-                final: "bg-[var(--app-success-muted)] text-[var(--app-success)]",
+                start: "bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+                eval: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-800",
+                lucru: "bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-800",
+                final: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800",
               };
               return (
                 <span
-                  className={`shrink-0 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-md ${phaseClass[sd.phase] || phaseClass.start}`}
+                  className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md ${phaseClass[sd.phase] || phaseClass.start}`}
                 >
                   {sd.num}/9 · {sd.label}
                 </span>
@@ -73,15 +73,15 @@ export default function ClaimHeader({
               </span>
             )}
           </div>
-          <span className={`text-[10.5px] font-mono font-medium flex items-center gap-1.5 truncate ${desktopUi ? "text-slate-700 dark:text-slate-300" : "text-white/90"}`}>
-            <Car size={11} className="shrink-0 text-slate-500 dark:text-slate-400" />
+          <span className={`text-[11px] font-mono font-bold flex items-center gap-1.5 truncate mt-0.5 ${desktopUi ? "text-slate-900 dark:text-slate-100" : "text-white"}`}>
+            <Car size={12} className="shrink-0 text-slate-600 dark:text-slate-300" />
             <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
           </span>
           {!isNew && (
             <ClaimAuditMeta
               claim={form}
               compact
-              className={`mt-0.5 ${desktopUi ? "" : "text-white/70 [&_span.font-semibold]:text-white/90"}`}
+              className={`mt-0.5 ${desktopUi ? "text-slate-800 dark:text-slate-200" : "text-white/90 [&_span.font-extrabold]:text-white"}`}
             />
           )}
         </div>
