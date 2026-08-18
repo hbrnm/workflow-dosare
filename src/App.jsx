@@ -218,6 +218,8 @@ export default function App() {
     deleteClaim,
     patchClaim,
     moveToStatus,
+    removeDemoData,
+    hasDemoData,
   } = useClaims(session, showNotice, { atelierId });
 
   useDayNightTheme();
@@ -1099,6 +1101,11 @@ export default function App() {
           density={density}
           activeClaimId={drawerClaim?.id}
           setIsAiModalOpenHeader={setIsAiModalOpenHeader}
+          branding={branding}
+          memberCount={memberCount || usersList.length}
+          removeDemoData={removeDemoData}
+          hasDemoData={hasDemoData}
+          openSettings={openSettings}
         />
       </div>
 

@@ -6,6 +6,8 @@ import EmptyWorkspace from "../common/EmptyWorkspace";
 import ErrorBoundary from "../common/ErrorBoundary";
 import { lazyWithRetry } from "../../utils/lazyWithRetry";
 
+import OnboardingChecklistBanner from "../common/OnboardingChecklistBanner";
+
 const TablouPeFaze = lazyWithRetry(() => import("../views/FluxOperational"));
 const BriefZilnic = lazyWithRetry(() => import("../views/BriefZilnic"));
 const ClaimTable = lazyWithRetry(() => import("../views/ClaimTable"));
@@ -53,8 +55,14 @@ export default function AppViewRouter({
   density,
   activeClaimId,
   setIsAiModalOpenHeader,
+  branding,
+  memberCount = 1,
+  removeDemoData,
+  hasDemoData = false,
+  openSettings,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
+  const realClaimsCount = userClaims.filter((c) => !c.isDemo).length;
 
   return (
     <Suspense
@@ -72,6 +80,19 @@ export default function AppViewRouter({
         }`}
       >
         <ErrorBoundary level="module" fallbackTitle="Modul indisponibil" onGoHome={() => setView("brief")}>
+          {isDosareView || view === "dashboard" ? (
+            <OnboardingChecklistBanner
+              branding={branding}
+              memberCount={memberCount}
+              realClaimsCount={realClaimsCount}
+              onOpenSettingsBranding={() => openSettings?.("branding")}
+              onOpenSettingsUsers={() => openSettings?.("users")}
+              onOpenNewClaim={userCanCreate ? openNew : null}
+              onRemoveDemoData={removeDemoData}
+              hasDemoData={hasDemoData}
+            />
+          ) : null}
+
           {loading ? (
             <ListSkeleton
               rows={dosareSubView === "list" ? 8 : 6}
