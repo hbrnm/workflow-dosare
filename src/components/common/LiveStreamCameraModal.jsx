@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { X } from "lucide-react";
-import { PHOTO_CATEGORIES } from "../../utils/scanUtils";
+import { PHOTO_CATEGORIES, resolveSessionPhotoFolder, isPhotoFolderKey } from "../../utils/scanUtils";
 import { useModalEscape } from "../../hooks/useModalEscape";
 import { compressImage } from "../../utils/imageUtils";
 import {
@@ -19,6 +19,8 @@ export default function LiveStreamCameraModal({
 }) {
   const isScan = String(initialCategorie || "").startsWith("scan_");
   const [categorie, setCategorie] = useState(initialCategorie);
+  const [sessionFolder, setSessionFolder] = useState(null);
+  const [changingFolder, setChangingFolder] = useState(false);
   const [pendingFiles, setPendingFiles] = useState(null);
   const [photoCount, setPhotoCount] = useState(0);
   const [lastThumbUrl, setLastThumbUrl] = useState(null);
@@ -32,6 +34,7 @@ export default function LiveStreamCameraModal({
   const flashTimerRef = useRef(null);
   const fileInputRef = useRef(null);
   const nativePromptedRef = useRef(false);
+  const sessionFolderRef = useRef(null);
 
   useModalEscape(onClose);
 
@@ -163,8 +166,13 @@ export default function LiveStreamCameraModal({
 
   const queueFiles = (files) => {
     if (!files?.length || !aliveRef.current) return;
-    if (isScan) {
-      void saveFiles(files, categorie);
+    const resolved = resolveSessionPhotoFolder({
+      isScan,
+      sessionFolder: sessionFolderRef.current,
+      fallback: categorie,
+    });
+    if (!resolved.ask) {
+      void saveFiles(files, resolved.folder || categorie);
       return;
     }
     setPendingFiles(files);
@@ -238,22 +246,28 @@ export default function LiveStreamCameraModal({
   const assignFolder = async (key) => {
     const files = pendingFiles;
     setCategorie(key);
+    setSessionFolder(key);
+    sessionFolderRef.current = key;
+    setChangingFolder(false);
     setPendingFiles(null);
-    await saveFiles(files, key);
+    if (files?.length) await saveFiles(files, key);
   };
 
   const handleClose = async () => {
     if (pendingFiles?.length) {
-      const cat = ["receptie", "predare", "reconstatare"].includes(categorie)
-        ? categorie
-        : initialCategorie;
+      const cat = isPhotoFolderKey(sessionFolder)
+        ? sessionFolder
+        : isPhotoFolderKey(categorie)
+          ? categorie
+          : initialCategorie;
       await saveFiles(pendingFiles, cat);
       setPendingFiles(null);
     }
     onClose?.();
   };
 
-  const waitingFolder = Boolean(pendingFiles?.length) && !isScan;
+  const waitingFolder = (Boolean(pendingFiles?.length) || changingFolder) && !isScan;
+  const lockedFolder = PHOTO_CATEGORIES.find((c) => c.key === sessionFolder) || null;
   const useNativeShutter = Boolean(cameraError) && !waitingFolder;
 
   return (
@@ -275,7 +289,11 @@ export default function LiveStreamCameraModal({
           </div>
         ) : (
           <p className="live-cam-hint">
-            {waitingFolder ? "Alege folderul pozei" : "Fotografiază, apoi alege folderul"}
+            {waitingFolder
+              ? (changingFolder && !pendingFiles?.length ? "Schimbă folderul" : "Alege folderul pozei")
+              : lockedFolder
+                ? `Următoarele poze: ${lockedFolder.label}`
+                : "Prima poză alege folderul; următoarele rămân acolo"}
           </p>
         )}
       </div>
@@ -304,7 +322,7 @@ export default function LiveStreamCameraModal({
             aria-label={`${photoCount} ${photoCount === 1 ? "poză salvată" : "poze salvate"}`}
           >
             <img src={lastThumbUrl} alt="Ultima poză salvată" draggable={false} />
-            <span className="live-cam-thumb-count">{photoCount + (waitingFolder ? pendingFiles.length : 0)}</span>
+            <span className="live-cam-thumb-count">{photoCount + (pendingFiles?.length || 0)}</span>
           </div>
         ) : null}
       </div>
@@ -326,15 +344,37 @@ export default function LiveStreamCameraModal({
                 key={key}
                 type="button"
                 onClick={() => assignFolder(key)}
-                className={`live-cam-cat live-cam-folder-btn ${key === initialCategorie ? `is-active ${color}` : ""}`}
+                className={`live-cam-cat live-cam-folder-btn ${key === (sessionFolder || initialCategorie) ? `is-active ${color}` : ""}`}
               >
                 {label}
               </button>
             ))}
+            {changingFolder && !pendingFiles?.length ? (
+              <button
+                type="button"
+                className="live-cam-cat live-cam-folder-cancel"
+                onClick={() => setChangingFolder(false)}
+              >
+                Anulează
+              </button>
+            ) : null}
           </div>
         ) : (
           <>
-            <div className="live-cam-cat-label">Foto</div>
+            <div className="live-cam-cat-label">
+              {lockedFolder ? (
+                <button
+                  type="button"
+                  className="live-cam-folder-locked"
+                  onClick={() => setChangingFolder(true)}
+                  aria-label={`Folder ${lockedFolder.label}. Schimbă folderul`}
+                >
+                  {lockedFolder.label}
+                </button>
+              ) : (
+                "Foto"
+              )}
+            </div>
             <button
               type="button"
               onClick={useNativeShutter ? openNativeCamera : capturePhotoInstantly}
