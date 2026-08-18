@@ -1016,7 +1016,7 @@ export default function App() {
           openAlerts={openAlerts}
           openBlockedClaims={openBlockedClaims}
           claims={claims}
-          userEmail={userEmail}
+          userEmail={myEmail}
           openSettings={openSettings}
         />
 
