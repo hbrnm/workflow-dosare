@@ -534,20 +534,30 @@ function parseRoFloat(val) {
   return isNaN(num) ? null : num;
 }
 
-/** Extrage ore lucrate tinichigerie/vopsitorie din deviz (UT sau ORE). */
+/** Extrage ore lucrate tinichigerie/vopsitorie din deviz (UL, UT sau ORE). */
 export function extractAudatexLaborHours(text) {
   const raw = String(text || "");
   let oreTinichigerieAudatex = null;
   let oreVopsitorieAudatex = null;
 
-  const is100UtScale = /100\s*UT\s*=\s*1\s*ORA/i.test(raw) || /100\s*UT\/ORA/i.test(raw);
+  // 1. Detect Scale: 12 UL = 1 ORA (Mercedes/BMW), 10 UL = 1 ORA, 100 UT = 1 ORA
+  let scaleTin = 10;
+  const scaleMatch = raw.match(/(\d+)\s*UL\s*=\s*1\s*ORA/i);
+  if (scaleMatch?.[1]) {
+    scaleTin = parseInt(scaleMatch[1], 10);
+  } else if (/100\s*UT\s*=\s*1\s*ORA/i.test(raw) || /100\s*UT\/ORA/i.test(raw)) {
+    scaleTin = 100;
+  } else if (/12\s*UL/i.test(raw)) {
+    scaleTin = 12;
+  }
 
   // --- TINICHIGERIE / MANOPERA GENERALA ---
+  // Direct ORE match: e.g. "TOTAL 4.3 ORE X 60 RON", "TOTAL TINICHIGERIE : 4.3 ORE"
   const oreTinMatch =
     raw.match(/TOTAL\s+([\d.,]+)\s+ORE\s+X\s+[\d.,]+\s+RON/i) ||
-    raw.match(/TOTAL\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
-    raw.match(/MANOPER[AĂ]\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
-    raw.match(/ORE\s+TINICHIGERIE\s*[:\s=]\s*([\d.,]+)/i);
+    raw.match(/TOTAL\s+(?:MANOPER[AĂ]|TINICHIGERIE|METALOGRAFIE|CAROSERIE)\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/MANOPER[AĂ]\s+(?:TINICHIGERIE|METALOGRAFIE|CAROSERIE|GENERAL[AĂ])\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+    raw.match(/ORE\s+(?:TINICHIGERIE|MANOPER[AĂ])\s*[:\s=]\s*([\d.,]+)/i);
 
   if (oreTinMatch) {
     const parsed = parseRoFloat(oreTinMatch[1]);
@@ -556,34 +566,55 @@ export function extractAudatexLaborHours(text) {
     }
   }
 
-  if (oreTinichigerieAudatex == null && is100UtScale) {
-    const clMatches = [...raw.matchAll(/TOTAL\s+CL\s+\d+\s+([\d.,]+)\s+UT/gi)];
+  // Sum UL / UT match: e.g. "TOTAL CL 1  58 UL", "TOTAL CL 2  104 UL", "TOTAL CL 1  430 UT"
+  if (oreTinichigerieAudatex == null) {
+    const clMatches = [...raw.matchAll(/TOTAL\s+CL\s*\d*\s+([\d.,]+)\s*(?:UL|UT)/gi)];
     if (clMatches.length) {
-      const totalUt = clMatches.reduce((sum, m) => sum + (parseRoFloat(m[1]) || 0), 0);
-      if (totalUt > 0) oreTinichigerieAudatex = Math.round((totalUt / 100) * 100) / 100;
+      const totalUnits = clMatches.reduce((sum, m) => sum + (parseRoFloat(m[1]) || 0), 0);
+      if (totalUnits > 0) {
+        oreTinichigerieAudatex = Math.round((totalUnits / scaleTin) * 100) / 100;
+      }
     }
   }
 
   // --- VOPSITORIE ---
-  const oreVopsMatch =
-    raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.,]+)\s+ORE/i) ||
-    raw.match(/TOTAL\s+VOPSITORIE\s*:\s*([\d.,]+)\s+ORE/i) ||
-    raw.match(/MANOPER[AĂ]\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
-    raw.match(/ORE\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)/i);
-
-  if (oreVopsMatch) {
-    const parsed = parseRoFloat(oreVopsMatch[1]);
-    if (parsed != null && parsed > 0) {
-      oreVopsitorieAudatex = Math.round(parsed * 100) / 100;
+  // 1) UL/ORE match: e.g. "TOTAL VOPSITORIE 10UL/ORE : 107.0" or "TOTAL VOPSITORIE 12UL/ORE : 128.4"
+  const vopsUlMatches = [...raw.matchAll(/TOTAL\s+VOPSITORIE\s+([\d.,]+)\s*UL\/ORE\s*:\s*([\d.,]+)/gi)];
+  if (vopsUlMatches.length > 0) {
+    const lastM = vopsUlMatches[vopsUlMatches.length - 1];
+    const scaleVops = parseRoFloat(lastM[1]) || 10;
+    const unitsVops = parseRoFloat(lastM[2]);
+    if (unitsVops != null && unitsVops > 0) {
+      oreVopsitorieAudatex = Math.round((unitsVops / scaleVops) * 100) / 100;
     }
   }
 
+  // 2) Direct ORE match: e.g. "TOTAL VOPSITORIE 1 ORA : 7.3 ORE"
   if (oreVopsitorieAudatex == null) {
-    const utVopsMatch = raw.match(/TOTAL\s+VOPSITORIE\s+100\s+UT\/ORA\s*:\s*([\d.,]+)\s+UT/i);
-    if (utVopsMatch?.[1]) {
-      const ut = parseRoFloat(utVopsMatch[1]);
-      if (ut != null && ut > 0) {
-        oreVopsitorieAudatex = Math.round((ut / 100) * 100) / 100;
+    const oreVopsMatch =
+      raw.match(/TOTAL\s+VOPSITORIE\s+1\s+ORA\s*:\s*([\d.,]+)\s+ORE/i) ||
+      raw.match(/TOTAL\s+VOPSITORIE\s*:\s*([\d.,]+)\s+ORE/i) ||
+      raw.match(/MANOPER[AĂ]\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)\s+ORE/i) ||
+      raw.match(/ORE\s+VOPSITORIE\s*[:\s=]\s*([\d.,]+)/i);
+
+    if (oreVopsMatch) {
+      const parsed = parseRoFloat(oreVopsMatch[1]);
+      if (parsed != null && parsed > 0) {
+        oreVopsitorieAudatex = Math.round(parsed * 100) / 100;
+      }
+    }
+  }
+
+  // 3) UT match: e.g. "TOTAL VOPSITORIE 100 UT/ORA : 730 UT"
+  if (oreVopsitorieAudatex == null) {
+    const utVopsMatch =
+      raw.match(/TOTAL\s+VOPSITORIE\s+100\s+UT\/ORA\s*:\s*([\d.,]+)\s+UT/i) ||
+      raw.match(/TOTAL\s+VOPSITORIE\s+([\d.,]+)\s+UT\/ORA\s*:\s*([\d.,]+)\s+UT/i);
+    if (utVopsMatch) {
+      const scaleVops = parseRoFloat(utVopsMatch[1]) || 100;
+      const utVal = parseRoFloat(utVopsMatch[2] || utVopsMatch[1]);
+      if (utVal != null && utVal > 0) {
+        oreVopsitorieAudatex = Math.round((utVal / (scaleVops > 10 ? scaleVops : 100)) * 100) / 100;
       }
     }
   }
