@@ -76,13 +76,12 @@
   color: var(--app-muted, #a1a1aa); /* Updated to zinc-400 for contrast */
 }
 
-/* Număr auto — același pe Flux, Kanban, Tabel, Brief, mobil */
 .claim-plate {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--app-text-strong, #ededed);
+  color: inherit;
   line-height: 1.2;
 }
 
