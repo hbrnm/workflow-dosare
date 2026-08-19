@@ -59,6 +59,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
         apiKey: effectiveKey,
         engine,
         supabaseClient: supabase,
+        onProgress: setStepText,
       });
 
       setResult(extractedData);

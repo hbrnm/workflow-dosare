@@ -390,7 +390,7 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
 }
 
 /**
- * Motor 2: Google Cloud Vision OCR Simplu pentru Imagini Scanate / Fotografii
+ * Motor 2: Google Cloud Vision OCR pentru Imagini Scanate / Fotografii (dacă există API key)
  */
 export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
   const base64Data = await fileToBase64(file);
@@ -431,11 +431,34 @@ export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
 }
 
 /**
+ * Motor 3: Tesseract.js OCR Client-Side — 100% Gratuit, Local în browser, Zero API Key.
+ */
+export async function extractTextWithTesseract(file, onProgress) {
+  onProgress?.("Inițializare OCR în browser...");
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("ron+eng");
+  try {
+    onProgress?.("Scanare text și recunoaștere date din poză...");
+    const ret = await worker.recognize(file);
+    await worker.terminate();
+    return ret.data?.text || "";
+  } catch (err) {
+    try {
+      await worker.terminate();
+    } catch (e) {
+      // ignore
+    }
+    console.warn("[OCR Tesseract Error]", err);
+    return "";
+  }
+}
+
+/**
  * Extragere hibridă simplă și directă:
  * 1. Pentru PDF / Excel / Deviz -> Parser nativ (instant, complet, fără erori)
- * 2. Pentru Imagini / Scanuri -> OCR simplu + parser reguli deterministe
+ * 2. Pentru Imagini / Scanuri -> OCR Tesseract.js local sau Google Vision dacă există API Key
  */
-export async function extractClaimDataHybrid(file, { apiKey = "" } = {}) {
+export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } = {}) {
   const fileName = (file && file.name ? file.name : "").toLowerCase();
   const rawType = (file && file.type ? file.type : "").toLowerCase();
   const isPdfOrSheet =
@@ -449,22 +472,35 @@ export async function extractClaimDataHybrid(file, { apiKey = "" } = {}) {
 
   // 1. Dacă fișierul este PDF sau Excel, procesează direct cu parserul nativ local
   if (isPdfOrSheet) {
+    onProgress?.("Extragere nativă deviz (PDF / Excel)...");
     return await extractClaimDataWithLocalAudatexEngine(file);
   }
 
-  // 2. Pentru imagini (PNG/JPG/WEBP), rulează OCR simplu
+  // 2. Pentru imagini (PNG/JPG/WEBP/JPEG), rulează OCR
   const effectiveKey = (apiKey || localStorage.getItem("google_vision_api_key") || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
   if (effectiveKey) {
     try {
+      onProgress?.("Scanare poză cu Google Vision OCR...");
       const ocrText = await extractTextWithGoogleVisionOcr(file, effectiveKey);
-      return mapOcrTextToClaim(ocrText);
+      if (ocrText && ocrText.trim().length > 5) {
+        return mapOcrTextToClaim(ocrText);
+      }
     } catch (ocrErr) {
       console.warn("[OCR] Google Vision OCR error:", ocrErr);
     }
   }
 
-  // Fallback: încearcă să citească dacă fișierul are text
-  return mapOcrTextToClaim(file.name);
+  // Fallback 100% offline & gratuit: Tesseract.js client-side OCR
+  try {
+    const ocrText = await extractTextWithTesseract(file, onProgress);
+    if (ocrText && ocrText.trim().length > 5) {
+      return mapOcrTextToClaim(ocrText);
+    }
+  } catch (tessErr) {
+    console.warn("[OCR] Tesseract.js OCR error:", tessErr);
+  }
+
+  return mapOcrTextToClaim("");
 }
 
 // Alias pentru compatibilitate cu testele unitare
