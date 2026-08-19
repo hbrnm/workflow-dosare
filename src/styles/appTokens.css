@@ -427,6 +427,8 @@
   min-height: 2rem;
   min-width: 7.5rem;
   border: 1px solid transparent;
+  font-size: 0.84375rem;
+  font-weight: 600;
   line-height: 1;
 }
 

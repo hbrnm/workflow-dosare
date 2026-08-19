@@ -39,26 +39,26 @@ export default function DesktopHeader({
                 setOnlyBlocked(false);
                 setDosareSubView("flux");
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13.5px] md:text-[14px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "flux"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <Layers size={15} />
+              <Layers size={14} />
               <span className="hidden md:inline">Flux</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDosareSubView("brief")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13.5px] md:text-[14px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "brief"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <Sunrise size={15} />
+              <Sunrise size={14} />
               <span className="hidden md:inline">Brief</span>
               {totalAlertsCount > 0 && (
                 <span className="bg-[var(--app-danger)] text-white text-[10px] px-1.5 py-0.5 rounded-full font-mono min-w-[16px] text-center font-bold">
@@ -70,13 +70,13 @@ export default function DesktopHeader({
             <button
               type="button"
               onClick={() => setDosareSubView("list")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13.5px] md:text-[14px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "list"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <List size={15} />
+              <List size={14} />
               <span className="hidden md:inline">Tabel</span>
             </button>
           </div>
@@ -119,7 +119,7 @@ export default function DesktopHeader({
               }
             }}
             placeholder="Caută sau comandă…"
-            className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13px] transition-all font-medium cursor-pointer"
+            className="app-search w-full pl-10 pr-20 py-2 rounded-lg text-[13.5px] md:text-[14px] transition-all font-medium cursor-pointer"
             title="Caută sau comandă (Ctrl+K)"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
