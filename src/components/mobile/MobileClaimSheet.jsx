@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   X, Phone, ChevronRight, ChevronDown, Camera, FileText, Car, User,
-  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon
+  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon, Trash2
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { telLink, nowISO, uid, fmtDateTime, todayISO } from "../../utils/dateUtils";
@@ -131,6 +131,33 @@ export default function MobileClaimSheet({
       onNotify?.("Eroare la încărcarea fotografiilor: " + err.message, "error");
     } finally {
       setUploadingPhotos(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoToDelete, idx) => {
+    if (readOnly || !claim?.id) return;
+    if (!window.confirm("Sigur dorești să ștergi această fotografie?")) return;
+    try {
+      if (photoToDelete?.path) {
+        await supabase.storage.from("poze-dosare").remove([photoToDelete.path]);
+      }
+      const rawPoze = Array.isArray(claim.poze) ? claim.poze : [];
+      const updatedPoze = rawPoze.filter((p, i) => {
+        if (typeof p === "object" && photoToDelete?.id && p.id) return p.id !== photoToDelete.id;
+        if (typeof p === "object" && photoToDelete?.path && p.path) return p.path !== photoToDelete.path;
+        return i !== idx;
+      });
+      await onPatch?.(claim.id, { poze: updatedPoze }, { canEditFn: () => !readOnly });
+      const refreshed = await refreshStorageUrls(updatedPoze, "poze-dosare", supabase);
+      setPhotos(refreshed);
+      onNotify?.("Fotografia a fost ștearsă.", "success");
+      if (previewIndex != null) {
+        if (refreshed.length === 0) setPreviewIndex(null);
+        else if (previewIndex >= refreshed.length) setPreviewIndex(refreshed.length - 1);
+      }
+    } catch (err) {
+      console.error(err);
+      onNotify?.("Eroare la ștergerea fotografiei: " + err.message, "error");
     }
   };
 
@@ -360,15 +387,30 @@ export default function MobileClaimSheet({
           {photos.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {photos.slice(0, 12).map((p, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setPreviewIndex(idx)}
-                  aria-label={`Vezi poza ${idx + 1}`}
-                  className="w-16 h-16 shrink-0 rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)]"
-                >
-                  <img src={p.url || p} alt="" className="w-full h-full object-cover" />
-                </button>
+                <div key={idx} className="relative group shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewIndex(idx)}
+                    aria-label={`Vezi poza ${idx + 1}`}
+                    className="w-16 h-16 rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)] block"
+                  >
+                    <img src={p.url || p} alt="" className="w-full h-full object-cover" />
+                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePhoto(p, idx);
+                      }}
+                      className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md transition-colors z-10 cursor-pointer"
+                      title="Șterge fotografia"
+                      aria-label="Șterge fotografia"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           ) : null}
@@ -539,6 +581,7 @@ export default function MobileClaimSheet({
           items={photos}
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
+          onDelete={!readOnly ? handleDeletePhoto : undefined}
         />
       )}
 

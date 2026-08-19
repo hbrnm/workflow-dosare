@@ -521,6 +521,7 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
             items={poze}
             startIndex={previewMediaIndex}
             onClose={() => setPreviewMediaIndex(null)}
+            onDelete={(p, idx) => removePoza(p, idx)}
           />
         )}
 

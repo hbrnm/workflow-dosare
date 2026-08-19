@@ -852,6 +852,7 @@ export default function MobileQuickCapture({
           items={displayPoze}
           startIndex={previewMediaIndex}
           onClose={() => setPreviewMediaIndex(null)}
+          onDelete={(p, idx) => handleDeletePhoto(null, idx)}
         />
       )}
 

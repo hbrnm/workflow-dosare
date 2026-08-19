@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
 function itemSrc(item) {
   if (!item) return "";
@@ -25,6 +25,7 @@ export default function PhotoLightbox({
   items = [],
   startIndex = 0,
   onClose,
+  onDelete,
   zIndexClass = "z-[10000]",
 }) {
   const list = useMemo(
@@ -117,6 +118,19 @@ export default function PhotoLightbox({
           </div>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(current, index);
+              }}
+              className="flex items-center gap-1 text-[11px] font-extrabold text-red-300 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 px-2.5 py-1 rounded-lg transition-all cursor-pointer active:scale-95"
+              title="Șterge fotografia"
+            >
+              <Trash2 size={13} /> Șterge
+            </button>
+          ) : null}
           {originalUrl ? (
             <a
               href={originalUrl}

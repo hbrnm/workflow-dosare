@@ -1396,6 +1396,7 @@ export default function ClaimModal({
             items={form.poze}
             startIndex={previewPozaIndex}
             onClose={() => setPreviewPozaIndex(null)}
+            onDelete={!readOnly ? (p) => removePoza(p) : undefined}
             zIndexClass="z-[20000]"
           />
         )}
