@@ -107,7 +107,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
             )}
           </div>
           {(claim.client || claim.marcaModel) && (
-            <p className="text-[13.5px] md:text-[14.5px] font-medium text-[var(--app-muted)] truncate mt-1 leading-snug" title={claim.client || claim.marcaModel}>
+            <p className="text-[11.5px] md:text-[12.5px] text-[var(--app-muted)] truncate mt-0.5 leading-tight" title={claim.client || claim.marcaModel}>
               {claim.client || claim.marcaModel}
             </p>
           )}
