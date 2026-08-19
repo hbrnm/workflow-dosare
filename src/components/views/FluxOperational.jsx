@@ -228,8 +228,12 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
   const groupHighlighted = groupHasSearchHighlight(groupClaims, highlightClaimIds);
 
   useEffect(() => {
-    if (groupHighlighted) setExpanded(true);
-  }, [groupHighlighted]);
+    if (groupHighlighted) {
+      setExpanded(true);
+    } else if (!highlightClaimIds?.size) {
+      setExpanded(false);
+    }
+  }, [groupHighlighted, highlightClaimIds]);
   const first = groupClaims[0];
   const plate = first.numarInmatriculare || groupKey;
   const subline = first.marcaModel || first.client || "";
