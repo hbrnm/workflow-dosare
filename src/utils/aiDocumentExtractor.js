@@ -9,7 +9,7 @@ export function isRepairShopName(name) {
   if (!name || typeof name !== "string") return false;
   const t = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return (
-    /\b(srl|sa|s\.r\.l|service|auto|autoklass|caroserie|repar|atelier|garaj|motors|piese|trading|invest|group|holding)\b/i.test(t) &&
+    /\b(service|autoklass|caroserie|reparatii|garaj|atelier auto)\b/i.test(t) &&
     !/\b(asigur|omniasig|allianz|groupama|generali|asirom|grawe|euroins|axeria|hellas|uniqa|garanta|city)\b/i.test(t)
   );
 }
@@ -86,7 +86,7 @@ export function extractEstimateMetadataFromText(text) {
     inspectorDauna: "",
   };
 
-  // 1. Număr Înmatriculare (ex: B 123 ABC, CJ 01 XYZ)
+  // 1. Număr Înmatriculare (ex: B 02 CAX, B 123 ABC, CJ 01 XYZ)
   const plateMatch = raw.match(/\b([A-Z]{1,2})\s*[- ]?\s*(\d{2,3})\s*[- ]?\s*([A-Z]{3})\b/i);
   if (plateMatch) {
     meta.numarInmatriculare = `${plateMatch[1].toUpperCase()} ${plateMatch[2]} ${plateMatch[3].toUpperCase()}`;
@@ -99,7 +99,7 @@ export function extractEstimateMetadataFromText(text) {
   }
 
   // 3. Dosar daună asigurător / deviz
-  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?|NR\.?\s*DEVIZ)\s*[:=\s\-]+\s*([A-Z0-9\-_/]+)/i);
+  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?|NR\.?\s*DEVIZ|NRO?\b)\s*[:=\s\-]+\s*([A-Z0-9\-_/]+)/i);
   if (dosarMatch) {
     meta.nrDosarAsigurator = dosarMatch[1].trim();
     meta.numarDosar = dosarMatch[1].trim();
@@ -126,14 +126,14 @@ export function extractEstimateMetadataFromText(text) {
 
   // 7. Client / Proprietar (multi-pattern resilient search)
   const clientPatterns = [
-    /(?:PROPRIETAR\s*(?:\/\s*ASIGURAT|\/\s*P[AĂ]GUBIT)?|NUME\s+PROPRIETAR|NUME\s+ASIGURAT|ASIGURAT|P[AĂ]GUBIT|CLIENT|BENEFICIAR|DETINATOR|UTILIZATOR|NUME\s*[\/&]\s*PRENUME|NUME\s*[\/&]\s*DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,60})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|CIF|TEL|ADRES|STR)/i,
-    /(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT)\s*\r?\n\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,50})(?=\r?\n|$|\s{2,}|TEL|ADRES)/i,
-    /(?:NUME|DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{3,50})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL|ADRES)/i,
+    /(?:PROPRIETAR(?:\s*[\/&]\s*(?:ASIGURAT|P[AĂ]GUBIT|UTILIZATOR))?|ASIGURAT(?:\s*[\/&]\s*P[AĂ]GUBIT)?|P[AĂ]GUBIT|CLIENT|BENEFICIAR|DETINATOR|UTILIZATOR|NUME\s*PROPRIETAR|NUME\s*ASIGURAT|NUME\s*[\/&]\s*PRENUME|NUME\s*[\/&]\s*DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,70})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|CIF|TEL|ADRES|STR|COD)/i,
+    /(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT|BENEFICIAR)\s*[\r\n]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|TEL|ADRES|CUI)/i,
+    /(?:NUME|DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL|ADRES)/i,
   ];
   for (const pat of clientPatterns) {
     const m = raw.match(pat);
     if (m && m[1]) {
-      const cl = m[1].replace(/^(?:DOMNUL|DOAMNA|SRL|SA|PFA)\s+/i, "").trim();
+      const cl = m[1].replace(/^(?:DOMNUL|DOAMNA)\s+/i, "").trim();
       if (cl.length >= 3 && !isRepairShopName(cl) && !/\b(AUDATEX|DAT|CALCUL|REPARATIE|DEVIZ|SISTEM|CONSTATARE|PRET|LEI|RON)\b/i.test(cl)) {
         meta.client = cl;
         break;
@@ -153,14 +153,49 @@ export function extractEstimateMetadataFromText(text) {
     meta.inspectorDauna = inspMatch[1].trim();
   }
 
-  // 10. Marcă & Model Vehicul (ex: MERCEDES-BENZ GLE COUPE(C292) / 350 D 4MATIC)
-  const carLineMatch = raw.match(/(?:VEHICUL|AUTOVEHICUL|TIP\s+AUTO|MARCA\/TIP)\s*[:=\s\-]+\s*([A-Z0-9\-_/\s.()]+)(?=\r?\n|$|\s{2,}|SERIE|VIN)/i);
-  if (carLineMatch && carLineMatch[1].trim().length >= 4) {
-    const fullCar = carLineMatch[1].trim();
+  // 10. Marcă & Model Vehicul
+  const carLineMatch = raw.match(/(?:PRODUC[AĂ]TOR\s*[\/&]?\s*TIP|PRODUC[AĂ]TOR|MARC[AĂ]\s*[\/&]?\s*MODEL|MARC[AĂ]\s*[\/&]?\s*TIP|MARC[AĂ]|VEHICUL|AUTOVEHICUL|TIP\s+AUTO|MARCA\/TIP)\s*[:=\s\-]+\s*([A-Z0-9\-_/\s.()]+)(?=\r?\n|$|\s{2,}|SERIE|VIN|NR\.|AN|CAPACITATE)/i);
+  if (carLineMatch && carLineMatch[1].trim().length >= 2) {
+    const fullCar = carLineMatch[1].trim().replace(/\s*[\/\\]\s*/g, " ");
     meta.marcaModel = fullCar;
-    const p = fullCar.split(/\s+/);
-    meta.marca = p[0] || "";
-    meta.model = p.slice(1).join(" ") || "";
+    const parts = fullCar.split(/\s+/);
+    if (parts.length >= 2) {
+      meta.marca = parts[0];
+      meta.model = parts.slice(1).join(" ");
+    } else {
+      meta.marca = parts[0] || "";
+    }
+  }
+
+  const modelMatch = raw.match(/(?:MODEL|TIP)\s*[:=\s\-]+\s*([A-Z0-9\-_/\s.()]+)(?=\r?\n|$|\s{2,}|SERIE|VIN|NR\.|AN)/i);
+  if (modelMatch && modelMatch[1].trim()) {
+    const mod = modelMatch[1].trim();
+    if (!meta.model || meta.model === meta.marca) {
+      meta.model = mod;
+    }
+  }
+
+  // Fallback WMI din VIN pentru Marcă
+  if (!meta.marca && meta.vin) {
+    const wmi = meta.vin.slice(0, 3).toUpperCase();
+    if (wmi.startsWith("VSS")) meta.marca = "SEAT";
+    else if (wmi.startsWith("WDB") || wmi.startsWith("WDD") || wmi.startsWith("W1K") || wmi.startsWith("WDC")) meta.marca = "MERCEDES-BENZ";
+    else if (wmi.startsWith("WAU") || wmi.startsWith("TRU")) meta.marca = "AUDI";
+    else if (wmi.startsWith("WVW") || wmi.startsWith("WVG") || wmi.startsWith("WV1") || wmi.startsWith("WV2")) meta.marca = "VOLKSWAGEN";
+    else if (wmi.startsWith("TMB")) meta.marca = "SKODA";
+    else if (wmi.startsWith("WF0") || wmi.startsWith("1FA")) meta.marca = "FORD";
+    else if (wmi.startsWith("VF1") || wmi.startsWith("VF6")) meta.marca = "RENAULT";
+    else if (wmi.startsWith("VF3")) meta.marca = "PEUGEOT";
+    else if (wmi.startsWith("VF7")) meta.marca = "CITROEN";
+    else if (wmi.startsWith("WBA") || wmi.startsWith("WBS") || wmi.startsWith("WBW") || wmi.startsWith("5UX")) meta.marca = "BMW";
+    else if (wmi.startsWith("ZFA") || wmi.startsWith("ZAP")) meta.marca = "FIAT";
+    else if (wmi.startsWith("KNA") || wmi.startsWith("KND")) meta.marca = "KIA";
+    else if (wmi.startsWith("KMH") || wmi.startsWith("KHM")) meta.marca = "HYUNDAI";
+    else if (wmi.startsWith("UU1")) meta.marca = "DACIA";
+  }
+
+  if (!meta.marcaModel && (meta.marca || meta.model)) {
+    meta.marcaModel = `${meta.marca} ${meta.model}`.trim();
   }
 
   return meta;
