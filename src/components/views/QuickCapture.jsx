@@ -33,7 +33,10 @@ export default function QuickCapture({ claims, onClose, onPatch, canEditFn, onNo
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("receptie");
 
-  const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
+  const editableClaims = useMemo(
+    () => claims.filter((c) => (typeof canEditFn === "function" ? canEditFn(c) : canEditFn !== false)),
+    [claims, canEditFn]
+  );
 
   const recent = useMemo(
     () => [...editableClaims].sort((a, b) => (b.dataUltimeiActualizari || "").localeCompare(a.dataUltimeiActualizari || "")).slice(0, 10),

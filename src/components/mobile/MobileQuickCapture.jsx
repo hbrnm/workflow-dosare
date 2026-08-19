@@ -97,7 +97,10 @@ export default function MobileQuickCapture({
     });
   };
 
-  const editableClaims = useMemo(() => claims.filter((c) => canEditFn(c)), [claims, canEditFn]);
+  const editableClaims = useMemo(
+    () => claims.filter((c) => (typeof canEditFn === "function" ? canEditFn(c) : canEditFn !== false)),
+    [claims, canEditFn]
+  );
 
   const selectedClaim = useMemo(() => {
     if (!selectedClaimId) return null;

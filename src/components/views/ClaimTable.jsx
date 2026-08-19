@@ -328,7 +328,7 @@ export default function ClaimTable({
               >
                 <ExternalLink size={12} />
               </button>
-              {canEditFn(c) && (
+              {(typeof canEditFn === "function" ? canEditFn(c) : canEditFn !== false) && (
                 <button
                   type="button"
                   aria-label="Șterge dosar"

@@ -247,6 +247,12 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
   }, first);
   const { days, agingClass, alertThreshold, badgeText, badgeTitle } = getClaimAgingMeta(leadClaim);
 
+  const resolveCanEdit = (targetClaim) => {
+    if (typeof canEditFn === "function") return canEditFn(targetClaim);
+    if (typeof canEditFn === "boolean") return canEditFn;
+    return true;
+  };
+
   if (groupClaims.length === 1) {
     return (
       <PhaseCardRedesign
@@ -256,7 +262,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         onTogglePieseSosite={onTogglePieseSosite}
         onScheduleFromPiese={onScheduleFromPiese}
         onPatchPieseDates={onPatchPieseDates}
-        canEdit={canEditFn(first)}
+        canEdit={resolveCanEdit(first)}
         pragRidicare={pragRidicare}
         onNotify={onNotify}
         hideStatusSelect={hideStatusSelect}
@@ -354,7 +360,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
                   onTogglePieseSosite={onTogglePieseSosite}
                   onScheduleFromPiese={onScheduleFromPiese}
                   onPatchPieseDates={onPatchPieseDates}
-                  canEdit={canEditFn(c)}
+                  canEdit={resolveCanEdit(c)}
                   pragRidicare={pragRidicare}
                   onNotify={onNotify}
                   hideStatusSelect={hideStatusSelect}
