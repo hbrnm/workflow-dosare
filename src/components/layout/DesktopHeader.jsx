@@ -2,7 +2,6 @@ import React from "react";
 import { Layers, Sunrise, List, Search, X, Plus, Bell, Ban } from "lucide-react";
 import AppButton from "../common/AppButton";
 import TooltipGuide from "../common/TooltipGuide";
-import DynamicGreetingWidget from "../common/DynamicGreetingWidget";
 import { ROLES } from "../../constants/roles";
 
 export default function DesktopHeader({
@@ -82,12 +81,6 @@ export default function DesktopHeader({
             </button>
           </div>
         )}
-
-        <DynamicGreetingWidget
-          claims={claims}
-          userEmail={userEmail}
-          onOpenSettings={openSettings}
-        />
       </div>
 
       {/* Search — CommandPalette launcher (Ctrl+K); icon below lg */}
