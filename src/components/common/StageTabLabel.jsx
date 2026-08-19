@@ -22,7 +22,7 @@ export default function StageTabLabel({
       type={Tag === "button" ? "button" : undefined}
       onClick={onClick}
       title={displayTitle}
-      className={`app-brief-tab app-brief-tab--etapa px-2.5 py-1 rounded-full font-bold border transition-colors text-left ${active ? "is-active" : ""} ${selected ? "is-selected" : ""} ${isStrip ? "app-brief-tab--etapa-strip" : ""} ${className}`}
+      className={`app-brief-tab app-brief-tab--etapa px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] font-semibold border transition-colors text-left ${active ? "is-active" : ""} ${selected ? "is-selected" : ""} ${isStrip ? "app-brief-tab--etapa-strip" : ""} ${className}`}
     >
       <span className="font-mono opacity-70">{String(num).padStart(2, "0")}.</span>
       {isStrip ? (

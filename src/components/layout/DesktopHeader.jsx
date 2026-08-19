@@ -39,29 +39,29 @@ export default function DesktopHeader({
                 setOnlyBlocked(false);
                 setDosareSubView("flux");
               }}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "flux"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <Layers size={12} />
+              <Layers size={15} />
               <span className="hidden md:inline">Flux</span>
             </button>
 
             <button
               type="button"
               onClick={() => setDosareSubView("brief")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "brief"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <Sunrise size={12} />
+              <Sunrise size={15} />
               <span className="hidden md:inline">Brief</span>
               {totalAlertsCount > 0 && (
-                <span className="bg-[var(--app-danger)] text-white text-[9px] px-1 py-0 rounded-full font-mono min-w-[14px] text-center">
+                <span className="bg-[var(--app-danger)] text-white text-[10px] px-1.5 py-0.5 rounded-full font-mono min-w-[16px] text-center font-bold">
                   {totalAlertsCount}
                 </span>
               )}
@@ -70,13 +70,13 @@ export default function DesktopHeader({
             <button
               type="button"
               onClick={() => setDosareSubView("list")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[14px] md:text-[15px] font-medium transition-all cursor-pointer ${
                 dosareSubView === "list"
                   ? "app-segment-active"
                   : "app-muted hover:text-[var(--app-text)]"
               }`}
             >
-              <List size={12} />
+              <List size={15} />
               <span className="hidden md:inline">Tabel</span>
             </button>
           </div>

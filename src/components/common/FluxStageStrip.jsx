@@ -12,11 +12,11 @@ export default function FluxStageStrip({
 }) {
   return (
     <div className={`app-brief-panel rounded-xl p-2 shrink-0 min-w-0 ${className}`}>
-      <div className="app-flux-stage-strip flex flex-nowrap items-center gap-1.5 text-[11px] overflow-x-auto scrollbar-thin">
+      <div className="app-flux-stage-strip flex flex-nowrap items-center gap-1.5 text-[13px] sm:text-[14px] overflow-x-auto scrollbar-thin">
         <button
           type="button"
           onClick={() => onFocusStage?.(null)}
-          className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")} shrink-0 whitespace-nowrap`}
+          className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")} shrink-0 whitespace-nowrap px-3 py-1.5 text-[13px] sm:text-[14px] font-semibold`}
         >
           Toate
         </button>

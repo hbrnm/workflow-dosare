@@ -96,29 +96,29 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               <DosarNumber
                 value={claim.numarDosar}
                 onNotify={onNotify}
-                className="text-[10px] font-mono text-[var(--app-muted)] hover:text-[var(--app-accent)] shrink-0"
+                className="text-[12px] md:text-[13px] font-mono text-[var(--app-muted)] hover:text-[var(--app-accent)] shrink-0"
               />
             )}
             {claim.tipAsigurare === "CASCO" && (
-              <span className="text-[8px] font-bold uppercase px-1 rounded app-flux-casco">C</span>
+              <span className="text-[9px] font-bold uppercase px-1 py-0.5 rounded app-flux-casco">C</span>
             )}
             {claim.blocat && (
-              <span className="text-[8px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
+              <span className="text-[9px] font-extrabold text-[var(--app-danger)] uppercase">Blocat</span>
             )}
           </div>
           {(claim.client || claim.marcaModel) && (
-            <p className="text-[11px] text-[var(--app-muted)] truncate mt-0.5 leading-4" title={claim.client || claim.marcaModel}>
+            <p className="text-[13.5px] md:text-[14.5px] font-medium text-[var(--app-muted)] truncate mt-1 leading-snug" title={claim.client || claim.marcaModel}>
               {claim.client || claim.marcaModel}
             </p>
           )}
           {stageSinceLabel ? (
-            <p className="text-[10px] text-[var(--app-muted)] truncate leading-4" title={stageSinceLabel}>
+            <p className="text-[11.5px] md:text-[12.5px] text-[var(--app-muted)] truncate leading-tight mt-0.5" title={stageSinceLabel}>
               {stageSinceLabel}
             </p>
           ) : null}
         </div>
         <span
-          className={`shrink-0 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${agingClass}`}
+          className={`shrink-0 text-[12px] md:text-[13px] font-mono font-bold px-2 py-0.5 rounded ${agingClass}`}
           title={ageTitle}
         >
           {scheduleLabel || `${days}z`}
@@ -127,12 +127,12 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* Stadiu — ascuns când cardul e deja în secțiunea etapei */}
       {!hideStatusSelect && (
-      <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
+      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
         <select
           value={claim.status}
           onChange={(e) => onMoveToStatus(claim, e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          className="w-full rounded-md px-2 py-1 font-bold text-[11px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+          className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
           title="Schimbă stadiul dosarului"
         >
           {STATUSES.map((s) => (
@@ -146,13 +146,13 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
 
       {/* Alertă piese — o linie */}
       {alertLine && (
-        <p className="mt-1.5 text-[10px] font-bold text-[var(--app-danger)] truncate flex items-center gap-1">
-          <Bell size={10} className="shrink-0" />
+        <p className="mt-2 text-[12px] md:text-[13px] font-bold text-[var(--app-danger)] truncate flex items-center gap-1">
+          <Bell size={12} className="shrink-0" />
           {alertLine}
         </p>
       )}
       {claim.blocat && blockedReason ? (
-        <p className="mt-1 text-[10px] font-semibold text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+        <p className="mt-1 text-[12px] font-semibold text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
           Motiv blocare: {blockedReason}
         </p>
       ) : null}

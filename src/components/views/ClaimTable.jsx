@@ -219,7 +219,7 @@ export default function ClaimTable({
                 <span className="text-[9px] bg-[var(--app-danger)] text-white px-1 py-0.5 rounded font-bold">BLOCAT</span>
               )}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate" title={c.marcaModel || ""}>
+            <span className="text-[13.5px] font-medium text-slate-500 dark:text-zinc-400 truncate" title={c.marcaModel || ""}>
               {c.marcaModel || "—"}
             </span>
           </div>
@@ -231,7 +231,7 @@ export default function ClaimTable({
             <DosarNumber value={c.numarDosar} onNotify={onNotify} prefix="" />
             <div className="flex items-center gap-1.5 flex-wrap">
               <Pill tone={c.tipAsigurare === "CASCO" ? "amber" : "steel"}>{c.tipAsigurare}</Pill>
-              <span className="text-[11px] text-slate-500 dark:text-zinc-400 truncate" title={c.asigurator || ""}>
+              <span className="text-[13px] font-medium text-slate-500 dark:text-zinc-400 truncate" title={c.asigurator || ""}>
                 {c.asigurator || "—"}
               </span>
             </div>
@@ -241,21 +241,21 @@ export default function ClaimTable({
         {/* ── Col 3: Client ── */}
         <td className={cell}>
           <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-[12.5px] font-medium text-[var(--app-text-strong)] truncate" title={c.client || ""}>
+            <span className="text-[14px] font-semibold text-[var(--app-text-strong)] truncate" title={c.client || ""}>
               {c.client || "—"}
             </span>
             {phone ? (
               <a
                 href={telLink(phone)}
                 onClick={(e) => e.stopPropagation()}
-                className="text-[11px] text-slate-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center gap-1 w-fit"
+                className="text-[12.5px] font-medium text-slate-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors flex items-center gap-1 w-fit"
                 title={`Sună ${phone}`}
               >
-                <Phone size={9} />
+                <Phone size={11} />
                 {phone}
               </a>
             ) : (
-              <span className="text-[11px] text-slate-400 dark:text-zinc-600">—</span>
+              <span className="text-[12.5px] text-slate-400 dark:text-zinc-600">—</span>
             )}
           </div>
         </td>
@@ -266,7 +266,7 @@ export default function ClaimTable({
             <div className="flex items-center gap-1">
               {overdue && <AlertBadge days={days} threshold={getClaimAlertDays(c)} />}
               {stageSince.dateTimeLabel && !overdue && (
-                <span className="text-[11px] text-slate-500 dark:text-zinc-400 whitespace-nowrap">
+                <span className="text-[12.5px] font-medium text-slate-500 dark:text-zinc-400 whitespace-nowrap">
                   {stageSince.shortLabel || stageSince.dateTimeLabel}
                 </span>
               )}
@@ -284,7 +284,7 @@ export default function ClaimTable({
               </div>
             )}
             {c.blocat && blockedReason && (
-              <span className="text-[10px] text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
+              <span className="text-[12px] font-bold text-[var(--app-danger)] truncate" title={`Motiv blocare: ${blockedReason}`}>
                 {blockedReason}
               </span>
             )}
@@ -295,10 +295,10 @@ export default function ClaimTable({
         <td className={`${cell} whitespace-nowrap`} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2 min-w-0">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[11px] font-semibold truncate">
+              <span className="text-[13px] font-bold truncate">
                 {String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-zinc-500 whitespace-nowrap">
+              <span className="text-[11.5px] font-medium text-slate-400 dark:text-zinc-500 whitespace-nowrap">
                 {fmtDate(c.dataDeschiderii)}
               </span>
             </div>
