@@ -11,6 +11,8 @@ export default function StageTabLabel({
   title,
   selected = false,
   variant = "default",
+  isSearchMatch = false,
+  searchCount = 0,
 }) {
   const isNavButton = Tag === "button" && onClick;
   const active = selected || (!isNavButton && count > 0);
@@ -22,7 +24,11 @@ export default function StageTabLabel({
       type={Tag === "button" ? "button" : undefined}
       onClick={onClick}
       title={displayTitle}
-      className={`app-brief-tab app-brief-tab--etapa px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] font-semibold border transition-colors text-left ${active ? "is-active" : ""} ${selected ? "is-selected" : ""} ${isStrip ? "app-brief-tab--etapa-strip" : ""} ${className}`}
+      className={`app-brief-tab app-brief-tab--etapa px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] font-semibold border transition-all text-left ${
+        active ? "is-active" : ""
+      } ${selected ? "is-selected" : ""} ${isStrip ? "app-brief-tab--etapa-strip" : ""} ${
+        isSearchMatch ? "is-search-match ring-2 ring-[#0284c7] border-[#0284c7] font-extrabold" : ""
+      } ${className}`}
     >
       <span className="font-mono opacity-70">{String(num).padStart(2, "0")}.</span>
       {isStrip ? (
@@ -35,7 +41,12 @@ export default function StageTabLabel({
           {" "}
           {label}{" "}
           <span className="opacity-70">({count})</span>
-          {active && <span className="opacity-50 ml-0.5">→</span>}
+          {isSearchMatch && (
+            <span className="ml-1 text-[11px] font-extrabold text-[#0284c7] dark:text-[#38bdf8]">
+              🔍{searchCount > 0 ? `(${searchCount})` : ""}
+            </span>
+          )}
+          {active && !isSearchMatch && <span className="opacity-50 ml-0.5">→</span>}
         </>
       )}
     </Tag>

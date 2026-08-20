@@ -147,6 +147,28 @@
   background: color-mix(in srgb, var(--app-accent) 4%, var(--app-surface));
 }
 
+/* Evidențiere stadiu la căutare pentru atenție vizuală sporită */
+.app-shell .app-flux-stage-section.is-search-match {
+  border: 2px solid #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25), 0 4px 14px rgba(2, 132, 199, 0.15) !important;
+  background: color-mix(in srgb, #0284c7 4%, var(--app-surface));
+}
+
+.app-shell .app-brief-tab.is-search-match {
+  border-color: #0284c7 !important;
+  background: color-mix(in srgb, #0284c7 15%, var(--app-surface-2)) !important;
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4), 0 2px 8px rgba(2, 132, 199, 0.2) !important;
+}
+
+html.dark .app-shell .app-brief-tab.is-search-match {
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  background: color-mix(in srgb, #0284c7 25%, var(--app-surface-2)) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4), 0 2px 8px rgba(56, 189, 248, 0.25) !important;
+}
+
 .app-shell .app-flux-stage-header {
   background: var(--app-surface-2);
 }

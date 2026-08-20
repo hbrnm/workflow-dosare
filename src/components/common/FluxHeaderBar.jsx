@@ -18,6 +18,7 @@ export default function FluxHeaderBar({
   onFocusStage,
   exportCount = 0,
   onExport,
+  matchingStageCounts = {},
   className = "",
 }) {
   return (
@@ -27,6 +28,7 @@ export default function FluxHeaderBar({
         statusCounts={statusCounts}
         focusedStage={focusedStage}
         onFocusStage={onFocusStage}
+        matchingStageCounts={matchingStageCounts}
       />
       <ExportFormatMenu
         count={exportCount}

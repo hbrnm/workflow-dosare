@@ -76,6 +76,17 @@ export default function ClaimTable({
 
   const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
+  const matchingStageCounts = useMemo(() => {
+    if (!highlightClaimIds?.size || !claims?.length) return {};
+    const counts = {};
+    claims.forEach((c) => {
+      if (highlightClaimIds.has(c.id) && c.status) {
+        counts[c.status] = (counts[c.status] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [claims, highlightClaimIds]);
+
   /* unique asiguratori for dropdown */
   const asiguratorOptions = useMemo(() => {
     const set = new Set(claims.map((c) => c.asigurator || "").filter(Boolean));
@@ -410,6 +421,7 @@ export default function ClaimTable({
         onFocusStage={setFocusedStage}
         exportCount={sorted.length}
         onExport={handleDownloadList}
+        matchingStageCounts={matchingStageCounts}
       />
 
       {/* ── Inline Filter Bar ── */}

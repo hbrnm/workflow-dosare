@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  Bell, Phone, ChevronDown, ChevronUp, X
+  Bell, Phone, ChevronDown, ChevronUp, X, Search
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, isPieseComandateStatus, getStatusAlertDays, getClaimAlertDays, getPhaseColumnColors } from "../../constants/config";
 import ClaimPlate from "../common/ClaimPlate";
@@ -421,6 +421,17 @@ export default function TablouPeFazeRedesign({
 
   const statusCounts = useMemo(() => buildStatusCounts(claims), [claims]);
 
+  const matchingStageCounts = useMemo(() => {
+    if (!highlightClaimIds?.size || !claims?.length) return {};
+    const counts = {};
+    claims.forEach((c) => {
+      if (highlightClaimIds.has(c.id) && c.status) {
+        counts[c.status] = (counts[c.status] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [claims, highlightClaimIds]);
+
   const cardProps = {
     onOpen: openFn,
     onMoveToStatus,
@@ -490,6 +501,7 @@ export default function TablouPeFazeRedesign({
         onFocusStage={setFocusedStage}
         exportCount={exportClaims.length}
         onExport={handleDownloadList}
+        matchingStageCounts={matchingStageCounts}
       />
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
@@ -502,6 +514,8 @@ export default function TablouPeFazeRedesign({
           visibleStages.map((status) => {
             const stageClaims = claims.filter((c) => c.status === status.key);
             const totalAll = statusCounts[status.key] || 0;
+            const matchCount = matchingStageCounts[status.key] || 0;
+            const isSearchMatchStage = matchCount > 0;
             const phaseAccent = getPhaseColumnColors(status.phase).bg;
             const isDragTarget = dragOverStage === status.key;
 
@@ -532,11 +546,15 @@ export default function TablouPeFazeRedesign({
                     if (claim) onMoveToStatus(claim, status.key);
                   }
                 }}
-                className={`app-flux-stage-section rounded-xl overflow-hidden ${isDragTarget ? "is-drag-over" : ""}`}
+                className={`app-flux-stage-section rounded-xl overflow-hidden transition-all duration-200 ${
+                  isDragTarget ? "is-drag-over" : ""
+                } ${isSearchMatchStage ? "is-search-match ring-2 ring-[#0284c7] border-[#0284c7]" : ""}`}
                 style={{ "--flux-phase-accent": phaseAccent }}
               >
                 <div
-                  className="app-flux-stage-header flex flex-wrap items-center justify-between gap-2 p-2 border-b border-[var(--app-border-soft)]"
+                  className={`app-flux-stage-header flex flex-wrap items-center justify-between gap-2 p-2 border-b border-[var(--app-border-soft)] ${
+                    isSearchMatchStage ? "bg-[#0284c7]/10" : ""
+                  }`}
                   style={{ borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
                 >
                   <StageTabLabel
@@ -544,8 +562,16 @@ export default function TablouPeFazeRedesign({
                     label={status.label}
                     count={totalAll}
                     title={glossaryTitle(status.key)}
+                    isSearchMatch={isSearchMatchStage}
+                    searchCount={matchCount}
                     className="flex-1 min-w-0 pointer-events-none"
                   />
+                  {isSearchMatchStage && (
+                    <span className="text-[11.5px] font-black px-2.5 py-0.5 rounded-full bg-[#0284c7] text-white shadow-sm flex items-center gap-1.5 shrink-0">
+                      <Search size={12} />
+                      <span>{matchCount} {matchCount === 1 ? "dosar găsit" : "dosare găsite"}</span>
+                    </span>
+                  )}
                 </div>
 
                 {stageClaims.length === 0 ? (

@@ -8,6 +8,7 @@ export default function FluxStageStrip({
   statusCounts = {},
   focusedStage = null,
   onFocusStage,
+  matchingStageCounts = {},
   className = "",
 }) {
   return (
@@ -20,18 +21,23 @@ export default function FluxStageStrip({
         >
           Toate
         </button>
-        {STATUSES.map((s) => (
-          <StageTabLabel
-            key={s.key}
-            as="button"
-            num={s.num}
-            label={s.label}
-            count={statusCounts[s.key] || 0}
-            selected={focusedStage === s.key}
-            onClick={() => onFocusStage?.(focusedStage === s.key ? null : s.key)}
-            className="shrink-0"
-          />
-        ))}
+        {STATUSES.map((s) => {
+          const matchCount = matchingStageCounts[s.key] || 0;
+          return (
+            <StageTabLabel
+              key={s.key}
+              as="button"
+              num={s.num}
+              label={s.label}
+              count={statusCounts[s.key] || 0}
+              selected={focusedStage === s.key}
+              isSearchMatch={matchCount > 0}
+              searchCount={matchCount}
+              onClick={() => onFocusStage?.(focusedStage === s.key ? null : s.key)}
+              className="shrink-0"
+            />
+          );
+        })}
       </div>
     </div>
   );
