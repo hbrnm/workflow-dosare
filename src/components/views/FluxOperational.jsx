@@ -392,13 +392,32 @@ export default function TablouPeFazeRedesign({
 }) {
   const openFn = onOpen || onOpenClaim;
   const [dismissAlertBanner, setDismissAlertBanner] = useState(false);
-  const [focusedStage, setFocusedStage] = useState(null);
+  const [focusedStage, setFocusedStage] = useState(() => {
+    try {
+      return sessionStorage.getItem("app_focused_stage") || null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const handleSetFocusedStage = (stageKey) => {
+    setFocusedStage(stageKey);
+    try {
+      if (stageKey) {
+        sessionStorage.setItem("app_focused_stage", stageKey);
+      } else {
+        sessionStorage.removeItem("app_focused_stage");
+      }
+    } catch (e) {}
+  };
+
   const [dragOverStage, setDragOverStage] = useState(null);
   const pieseAlertDays = getStatusAlertDays("piese_comandate");
 
   useEffect(() => {
     const handleSelectStageFilter = (e) => {
-      setFocusedStage(e.detail || null);
+      const nextStage = e.detail || null;
+      handleSetFocusedStage(nextStage);
     };
     window.addEventListener("app:select_stage_filter", handleSelectStageFilter);
     return () => window.removeEventListener("app:select_stage_filter", handleSelectStageFilter);
@@ -406,7 +425,6 @@ export default function TablouPeFazeRedesign({
 
   useEffect(() => {
     if (!highlightClaimIds?.size) return;
-    setFocusedStage(null);
     const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-card"), 120);
     return () => window.clearTimeout(t);
   }, [highlightClaimIds]);
@@ -476,7 +494,7 @@ export default function TablouPeFazeRedesign({
             {focusedStage !== "piese_comandate" && (
               <button
                 type="button"
-                onClick={() => setFocusedStage("piese_comandate")}
+                onClick={() => handleSetFocusedStage("piese_comandate")}
                 className="text-[11px] font-bold px-2 py-0.5 rounded-md border"
               >
                 Vezi etapa
@@ -498,7 +516,7 @@ export default function TablouPeFazeRedesign({
       <FluxHeaderBar
         statusCounts={statusCounts}
         focusedStage={focusedStage}
-        onFocusStage={setFocusedStage}
+        onFocusStage={handleSetFocusedStage}
         exportCount={exportClaims.length}
         onExport={handleDownloadList}
         matchingStageCounts={matchingStageCounts}

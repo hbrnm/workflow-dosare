@@ -63,7 +63,24 @@ export default function ClaimTable({
   const [sortDir, setSortDir] = useState("desc");
 
   /* ── stage focus (FluxHeaderBar pill) ── */
-  const [focusedStage, setFocusedStage] = useState(null);
+  const [focusedStage, setFocusedStage] = useState(() => {
+    try {
+      return sessionStorage.getItem("app_focused_stage") || null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const handleSetFocusedStage = (stageKey) => {
+    setFocusedStage(stageKey);
+    try {
+      if (stageKey) {
+        sessionStorage.setItem("app_focused_stage", stageKey);
+      } else {
+        sessionStorage.removeItem("app_focused_stage");
+      }
+    } catch (e) {}
+  };
 
   /* ── group expand ── */
   const [expandedGroups, setExpandedGroups] = useState({});
@@ -151,7 +168,8 @@ export default function ClaimTable({
 
   useEffect(() => {
     const handleSelectStageFilter = (e) => {
-      setFocusedStage(e.detail || null);
+      const nextStage = e.detail || null;
+      handleSetFocusedStage(nextStage);
     };
     window.addEventListener("app:select_stage_filter", handleSelectStageFilter);
     return () => window.removeEventListener("app:select_stage_filter", handleSelectStageFilter);
@@ -159,7 +177,6 @@ export default function ClaimTable({
 
   useEffect(() => {
     if (!highlightClaimIds?.size) return;
-    setFocusedStage(null);
     const t = window.setTimeout(() => scrollToFirstHighlight(highlightClaimIds, "claim-row"), 120);
     return () => window.clearTimeout(t);
   }, [highlightClaimIds]);
@@ -418,7 +435,7 @@ export default function ClaimTable({
       <FluxHeaderBar
         statusCounts={statusCounts}
         focusedStage={focusedStage}
-        onFocusStage={setFocusedStage}
+        onFocusStage={handleSetFocusedStage}
         exportCount={sorted.length}
         onExport={handleDownloadList}
         matchingStageCounts={matchingStageCounts}
@@ -542,7 +559,7 @@ export default function ClaimTable({
           </div>
           <button
             type="button"
-            onClick={() => setFocusedStage(null)}
+            onClick={() => handleSetFocusedStage(null)}
             className="flex items-center gap-1 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition font-medium text-[11px]"
           >
             <X size={13} /> Șterge
