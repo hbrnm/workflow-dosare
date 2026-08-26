@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import {
   parseEstimateText,
@@ -93,7 +92,7 @@ export async function parseEstimateFile(file) {
       throw new Error(`Nu pot citi PDF-ul: ${msg}`);
     }
     if (!text || text.replace(/\s/g, "").length < 80) {
-      throw new Error("PDF-ul nu conține text selectabil (scan?). Exportă din Audatex ca PDF nativ.");
+      throw new Error("PDF-ul nu conține text selectabil (scan?). Completează manual mai jos sau folosește OCR.");
     }
     const result = parseEstimateText(text);
     return { ...result, rawPreview: text.slice(0, 1500), fullText: text };
@@ -114,6 +113,7 @@ export async function parseEstimateFile(file) {
   }
 
   if (name.endsWith(".xlsx") || name.endsWith(".xls") || type.includes("spreadsheet") || type.includes("excel")) {
+    const XLSX = await import("xlsx");
     const buf = await readAsArrayBuffer(file);
     const wb = XLSX.read(buf, { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
