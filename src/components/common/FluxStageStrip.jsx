@@ -33,14 +33,36 @@ export default function FluxStageStrip({
   const handleDrop = (e, stage) => {
     e.preventDefault();
     setDragOverStageKey(null);
-    const claimId = e.dataTransfer.getData("text/plain");
-    if (claimId && onMoveToStatus) {
-      const claim = claims.find((c) => String(c.id) === String(claimId));
-      if (claim) {
-        if (claim.status === stage.key) return;
-        onMoveToStatus(claim, stage.key);
-        const identifier = claim.numarInmatriculare || claim.numarDosar || "Dosarul";
-        onNotify?.(`${identifier} a fost mutat în „${stage.label}”.`, "success");
+    const rawData = e.dataTransfer.getData("text/plain");
+    if (!rawData || !onMoveToStatus) return;
+
+    let targetIds = [];
+    try {
+      const parsed = JSON.parse(rawData);
+      if (Array.isArray(parsed.claimIds) && parsed.claimIds.length > 0) {
+        targetIds = parsed.claimIds;
+      } else if (parsed.claimId) {
+        targetIds = [parsed.claimId];
+      }
+    } catch (err) {
+      targetIds = [rawData];
+    }
+
+    const targetClaims = (claims || []).filter((c) => targetIds.map(String).includes(String(c.id)));
+    if (targetClaims.length > 0) {
+      let movedCount = 0;
+      targetClaims.forEach((claim) => {
+        if (claim.status !== stage.key) {
+          onMoveToStatus(claim, stage.key);
+          movedCount += 1;
+        }
+      });
+
+      if (movedCount > 0) {
+        const identifier = targetClaims.length > 1
+          ? `${targetClaims.length} dosare (${targetClaims[0].numarInmatriculare || "stivuite"})`
+          : (targetClaims[0].numarInmatriculare || targetClaims[0].numarDosar || "Dosarul");
+        onNotify?.(`${identifier} ${targetClaims.length > 1 ? "au fost mutate" : "a fost mutat"} în „${stage.label}”.`, "success");
       }
     }
   };
