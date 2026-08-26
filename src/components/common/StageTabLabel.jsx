@@ -13,6 +13,11 @@ export default function StageTabLabel({
   variant = "default",
   isSearchMatch = false,
   searchCount = 0,
+  onDragEnter,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  isDragOver = false,
 }) {
   const isNavButton = Tag === "button" && onClick;
   const active = selected || (!isNavButton && count > 0);
@@ -23,11 +28,19 @@ export default function StageTabLabel({
     <Tag
       type={Tag === "button" ? "button" : undefined}
       onClick={onClick}
-      title={displayTitle}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      title={isDragOver ? `Mută dosarul în „${label}”` : displayTitle}
       className={`app-brief-tab app-brief-tab--etapa px-3 py-1.5 rounded-full text-[13px] sm:text-[14px] font-semibold border transition-all text-left ${
         active ? "is-active" : ""
       } ${selected ? "is-selected" : ""} ${isStrip ? "app-brief-tab--etapa-strip" : ""} ${
         isSearchMatch ? "is-search-match ring-2 ring-[#0284c7] border-[#0284c7] font-extrabold" : ""
+      } ${
+        isDragOver
+          ? "ring-2 ring-[var(--app-accent)] bg-[var(--app-accent)]/20 scale-105 shadow-md border-[var(--app-accent)] text-[var(--app-accent)] font-bold"
+          : ""
       } ${className}`}
     >
       <span className="font-mono opacity-70">{String(num).padStart(2, "0")}.</span>

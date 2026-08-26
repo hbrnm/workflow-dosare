@@ -125,24 +125,46 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </span>
       </div>
 
-      {/* Stadiu — ascuns când cardul e deja în secțiunea etapei */}
-      {!hideStatusSelect && (
-      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-        <select
-          value={claim.status}
-          onChange={(e) => onMoveToStatus(claim, e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
-          title="Schimbă stadiul dosarului"
-        >
-          {STATUSES.map((s) => (
-            <option key={s.key} value={s.key} title={s.label}>
-              {String(s.num).padStart(2, "0")}. {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      )}
+      {/* Stadiu — selector complet sau compact pentru mutare rapidă */}
+      {!hideStatusSelect ? (
+        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <select
+            value={claim.status}
+            onChange={(e) => onMoveToStatus?.(claim, e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+            title="Schimbă stadiul dosarului"
+          >
+            {STATUSES.map((s) => (
+              <option key={s.key} value={s.key} title={s.label}>
+                {String(s.num).padStart(2, "0")}. {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : onMoveToStatus ? (
+        <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
+          <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută stadiu:</span>
+          <select
+            value={claim.status}
+            onChange={(e) => {
+              e.stopPropagation();
+              if (e.target.value && e.target.value !== claim.status) {
+                onMoveToStatus(claim, e.target.value);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-md border border-[var(--app-border-soft)] bg-[var(--app-surface-2)] px-2 py-0.5 font-semibold text-[11px] text-[var(--app-text)] hover:border-[var(--app-accent)] cursor-pointer focus:outline-none transition-colors max-w-[175px] truncate"
+            title="Mută dosarul direct în alt stadiu (sau trage cardul pe etapele de sus)"
+          >
+            {STATUSES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {String(s.num).padStart(2, "0")}. {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       {/* Alertă piese — o linie */}
       {alertLine && (
@@ -520,6 +542,9 @@ export default function TablouPeFazeRedesign({
         exportCount={exportClaims.length}
         onExport={handleDownloadList}
         matchingStageCounts={matchingStageCounts}
+        claims={claims}
+        onMoveToStatus={onMoveToStatus}
+        onNotify={onNotify}
       />
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
