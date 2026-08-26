@@ -74,7 +74,8 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         }
       }}
       onDragStart={(e) => {
-        e.dataTransfer.setData("text/plain", claim.id);
+        const payload = JSON.stringify({ claimId: claim.id, claimIds: [claim.id], plate: claim.numarInmatriculare });
+        e.dataTransfer.setData("text/plain", payload);
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
@@ -125,24 +126,46 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         </span>
       </div>
 
-      {/* Stadiu — ascuns când cardul e deja în secțiunea etapei */}
-      {!hideStatusSelect && (
-      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-        <select
-          value={claim.status}
-          onChange={(e) => onMoveToStatus(claim, e.target.value)}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
-          title="Schimbă stadiul dosarului"
-        >
-          {STATUSES.map((s) => (
-            <option key={s.key} value={s.key} title={s.label}>
-              {String(s.num).padStart(2, "0")}. {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      )}
+      {/* Stadiu — selector complet sau compact pentru mutare rapidă */}
+      {!hideStatusSelect ? (
+        <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+          <select
+            value={claim.status}
+            onChange={(e) => onMoveToStatus?.(claim, e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+            title="Schimbă stadiul dosarului"
+          >
+            {STATUSES.map((s) => (
+              <option key={s.key} value={s.key} title={s.label}>
+                {String(s.num).padStart(2, "0")}. {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : onMoveToStatus ? (
+        <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
+          <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută stadiu:</span>
+          <select
+            value={claim.status}
+            onChange={(e) => {
+              e.stopPropagation();
+              if (e.target.value && e.target.value !== claim.status) {
+                onMoveToStatus(claim, e.target.value);
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-md border border-[var(--app-border-soft)] bg-[var(--app-surface-2)] px-2 py-0.5 font-semibold text-[11px] text-[var(--app-text)] hover:border-[var(--app-accent)] cursor-pointer focus:outline-none transition-colors max-w-[175px] truncate"
+            title="Mută dosarul direct în alt stadiu (sau trage cardul pe etapele de sus)"
+          >
+            {STATUSES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {String(s.num).padStart(2, "0")}. {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       {/* Alertă piese — o linie */}
       {alertLine && (
@@ -268,13 +291,20 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
   }
 
   return (
-    <>
-      <button
-        type="button"
+    <div className="relative group/stack">
+      <div
+        id={`group-card-${groupKey}`}
+        draggable={true}
+        onDragStart={(e) => {
+          const ids = groupClaims.map((c) => c.id);
+          const payload = JSON.stringify({ claimIds: ids, plate });
+          e.dataTransfer.setData("text/plain", payload);
+          e.dataTransfer.effectAllowed = "move";
+        }}
         onClick={() => setExpanded(true)}
         className={`app-flux-card app-flux-stack-card w-full border-l-[3px] rounded-lg p-2.5 text-left transition-all cursor-pointer select-none ${groupHasAlert ? "is-alert" : ""} ${groupHighlighted ? "is-search-highlight" : ""}`}
         style={{ borderLeftColor: phaseColorHex }}
-        title={`${groupClaims.length} dosare stivuite — click pentru a deschide în aer`}
+        title={`${groupClaims.length} dosare stivuite — trage cardul pentru a muta toate dosarele sau click pentru detaliere`}
       >
         <div className="flex items-center justify-between gap-2 flex-1">
           <div className="min-w-0 flex-1">
@@ -300,7 +330,42 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
             <ChevronDown size={14} className="text-[var(--app-muted)]" />
           </div>
         </div>
-      </button>
+
+        {/* Meniu rapid mutare toate dosarele stivuite */}
+        {onMoveToStatus && (
+          <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
+            <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută toate ({groupClaims.length}):</span>
+            <select
+              value={first.status}
+              onChange={(e) => {
+                e.stopPropagation();
+                const nextStatus = e.target.value;
+                if (nextStatus && nextStatus !== first.status) {
+                  let movedCount = 0;
+                  groupClaims.forEach((c) => {
+                    if (c.status !== nextStatus) {
+                      onMoveToStatus(c, nextStatus);
+                      movedCount += 1;
+                    }
+                  });
+                  if (movedCount > 0 && onNotify) {
+                    onNotify(`Toate cele ${groupClaims.length} dosare de pe ${plate} au fost mutate în „${getStatusDefinition(nextStatus).label}”.`, "success");
+                  }
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-md border border-[var(--app-border-soft)] bg-[var(--app-surface-2)] px-2 py-0.5 font-semibold text-[11px] text-[var(--app-text)] hover:border-[var(--app-accent)] cursor-pointer focus:outline-none transition-colors max-w-[175px] truncate"
+              title={`Mută toate cele ${groupClaims.length} dosare stivuite de pe ${plate} în alt stadiu`}
+            >
+              {STATUSES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {String(s.num).padStart(2, "0")}. {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       {/* Pop-up în aer pentru dosarele stivuite (nu mai lungește celulele din grid) */}
       {expanded && (
@@ -367,7 +432,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -520,6 +585,9 @@ export default function TablouPeFazeRedesign({
         exportCount={exportClaims.length}
         onExport={handleDownloadList}
         matchingStageCounts={matchingStageCounts}
+        claims={claims}
+        onMoveToStatus={onMoveToStatus}
+        onNotify={onNotify}
       />
 
       {/* Board vertical — secțiuni etapă, grid responsive */}
@@ -558,10 +626,36 @@ export default function TablouPeFazeRedesign({
                 onDrop={(e) => {
                   e.preventDefault();
                   setDragOverStage(null);
-                  const claimId = e.dataTransfer.getData("text/plain");
-                  if (claimId && onMoveToStatus) {
-                    const claim = claims.find((cl) => cl.id === claimId);
-                    if (claim) onMoveToStatus(claim, status.key);
+                  const rawData = e.dataTransfer.getData("text/plain");
+                  if (!rawData || !onMoveToStatus) return;
+
+                  let targetIds = [];
+                  try {
+                    const parsed = JSON.parse(rawData);
+                    if (Array.isArray(parsed.claimIds) && parsed.claimIds.length > 0) {
+                      targetIds = parsed.claimIds;
+                    } else if (parsed.claimId) {
+                      targetIds = [parsed.claimId];
+                    }
+                  } catch (err) {
+                    targetIds = [rawData];
+                  }
+
+                  const targetClaims = (claims || []).filter((c) => targetIds.map(String).includes(String(c.id)));
+                  if (targetClaims.length > 0) {
+                    let movedCount = 0;
+                    targetClaims.forEach((claim) => {
+                      if (claim.status !== status.key) {
+                        onMoveToStatus(claim, status.key);
+                        movedCount += 1;
+                      }
+                    });
+                    if (movedCount > 0 && onNotify) {
+                      const identifier = targetClaims.length > 1
+                        ? `${targetClaims.length} dosare (${targetClaims[0].numarInmatriculare || "stivuite"})`
+                        : (targetClaims[0].numarInmatriculare || targetClaims[0].numarDosar || "Dosarul");
+                      onNotify(`${identifier} ${targetClaims.length > 1 ? "au fost mutate" : "a fost mutat"} în „${status.label}”.`, "success");
+                    }
                   }
                 }}
                 className={`app-flux-stage-section rounded-xl overflow-hidden transition-all duration-200 ${

@@ -439,6 +439,9 @@ export default function ClaimTable({
         exportCount={sorted.length}
         onExport={handleDownloadList}
         matchingStageCounts={matchingStageCounts}
+        claims={claims}
+        onMoveToStatus={onMoveToStatus}
+        onNotify={onNotify}
       />
 
       {/* ── Inline Filter Bar ── */}

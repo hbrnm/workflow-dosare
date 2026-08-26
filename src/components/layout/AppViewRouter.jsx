@@ -177,6 +177,7 @@ export default function AppViewRouter({
                     return ok;
                   }}
                   onPatchPieseDates={(claim, patch) => handlePatchClaim(claim.id, patch)}
+                  onMoveToStatus={handleMoveToStatus}
                   density={density}
                   activeClaimId={activeClaimId}
                 />
