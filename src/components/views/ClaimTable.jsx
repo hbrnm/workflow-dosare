@@ -55,6 +55,7 @@ export default function ClaimTable({
   onTogglePieseSosite,
   onScheduleFromPiese,
   onPatchPieseDates,
+  onMoveToStatus,
   density = "cozy",
   activeClaimId,
 }) {
