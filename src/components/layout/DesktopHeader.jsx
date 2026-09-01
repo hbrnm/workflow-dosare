@@ -28,7 +28,7 @@ export default function DesktopHeader({
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
   return (
-    <header className="relative h-12 app-header border-b px-4 flex items-center justify-between shrink-0 z-20 gap-3">
+    <header className="relative h-12 app-header border-b border-[var(--app-border-soft)] px-4 flex items-center justify-between shrink-0 z-20 gap-3 bg-[var(--app-bg)]/85 backdrop-blur-md sticky top-0">
       {/* Segment (dosare) — sub-vizualizări */}
       <div className="flex items-center gap-3 text-[13px] min-w-0">
         {isDosareView && (

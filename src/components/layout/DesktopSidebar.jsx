@@ -31,10 +31,10 @@ export default function DesktopSidebar({
             <button
               key={id}
               onClick={() => setView(id)}
-              className={`w-full flex items-center justify-center p-2.5 transition-all rounded-xl ${
+              className={`w-full flex items-center justify-center p-2.5 transition-all duration-200 rounded-xl ${
                 active
-                  ? "bg-[var(--app-accent)] text-white font-bold shadow-md shadow-sky-500/20"
-                  : "text-slate-400 hover:text-white hover:bg-white/10 hover:border hover:border-white/15 hover:backdrop-blur-md hover:shadow-sm"
+                  ? "bg-[var(--app-accent)] text-white font-bold shadow-lg shadow-[var(--app-accent)]/30 scale-105"
+                  : "text-slate-400 hover:text-white hover:bg-[var(--app-surface-muted)] hover:shadow-md hover:scale-[1.03]"
               }`}
               title={label}
             >

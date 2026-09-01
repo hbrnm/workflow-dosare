@@ -79,7 +79,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2.5 transition-all duration-150 cursor-pointer select-none ${
+      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2.5 transition-all duration-200 ease-out cursor-pointer select-none hover:-translate-y-[2px] hover:shadow-md ${
         claim.blocat || overdue ? "is-alert" : ""
       } ${isSearchHighlight ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}
@@ -144,8 +144,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
           </select>
         </div>
       ) : onMoveToStatus ? (
-        <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
-          <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută stadiu:</span>
+        <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
           <select
             value={claim.status}
             onChange={(e) => {
@@ -197,7 +196,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {/* Contact — vizibil la hover */}
       {claim.telefonClient && (
         <div
-          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-100 md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <a
@@ -333,8 +332,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
 
         {/* Meniu rapid mutare toate dosarele stivuite */}
         {onMoveToStatus && (
-          <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută toate ({groupClaims.length}):</span>
+          <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
             <select
               value={first.status}
               onChange={(e) => {
@@ -658,26 +656,22 @@ export default function TablouPeFazeRedesign({
                     }
                   }
                 }}
-                className={`app-flux-stage-section rounded-xl overflow-hidden transition-all duration-200 ${
-                  isDragTarget ? "is-drag-over" : ""
+                className={`app-flux-stage-section rounded-xl border transition-all duration-200 ${
+                  isDragTarget ? "is-drag-over" : "border-transparent bg-transparent"
                 } ${isSearchMatchStage ? "is-search-match ring-2 ring-[#0284c7] border-[#0284c7]" : ""}`}
                 style={{ "--flux-phase-accent": phaseAccent }}
               >
                 <div
-                  className={`app-flux-stage-header flex flex-wrap items-center justify-between gap-2 p-2 border-b border-[var(--app-border-soft)] ${
+                  className={`app-flux-stage-header sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-[var(--app-border-soft)] rounded-t-xl bg-[var(--app-bg)]/90 backdrop-blur-md ${
                     isSearchMatchStage ? "bg-[#0284c7]/10" : ""
                   }`}
-                  style={{ borderLeftWidth: 3, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
+                  style={{ borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: phaseAccent }}
                 >
-                  <StageTabLabel
-                    num={status.num}
-                    label={status.label}
-                    count={totalAll}
-                    title={glossaryTitle(status.key)}
-                    isSearchMatch={isSearchMatchStage}
-                    searchCount={matchCount}
-                    className="flex-1 min-w-0 pointer-events-none"
-                  />
+                  <h2 className="flex-1 min-w-0 font-bold text-[14px] sm:text-[15px] flex items-center gap-2 pointer-events-none">
+                    <span className="text-[var(--app-muted)] font-mono text-[13px]">{String(status.num).padStart(2, "0")}.</span>
+                    {status.label}
+                    <span className="text-[13px] font-semibold text-[var(--app-muted)]">({totalAll})</span>
+                  </h2>
                   {isSearchMatchStage && (
                     <span className="text-[11.5px] font-black px-2.5 py-0.5 rounded-full bg-[#0284c7] text-white shadow-sm flex items-center gap-1.5 shrink-0">
                       <Search size={12} />

@@ -189,7 +189,7 @@ export default function Dashboard({
               <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--app-muted)" }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--app-muted)" }} />
-              <Tooltip formatter={(v, n, p) => [v, p.payload.label]} contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)", background: "var(--app-surface)", color: "var(--app-text)" }} />
+              <Tooltip itemStyle={{ color: "var(--app-text-strong)" }} formatter={(v, n, p) => [v, p.payload.label]} contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)", background: "var(--app-surface)", color: "var(--app-text)" }} />
               <Bar dataKey="total" radius={[3, 3, 0, 0]}>{perStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}</Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -203,7 +203,7 @@ export default function Dashboard({
                 <Pie data={perAsigurator} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={{ fontSize: 10 }}>
                   {perAsigurator.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)", background: "var(--app-surface)", color: "var(--app-text)" }} />
+                <Tooltip itemStyle={{ color: "var(--app-text-strong)" }} contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)", background: "var(--app-surface)", color: "var(--app-text)" }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>

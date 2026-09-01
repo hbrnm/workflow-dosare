@@ -104,7 +104,7 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
                 <XAxis dataKey="luna" tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${Math.round(v)} lei`} />
+                <Tooltip itemStyle={{ color: "var(--app-text-strong)" }} contentStyle={tooltipStyle} formatter={(v) => `${Math.round(v)} lei`} />
                 <Bar dataKey="piese" name="Piese" stackId="a" fill="var(--app-accent)" />
                 <Bar dataKey="manopera" name="Manoperă" stackId="a" fill="var(--app-muted)" radius={[3, 3, 0, 0]} />
               </BarChart>
@@ -119,7 +119,7 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
                 <XAxis type="number" tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: "var(--app-muted)" }} width={95} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${v} lei`} />
+                <Tooltip itemStyle={{ color: "var(--app-text-strong)" }} contentStyle={tooltipStyle} formatter={(v) => `${v} lei`} />
                 <Bar dataKey="value" fill="var(--app-muted)" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>

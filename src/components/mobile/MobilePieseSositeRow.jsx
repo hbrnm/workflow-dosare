@@ -211,7 +211,7 @@ export default function MobilePieseSositeRow({
                 </span>
                 <div className="absolute top-full left-3 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
               </div>
-              <span className="m-piese-inline-k">C</span>
+              <ShoppingBag size={11} className="m-piese-inline-k shrink-0 opacity-80" />
               <span className="m-piese-inline-v font-mono">{cmdShort || "—"}</span>
               {canEditDates ? (
                 <input
@@ -238,7 +238,7 @@ export default function MobilePieseSositeRow({
                 </span>
                 <div className="absolute top-full right-3 -mt-[1px] border-4 border-transparent border-t-[var(--app-border)]"></div>
               </div>
-              <span className="m-piese-inline-k">T</span>
+              <Truck size={11} className="m-piese-inline-k shrink-0 opacity-80" />
               <span className="m-piese-inline-v font-mono">{livShort || "—"}</span>
               {canEditDates ? (
                 <input

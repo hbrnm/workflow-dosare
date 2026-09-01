@@ -40,7 +40,9 @@ export default function StageTabLabel({
       } ${
         isDragOver
           ? "ring-2 ring-[var(--app-accent)] bg-[var(--app-accent)]/20 scale-105 shadow-md border-[var(--app-accent)] text-[var(--app-accent)] font-bold"
-          : ""
+          : active
+          ? "bg-[var(--app-surface)] text-[var(--app-text-strong)] shadow-sm border-[var(--app-border)] hover:border-[var(--app-accent)]"
+          : "bg-transparent text-[var(--app-muted)] border-transparent hover:text-[var(--app-text)]"
       } ${className}`}
     >
       <span className="font-mono opacity-70">{String(num).padStart(2, "0")}.</span>

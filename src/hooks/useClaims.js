@@ -90,7 +90,13 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       const message = error.message || "Nu am putut încărca dosarele.";
       setLoadError({ message, offline: false });
       // Keep previous claims if we already had some — avoid fake empty workspace
-      if (!claimsRef.current.length) setClaims([]);
+      if (!claimsRef.current.length) {
+        if (!demoDisabled) {
+          setClaims(DEMO_CLAIMS);
+        } else {
+          setClaims([]);
+        }
+      }
       showNotice?.(message, "error", {
         actionLabel: "Reîncearcă",
         onAction: () => loadAll(),
