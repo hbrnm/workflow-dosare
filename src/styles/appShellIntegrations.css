@@ -235,7 +235,7 @@ html.dark .app-shell .app-brief-tab.is-search-match {
 }
 
 .app-shell .app-brief-tab--toate_etape:not(.is-active) {
-  color: var(--app-muted);
+  color: var(--app-text);
 }
 
 .app-shell .app-brief-tab--etapa.is-selected {
@@ -641,9 +641,9 @@ html.dark .app-shell .app-brief-tab.is-search-match {
 }
 
 .app-shell .app-brief-tab {
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  color: var(--app-muted);
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border-soft);
+  color: var(--app-text);
   border-radius: 999px;
 }
 
@@ -758,8 +758,8 @@ html.dark .app-shell .app-brief-tab.is-search-match {
 }
 
 .app-shell .app-brief-tab--etapa:not(.is-active) {
-  opacity: 0.55;
-  color: var(--app-muted);
+  opacity: 1;
+  color: var(--app-text);
 }
 
 .app-shell .app-brief-empty {
