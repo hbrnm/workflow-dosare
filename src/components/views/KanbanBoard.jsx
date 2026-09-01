@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Phone, Car, AlertTriangle, PackageCheck, Wrench, Paintbrush,
   ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check,
-  ArrowUpRight
+  ArrowUpRight, Inbox
 } from "lucide-react";
 
 /* ── Status-tinted card background helper ── */
@@ -26,7 +26,7 @@ import DosarNumber from "../common/DosarNumber";
 import { countClaimsForStatus } from "../../utils/plateSchedule";
 import { getClaimOpenedAt } from "../../utils/fluxClaimSort";
 
-function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
+const ClaimCard = React.memo(function ClaimCardBase({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
@@ -53,6 +53,18 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
+          e.currentTarget.classList.add('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+          setTimeout(() => {
+            if (e.target && e.target.classList) {
+              e.target.classList.remove('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+              e.target.classList.add('opacity-30', 'border-dashed');
+            }
+          }, 0);
+        }}
+        onDragEnd={(e) => {
+          if (e.currentTarget) {
+            e.currentTarget.classList.remove('opacity-30', 'border-dashed', 'scale-[1.03]', 'rotate-2', 'shadow-2xl');
+          }
         }}
       className={`group relative rounded-2xl border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
         style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -177,6 +189,18 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
+        e.currentTarget.classList.add('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+        setTimeout(() => {
+          if (e.target && e.target.classList) {
+            e.target.classList.remove('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+            e.target.classList.add('opacity-30', 'border-dashed');
+          }
+        }, 0);
+      }}
+      onDragEnd={(e) => {
+        if (e.currentTarget) {
+          e.currentTarget.classList.remove('opacity-30', 'border-dashed', 'scale-[1.03]', 'rotate-2', 'shadow-2xl');
+        }
       }}
       className={`group relative rounded-2xl border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
       style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -357,11 +381,16 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.claim === next.claim &&
+    prev.compact === next.compact &&
+    prev.pragRidicare === next.pragRidicare &&
+    prev.canEdit === next.canEdit
+  );
+});
 
-
-
-function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact, onNotify }) {
+const StackedVehicleGroupCard = React.memo(function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact, onNotify }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const marcaModel = first.marcaModel || first.client || "";
@@ -437,7 +466,14 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.groupKey === next.groupKey &&
+    prev.groupClaims === next.groupClaims &&
+    prev.compact === next.compact &&
+    prev.pragRidicare === next.pragRidicare
+  );
+});
 
 export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, onNotify }) {
   const [viewMode, setViewMode] = useState("full");
@@ -584,8 +620,9 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                   });
                 })()}
                 {list.length === 0 && (
-                  <div className="text-[11.5px] text-[var(--app-muted)] italic p-4 text-center border border-dashed border-[var(--app-border)] rounded-lg bg-[var(--app-surface)]/50">
-                    Niciun dosar în această etapă
+                  <div className="flex flex-col items-center justify-center p-8 mt-4 rounded-xl border border-dashed border-[var(--app-border-soft)] bg-[var(--app-surface-muted)]/30 opacity-70">
+                    <Inbox size={28} className="text-[var(--app-muted)] mb-2 opacity-50" strokeWidth={1.5} />
+                    <span className="text-[11.5px] text-[var(--app-muted)] font-medium">Niciun dosar în această etapă</span>
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertOctagon, ShieldCheck, X } from "lucide-react";
+import { AlertOctagon, CheckCircle2, X } from "lucide-react";
 
 export default function Notification({ notice, onClose, stacked = false }) {
   if (!notice) return null;
@@ -7,11 +7,21 @@ export default function Notification({ notice, onClose, stacked = false }) {
   const actionLabel = notice.actionLabel;
   const onAction = notice.onAction;
 
-  const baseClasses = `flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-2xl text-[13px] font-bold text-white ${isErr ? "bg-[var(--app-danger,#B23A2E)]" : "bg-[var(--app-success,#3E6B45)]"}`;
+  const baseClasses = `flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-xl text-[13px] font-medium border backdrop-blur-xl ${
+    isErr
+      ? "bg-red-950/90 border-red-900/50 text-red-50"
+      : "bg-zinc-900/90 border-zinc-700/50 text-zinc-100"
+  }`;
+
+  const icon = isErr ? (
+    <AlertOctagon size={18} className="shrink-0 text-red-400" />
+  ) : (
+    <CheckCircle2 size={18} className="shrink-0 text-emerald-400" />
+  );
 
   const body = (
     <>
-      {isErr ? <AlertOctagon size={16} className="shrink-0" /> : <ShieldCheck size={16} className="shrink-0" />}
+      {icon}
       <span className={`flex-1 ${stacked ? "truncate" : ""}`}>{notice.message}</span>
       {actionLabel && onAction ? (
         <button
@@ -20,20 +30,20 @@ export default function Notification({ notice, onClose, stacked = false }) {
             onAction();
             onClose?.();
           }}
-          className="shrink-0 px-2 py-1 rounded-md bg-white/20 hover:bg-white/30 text-[11px] font-bold"
+          className="shrink-0 px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-[11px] font-semibold"
         >
           {actionLabel}
         </button>
       ) : null}
-      <button type="button" onClick={onClose} className="p-1 hover:bg-white/20 rounded shrink-0" aria-label="Închide">
-        <X size={14} />
+      <button type="button" onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-full shrink-0 transition-colors" aria-label="Închide">
+        <X size={15} className="opacity-70" />
       </button>
     </>
   );
 
   if (stacked) {
     return (
-      <div className={`${baseClasses} w-80`} role="status" aria-live="polite">
+      <div className={`${baseClasses} w-full md:w-80`} role="status" aria-live="polite">
         {body}
       </div>
     );

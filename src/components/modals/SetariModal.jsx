@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { INSURERS, STATUSES } from "../../constants/config";
 import { todayISO } from "../../utils/dateUtils";
 import {
@@ -437,12 +438,20 @@ export default function SetariModal({
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={modalOverlayClass(desktopUi)}
       {...modalOverlayProps(desktopUi)}
       {...backdropProps}
     >
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 15, scale: 0.96 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         className={modalPanelClass(
           desktopUi,
           "app-fixed-shell-modal w-full max-w-4xl flex flex-col h-full sm:h-[92vh] sm:max-h-[92vh] overflow-hidden bg-[var(--app-surface)]"
@@ -620,7 +629,7 @@ export default function SetariModal({
             Închide
           </AppButton>
         </div>
-      </div>
+      </motion.div>
 
       <ConfirmDialog
         open={Boolean(pendingDeleteEmail)}
@@ -636,6 +645,6 @@ export default function SetariModal({
           if (email && onDeleteUser) await onDeleteUser(email);
         }}
       />
-    </div>
+    </motion.div>
   );
 }

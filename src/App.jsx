@@ -958,6 +958,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="h-[100dvh] flex app-shell overflow-hidden relative font-sans">
       <NotificationQueue notice={notice} />
       <UndoToast item={undoToastItem} onDone={() => setUndoToastItem(null)} />
@@ -1214,5 +1215,6 @@ export default function App() {
         onOpenAiScan={() => setIsAiModalOpenHeader(true)}
       />
     </div>
+    </ErrorBoundary>
   );
 }
