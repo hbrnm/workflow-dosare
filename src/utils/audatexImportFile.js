@@ -9,7 +9,8 @@ let pdfWorkerReady = false;
 
 async function ensurePdfWorker(pdfjs) {
   if (pdfWorkerReady || !pdfjs?.GlobalWorkerOptions) return;
-  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+  // Fallback to CDN to guarantee the worker loads even if Vite mangles the ?url import
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl || `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
   pdfWorkerReady = true;
 }
 
