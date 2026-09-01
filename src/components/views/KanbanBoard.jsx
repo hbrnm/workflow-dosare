@@ -26,7 +26,7 @@ import DosarNumber from "../common/DosarNumber";
 import { countClaimsForStatus } from "../../utils/plateSchedule";
 import { getClaimOpenedAt } from "../../utils/fluxClaimSort";
 
-function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
+const ClaimCard = React.memo(function ClaimCardBase({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, compact = false, onNotify }) {
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const idx = STATUSES.findIndex((s) => s.key === claim.status);
   const hasKnownStatus = idx >= 0;
@@ -381,11 +381,16 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.claim === next.claim &&
+    prev.compact === next.compact &&
+    prev.pragRidicare === next.pragRidicare &&
+    prev.canEdit === next.canEdit
+  );
+});
 
-
-
-function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact, onNotify }) {
+const StackedVehicleGroupCard = React.memo(function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus, onDuplicate, canEditFn, pragRidicare, compact, onNotify }) {
   const [expanded, setExpanded] = useState(false);
   const first = groupClaims[0];
   const marcaModel = first.marcaModel || first.client || "";
@@ -461,7 +466,14 @@ function StackedVehicleGroupCard({ groupKey, groupClaims, onOpen, onMoveToStatus
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.groupKey === next.groupKey &&
+    prev.groupClaims === next.groupClaims &&
+    prev.compact === next.compact &&
+    prev.pragRidicare === next.pragRidicare
+  );
+});
 
 export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInStatus, onDuplicate, canEditFn, pragRidicare, onNotify }) {
   const [viewMode, setViewMode] = useState("full");
