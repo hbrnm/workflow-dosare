@@ -95,8 +95,8 @@ export default function AppViewRouter({
 
           {loading ? (
             <ListSkeleton
-              rows={dosareSubView === "list" ? 8 : 6}
-              variant={dosareSubView === "list" ? "table" : "cards"}
+              rows={dosareSubView === "list" ? 8 : dosareSubView === "brief" ? 6 : 4}
+              variant={dosareSubView === "list" ? "table" : dosareSubView === "brief" ? "cards" : "kanban"}
             />
           ) : loadError || isOffline ? (
             <LoadError

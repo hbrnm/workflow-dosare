@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   Phone, Car, AlertTriangle, PackageCheck, Wrench, Paintbrush,
   ChevronLeft, ChevronRight, Copy, Clock, LayoutGrid, List, Plus, ChevronDown, ChevronUp, Check,
-  ArrowUpRight
+  ArrowUpRight, Inbox
 } from "lucide-react";
 
 /* ── Status-tinted card background helper ── */
@@ -608,8 +608,9 @@ export default function KanbanBoard({ claims, onOpen, onMoveToStatus, onAddInSta
                   });
                 })()}
                 {list.length === 0 && (
-                  <div className="text-[11.5px] text-[var(--app-muted)] italic p-4 text-center border border-dashed border-[var(--app-border)] rounded-lg bg-[var(--app-surface)]/50">
-                    Niciun dosar în această etapă
+                  <div className="flex flex-col items-center justify-center p-8 mt-4 rounded-xl border border-dashed border-[var(--app-border-soft)] bg-[var(--app-surface-muted)]/30 opacity-70">
+                    <Inbox size={28} className="text-[var(--app-muted)] mb-2 opacity-50" strokeWidth={1.5} />
+                    <span className="text-[11.5px] text-[var(--app-muted)] font-medium">Niciun dosar în această etapă</span>
                   </div>
                 )}
               </div>
