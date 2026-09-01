@@ -332,8 +332,7 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
 
         {/* Meniu rapid mutare toate dosarele stivuite */}
         {onMoveToStatus && (
-          <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-between gap-1 text-[11px]" onClick={(e) => e.stopPropagation()}>
-            <span className="text-[10.5px] font-medium text-[var(--app-muted)] shrink-0">Mută toate ({groupClaims.length}):</span>
+          <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
             <select
               value={first.status}
               onChange={(e) => {
