@@ -62,16 +62,16 @@ export const APP_TOKEN_DARK = {
 /** Zi — alb curat & bg-slate-50, ca aplicațiile SaaS moderne. */
 export const APP_TOKEN_LIGHT = {
   ...SHARED_TOKENS,
-  "--app-bg": "#f8fafc",          // slate-50 canvas
+  "--app-bg": "#f1f5f9",          // slate-100 canvas (provides better contrast against white cards)
   "--app-surface": "#ffffff",     // white cards/containers
-  "--app-surface-2": "#f1f5f9",   // slate-100 minor surfaces
-  "--app-surface-muted": "#f1f5f9",
+  "--app-surface-2": "#e2e8f0",   // slate-200 minor surfaces
+  "--app-surface-muted": "#f8fafc",
   "--app-text": "#334155",        // slate-700
   "--app-text-strong": "#0f172a", // slate-900
   "--app-muted": "#64748b",       // slate-500
   "--app-muted-2": "#94a3b8",     // slate-400
-  "--app-border": "#e2e8f0",      // slate-200
-  "--app-border-soft": "#f1f5f9", // slate-100
+  "--app-border": "#cbd5e1",      // slate-300
+  "--app-border-soft": "#e2e8f0", // slate-200
   "--app-chrome": "#0f172a",      // slate-900 Dark chrome
   "--app-chrome-text": "#f8fafc", // slate-50
   "--app-chrome-muted": "#94a3b8",// slate-400
