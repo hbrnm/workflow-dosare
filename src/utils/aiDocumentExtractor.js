@@ -454,34 +454,86 @@ export async function extractTextWithTesseract(file, onProgress) {
 }
 
 /**
+ * Extrage metadate structurate dintr-o poză / document folosind Gemini Multimodal
+ */
+export async function extractDocumentWithGemini(file, apiKey) {
+  const base64Data = await fileToBase64(file);
+  const mimeType = file.type || (file.name?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+  
+  const prompt = `Ești un asistent inteligent pentru un service auto. Analizează acest document (Talon, Buletin, Poliță RCA, Proces Verbal, PDF scanat, etc).
+Extrage următoarele date și returnează-le într-un JSON strict:
+{
+  "tipDocumentIdentificat": "Certificat Înmatriculare (Talon) | Carte de Identitate (CI) | Poliță Asigurare | Proces Verbal Constatare Daună | Altul",
+  "numarInmatriculare": "ex: B 123 ABC",
+  "vin": "Seria de șasiu",
+  "marca": "ex: BMW",
+  "model": "ex: Seria 3",
+  "client": "Numele proprietarului / asiguratului",
+  "asigurator": "Compania de asigurări",
+  "numarDosar": "Numărul dosarului de daună dacă există"
+}
+Returnează DOAR JSON-ul valid. Fără alte texte.`;
+
+  const body = {
+    contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: base64Data } }, { text: prompt }] }],
+    generationConfig: { response_mime_type: "application/json", temperature: 0.1 },
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+  if (!resp.ok) throw new Error(`Gemini API Error: ${await resp.text()}`);
+
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Fără răspuns de la Gemini");
+
+  const parsed = JSON.parse(text.replace(/```json/gi, "").replace(/```/g, "").trim());
+  return mapExtractedJsonToClaim(parsed);
+}
+
+/**
  * Extragere hibridă simplă și directă:
- * 1. Pentru PDF / Excel / Deviz -> Parser nativ (instant, complet, fără erori)
- * 2. Pentru Imagini / Scanuri -> OCR Tesseract.js local sau Google Vision dacă există API Key
+ * 1. Pentru PDF / Excel / Deviz -> Parser nativ
+ * 2. Pentru Imagini / Scanuri / PDF Scris de mână -> Gemini AI / OCR
  */
 export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } = {}) {
   const fileName = (file && file.name ? file.name : "").toLowerCase();
   const rawType = (file && file.type ? file.type : "").toLowerCase();
-  const isPdfOrSheet =
-    fileName.endsWith(".pdf") ||
-    fileName.endsWith(".xml") ||
-    fileName.endsWith(".xlsx") ||
-    fileName.endsWith(".csv") ||
-    rawType.includes("pdf") ||
-    rawType.includes("sheet") ||
-    rawType.includes("xml");
+  const isPdfOrSheet = fileName.endsWith(".pdf") || fileName.endsWith(".xml") || fileName.endsWith(".xlsx") || fileName.endsWith(".csv") || rawType.includes("pdf") || rawType.includes("sheet") || rawType.includes("xml");
 
-  // 1. Dacă fișierul este PDF sau Excel, procesează direct cu parserul nativ local
+  const effectiveKey = (apiKey || localStorage.getItem("gemini_api_key") || import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+
+  // 1. Daca e fisier PDF/Excel, incercam parserul nativ
   if (isPdfOrSheet) {
     onProgress?.("Extragere nativă deviz (PDF / Excel)...");
-    return await extractClaimDataWithLocalAudatexEngine(file);
+    try {
+      return await extractClaimDataWithLocalAudatexEngine(file);
+    } catch (err) {
+      if (err.message.includes("text selectabil") || err.message.includes("scan")) {
+        console.warn("Local PDF Parser a eșuat (document scanat). Trecem la AI Fallback.");
+      } else {
+        throw err;
+      }
+    }
   }
 
-  // 2. Pentru imagini (PNG/JPG/WEBP/JPEG), rulează OCR
-  const effectiveKey = (apiKey || localStorage.getItem("google_vision_api_key") || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
-  if (effectiveKey) {
+  // 2. Fallback inteligent pentru imagini (Taloane, CI) sau PDF-uri scanate (Gemini)
+  if (effectiveKey && effectiveKey.startsWith("AIza")) {
+    try {
+      onProgress?.("Analizare vizuală document cu Gemini AI...");
+      return await extractDocumentWithGemini(file, effectiveKey);
+    } catch (geminiErr) {
+      console.warn("[AI] Gemini error:", geminiErr);
+    }
+  }
+
+  // 3. Fallback pentru Google Vision (cheie non-Gemini)
+  const visionKey = (apiKey || localStorage.getItem("google_vision_api_key") || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
+  if (visionKey && !visionKey.startsWith("AIza")) {
     try {
       onProgress?.("Scanare poză cu Google Vision OCR...");
-      const ocrText = await extractTextWithGoogleVisionOcr(file, effectiveKey);
+      const ocrText = await extractTextWithGoogleVisionOcr(file, visionKey);
       if (ocrText && ocrText.trim().length > 5) {
         return mapOcrTextToClaim(ocrText);
       }
@@ -490,7 +542,7 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
     }
   }
 
-  // Fallback 100% offline & gratuit: Tesseract.js client-side OCR
+  // 4. Fallback ultim 100% offline & gratuit: Tesseract.js client-side OCR
   try {
     const ocrText = await extractTextWithTesseract(file, onProgress);
     if (ocrText && ocrText.trim().length > 5) {
