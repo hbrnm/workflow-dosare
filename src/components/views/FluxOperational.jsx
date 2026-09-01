@@ -79,7 +79,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={() => onOpen(claim)}
-      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2.5 transition-all duration-150 cursor-pointer select-none ${
+      className={`group relative app-flux-card border-l-[3px] rounded-lg p-2.5 transition-all duration-200 ease-out cursor-pointer select-none hover:-translate-y-[2px] hover:shadow-md ${
         claim.blocat || overdue ? "is-alert" : ""
       } ${isSearchHighlight ? "is-search-highlight" : ""}`}
       style={{ borderLeftColor: phaseColorHex }}
@@ -197,7 +197,7 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {/* Contact — vizibil la hover */}
       {claim.telefonClient && (
         <div
-          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+          className="app-flux-contact-bar flex items-center justify-end gap-1 mt-1.5 pt-1 border-t opacity-100 md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
           <a
