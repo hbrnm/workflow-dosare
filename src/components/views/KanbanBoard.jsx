@@ -53,6 +53,18 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
         onDragStart={(e) => {
           e.dataTransfer.setData("text/plain", claim.id);
           e.dataTransfer.effectAllowed = "move";
+          e.currentTarget.classList.add('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+          setTimeout(() => {
+            if (e.target && e.target.classList) {
+              e.target.classList.remove('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+              e.target.classList.add('opacity-30', 'border-dashed');
+            }
+          }, 0);
+        }}
+        onDragEnd={(e) => {
+          if (e.currentTarget) {
+            e.currentTarget.classList.remove('opacity-30', 'border-dashed', 'scale-[1.03]', 'rotate-2', 'shadow-2xl');
+          }
         }}
       className={`group relative rounded-2xl border p-1.5 cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
         style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}
@@ -177,6 +189,18 @@ function ClaimCard({ claim, onOpen, onMove, onDuplicate, canEdit, pragRidicare, 
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", claim.id);
         e.dataTransfer.effectAllowed = "move";
+        e.currentTarget.classList.add('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+        setTimeout(() => {
+          if (e.target && e.target.classList) {
+            e.target.classList.remove('scale-[1.03]', 'rotate-2', 'shadow-2xl');
+            e.target.classList.add('opacity-30', 'border-dashed');
+          }
+        }, 0);
+      }}
+      onDragEnd={(e) => {
+        if (e.currentTarget) {
+          e.currentTarget.classList.remove('opacity-30', 'border-dashed', 'scale-[1.03]', 'rotate-2', 'shadow-2xl');
+        }
       }}
       className={`group relative rounded-2xl border p-2.5 cursor-pointer transition-all duration-150 hover:shadow-lg hover:-translate-y-0.5 shadow-sm ${getCardTint(claim, overdue)}`}
       style={{ borderLeftWidth: 3, borderLeftColor: getPhaseColors(claim.status).bar }}

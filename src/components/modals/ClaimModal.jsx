@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, ImageIcon, Wallet, History, ShieldCheck, AlertOctagon,
   Package, Car, Phone, ClipboardList, Wrench
@@ -978,14 +979,22 @@ export default function ClaimModal({
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={modalOverlayClass(desktopUi, { dense: true, layer: "front" })}
       {...modalOverlayProps(desktopUi, themeId)}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
         onClick={(e) => e.stopPropagation()}
         style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
         className={modalPanelClass(
@@ -1400,7 +1409,7 @@ export default function ClaimModal({
             zIndexClass="z-[20000]"
           />
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
