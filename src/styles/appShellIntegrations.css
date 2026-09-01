@@ -641,9 +641,9 @@ html.dark .app-shell .app-brief-tab.is-search-match {
 }
 
 .app-shell .app-brief-tab {
-  background: var(--app-surface-2);
-  border: 1px solid var(--app-border-soft);
-  color: var(--app-text);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--app-muted);
   border-radius: 999px;
 }
 

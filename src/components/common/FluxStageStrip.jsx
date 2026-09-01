@@ -75,7 +75,7 @@ export default function FluxStageStrip({
           onClick={() => onFocusStage?.(null)}
           className={`${alertTabClass("toate_etape", focusedStage === null ? "toate_etape" : "")} shrink-0 whitespace-nowrap px-3 py-1.5 text-[13px] sm:text-[14px] font-semibold rounded-full transition-all ${
             focusedStage !== null 
-              ? "bg-slate-200/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200" 
+              ? "bg-transparent text-[var(--app-muted)] border-transparent hover:text-[var(--app-text)]" 
               : "bg-[var(--app-surface)] text-[var(--app-text-strong)] shadow-sm border-[var(--app-border)] hover:border-[var(--app-accent)]"
           }`}
         >
