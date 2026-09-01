@@ -261,26 +261,6 @@ export default function Login({ onLoginSuccess, onGoSignup, branding: brandingPr
               </svg>
               <span>{ssoLoading === "google" ? "Se conectează..." : "Conectare cu Google"}</span>
             </button>
-
-            {/* DEV BYPASS BUTTON */}
-            <button
-              type="button"
-              onClick={() => {
-                if (onLoginSuccess) {
-                  onLoginSuccess({
-                    user: {
-                      id: "dev-bypass-123",
-                      email: "admin@local.dev",
-                      user_metadata: { role: "admin" }
-                    },
-                    access_token: "dummy-token"
-                  });
-                }
-              }}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700/80 hover:bg-amber-200 dark:hover:bg-amber-900/60 text-sm font-semibold text-amber-900 dark:text-amber-200 shadow-sm transition-all active:scale-[0.99]"
-            >
-              <span>Bypass Login (Mod Offline)</span>
-            </button>
           </div>
         ) : null}
 
