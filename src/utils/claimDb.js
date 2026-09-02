@@ -53,6 +53,8 @@ export function toDb(c) {
     valoare_achizitie_piese: c.valoareAchizitiePiese,
     financiar: {
       ...(c.financiar || {}),
+      masinaSchimbModel: c.masinaSchimbModel,
+      masinaSchimbNumar: c.masinaSchimbNumar,
       valoareDevizAudatex: parseNumber(c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
       ...(c.dataAdusaFizic ? { dataAdusaFizic: c.dataAdusaFizic } : {}),
       valoareAcceptPlata: parseNumber(c.financiar?.valoareAcceptPlata ?? c.valoareAcceptataReglata, 0),
@@ -356,6 +358,8 @@ export function fromDb(row) {
       vopsitorie: { facturat: 0, alocat: 0, dataIntrareEtapa: null },
     },
     masinaSchimb: row.masina_schimb || "",
+    masinaSchimbModel: row.financiar?.masinaSchimbModel || "",
+    masinaSchimbNumar: row.financiar?.masinaSchimbNumar || "",
     dataDariiLaSchimb: row.data_darii_la_schimb || "",
     zileChirieAudatex: row.zile_chirie_audatex || 0,
     valoarePieseAudatex: row.valoare_piese_audatex || 0,
