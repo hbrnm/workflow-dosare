@@ -1243,7 +1243,7 @@ export async function generateazaContractInchiriere(claim) {
   doc.setFont(undefined, "bold");
   drawText(sd("Art. 4 – CHIRIA/TARIFUL"));
   doc.setFont(undefined, "normal");
-  drawText(sd("a. Chiria/tariful si numarul de zile se stabilesc in functie de termenul de executare al lucrarii (ore manopera deviz reparatie), tariful pe ziua de inchiriere este de 50 euro pe zi, tva inclus.\nb. Neplata chiriei la termen, dă drept proprietarului să ceară plată de daune + penalitati aferente"));
+  drawText(sd("a. Chiria/tariful si numarul de zile se stabilesc in functie de termenul de executare al lucrarii (ore manopera deviz reparatie), tariful pe ziua de inchiriere este de .................... euro pe zi, tva inclus.\nb. Neplata chiriei la termen, dă drept proprietarului să ceară plată de daune + penalitati aferente"));
 
   doc.setFont(undefined, "bold");
   drawText(sd("Art. 5 – CONDIȚII GENERALE DE ÎNCHIRIERE :"));
