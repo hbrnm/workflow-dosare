@@ -1190,3 +1190,96 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
 
 
 
+export async function generateazaContractInchiriere(claim) {
+  const doc = await createPdf();
+  let y = 20;
+
+  const title = "CONTRACT DE ÎNCHIRIERE AUTOTURISM";
+  doc.setFontSize(14);
+  doc.setFont(undefined, "bold");
+  doc.text(sd(title), 105, y, { align: "center" });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, "normal");
+  doc.text(sd("Nr. ____ / ___________    Încheiat astăzi " + fmtDate(new Date()) + " la ____________"), 14, y);
+  y += 10;
+
+  doc.setFont(undefined, "bold");
+  doc.text(sd("Art. 1 – PĂRȚILE CONTRACTANTE :"), 14, y);
+  y += 6;
+
+  doc.setFont(undefined, "normal");
+  const p1 = "1. S.C. AUTO WASH IMPEX. cu sediul în Bucuresti, str.Uverturii nr.151 sec.6, înmatriculată la Registrul Comerțului Bucuresti sub nr. J40/11131/2005, CUI 17717698, cont RO08 MIRO 0000 1184 0304 0001 la PROCREDIT BANK, reprezentată de Sorin Tudorov (administrator), denumită PROPRIETAR";
+  const p2 = "2. " + sd(claim.client || "..........................") + ", telefon: " + sd(claim.telefonClient || "..........................") + ", (restul datelor de identificare se vor completa olograf de către client: CUI/CNP, adresă, serie CI, etc.), denumit în continuare CHIRIAȘ.";
+  
+  const drawText = (text, spacing = 5) => {
+      const lines = doc.splitTextToSize(text, 180);
+      if (y + lines.length * spacing > 280) {
+          doc.addPage();
+          y = 20;
+      }
+      doc.text(lines, 14, y);
+      y += lines.length * spacing + 2;
+  }
+
+  drawText(sd(p1));
+  drawText(sd(p2));
+  y += 2;
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 2 – OBIECTUL CONTRACTULUI :"));
+  doc.setFont(undefined, "normal");
+  drawText(sd("Obiectul contractului îl constituie închirierea autoturismului la schimb având nr. înmatriculare " + sd(claim.masinaSchimb || "....................") + " (pentru clientul cu auto avariat marca " + sd(claim.marcaModel || ".....") + " nr. " + sd(claim.numarInmatriculare || ".....") + ")."));
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 3 - TERMENUL :"));
+  doc.setFont(undefined, "normal");
+  drawText(sd("Închirierea se face pe o perioada determinata/calculata conform ore manopera deviz reparatie intocmit in baza nota constatare/reconstatare eliberate de asigurator, dupa caz: " + (claim.zileChirieAudatex || ".......") + " zile, începând cu data de " + fmtDate(claim.dataDariiLaSchimb || claim.dataProgramare || new Date()) + "."));
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 4 – CHIRIA/TARIFUL"));
+  doc.setFont(undefined, "normal");
+  drawText(sd("a. Chiria/tariful si numarul de zile se stabilesc in functie de termenul de executare al lucrarii (ore manopera deviz reparatie), tariful pe ziua de inchiriere este de 50 euro pe zi, tva inclus.\nb. Neplata chiriei la termen dă drept proprietarului să ceară plată de daune + penalitati aferente."));
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 5 – CONDIȚII GENERALE DE ÎNCHIRIERE :"));
+  doc.setFont(undefined, "normal");
+  const condGen = "a. Autoturismul întrunește toate condițiile tehnice de folosire, fiind în stare perfectă de funcționare și neavând defecte și lipsuri.\nb. Perioada minimă de închiriere este de 24 ore, o zi indivizibilă.\nc. Chiriașul are obligația ca pentru autoturismul pus la dispoziție să plătească o chirie echivalentă în lei la cursul BNR.\nd. Chiriașul este obligat să constituie un depozit ca garanție (dacă e cazul).\ne. Chiriașul se obligă să folosească autoturismul cu diligența unui bun proprietar.\nf. Lipsa obiectelor de inventar atrage reținerea contravalorii.\ng. Tariful nu cuprinde combustibilul, taxele de trecere/parcare, amenzile.";
+  drawText(sd(condGen), 4.5);
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 6 – LOCUL DE ÎNCHIRIERE ȘI UTILIZAREA AUTOTURISMULUI :"));
+  doc.setFont(undefined, "normal");
+  const locUt = "a. Restituirea autoturismului în altă locație (>30 km) presupune taxe suplimentare.\nb. Utilizarea este exclusiv în scopul transportului de persoane.\nc. Proprietarul își păstrează dreptul de proprietate deplină.\nd. Chiriașul nu poate cere restituirea contravalorii îmbunătățirilor.\ne. Utilizarea în afara granițelor României se poate face doar cu acordul expres și scris al proprietarului.\nf. Documentele mașinii trebuie restituite împreună cu aceasta (penalitate 10 Euro/zi lipsă).";
+  drawText(sd(locUt), 4.5);
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 7 – DREPTURILE ȘI OBLIGAȚIILE PĂRȚILOR :"));
+  doc.setFont(undefined, "normal");
+  const dreptObl = "Proprietarul:\na. Să pună la dispoziție autoturismul conform contractului.\nb. Să predea autoturismul cu rezervorul de carburant plin (dacă se aplică).\nc. Să asigure RCA pe toată durata.\n\nChiriașul:\na. De a plăti chiria (sau a o deconta prin asigurator).\nb. De a exploata normal autoturismul.\nc. De a achita amenzile pe perioada închirierii.\nd. De a returna autoturismul cu același nivel de carburant (altfel 1 Euro/litru).\ne. De a poseda permis valabil (>1 an). Dacă conduce altcineva, răspunde solidar.\nf. Întârzierile neanunțate la returnare atrag penalități: 10% pe zi (orele 2-4), chiria întreagă (din ziua 5). Nereturnarea în 24h poate fi considerată abuz de încredere (art 213 c.p.).\ng. Avariile din culpa chiriașului se suportă de acesta (în caz că nu le acoperă asigurarea). Conducerea sub influența alcoolului atrage răspunderea exclusivă a chiriașului.\nh. Interzis transportul contra cost sau remorcarea.";
+  drawText(sd(dreptObl), 4.5);
+
+  doc.setFont(undefined, "bold");
+  drawText(sd("Art. 8, 9, 10, 11 – CESIUNEA, ÎNCETAREA, FORȚA MAJORĂ, LITIGII :"));
+  doc.setFont(undefined, "normal");
+  const finale = "Contractul nu poate fi cesionat fără acord scris. Încetează la expirarea termenului sau la neîndeplinirea obligațiilor. Forța majoră exonerează de răspundere conform legii. Litigiile se rezolvă amiabil sau la instanța proprietarului. Contractul are valoare de titlu executoriu.";
+  drawText(sd(finale), 4.5);
+
+  y += 10;
+  if (y > 250) {
+      doc.addPage();
+      y = 20;
+  }
+  doc.setFont(undefined, "bold");
+  doc.text("PROPRIETAR,", 25, y);
+  doc.text("CHIRIAS,", 135, y);
+  y += 5;
+  doc.setFont(undefined, "normal");
+  doc.text("S.C. AUTO WASH IMPEX SRL", 25, y);
+  doc.text(sd(claim.client || ".........................."), 135, y);
+  y += 5;
+  doc.text("Director Sorin Tudorov", 25, y);
+
+  doc.save("contract-inchiriere-" + stripDiacritics(claim.numarDosar || "nou") + ".pdf");
+}
