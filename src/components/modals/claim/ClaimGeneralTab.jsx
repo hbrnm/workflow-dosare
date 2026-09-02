@@ -404,11 +404,6 @@ export default function ClaimGeneralTab({
         <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-3 space-y-2 shadow-2xs">
           <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
             <span className="flex items-center gap-1.5"><Car size={14} /> Mașină la Schimb</span>
-            {!isNew && form.masinaSchimb && (
-              <button type="button" onClick={() => generateazaProcesVerbalMasinaSchimb(form)} className="text-[11px] font-semibold text-[var(--app-warning)] hover:underline flex items-center gap-1 cursor-pointer">
-                <FileDown size={12} /> PV Auto Schimb
-              </button>
-            )}
           </div>
 
           <label className="flex items-center gap-2 text-[11.5px] font-bold text-[var(--app-muted)] cursor-pointer">
@@ -418,9 +413,15 @@ export default function ClaimGeneralTab({
 
           {form.masinaSchimb && (
             <div className="space-y-2 pt-1 border-t border-[var(--app-border)]">
-              <div>
-                <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Model Mașină Oferită</label>
-                <input className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg uppercase bg-[var(--app-surface-2)]" placeholder="ex: HYUNDAI I20 (B100ABC)" value={form.masinaSchimbModel || ""} onChange={(e) => set("masinaSchimbModel", e.target.value.toUpperCase())} />
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Model Mașină Oferită</label>
+                  <input className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg uppercase bg-[var(--app-surface-2)]" placeholder="ex: HYUNDAI I20" value={form.masinaSchimbModel || ""} onChange={(e) => set("masinaSchimbModel", e.target.value.toUpperCase())} />
+                </div>
+                <div>
+                  <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Nr. Înmatriculare Închiriere</label>
+                  <input className="w-full text-[12px] font-bold p-1.5 border border-[var(--app-border)] rounded-lg uppercase bg-[var(--app-surface-2)]" placeholder="ex: B100ABC" value={form.masinaSchimbNumar || ""} onChange={(e) => set("masinaSchimbNumar", e.target.value.toUpperCase())} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px]">

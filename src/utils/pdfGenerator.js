@@ -58,7 +58,10 @@ export async function generateazaPDF(claim, istoric = [], branding = null) {
   const descText = sd(claim.ceEsteDeReparat || "—");
   const desc = doc.splitTextToSize(descText, 180);
   doc.text(desc, 14, y); y += desc.length * 6 + 4;
-  linie("Mașină la schimb", claim.masinaSchimb);
+  const masinaSchimbText = claim.masinaSchimb 
+    ? (claim.masinaSchimbModel || claim.masinaSchimbNumar ? `${claim.masinaSchimbModel || ""} ${claim.masinaSchimbNumar || ""}`.trim() : "Da") 
+    : "Nu";
+  linie("Mașină la schimb", masinaSchimbText);
   linie("Zile chirie Audatex", claim.zileChirieAudatex);
   y += 3;
   linie("Valoare piese Audatex", `${claim.valoarePieseAudatex || 0} lei`);
@@ -151,7 +154,7 @@ export async function generateazaProcesVerbalMasinaSchimb(claim) {
   doc.setFont(undefined, "bold");
   doc.text(sd("Nr. Înmatriculare Auto la Schimb:"), 18, boxY);
   doc.setFont(undefined, "normal");
-  doc.text(sd(claim.masinaSchimb || "Nespecificat"), 85, boxY);
+  doc.text(sd(claim.masinaSchimbNumar || "...................."), 85, boxY);
   boxY += 8;
 
   doc.setFont(undefined, "bold");
@@ -1211,7 +1214,7 @@ export async function generateazaContractInchiriere(claim) {
 
   doc.setFont(undefined, "normal");
   const p1 = "1. S.C. AUTO WASH IMPEX. cu sediul în Bucuresti, str.Uverturii nr.151 sec.6, înmatriculată la Registrul Comerțului Bucuresti sub nr. J40/11131/2005, CUI 17717698, cont RO08 MIRO 0000 1184 0304 0001 la PROCREDIT BANK, reprezentată de Sorin Tudorov (administrator), denumită PROPRIETAR";
-  const p2 = "2. " + sd(claim.client || "..........................") + ", telefon: " + sd(claim.telefonClient || "..........................") + ", (restul datelor de identificare se vor completa olograf de către client: CUI/CNP, adresă, serie CI, etc.), denumit în continuare CHIRIAȘ.";
+  const p2 = "2. " + sd(claim.client || "..........................") + " cu sediul / domiciliat în ................................................, str. ..................................... nr. ......., jud. ................., CUI / CNP ......................................., legitimat cu ....... seria ....... nr. ...................., eliberat de .............................. la data de ...................., telefon: " + sd(claim.telefonClient || "....................") + ", denumit în continuare CHIRIAȘ.";
   
   const drawText = (text, spacing = 5) => {
       const lines = doc.splitTextToSize(text, 180);
@@ -1230,7 +1233,7 @@ export async function generateazaContractInchiriere(claim) {
   doc.setFont(undefined, "bold");
   drawText(sd("Art. 2 – OBIECTUL CONTRACTULUI :"));
   doc.setFont(undefined, "normal");
-  drawText(sd("Obiectul contractului îl constituie închirierea autoturismului la schimb având nr. înmatriculare " + sd(claim.masinaSchimb || "....................") + " (pentru clientul cu auto avariat marca " + sd(claim.marcaModel || ".....") + " nr. " + sd(claim.numarInmatriculare || ".....") + ")."));
+  drawText(sd("Obiectul contractului îl constituie închirierea autoturismului la schimb având nr. înmatriculare " + sd(claim.masinaSchimbNumar || "....................") + " (pentru clientul cu auto avariat marca " + sd(claim.marcaModel || ".....") + " nr. " + sd(claim.numarInmatriculare || ".....") + ")."));
 
   doc.setFont(undefined, "bold");
   drawText(sd("Art. 3 - TERMENUL :"));
