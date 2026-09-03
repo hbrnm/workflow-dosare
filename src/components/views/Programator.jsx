@@ -56,14 +56,14 @@ export function makeIsoFromSlot(baseIsoStr, slot) {
   return `${datePart}T${startHour}:00`;
 }
 
-function checkMasinaSchimbConflict(claims, currentId, masinaSchimb, dateStr) {
-  if (!masinaSchimb || !masinaSchimb.trim()) return false;
+function checkMasinaSchimbConflict(claims, currentId, masinaSchimbNumar, dateStr) {
+  if (!masinaSchimbNumar || typeof masinaSchimbNumar !== "string" || !masinaSchimbNumar.trim()) return false;
   const targetDate = dateStr.slice(0, 10);
   return claims.some(
     (c) =>
       c.id !== currentId &&
-      c.masinaSchimb &&
-      c.masinaSchimb.trim().toLowerCase() === masinaSchimb.trim().toLowerCase() &&
+      c.masinaSchimbNumar &&
+      c.masinaSchimbNumar.trim().toLowerCase() === masinaSchimbNumar.trim().toLowerCase() &&
       c.dataProgramare &&
       c.dataProgramare.slice(0, 10) === targetDate
   );

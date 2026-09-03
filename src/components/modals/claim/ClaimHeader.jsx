@@ -10,6 +10,7 @@ import {
   generateazaFisaIntrareService,
   generateazaCerereDespagubireOmniasig,
   generateazaCerereDespagubireAsirom,
+  generateazaContractInchiriere,
 } from "../../../utils/pdfGenerator";
 import { resolveCerereDespagubireKind, OMNIASIG_CERERE_PLATA } from "../../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../../constants/branding";
@@ -218,17 +219,30 @@ export default function ClaimHeader({
                     </button>
                   ) : null}
                   {form.masinaSchimb ? (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] rounded-lg transition-colors"
-                      onClick={() => {
-                        setPdfMenuOpen(false);
-                        generateazaProcesVerbalMasinaSchimb(form);
-                      }}
-                    >
-                      <Car size={13} /> PV Auto la Schimb
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] rounded-lg transition-colors"
+                        onClick={() => {
+                          setPdfMenuOpen(false);
+                          generateazaProcesVerbalMasinaSchimb(form);
+                        }}
+                      >
+                        <Car size={13} /> PV Auto la Schimb
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] rounded-lg transition-colors"
+                        onClick={() => {
+                          setPdfMenuOpen(false);
+                          generateazaContractInchiriere(form);
+                        }}
+                      >
+                        <FileText size={13} /> Contract Închiriere Auto
+                      </button>
+                    </>
                   ) : null}
                 </div>
               )}

@@ -25,7 +25,7 @@ export default function ProgramatorClaimCard({
   const conflict = checkMasinaSchimbConflict(
     claims,
     lead.id,
-    lead.masinaSchimb,
+    lead.masinaSchimbNumar,
     lead.dataProgramare || ""
   );
   const status = lead.programareStatus;
@@ -213,13 +213,13 @@ export default function ProgramatorClaimCard({
         <div className="text-[10px] font-bold text-[var(--app-success)] mt-1">✓ Programare onorată</div>
       )}
 
-      {claim.masinaSchimb && (
+      {claim.masinaSchimbNumar && (
         <div
           className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-1 w-max flex items-center gap-1 ${
             conflict ? "app-prog-schimb-conflict" : "app-prog-schimb-ok"
           }`}
         >
-          <Car size={10} className="shrink-0" /> Auto schimb: {claim.masinaSchimb}
+          <Car size={10} className="shrink-0" /> Auto schimb: {claim.masinaSchimbNumar}
           {conflict && <span className="inline-flex items-center gap-0.5"><AlertTriangle size={10} /> Conflict</span>}
         </div>
       )}

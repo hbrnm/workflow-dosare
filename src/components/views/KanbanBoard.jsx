@@ -122,7 +122,7 @@ const ClaimCard = React.memo(function ClaimCardBase({ claim, onOpen, onMove, onD
               {claim.blocat && <Pill tone="danger">blocat</Pill>}
               {claim.masinaSchimb && (
                 <span className="px-1 py-0.2 rounded bg-[var(--app-warning-muted)] text-[var(--app-warning)] font-bold">
-                  {claim.masinaSchimb}
+                  {claim.masinaSchimbNumar || "Rent-a-car"}
                 </span>
               )}
               {claim.gataDeRidicare && !claim.ridicata && (
@@ -315,7 +315,7 @@ const ClaimCard = React.memo(function ClaimCardBase({ claim, onOpen, onMove, onD
             {claim.blocat && <Pill tone="danger">blocat</Pill>}
             {claim.masinaSchimb && (
               <span className="px-1.5 py-0.2 rounded bg-[var(--app-warning-muted)] text-[var(--app-warning)] font-bold">
-                {claim.masinaSchimb}
+                {claim.masinaSchimbNumar || "Rent-a-car"}
               </span>
             )}
             {claim.gataDeRidicare && !claim.ridicata && (

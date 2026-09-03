@@ -39,7 +39,7 @@ export default function Dashboard({
   }, [claims, stageOverdueCount]);
 
   const masiniSchimbActive = useMemo(() => {
-    return claims.filter((c) => c.masinaSchimb && c.masinaSchimb.trim() && c.status !== "facturat")
+    return claims.filter((c) => c.masinaSchimb && c.status !== "facturat")
       .map((c) => {
         const zileChirieEfective = daysBetween(c.dataDariiLaSchimb || c.dataProgramare);
         const depasit = c.zileChirieAudatex > 0 && zileChirieEfective > c.zileChirieAudatex;
@@ -230,7 +230,7 @@ export default function Dashboard({
                     </div>
                     <div className="app-type-xs text-[var(--app-muted)] font-mono mt-0.5 flex items-center gap-1">
                       <Car size={11} className="shrink-0 opacity-70" />
-                      <span className="font-semibold text-[var(--app-text)]">{c.masinaSchimb}</span>
+                      <span className="font-semibold text-[var(--app-text)]">{c.masinaSchimbNumar || "Rent-a-car"}</span>
                       <span>· predare: {c.dataDariiLaSchimb ? fmtDate(c.dataDariiLaSchimb) : "neprecizată"} · {statusDef.label}</span>
                     </div>
                   </div>
