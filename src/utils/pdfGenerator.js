@@ -842,7 +842,10 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   };
 
   // Date atelier / branding
-  const atelierNume = sd(branding?.nume || branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar, "AUTO WASH IMPEX SRL");
+  let atelierNume = sd(branding?.nume || branding?.atelierNume || OMNIASIG_CERERE_PLATA.beneficiar);
+  if (atelierNume.toUpperCase().includes("AUTO WASH") && !atelierNume.toUpperCase().includes("IMPEX")) {
+    atelierNume = "AUTO WASH IMPEX SRL";
+  }
   const atelierIban = sd(branding?.iban || OMNIASIG_CERERE_PLATA.cont, "RO56MIRO0000118403040301");
   const atelierBanca = sd(branding?.banca || OMNIASIG_CERERE_PLATA.banca, "PROCREDIT BANK");
   const atelierEmail = sd(branding?.email || claim?.emailClient || "daune@serviceautocrangasi.ro");
@@ -860,7 +863,7 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
 
   // Sume
   const valoareSuma = claim?.valoareDevizAudatex || claim?.financiar?.valoareDevizAudatex || claim?.financiar?.audatex?.costReparatieFaraTva || claim?.sumaDecont || claim?.financiar?.costDeviz;
-  const sumaText = valoareSuma ? `${Number(valoareSuma).toFixed(2)}` : "5142.43";
+  const sumaText = "......................";
 
   // Declarant
   const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client || "VANCICA RAZVAN PETRISOR");
