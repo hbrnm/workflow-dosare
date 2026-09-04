@@ -851,14 +851,14 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   const atelierEmail = sd(branding?.email || claim?.emailClient || "daune@serviceautocrangasi.ro");
 
   // Date dosar
-  const nrDosar = sd(claim?.nrDosarAsigurator || claim?.numarDosar || "33211775");
+  const nrDosar = sd(claim?.nrDosarAsigurator || claim?.numarDosar || "....................");
   const tip = String(claim?.tipAsigurare || "").toUpperCase();
   const isRca = tip.includes("RCA") || (!tip.includes("CASCO") && !tip.includes("NON"));
   const isCasco = tip.includes("CASCO");
   const isNonAuto = tip.includes("NON");
 
-  const bunAvariat = sd(claim?.numarInmatriculare || claim?.marcaModel || "B110THO");
-  const asiguratPagubit = sd(parties.proprietar || claim?.client || "UNICREDIT LEASING CORPORATION IFN S.A");
+  const bunAvariat = sd(claim?.numarInmatriculare || claim?.marcaModel || "....................");
+  const asiguratPagubit = sd(parties.proprietar || claim?.client || "........................................");
   const dataEveniment = claim?.dataEveniment ? fmtDate(claim.dataEveniment) : fmtDate(claim?.dataDeschiderii || todayISO());
 
   // Sume
@@ -866,13 +866,13 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   const sumaText = "......................";
 
   // Declarant
-  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client || "VANCICA RAZVAN PETRISOR");
-  const cnpDisplay = claim?.cnp ? sd(claim.cnp) : "1991117282214";
-  const domDisplay = (claim?.adresaClient || claim?.adresa || claim?.localitateClient)
-    ? sd(claim?.adresaClient || claim?.adresa || claim?.localitateClient)
-    : "HOTARU STR. MARINESCU FLORIAN , NR.6";
-  const ciDisplaySeria = claim?.serieCI ? sd(claim.serieCI) : "SL";
-  const ciDisplayNr = claim?.numarCI ? sd(claim.numarCI) : "112387";
+  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client || "........................................");
+  const cnpDisplay = claim?.cnp ? sd(claim.cnp) : "....................................";
+  const domDisplay = (claim?.adresaDomiciliu || claim?.adresaClient)
+    ? sd(claim?.adresaDomiciliu || claim?.adresaClient)
+    : ".................................................................";
+  const ciDisplaySeria = claim?.serieCI ? sd(claim.serieCI) : "..........";
+  const ciDisplayNr = claim?.numarCI ? sd(claim.numarCI) : "....................";
 
   const isCompany = parties.asCompanyOwner || isCompanyClientName(parties.proprietar);
   const hasDelegat = parties.hasSeparateDelegat;
@@ -1095,10 +1095,11 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   // ==========================================
   drawBox(margin, y, contentW, 6.2);
   doc.setFont("times", "bold");
-  doc.setFontSize(8.5);
-  write("Doresc să primesc informare după realizarea plății la adresa de email:", margin + 3, y + 4.2);
-  doc.setFont("times", "bold");
-  write(atelierEmail, margin + 88, y + 4.2);
+  doc.setFontSize(8.0);
+  const emailLabel = "Doresc să primesc informare după realizarea plății la adresa de email: ";
+  write(emailLabel, margin + 3, y + 4.2);
+  const emailLabelW = doc.getTextWidth(sd(emailLabel));
+  write(atelierEmail, margin + 3 + emailLabelW + 1.5, y + 4.2);
   y += 9.0;
 
   doc.setFont("times", "normal");
@@ -1154,21 +1155,21 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   doc.setFontSize(7.0);
   doc.setTextColor(90);
   write("Societatea Asigurarea Românească ASIROM VIENNA INSURANCE GROUP S.A.", margin, y);
-  write("Capital social subscris și vărsat: 292.484.901,30 lei.", margin + 115, y);
+  write("Capital social subscris și vărsat: 292.484.901,30 lei.", margin + contentW, y, { align: "right" });
   y += 3.2;
 
   doc.setFont("times", "normal");
-  doc.setFontSize(6.5);
-  write("Bulevardul Carol I nr. 31-33, Sector 2, Cod 020912, București, România. Nr. de înregistrare la Reg. Com.: J1991000304405, CUI: 336290", margin, y);
-  write("Societate autorizată de ASF. Nr. Înmatriculare Registrul Asigurătorilor: RA-023/2003", margin + 115, y);
+  doc.setFontSize(6.0);
+  write("B-dul Carol I nr. 31-33, Sector 2, București, România. Reg. Com.: J1991000304405, CUI: 336290", margin, y);
+  write("Societate autorizată de ASF. Reg. Asigurători: RA-023/2003", margin + contentW, y, { align: "right" });
   y += 3.0;
 
   write("EUID: ROONRC.J1991000304405 · Societate condusă printr-un sistem dualist", margin, y);
-  write("Customer Care Asirom: 021 9146 · info@asirom.ro", margin + 115, y);
+  write("Customer Care Asirom: 021 9146 · info@asirom.ro", margin + contentW, y, { align: "right" });
   y += 3.5;
 
   doc.setFontSize(7.0);
-  write("Pagina - 1 -", (margin + contentW / 2) - 8, y);
+  write("Pagina - 1 -", margin + contentW / 2, y, { align: "center" });
 
   const pdfBytes = doc.output("arraybuffer");
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
