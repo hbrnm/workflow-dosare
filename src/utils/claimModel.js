@@ -22,6 +22,27 @@ export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
   return topInsurer;
 }
 
+/**
+ * Generează un token scurt, prietenos și profesional (ex: TK-78F2A).
+ * Folosește caractere neambigue (fără O, 0, I, 1).
+ */
+export function generateTrackingToken() {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let part = "";
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    const bytes = new Uint8Array(5);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 5; i++) {
+      part += chars[bytes[i] % chars.length];
+    }
+  } else {
+    for (let i = 0; i < 5; i++) {
+      part += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  }
+  return `TK-${part}`;
+}
+
 export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG") {
   return {
     id: uid(),
@@ -47,7 +68,7 @@ export function emptyClaim(status = "deschidere", defaultInsurer = "Omniasig VIG
     tipDocumente: [],
     nrDosarAsigurator: "",
     inspectorDauna: "",
-    trackingToken: (crypto.randomUUID ? crypto.randomUUID() : uid()).replace(/-/g, ""),
+    trackingToken: generateTrackingToken(),
     termenPlata: null,
     sumaDecont: 0,
     devize: [],

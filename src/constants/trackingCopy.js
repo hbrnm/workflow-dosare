@@ -79,16 +79,23 @@ export const CLIENT_PHASE_HINTS = {
 export function getTrackingTokenFromLocation() {
   try {
     const params = new URLSearchParams(window.location.search);
-    return params.get("track") || params.get("t") || "";
+    return params.get("t") || params.get("track") || "";
   } catch {
     return "";
   }
 }
 
-export function buildTrackingUrl(token) {
-  if (!token || typeof window === "undefined") return "";
-  const url = new URL(window.location.origin + window.location.pathname);
-  url.searchParams.set("track", token);
+export function buildTrackingUrl(token, baseUrl) {
+  if (!token) return "";
+  let base = baseUrl;
+  if (!base && typeof window !== "undefined" && window.location?.origin) {
+    base = window.location.origin + window.location.pathname;
+  }
+  if (!base) {
+    base = "https://app.workflow-daune.ro/";
+  }
+  const url = new URL(base);
+  url.searchParams.set("t", token);
   return url.toString();
 }
 

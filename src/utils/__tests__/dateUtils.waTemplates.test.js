@@ -29,7 +29,7 @@ describe("WA_TEMPLATES acte", () => {
       "Auto Service Pro"
     );
     expect(msg).toContain("VW Golf (B999ABC)");
-    expect(msg).toContain("?track=abcdef123456");
+    expect(msg).toContain("?t=abcdef123456");
     expect(msg).toContain("Echipa Auto Service Pro");
   });
 });
