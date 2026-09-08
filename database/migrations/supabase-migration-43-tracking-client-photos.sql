@@ -1,4 +1,4 @@
-﻿-- Migrare 43: Expunere fotografii atelier (vizibilClient / categoria predare) in portalul public de tracking
+-- Migrare 43: Expunere fotografii atelier (vizibilClient / categoria predare) in portalul public de tracking
 -- Executa in Supabase SQL Editor.
 --
 -- Ce face:
@@ -21,13 +21,14 @@ declare
   v_atelier record;
   v_poze jsonb;
 begin
-  if p_token is null or length(trim(p_token)) < 8 then
+  if p_token is null or length(trim(p_token)) < 4 then
     return null;
   end if;
 
   select * into r
   from public.dosare
-  where tracking_token = trim(p_token)
+  where upper(trim(tracking_token)) = upper(trim(p_token))
+     or tracking_token = trim(p_token)
   limit 1;
 
   if not found then

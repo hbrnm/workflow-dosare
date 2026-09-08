@@ -17,6 +17,7 @@ import {
   generateazaProcesVerbalMasinaSchimb
 } from "../../../utils/pdfGenerator";
 import { loadCachedBranding } from "../../../constants/branding";
+import { buildTrackingUrl } from "../../../constants/trackingCopy";
 
 export default function ClaimGeneralTab({
   form,
@@ -329,8 +330,8 @@ export default function ClaimGeneralTab({
                   <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-sky-700 flex items-center gap-1">
                     <Link2 size={12} className="text-sky-600" /> Urmărire Client (Live)
                   </span>
-                  <span className="text-[9.5px] text-[var(--app-muted)] font-mono">
-                    Token: {form.trackingToken.slice(0, 8)}…
+                  <span className="text-[10px] text-sky-800 font-mono font-bold bg-sky-100/80 px-1.5 py-0.5 rounded border border-sky-200">
+                    Cod: {form.trackingToken}
                   </span>
                 </div>
 
@@ -338,13 +339,13 @@ export default function ClaimGeneralTab({
                   <input
                     type="text"
                     readOnly
-                    value={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : ""}
+                    value={buildTrackingUrl(form.trackingToken)}
                     className="flex-1 font-mono text-[10px] p-1.5 border border-sky-200 bg-sky-50/50 rounded-lg text-sky-950 select-all"
                   />
                   <button
                     type="button"
                     onClick={async () => {
-                      const url = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "";
+                      const url = buildTrackingUrl(form.trackingToken);
                       try {
                         await navigator.clipboard.writeText(url);
                         onNotify?.("Link-ul de urmărire a fost copiat în clipboard!", "success");
@@ -358,7 +359,7 @@ export default function ClaimGeneralTab({
                     <Copy size={11} /> Copiază
                   </button>
                   <a
-                    href={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "#"}
+                    href={buildTrackingUrl(form.trackingToken) || "#"}
                     target="_blank"
                     rel="noreferrer"
                     className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors flex items-center gap-1 text-[10.5px] font-bold"
@@ -372,7 +373,7 @@ export default function ClaimGeneralTab({
                   <a
                     href={waLink(
                       form.telefonClient,
-                      `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${form.marcaModel ? `${form.marcaModel} ` : ""}(${form.numarInmatriculare || ""}) in timp real accesand link-ul: ${typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : ""} — Echipa ${loadCachedBranding()?.atelierNume || "service"}.`
+                      `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${form.marcaModel ? `${form.marcaModel} ` : ""}(${form.numarInmatriculare || ""}) in timp real accesand link-ul: ${buildTrackingUrl(form.trackingToken)} — Echipa ${loadCachedBranding()?.atelierNume || "service"}.`
                     )}
                     target="_blank"
                     rel="noreferrer"
