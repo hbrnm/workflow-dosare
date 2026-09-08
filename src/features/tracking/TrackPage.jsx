@@ -8,6 +8,7 @@ import {
   getClientPhaseIndex,
   CLIENT_PHASE_HINTS,
 } from "../../constants/trackingCopy";
+import { refreshStorageUrls } from "../../utils/claimMedia";
 
 /** Pagină publică: /?track=TOKEN — fără login. */
 export default function TrackPage({ token }) {
@@ -32,10 +33,10 @@ export default function TrackPage({ token }) {
         }
         setData(row || null);
 
-        // 2. Preia fotografiile marcate ca vizibilClient: true
-        // RPC-ul poate întoarce direct pozele dacă migrarea e aplicată, altfel facem fallback pe coloana poze
+        // 2. Preia fotografiile marcate ca vizibilClient: true sau categoria predare
+        let rawPoze = [];
         if (row && Array.isArray(row.poze)) {
-          setPhotos(row.poze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+          rawPoze = row.poze;
         } else if (row) {
           try {
             const { data: claimRows } = await supabase
@@ -44,11 +45,36 @@ export default function TrackPage({ token }) {
               .eq("tracking_token", String(token).trim())
               .limit(1);
             if (!alive) return;
-            const rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
-            setPhotos(rawPoze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+            rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
           } catch {
-            // RLS anonim poate restricționa select direct dacă nu e policy; ignorăm silențios
+            // RLS fallback pentru anonim
           }
+        }
+
+        const filtered = rawPoze.filter((p) => p && (p.vizibilClient || p.categoria === "predare"));
+        if (filtered.length > 0) {
+          // Generăm URL-uri directe sigure: dacă e în Supabase Storage, încercăm signed URL
+          // iar dacă RPC/anonimul nu poate semna, folosim public URL direct
+          let resolved = await refreshStorageUrls(filtered, "poze-dosare", supabase);
+          resolved = resolved.map((item) => {
+            if (!item) return item;
+            // Dacă item.url lipsește sau este expirat (un signedUrl vechi salvat în DB), creăm un URL valid
+            if (item.path) {
+              const { data: pub } = supabase.storage.from("poze-dosare").getPublicUrl(item.path);
+              const pubUrl = pub?.publicUrl || "";
+              return {
+                ...item,
+                url: item.url && !item.url.includes("token=") ? item.url : (item.url || pubUrl),
+                fallbackUrl: pubUrl,
+              };
+            }
+            return item;
+          });
+          if (alive) {
+            setPhotos(resolved);
+          }
+        } else if (alive) {
+          setPhotos([]);
         }
       } catch (e) {
         if (!alive) return;
@@ -60,6 +86,7 @@ export default function TrackPage({ token }) {
       alive = false;
     };
   }, [token]);
+
 
 
   if (data === undefined) {
@@ -157,53 +184,58 @@ export default function TrackPage({ token }) {
         </div>
 
         {/* Bara de progres */}
-        <div className="mt-4 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] px-4 py-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between text-xs text-[var(--v2-muted)]">
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Progres reparație</span>
-            <span className="font-bold text-[var(--v2-accent)]">{progress}%</span>
+        <div className="mt-4 rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-surface)] px-4 py-3.5 shadow-sm">
+          <div className="mb-2.5 flex items-center justify-between text-xs text-[var(--v2-muted)]">
+            <span className="font-bold uppercase tracking-wider text-[10.5px]">Progres reparație</span>
+            <span className="font-extrabold text-sm text-[var(--v2-accent)]">{progress}%</span>
           </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-[var(--v2-bg)] p-0.5">
+          <div className="h-3 overflow-hidden rounded-full bg-[var(--v2-bg)] p-0.5 border border-[var(--v2-border)]/60">
             <div
-              className="h-full rounded-full bg-[var(--v2-accent)] transition-all duration-700 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--v2-accent)] via-amber-400 to-[var(--v2-accent)] transition-all duration-700 ease-out shadow-xs"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
         {/* Timeline stadii */}
-        <ol className="mt-5 space-y-2">
+        <ol className="mt-5 space-y-2.5">
           {PIPELINE_PHASES.map((phase, i) => {
             const done = phaseIdx > i || (delivered && i === PIPELINE_PHASES.length - 1) || (ready && i >= 3);
             const current = !delivered && phaseIdx === i;
             return (
               <li
                 key={phase.key}
-                className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 transition ${
+                className={`flex items-start gap-3.5 rounded-2xl border px-4 py-3.5 transition-all duration-200 ${
                   current
-                    ? "border-[var(--v2-accent)] bg-[var(--v2-surface)] shadow-md"
-                    : "border-[var(--v2-border)] bg-[var(--v2-surface)]/60"
+                    ? "border-[var(--v2-accent)] bg-[var(--v2-surface)] shadow-lg ring-1 ring-[var(--v2-accent)]/20"
+                    : done
+                    ? "border-[var(--v2-border)] bg-[var(--v2-surface)]/80"
+                    : "border-[var(--v2-border)]/50 bg-[var(--v2-surface)]/30 opacity-70"
                 }`}
               >
                 <span
-                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                    done || current
-                      ? "bg-[var(--v2-accent)] text-[#1a1510]"
+                  className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                    done
+                      ? "bg-emerald-500 text-slate-950 font-black shadow-xs"
+                      : current
+                      ? "bg-[var(--v2-accent)] text-[#1a1510] font-black shadow-xs scale-105"
                       : "bg-[var(--v2-surface-2)] text-[var(--v2-muted)]"
                   }`}
                 >
-                  {done && !current ? <Check size={14} strokeWidth={3} /> : i + 1}
+                  {done ? <Check size={14} strokeWidth={3.5} /> : i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div
-                    className={`text-sm font-semibold ${
+                    className={`text-sm font-semibold tracking-tight ${
                       current || done ? "text-[var(--v2-text)]" : "text-[var(--v2-muted)]"
                     }`}
                   >
                     {CLIENT_PHASE_HINTS[phase.key] || phase.label}
                   </div>
                   {current && (
-                    <div className="mt-0.5 text-xs text-[var(--v2-accent)] font-medium">
-                      Acum: {st.label}
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--v2-accent)] font-medium">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--v2-accent)] animate-ping" />
+                      <span>Acum: {st.label}</span>
                       {data.piese_sosite && st.key === "piese_comandate" ? " · piese sosite în atelier" : ""}
                     </div>
                   )}
@@ -226,27 +258,36 @@ export default function TrackPage({ token }) {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {photos.map((photo, pIdx) => (
-                <button
-                  key={photo.id || pIdx}
-                  type="button"
-                  onClick={() => setPreviewPhotoIndex(pIdx)}
-                  className="group relative aspect-square rounded-xl overflow-hidden border border-[var(--v2-border)] bg-black/20 focus:outline-none focus:ring-2 focus:ring-[var(--v2-accent)] transition-all"
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.reperLabel || photo.nume || "Foto atelier"}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
-                  <div className="absolute bottom-1.5 left-1.5 right-1.5 text-left pointer-events-none">
-                    <span className="inline-block text-[10px] font-bold text-white leading-tight truncate max-w-full drop-shadow">
-                      {photo.reperLabel || (photo.categoria === "predare" ? "Gata de predare" : "Lucrare atelier")}
-                    </span>
-                  </div>
-                </button>
-              ))}
+              {photos.map((photo, pIdx) => {
+                const caption = photo.reperLabel || (photo.categoria === "predare" ? "Gata de predare" : "Lucrare atelier");
+                return (
+                  <button
+                    key={photo.id || pIdx}
+                    type="button"
+                    onClick={() => setPreviewPhotoIndex(pIdx)}
+                    className="group relative aspect-square rounded-xl overflow-hidden border border-[var(--v2-border)] bg-[var(--v2-surface-2)] focus:outline-none focus:ring-2 focus:ring-[var(--v2-accent)] transition-all cursor-pointer"
+                  >
+                    <img
+                      src={photo.url}
+                      alt={caption}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      onError={(e) => {
+                        // Dacă primul URL a picat (ex: token semnat expirat), încercăm publicUrl fallback
+                        if (photo.fallbackUrl && e.currentTarget.src !== photo.fallbackUrl) {
+                          e.currentTarget.src = photo.fallbackUrl;
+                        }
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-90 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-1.5 left-1.5 right-1.5 text-left pointer-events-none">
+                      <span className="inline-block text-[10px] font-bold text-white leading-tight truncate max-w-full drop-shadow">
+                        {caption}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -318,6 +359,11 @@ export default function TrackPage({ token }) {
               src={photos[previewPhotoIndex].url}
               alt="Foto mare atelier"
               className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+              onError={(e) => {
+                if (photos[previewPhotoIndex]?.fallbackUrl && e.currentTarget.src !== photos[previewPhotoIndex].fallbackUrl) {
+                  e.currentTarget.src = photos[previewPhotoIndex].fallbackUrl;
+                }
+              }}
             />
 
             {/* Buton Navigare Stânga */}
