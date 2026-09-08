@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, Car, Phone, Calendar, Clock, Sparkles, ShieldCheck } from "lucide-react";
+import { Check, Car, Phone, Calendar, Clock, Sparkles, ShieldCheck, Camera, Image as ImageIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { getStatusDefinition, getPhaseColors, PIPELINE_PHASES } from "../../constants/config";
 import { supabase } from "../../supabaseClient";
 import {
@@ -12,12 +12,15 @@ import {
 /** Pagină publică: /?track=TOKEN — fără login. */
 export default function TrackPage({ token }) {
   const [data, setData] = useState(undefined);
+  const [photos, setPhotos] = useState([]);
+  const [previewPhotoIndex, setPreviewPhotoIndex] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
+        // 1. Preia datele dosarului via RPC securizat
         const { data: row, error: err } = await supabase.rpc("get_public_tracking", {
           p_token: token,
         });
@@ -28,6 +31,25 @@ export default function TrackPage({ token }) {
           return;
         }
         setData(row || null);
+
+        // 2. Preia fotografiile marcate ca vizibilClient: true
+        // RPC-ul poate întoarce direct pozele dacă migrarea e aplicată, altfel facem fallback pe coloana poze
+        if (row && Array.isArray(row.poze)) {
+          setPhotos(row.poze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+        } else if (row) {
+          try {
+            const { data: claimRows } = await supabase
+              .from("dosare")
+              .select("poze")
+              .eq("tracking_token", String(token).trim())
+              .limit(1);
+            if (!alive) return;
+            const rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
+            setPhotos(rawPoze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+          } catch {
+            // RLS anonim poate restricționa select direct dacă nu e policy; ignorăm silențios
+          }
+        }
       } catch (e) {
         if (!alive) return;
         setError(e.message || "Eroare");
@@ -38,6 +60,7 @@ export default function TrackPage({ token }) {
       alive = false;
     };
   }, [token]);
+
 
   if (data === undefined) {
     return (
@@ -190,6 +213,44 @@ export default function TrackPage({ token }) {
           })}
         </ol>
 
+        {/* Galeria Foto din Atelier (Jurnal de Lucru) */}
+        {photos.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3 border-b border-[var(--v2-border)]/70 pb-2">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--v2-accent)] flex items-center gap-1.5">
+                <Camera size={14} /> Jurnal Foto din Atelier ({photos.length})
+              </span>
+              <span className="text-[10px] text-[var(--v2-muted)] font-medium">
+                Atinge pentru a mări
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {photos.map((photo, pIdx) => (
+                <button
+                  key={photo.id || pIdx}
+                  type="button"
+                  onClick={() => setPreviewPhotoIndex(pIdx)}
+                  className="group relative aspect-square rounded-xl overflow-hidden border border-[var(--v2-border)] bg-black/20 focus:outline-none focus:ring-2 focus:ring-[var(--v2-accent)] transition-all"
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.reperLabel || photo.nume || "Foto atelier"}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
+                  <div className="absolute bottom-1.5 left-1.5 right-1.5 text-left pointer-events-none">
+                    <span className="inline-block text-[10px] font-bold text-white leading-tight truncate max-w-full drop-shadow">
+                      {photo.reperLabel || (photo.categoria === "predare" ? "Gata de predare" : "Lucrare atelier")}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Mesaj de la service */}
         {customMsg && (ready || delivered) && (
           <div className="mt-4 rounded-xl border border-[var(--v2-border)] bg-[var(--v2-surface)] px-4 py-3 text-sm text-[var(--v2-text)]">
@@ -213,14 +274,88 @@ export default function TrackPage({ token }) {
           </div>
         )}
 
+
         <p className="mt-8 flex items-center justify-center gap-1.5 text-center text-[10px] text-[var(--v2-muted)]">
           <ShieldCheck size={12} className="text-[var(--v2-muted)]" />
           Actualizat în timp real · Dosar administrat prin Workflow Daune
         </p>
       </div>
+
+      {/* Lightbox Preview Modal */}
+      {previewPhotoIndex != null && photos[previewPhotoIndex] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col justify-between p-4 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPreviewPhotoIndex(null)}
+        >
+          {/* Header Lightbox */}
+          <div className="flex items-center justify-between text-white pb-2" onClick={(e) => e.stopPropagation()}>
+            <div className="text-xs font-semibold">
+              Foto {previewPhotoIndex + 1} din {photos.length}
+              {photos[previewPhotoIndex].reperLabel && (
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-[var(--v2-accent)] text-[#1a1510] text-[10px] font-bold">
+                  {photos[previewPhotoIndex].reperLabel}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewPhotoIndex(null)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              title="Închide"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Imagine Centrată */}
+          <div
+            className="relative flex-1 flex items-center justify-center min-h-0 py-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={photos[previewPhotoIndex].url}
+              alt="Foto mare atelier"
+              className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+            />
+
+            {/* Buton Navigare Stânga */}
+            {photos.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoIndex((prev) => (prev > 0 ? prev - 1 : photos.length - 1))}
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+
+            {/* Buton Navigare Dreapta */}
+            {photos.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setPreviewPhotoIndex((prev) => (prev < photos.length - 1 ? prev + 1 : 0))}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all cursor-pointer"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+          </div>
+
+          {/* Footer Lightbox cu descriere */}
+          <div className="text-center text-xs text-white/80 pt-2" onClick={(e) => e.stopPropagation()}>
+            {photos[previewPhotoIndex].nume || "Fotografie din atelier"}
+            {photos[previewPhotoIndex].categoria && photos[previewPhotoIndex].categoria !== "generale" ? (
+              <span className="opacity-70 ml-1.5">({photos[previewPhotoIndex].categoria})</span>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 export { getTrackingTokenFromLocation, buildTrackingUrl } from "../../constants/trackingCopy";
 
