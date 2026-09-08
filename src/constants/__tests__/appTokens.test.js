@@ -26,7 +26,7 @@ describe("appTokens day/night", () => {
   });
 
   it("getTokensForScheme picks light and dark palettes", () => {
-    expect(getTokensForScheme("light")["--app-bg"]).toBe("#f8fafc");
+    expect(getTokensForScheme("light")["--app-bg"]).toBe("#f1f5f9");
     expect(getTokensForScheme("dark")["--app-bg"]).toBe("#0f172a");
   });
 
