@@ -25,9 +25,17 @@ export default function ConfirmDialog({
 
   if (!open) return null;
 
+  const overlayClass = desktopUi
+    ? modalOverlayClass(desktopUi, { dense: true })
+    : "fixed inset-0 z-[10050] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm";
+
+  const panelClass = desktopUi
+    ? modalPanelClass(desktopUi, "w-full max-w-sm overflow-hidden p-5 space-y-4")
+    : "app-modal-panel w-full max-w-sm overflow-hidden p-5 space-y-4 shadow-2xl";
+
   return (
     <div
-      className={modalOverlayClass(desktopUi, { dense: true })}
+      className={overlayClass}
       {...modalOverlayProps(desktopUi)}
       style={{ zIndex: 10050 }}
       onMouseDown={(e) => {
@@ -35,7 +43,7 @@ export default function ConfirmDialog({
       }}
     >
       <div
-        className={modalPanelClass(desktopUi, "w-full max-w-sm overflow-hidden p-5 space-y-4")}
+        className={panelClass}
         role="alertdialog"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"

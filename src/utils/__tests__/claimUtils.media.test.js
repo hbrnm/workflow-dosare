@@ -9,6 +9,7 @@ import {
   resolveMediaPatch,
   stripMediaOps,
   hasMediaOps,
+  uploadStorageItem,
 } from "../claimUtils";
 
 describe("refreshStorageUrls", () => {
@@ -131,5 +132,32 @@ describe("media merge helpers", () => {
     expect(stripMediaOps({ appendPoze: [{}], status: "in_lucru" })).toEqual({ status: "in_lucru" });
     expect(hasMediaOps({ appendPoze: [{ id: "1" }] })).toBe(true);
     expect(hasMediaOps({ status: "x" })).toBe(false);
+  });
+});
+
+describe("uploadStorageItem", () => {
+  it("uploads file to storage bucket and creates signed url", async () => {
+    const uploadFn = vi.fn().mockResolvedValue({ error: null });
+    const createSignedUrlFn = vi.fn().mockResolvedValue({
+      data: { signedUrl: "https://signed.storage.example/doc.pdf" },
+      error: null,
+    });
+    const fakeClient = {
+      storage: {
+        from: vi.fn(() => ({
+          upload: uploadFn,
+          createSignedUrl: createSignedUrlFn,
+        })),
+      },
+    };
+
+    const mockFile = { name: "constatare.pdf", type: "application/pdf", size: 1024 };
+    const result = await uploadStorageItem(fakeClient, "documente-dosare", "claim-123", mockFile, "documente");
+
+    expect(uploadFn).toHaveBeenCalled();
+    expect(createSignedUrlFn).toHaveBeenCalled();
+    expect(result.nume).toBe("constatare.pdf");
+    expect(result.url).toBe("https://signed.storage.example/doc.pdf");
+    expect(result.path).toContain("claim-123/documente/");
   });
 });

@@ -67,7 +67,7 @@ export default function MobileClaimSheet({
       return initialCameraCategory;
     }
     const s = claim?.status;
-    if (["deschidere", "intrare_in_lucru"].includes(s)) return "receptie";
+    if (s === "deschidere") return "receptie";
     if (["constatare_efectuata", "piese_comandate", "in_lucru"].includes(s)) return "reconstatare";
     if (["reparatie_finalizata", "predat"].includes(s)) return "predare";
     return "receptie";
@@ -102,17 +102,7 @@ export default function MobileClaimSheet({
         }
       }
       if (uploadedPhotos.length > 0) {
-        const patchData = { appendPoze: uploadedPhotos };
-        
-        // Automatism 1: Dacă dosarul este la "Deschidere", avansează automat la "Intrare în lucru" la adăugarea primelor foto
-        let statusAdvanced = false;
-        if (claim.status === "deschidere") {
-          patchData.status = "intrare_in_lucru";
-          patchData.dataSchimbareStatus = todayISO();
-          statusAdvanced = true;
-        }
-
-        await onPatch?.(claim.id, patchData, { canEditFn: () => !readOnly });
+        await onPatch?.(claim.id, { appendPoze: uploadedPhotos }, { canEditFn: () => !readOnly });
         const updatedPoze = await refreshStorageUrls(
           [...(claim.poze || []), ...uploadedPhotos],
           "poze-dosare",
@@ -120,11 +110,7 @@ export default function MobileClaimSheet({
         );
         setPhotos(updatedPoze);
 
-        if (statusAdvanced) {
-          onNotify?.(`S-au salvat ${uploadedPhotos.length} foto. Status avansat automat la „Intrare în lucru”.`, "success");
-        } else {
-          onNotify?.(`S-au salvat ${uploadedPhotos.length} foto [${cat.toUpperCase()}] în dosar.`, "success");
-        }
+        onNotify?.(`S-au salvat ${uploadedPhotos.length} foto [${cat.toUpperCase()}] în dosar.`, "success");
       }
     } catch (err) {
       console.error(err);

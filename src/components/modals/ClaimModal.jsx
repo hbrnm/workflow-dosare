@@ -16,8 +16,10 @@ import {
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import PhotoLightbox from "../common/PhotoLightbox";
+import SchedulePromptModal from "../common/SchedulePromptModal";
 import { supabase } from "../../supabaseClient";
 import { fileToDataUrl } from "../../utils/documentScanner";
+import { compressImage } from "../../utils/imageUtils";
 import {
   modalOverlayClass,
   modalOverlayProps,
@@ -213,6 +215,16 @@ export default function ClaimModal({
   const [form, setForm] = useState(safeClaim);
   const [baseline, setBaseline] = useState(safeClaim);
   const [unsavedPrompt, setUnsavedPrompt] = useState(false);
+  const [schedulePromptOpen, setSchedulePromptOpen] = useState(false);
+
+  const handleSelectStatus = (newStatusKey) => {
+    const mapped = getStatusDefinition(newStatusKey).key;
+    if (mapped === "programat" && form.status !== "programat") {
+      setSchedulePromptOpen(true);
+      return;
+    }
+    setForm((f) => applyClaimStatusChange(f, newStatusKey));
+  };
   const [activeTab, setActiveTab] = useState("general"); // "general" | "media" | "financial" | "history"
   const [showLiveCamera, setShowLiveCamera] = useState(false);
   const [cameraCategory, setCameraCategory] = useState("generale");
@@ -794,9 +806,12 @@ export default function ClaimModal({
     const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
-      const path = storagePath(claimId, file);
-      const { error } = await supabase.storage.from("poze-dosare").upload(path, file, {
-        contentType: file.type || "image/jpeg",
+      const fileToUpload = file?.type?.startsWith("image/")
+        ? await compressImage(file)
+        : file;
+      const path = storagePath(claimId, fileToUpload);
+      const { error } = await supabase.storage.from("poze-dosare").upload(path, fileToUpload, {
+        contentType: fileToUpload.type || "image/jpeg",
         upsert: false,
       });
       if (error) { onNotify?.(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
@@ -806,7 +821,7 @@ export default function ClaimModal({
         onNotify?.(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
-      const nume = file.name || `Foto_${uid().slice(0, 4)}.jpg`;
+      const nume = fileToUpload.name || file.name || `Foto_${uid().slice(0, 4)}.jpg`;
       noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume, categoria, incarcatLa: nowISO() });
     }
     if (noi.length) {
@@ -859,8 +874,11 @@ export default function ClaimModal({
     const noi = [];
     const claimId = form.id || claim?.id || uid();
     for (const file of files) {
-      const path = storagePath(claimId, file);
-      const { error } = await supabase.storage.from("documente-dosare").upload(path, file, { upsert: false });
+      const fileToUpload = file?.type?.startsWith("image/")
+        ? await compressImage(file)
+        : file;
+      const path = storagePath(claimId, fileToUpload);
+      const { error } = await supabase.storage.from("documente-dosare").upload(path, fileToUpload, { upsert: false });
       if (error) { onNotify?.(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
       if (signedError) {
@@ -868,7 +886,8 @@ export default function ClaimModal({
         onNotify?.(`Eroare la generarea linkului pentru „${file.name}”: ${signedError.message}`, "error");
         continue;
       }
-      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume: file.name, incarcatLa: nowISO() });
+      const nume = fileToUpload.name || file.name;
+      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume, incarcatLa: nowISO() });
     }
     if (noi.length) {
       setFormMedia({ documente: [...noi, ...currentDocs] });
@@ -1042,7 +1061,7 @@ export default function ClaimModal({
                   key={s.key}
                   type="button"
                   onClick={() => {
-                    setForm((f) => applyClaimStatusChange(f, s.key));
+                    handleSelectStatus(s.key);
                   }}
                   title={`${s.num}. ${s.label}`}
                   className="h-full flex-1 rounded-xs transition-all cursor-pointer hover:opacity-90"
@@ -1064,7 +1083,7 @@ export default function ClaimModal({
             <select
               value={form.status}
               onChange={(e) => {
-                setForm((f) => applyClaimStatusChange(f, e.target.value));
+                handleSelectStatus(e.target.value);
               }}
               className="font-bold text-[11px] py-1 px-2 border border-[var(--app-border)] rounded-md bg-[var(--app-surface-2)] text-[var(--app-text-strong)] focus:border-[var(--app-muted)] cursor-pointer"
             >
@@ -1398,6 +1417,22 @@ export default function ClaimModal({
             atelierBranding={loadCachedBranding()}
           />
         )}
+
+        <SchedulePromptModal
+          open={schedulePromptOpen}
+          claim={form}
+          initialDate={form.dataProgramare}
+          desktopUi={desktopUi}
+          onConfirm={(iso) => {
+            setForm((f) => {
+              const draft = applyClaimStatusChange(f, "programat");
+              draft.dataProgramare = iso;
+              return draft;
+            });
+            setSchedulePromptOpen(false);
+          }}
+          onClose={() => setSchedulePromptOpen(false)}
+        />
 
         {/* Galerie foto fullscreen — deschisă peste întregul card al dosarului (z-20000) */}
         {previewPozaIndex != null && form.poze?.length > 0 && (

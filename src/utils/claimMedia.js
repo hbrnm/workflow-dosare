@@ -1,4 +1,5 @@
 import { uid, nowISO } from "./dateUtils";
+import { compressImage } from "./imageUtils";
 
 export function storagePath(claimId, file, folder = "poze") {
   let ext = "jpg";
@@ -223,10 +224,19 @@ export async function uploadStorageItem(supabaseClientOrOptions, bucketName, cla
     client = mod.supabase;
   }
 
-  const path = storagePath(cId, f, fold);
-  const mimeType = f.type || (bName === "documente-dosare" ? "application/pdf" : "image/jpeg");
+  let fToUpload = f;
+  if (fToUpload && fToUpload.type && fToUpload.type.startsWith("image/")) {
+    try {
+      fToUpload = await compressImage(fToUpload);
+    } catch (_) {
+      // safe fallback dacă mediul nu suportă canvas
+    }
+  }
+
+  const path = storagePath(cId, fToUpload, fold);
+  const mimeType = fToUpload.type || (bName === "documente-dosare" ? "application/pdf" : "image/jpeg");
   
-  const { error } = await client.storage.from(bName).upload(path, f, {
+  const { error } = await client.storage.from(bName).upload(path, fToUpload, {
     contentType: mimeType,
     upsert: false,
   });
@@ -241,7 +251,7 @@ export async function uploadStorageItem(supabaseClientOrOptions, bucketName, cla
     throw signedError;
   }
 
-  const fallbackName = f.name || (mimeType.includes("pdf") ? `Document_${uid().slice(0, 4)}.pdf` : `Foto_${uid().slice(0, 4)}.jpg`);
+  const fallbackName = fToUpload.name || f.name || (mimeType.includes("pdf") ? `Document_${uid().slice(0, 4)}.pdf` : `Foto_${uid().slice(0, 4)}.jpg`);
   return {
     id: uid(),
     path,
