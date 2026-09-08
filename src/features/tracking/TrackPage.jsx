@@ -8,6 +8,7 @@ import {
   getClientPhaseIndex,
   CLIENT_PHASE_HINTS,
 } from "../../constants/trackingCopy";
+import { refreshStorageUrls } from "../../utils/claimMedia";
 
 /** Pagină publică: /?track=TOKEN — fără login. */
 export default function TrackPage({ token }) {
@@ -32,10 +33,10 @@ export default function TrackPage({ token }) {
         }
         setData(row || null);
 
-        // 2. Preia fotografiile marcate ca vizibilClient: true
-        // RPC-ul poate întoarce direct pozele dacă migrarea e aplicată, altfel facem fallback pe coloana poze
+        // 2. Preia fotografiile marcate ca vizibilClient: true sau categoria predare
+        let rawPoze = [];
         if (row && Array.isArray(row.poze)) {
-          setPhotos(row.poze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+          rawPoze = row.poze;
         } else if (row) {
           try {
             const { data: claimRows } = await supabase
@@ -44,11 +45,33 @@ export default function TrackPage({ token }) {
               .eq("tracking_token", String(token).trim())
               .limit(1);
             if (!alive) return;
-            const rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
-            setPhotos(rawPoze.filter((p) => p && (p.vizibilClient || p.categoria === "predare")));
+            rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
           } catch {
-            // RLS anonim poate restricționa select direct dacă nu e policy; ignorăm silențios
+            // RLS fallback pentru anonim
           }
+        }
+
+        const filtered = rawPoze.filter((p) => p && (p.vizibilClient || p.categoria === "predare"));
+        if (filtered.length > 0) {
+          // Încearcă mai întâi refreshStorageUrls (pentru URL-uri semnate proaspete)
+          let resolved = await refreshStorageUrls(filtered, "poze-dosare", supabase);
+          // Fallback pe publicUrl dacă vreun item nu are url valid sau e anonim
+          resolved = resolved.map((item) => {
+            if (!item) return item;
+            if (item.url && !item.url.startsWith("data:")) return item;
+            if (item.path) {
+              const { data: pub } = supabase.storage.from("poze-dosare").getPublicUrl(item.path);
+              if (pub?.publicUrl) {
+                return { ...item, url: pub.publicUrl };
+              }
+            }
+            return item;
+          });
+          if (alive) {
+            setPhotos(resolved);
+          }
+        } else if (alive) {
+          setPhotos([]);
         }
       } catch (e) {
         if (!alive) return;
@@ -60,6 +83,7 @@ export default function TrackPage({ token }) {
       alive = false;
     };
   }, [token]);
+
 
 
   if (data === undefined) {
