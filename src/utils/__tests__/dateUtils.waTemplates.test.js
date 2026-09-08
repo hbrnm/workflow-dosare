@@ -15,4 +15,22 @@ describe("WA_TEMPLATES acte", () => {
     expect(msg).toContain("Alex, Auto Wash");
     expect(msg).not.toContain("talon");
   });
+
+  it("builds tracking link message with claim details and brand name", () => {
+    const tracking = WA_TEMPLATES.find((t) => t.key === "tracking");
+    expect(tracking).toBeTruthy();
+    const msg = tracking.text(
+      {
+        numarDosar: "2026-001",
+        numarInmatriculare: "B999ABC",
+        marcaModel: "VW Golf",
+        trackingToken: "abcdef123456",
+      },
+      "Auto Service Pro"
+    );
+    expect(msg).toContain("VW Golf (B999ABC)");
+    expect(msg).toContain("?track=abcdef123456");
+    expect(msg).toContain("Echipa Auto Service Pro");
+  });
 });
+

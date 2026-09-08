@@ -1,7 +1,8 @@
 import React from "react";
 import {
-  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator
+  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator, Link2
 } from "lucide-react";
+
 import { getStatusDefinition } from "../../../constants/config";
 import ClaimAuditMeta from "../../common/ClaimAuditMeta";
 import { modalHeaderClass } from "../../common/modalShellClasses";
@@ -130,6 +131,18 @@ export default function ClaimHeader({
               >
                 <Calculator size={12} /><span className="hidden md:inline"> Estimare</span>
               </button>
+            )}
+
+            {!isNew && form.trackingToken && (
+              <a
+                href={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-sky-700 hover:text-sky-800 border-sky-300/80 bg-sky-50/70 hover:bg-sky-100"
+                title="Deschide linkul de urmărire pe care îl vede clientul"
+              >
+                <Link2 size={12} /><span className="hidden md:inline"> Tracking</span>
+              </a>
             )}
 
             <button

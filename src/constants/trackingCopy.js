@@ -75,3 +75,20 @@ export const CLIENT_PHASE_HINTS = {
   final: "Accept plată și facturare",
   eval: "Evaluare",
 };
+
+export function getTrackingTokenFromLocation() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("track") || params.get("t") || "";
+  } catch {
+    return "";
+  }
+}
+
+export function buildTrackingUrl(token) {
+  if (!token || typeof window === "undefined") return "";
+  const url = new URL(window.location.origin + window.location.pathname);
+  url.searchParams.set("track", token);
+  return url.toString();
+}
+
