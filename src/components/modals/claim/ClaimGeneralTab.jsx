@@ -1,8 +1,10 @@
 import React from "react";
 import {
   FileText, Calendar, ShieldCheck, CalendarClock, AlertOctagon, Wrench,
-  Car, Tag, User as UserIcon, Phone, MessageCircle, Trash2, Sparkles, FileDown
+  Car, Tag, User as UserIcon, Phone, MessageCircle, Trash2, Sparkles, FileDown,
+  Link2, ExternalLink, Copy, Check
 } from "lucide-react";
+
 import {
   STATUSES, INSURERS, INSURANCE_TYPES, getStatusDefinition, getPhaseColors, isPieseComandateStatus
 } from "../../../constants/config";
@@ -319,6 +321,80 @@ export default function ClaimGeneralTab({
                 </>
               )}
             </div>
+
+            {/* Widget Urmărire Reparație Client (Live Tracking Portal) */}
+            {form.trackingToken && (
+              <div className="pt-2 mt-2 border-t border-[var(--app-border)]/70 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-sky-700 flex items-center gap-1">
+                    <Link2 size={12} className="text-sky-600" /> Urmărire Client (Live)
+                  </span>
+                  <span className="text-[9.5px] text-[var(--app-muted)] font-mono">
+                    Token: {form.trackingToken.slice(0, 8)}…
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    readOnly
+                    value={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : ""}
+                    className="flex-1 font-mono text-[10px] p-1.5 border border-sky-200 bg-sky-50/50 rounded-lg text-sky-950 select-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const url = typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "";
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        onNotify?.("Link-ul de urmărire a fost copiat în clipboard!", "success");
+                      } catch {
+                        window.prompt("Copiază link-ul:", url);
+                      }
+                    }}
+                    className="shrink-0 p-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-800 transition-colors flex items-center gap-1 text-[10.5px] font-bold cursor-pointer"
+                    title="Copiază linkul public pentru client"
+                  >
+                    <Copy size={11} /> Copiază
+                  </button>
+                  <a
+                    href={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 p-1.5 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors flex items-center gap-1 text-[10.5px] font-bold"
+                    title="Deschide pagina publică în filă nouă"
+                  >
+                    <ExternalLink size={11} /> Previzualizează
+                  </a>
+                </div>
+
+                {form.telefonClient && (
+                  <a
+                    href={waLink(
+                      form.telefonClient,
+                      `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${form.marcaModel ? `${form.marcaModel} ` : ""}(${form.numarInmatriculare || ""}) in timp real accesand link-ul: ${typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : ""} — Echipa ${loadCachedBranding()?.atelierNume || "service"}.`
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-colors shadow-xs"
+                  >
+                    <MessageCircle size={12} /> Trimite Link pe WhatsApp Client
+                  </a>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-[var(--app-muted)] mb-0.5">
+                    Mesaj afișat clientului pe link (opțional):
+                  </label>
+                  <input
+                    className="w-full text-[11px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text-strong)]"
+                    placeholder="ex: Piesele au sosit; mașina intră mâine în vopsitorie."
+                    value={form.mesajClient || ""}
+                    onChange={(e) => set("mesajClient", e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

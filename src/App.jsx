@@ -57,6 +57,11 @@ const MobileClaimSheet = lazyWithRetry(() => import("./components/mobile/MobileC
 const ClaimModal = lazyWithRetry(() => import("./components/modals/ClaimModal"));
 const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/QuickCreateClaimModal"));
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
+const TrackPage = lazyWithRetry(() => import("./features/tracking/TrackPage"));
+import { getTrackingTokenFromLocation } from "./constants/trackingCopy";
+
+const PUBLIC_TRACK_TOKEN = typeof window !== "undefined" ? getTrackingTokenFromLocation() : "";
+
 
 export default function App() {
   const [saving, setSaving] = useState(false);
@@ -752,6 +757,20 @@ export default function App() {
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
+  if (PUBLIC_TRACK_TOKEN) {
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#0f1419] flex items-center justify-center text-slate-400 gap-2">
+            <Loader2 className="animate-spin" size={20} /> Se încarcă stadiul reparației...
+          </div>
+        }
+      >
+        <TrackPage token={PUBLIC_TRACK_TOKEN} />
+      </Suspense>
+    );
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[var(--app-bg)] flex items-center justify-center text-[var(--app-muted)] gap-2">
@@ -759,6 +778,7 @@ export default function App() {
       </div>
     );
   }
+
   if (session && passwordRecovery) {
     return (
       <RecoveryPassword

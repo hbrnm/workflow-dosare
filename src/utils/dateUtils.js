@@ -305,8 +305,21 @@ export const WA_TEMPLATES = [
     label: "🚗 Returnare Auto la Schimb",
     text: (c, brandName = "service") =>
       `Buna ziua! Va rugam sa returnati autovehiculul la schimb oferit pentru dosarul ${c.numarDosar || ""} (${c.numarInmatriculare || ""}). Va asteptam la ${brandName}.`
+  },
+  {
+    key: "tracking",
+    label: "📱 Link Urmărire Reparație Client",
+    text: (c, brandName = "service") => {
+      const token = c.trackingToken || "";
+      const base = typeof window !== "undefined" && window.location?.origin
+        ? `${window.location.origin}${window.location.pathname || ""}`
+        : "https://app.workflow-daune.ro";
+      const trackingUrl = token ? `${base}?track=${token}` : "";
+      return `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) in timp real aici: ${trackingUrl} — Echipa ${brandName}.`;
+    }
   }
 ];
+
 
 export function getWaTemplateLink(phone, templateKey, claim, brandName) {
   const tmpl = WA_TEMPLATES.find((t) => t.key === templateKey);
@@ -314,3 +327,4 @@ export function getWaTemplateLink(phone, templateKey, claim, brandName) {
   const msg = tmpl && claim ? tmpl.text(claim, name) : "";
   return waLink(phone, msg);
 }
+
