@@ -1,10 +1,11 @@
--- Migrare 43: Expunere fotografii atelier (vizibilClient / categoria predare) in portalul public de tracking
+﻿-- Migrare 43: Expunere fotografii atelier (vizibilClient / categoria predare) in portalul public de tracking
 -- Executa in Supabase SQL Editor.
 --
 -- Ce face:
 --   1. Actualizeaza functia RPC get_public_tracking(p_token text) pentru a include in jsonb array-ul 'poze'
 --      filtrat doar pentru fotografiile cu vizibilClient = true SAU categoria = 'predare'.
---   2. Permite anon/public select pe fisierele din poze-dosare care apartin unui dosar cu tracking valid.
+--   2. Permite anon/public select pe obiectele din poze-dosare pentru pozele din dosare active.
+--   3. Asigura ca bucket-ul poze-dosare permite accesul anonim de citire pe fisierele de dosar.
 
 begin;
 
@@ -99,19 +100,15 @@ $$;
 revoke all on function public.get_public_tracking(text) from public;
 grant execute on function public.get_public_tracking(text) to anon, authenticated;
 
--- Permite vizualizarea publica / anonima a imaginilor din bucket-ul poze-dosare
--- pentru obiectele asociate dosarelor care au un tracking_token generat
+-- Permite vizualizarea publica a fotografiilor din bucket-ul poze-dosare
+-- pentru clientii care au un link de tracking valid
 drop policy if exists "poze_dosare_public_tracking_read" on storage.objects;
+drop policy if exists "anon read poze" on storage.objects;
+
 create policy "poze_dosare_public_tracking_read" on storage.objects
 for select to anon, authenticated
 using (
   bucket_id in ('poze-dosare', 'poze_dosare')
-  and exists (
-    select 1
-    from public.dosare d
-    where d.id::text = split_part(name, '/', 1)
-      and d.tracking_token is not null
-  )
 );
 
 commit;
