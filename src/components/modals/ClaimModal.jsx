@@ -759,6 +759,26 @@ export default function ClaimModal({
     await persistMediaPatch({ removePoze: [poza] });
   };
 
+  const handleTogglePozaClient = async (poza) => {
+    if (!poza) return;
+    const currentList = Array.isArray(form.poze) ? form.poze : [];
+    const nextPoze = currentList.map((p) => {
+      if ((p.id && p.id === poza.id) || (p.path && p.path === poza.path) || (p.url && p.url === poza.url)) {
+        return { ...p, vizibilClient: !p.vizibilClient };
+      }
+      return p;
+    });
+    setFormMedia({ poze: nextPoze });
+    const isNowVisible = !poza.vizibilClient;
+    onNotify?.(
+      isNowVisible
+        ? "Fotografia este acum vizibilă pentru client pe linkul de tracking."
+        : "Fotografia a fost ascunsă de pe linkul clientului.",
+      "info"
+    );
+  };
+
+
   const handleUploadPoze = async (fileList, categoria = "generale", reperMeta = null) => {
     const requested = Array.from(fileList || []);
     if (requested.length === 0) return;
@@ -839,9 +859,11 @@ export default function ClaimModal({
         categoria,
         reper: reperMeta?.id || null,
         reperLabel: reperMeta?.name || null,
+        vizibilClient: categoria === "predare",
         incarcatLa: nowISO(),
       });
     }
+
     if (noi.length) {
       setFormMedia({ poze: [...noi, ...currentPoze] });
       const extraMsg = reperMeta?.name ? ` pe reperul „${reperMeta.name}”` : "";
@@ -1240,6 +1262,7 @@ export default function ClaimModal({
                   handleDownloadZip={handleDownloadZip}
                   removePoza={removePoza}
                   removeDoc={removeDoc}
+                  onTogglePozaClient={handleTogglePozaClient}
                   setPreviewPozaIndex={setPreviewPozaIndex}
                   setCropMode={setCropMode}
                   setCropImageSrc={setCropImageSrc}

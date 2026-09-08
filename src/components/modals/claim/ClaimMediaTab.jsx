@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   ImageIcon, Download, Car, ClipboardList, Sparkles, Loader2, Upload,
-  Trash2, FolderOpen, FileText, Filter, Tag
+  Trash2, FolderOpen, FileText, Filter, Tag, Eye, EyeOff
 } from "lucide-react";
 import { CAR_PANELS } from "../../common/CarDamageVisualSelector";
 
@@ -15,11 +15,13 @@ export default function ClaimMediaTab({
   handleDownloadZip,
   removePoza,
   removeDoc,
+  onTogglePozaClient,
   setPreviewPozaIndex,
   setCropMode,
   setCropImageSrc,
   onOpenLiveCamera,
 }) {
+
   const pozeList = Array.isArray(form.poze) ? form.poze : [];
   const documenteList = Array.isArray(form.documente) ? form.documente : [];
 
@@ -165,6 +167,11 @@ export default function ClaimMediaTab({
                   <img src={p.url} alt={p.nume || "foto"} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </button>
                 <div className="absolute bottom-1 left-1 flex flex-col gap-0.5 pointer-events-none max-w-[85%]">
+                  {p.vizibilClient && (
+                    <span className="bg-emerald-900/90 text-emerald-200 text-[8.5px] font-bold px-1 rounded truncate border border-emerald-500/40 flex items-center gap-0.5">
+                      <Eye size={9} /> Vizibil Client
+                    </span>
+                  )}
                   {p.reperLabel && (
                     <span className="bg-sky-950/80 text-sky-200 text-[8.5px] font-bold px-1 rounded truncate border border-sky-600/40">
                       {p.reperLabel}
@@ -176,12 +183,40 @@ export default function ClaimMediaTab({
                     </span>
                   )}
                 </div>
-                <button type="button" onClick={() => removePoza(p)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Trash2 size={12} />
-                </button>
+                <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onTogglePozaClient && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePozaClient(p);
+                      }}
+                      className={`rounded p-1 text-white transition-colors cursor-pointer ${
+                        p.vizibilClient
+                          ? "bg-emerald-600 hover:bg-emerald-700"
+                          : "bg-black/70 hover:bg-black/90 text-slate-300"
+                      }`}
+                      title={p.vizibilClient ? "Vizibilă pentru client pe link (Click pentru a ascunde)" : "Ascunsă de client (Click pentru a face vizibilă pe link)"}
+                    >
+                      {p.vizibilClient ? <Eye size={12} /> : <EyeOff size={12} />}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removePoza(p);
+                    }}
+                    className="bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 transition-colors cursor-pointer"
+                    title="Șterge fotografia"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
+
         ) : (
           <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
             {selectedReperFilter !== "toate"
