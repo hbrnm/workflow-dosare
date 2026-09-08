@@ -769,6 +769,7 @@ export default function ClaimModal({
       return p;
     });
     setFormMedia({ poze: nextPoze });
+    await persistMediaPatch({ poze: nextPoze });
     const isNowVisible = !poza.vizibilClient;
     onNotify?.(
       isNowVisible
@@ -777,6 +778,7 @@ export default function ClaimModal({
       "info"
     );
   };
+
 
 
   const handleUploadPoze = async (fileList, categoria = "generale", reperMeta = null) => {

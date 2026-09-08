@@ -183,7 +183,7 @@ export default function ClaimMediaTab({
                     </span>
                   )}
                 </div>
-                <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className={`absolute top-1 right-1 flex items-center gap-1 transition-opacity ${p.vizibilClient ? "opacity-100" : "opacity-90 sm:opacity-0 sm:group-hover:opacity-100"}`}>
                   {onTogglePozaClient && (
                     <button
                       type="button"
@@ -191,14 +191,15 @@ export default function ClaimMediaTab({
                         e.stopPropagation();
                         onTogglePozaClient(p);
                       }}
-                      className={`rounded p-1 text-white transition-colors cursor-pointer ${
+                      className={`rounded p-1 text-white shadow-sm transition-all cursor-pointer ${
                         p.vizibilClient
-                          ? "bg-emerald-600 hover:bg-emerald-700"
-                          : "bg-black/70 hover:bg-black/90 text-slate-300"
+                          ? "bg-emerald-600 hover:bg-emerald-700 ring-1 ring-white/50"
+                          : "bg-black/75 hover:bg-black text-slate-300"
                       }`}
                       title={p.vizibilClient ? "Vizibilă pentru client pe link (Click pentru a ascunde)" : "Ascunsă de client (Click pentru a face vizibilă pe link)"}
+                      aria-label={p.vizibilClient ? "Ascunde poza de client" : "Fă poza vizibilă clientului"}
                     >
-                      {p.vizibilClient ? <Eye size={12} /> : <EyeOff size={12} />}
+                      {p.vizibilClient ? <Eye size={13} className="text-white" /> : <EyeOff size={13} />}
                     </button>
                   )}
                   <button
