@@ -11,6 +11,16 @@ export const ROLES = {
     label: "Recepționer / Consilier daune",
     description: "Recepție, inspecție, documente, statusuri",
   },
+  inspector: {
+    key: "inspector",
+    label: "Inspector / Constatator Daune",
+    description: "Constatare avarii, poze repere, note constatare",
+  },
+  contabil: {
+    key: "contabil",
+    label: "Contabil / Ofițer Financiar",
+    description: "Devize, facturare, decont, accepturi plată",
+  },
   mecanic: {
     key: "mecanic",
     label: "Mecanic / Tinichigiu / Vopsitor",
@@ -25,6 +35,8 @@ export const ROLES = {
 
 export const ROLE_OPTIONS = [
   { value: "receptioner", label: ROLES.receptioner.label },
+  { value: "inspector", label: ROLES.inspector.label },
+  { value: "contabil", label: ROLES.contabil.label },
   { value: "mecanic", label: ROLES.mecanic.label },
   { value: "admin", label: ROLES.admin.label },
 ];
@@ -32,6 +44,8 @@ export const ROLE_OPTIONS = [
 export function normalizeRole(role) {
   const r = String(role || "").toLowerCase().trim();
   if (r === "admin") return "admin";
+  if (r === "inspector" || r === "constatator" || r === "lichidator") return "inspector";
+  if (r === "contabil" || r === "financiar" || r === "facturare") return "contabil";
   if (r === "mecanic" || r === "tinichigiu" || r === "vopsitor") return "mecanic";
   if (r === "receptioner" || r === "receptionist" || r === "operator" || r === "consilier") {
     return "receptioner";
@@ -62,12 +76,22 @@ export function resolveUserRole(email, { adminEmails = [], usersList = [] } = {}
 
 export function canCreateClaim(role) {
   const r = normalizeRole(role);
-  return r === "admin" || r === "receptioner";
+  return r === "admin" || r === "receptioner" || r === "inspector";
+}
+
+export function canInspectVehicle(role) {
+  const r = normalizeRole(role);
+  return r === "admin" || r === "receptioner" || r === "inspector";
+}
+
+export function canEditFinancials(role) {
+  const r = normalizeRole(role);
+  return r === "admin" || r === "receptioner" || r === "contabil";
 }
 
 export function canEditClaimFull(role, claim, userId, userEmail) {
   const r = normalizeRole(role);
-  if (r === "admin" || r === "receptioner") return true;
+  if (r === "admin" || r === "receptioner" || r === "inspector" || r === "contabil") return true;
   if (r === "mecanic") return false;
   // fallback ownership
   if (!claim) return false;
@@ -84,12 +108,12 @@ export function canEditClaimFull(role, claim, userId, userEmail) {
 
 export function canEditWorkshop(role) {
   const r = normalizeRole(role);
-  return r === "admin" || r === "receptioner" || r === "mecanic";
+  return r === "admin" || r === "receptioner" || r === "mecanic" || r === "inspector";
 }
 
 export function canChangeStatus(role) {
   const r = normalizeRole(role);
-  return r === "admin" || r === "receptioner" || r === "mecanic";
+  return r === "admin" || r === "receptioner" || r === "mecanic" || r === "inspector";
 }
 
 export function canManageUsers(role) {

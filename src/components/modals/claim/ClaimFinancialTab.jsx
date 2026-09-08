@@ -1,5 +1,5 @@
 import React from "react";
-import { Wallet, BarChart3, Package, Wrench } from "lucide-react";
+import { Wallet, BarChart3, Package, Wrench, Calculator } from "lucide-react";
 import { AUDATEX_DEVIZ_UI_FIELDS } from "../../../constants/audatexDevizFields";
 import AudatexImportCard from "../../common/AudatexImportCard";
 
@@ -45,6 +45,7 @@ export default function ClaimFinancialTab({
   serviceCostBreakdown,
   onNotify,
   setActiveTab,
+  onOpenQuickEstimate,
 }) {
   const financial = form.financiar || {};
 
@@ -62,9 +63,20 @@ export default function ClaimFinancialTab({
               Totaluri din cuprinsul devizului — completează manual sau importă PDF mai jos.
             </p>
           </div>
-          <span className="text-[10px] font-mono font-bold uppercase text-[var(--app-muted)] bg-[var(--app-surface-2)] px-2 py-1 rounded-md">
-            lei · fără TVA (exceptând ultimul rând)
-          </span>
+          <div className="flex items-center gap-2">
+            {onOpenQuickEstimate && (
+              <button
+                type="button"
+                onClick={onOpenQuickEstimate}
+                className="text-[11px] font-bold text-[var(--app-accent)] hover:underline flex items-center gap-1 cursor-pointer bg-[var(--app-accent)]/10 px-2 py-1 rounded-md border border-[var(--app-accent)]/20"
+              >
+                <Calculator size={13} /> Estimare rapidă din avarii
+              </button>
+            )}
+            <span className="text-[10px] font-mono font-bold uppercase text-[var(--app-muted)] bg-[var(--app-surface-2)] px-2 py-1 rounded-md">
+              lei · fără TVA
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter, ChevronRight } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter, ChevronRight, Clock, Gauge } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
@@ -9,6 +9,7 @@ import { daysBetween, fmtDate } from "../../utils/dateUtils";
 import { isReadyForPickupOverdue, isStageOverdue } from "../../utils/alertUtils";
 import { buildAtelierFunnel } from "../../utils/atelierFunnel";
 import { countClaimsForStatus } from "../../utils/plateSchedule";
+import { computeFleetCycleMetrics } from "../../utils/cycleTimeUtils";
 import StatCard from "../common/StatCard";
 import ExportExcelModal from "../modals/ExportExcelModal";
 import AppButton from "../common/AppButton";
@@ -61,11 +62,8 @@ export default function Dashboard({
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
   }, [claims]);
 
-  const avgDaysOpen = useMemo(() => {
-    const finished = claims.filter((c) => c.status === "facturat");
-    if (finished.length === 0) return null;
-    return Math.round(finished.reduce((acc, c) => acc + daysBetween(c.dataDeschiderii), 0) / finished.length);
-  }, [claims]);
+  const fleetMetrics = useMemo(() => computeFleetCycleMetrics(claims), [claims]);
+  const avgDaysOpen = fleetMetrics.avgTotalCycleDays || null;
 
   return (
     <div className="space-y-4 pb-4 text-[var(--app-text)]">
@@ -165,19 +163,74 @@ export default function Dashboard({
         )}
       </div>
 
+      {/* SLA & Durată Medie Reparație Atelier */}
+      <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-[var(--app-accent)]" />
+            <h3 className="font-semibold text-[13px] text-[var(--app-text-strong)]">
+              Ciclu Mediu Reparație &amp; Eficiență Atelier
+            </h3>
+          </div>
+          <span
+            className="text-[11px] font-bold px-2 py-0.5 rounded-full border"
+            style={{
+              borderColor: fleetMetrics.benchmarkColor + "55",
+              backgroundColor: fleetMetrics.benchmarkColor + "15",
+              color: fleetMetrics.benchmarkColor,
+            }}
+          >
+            {fleetMetrics.benchmarkRating}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+          <div className="rounded-lg bg-[var(--app-surface-2)] p-2.5 border border-[var(--app-border)]">
+            <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Timp Efectiv Atelier</div>
+            <div className="text-[20px] font-bold text-[var(--app-text-strong)] mt-0.5">
+              {fleetMetrics.avgRepairDays > 0 ? `${fleetMetrics.avgRepairDays} zile` : "—"}
+            </div>
+            <div className="text-[10px] text-[var(--app-muted)]">intrare fizică → finalizare</div>
+          </div>
+
+          <div className="rounded-lg bg-[var(--app-surface-2)] p-2.5 border border-[var(--app-border)]">
+            <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Ciclu Total Daună</div>
+            <div className="text-[20px] font-bold text-[var(--app-text-strong)] mt-0.5">
+              {fleetMetrics.avgTotalCycleDays > 0 ? `${fleetMetrics.avgTotalCycleDays} zile` : "—"}
+            </div>
+            <div className="text-[10px] text-[var(--app-muted)]">deschidere → facturare</div>
+          </div>
+
+          <div className="rounded-lg bg-[var(--app-surface-2)] p-2.5 border border-[var(--app-border)]">
+            <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Staționare Curte</div>
+            <div className="text-[20px] font-bold text-[var(--app-text-strong)] mt-0.5">
+              {fleetMetrics.avgStationingDays > 0 ? `${fleetMetrics.avgStationingDays} zile` : "0 zile"}
+            </div>
+            <div className="text-[10px] text-[var(--app-muted)]">gata → ridicare client</div>
+          </div>
+
+          <div className="rounded-lg bg-[var(--app-surface-2)] p-2.5 border border-[var(--app-border)]">
+            <div className="text-[10px] font-bold uppercase text-[var(--app-muted)]">Reparații Finalizate</div>
+            <div className="text-[20px] font-bold text-[var(--app-text-strong)] mt-0.5">
+              {fleetMetrics.completedRepairsCount}
+            </div>
+            <div className="text-[10px] text-[var(--app-muted)]">{fleetMetrics.activeInRepairCount} în lucru activ</div>
+          </div>
+        </div>
+      </div>
+
       {!showSecondaryKpis ? (
         <button
           type="button"
           onClick={() => setShowSecondaryKpis(true)}
           className="app-type-xs font-medium text-[var(--app-muted)] hover:text-[var(--app-text)]"
         >
-          + RCA/CASCO, auto schimb, zile medii
+          + RCA/CASCO, auto schimb
         </button>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
           <StatCard label="RCA / CASCO" value={`${rca} / ${casco}`} tone="steel" />
           <StatCard label="Auto la schimb" value={masiniSchimbActive.length} sub={`${masiniSchimbActive.filter((m) => m.depasit).length} depășite`} tone={masiniSchimbActive.some((m) => m.depasit) ? "amber" : "steel"} />
-          <StatCard label="Zile medii" value={avgDaysOpen ?? "—"} sub="dosare facturate" tone="green" />
         </div>
       )}
 

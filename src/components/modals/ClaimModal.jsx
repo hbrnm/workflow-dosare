@@ -40,8 +40,10 @@ import ClaimFooter from "./claim/ClaimFooter";
 import ClaimScannerOverlay from "./claim/ClaimScannerOverlay";
 import ReceptieAutoModal from "./ReceptieAutoModal";
 import SettlementPackageModal from "./SettlementPackageModal";
+import QuickEstimateModal from "./QuickEstimateModal";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadCachedBranding } from "../../constants/branding";
+import { validateFileUpload } from "../../utils/securityValidator";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
@@ -182,6 +184,7 @@ export default function ClaimModal({
   const [savingLocal, setSavingLocal] = useState(false);
   const [isReceptieModalOpen, setIsReceptieModalOpen] = useState(false);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+  const [isQuickEstimateOpen, setIsQuickEstimateOpen] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e) => {
@@ -756,7 +759,7 @@ export default function ClaimModal({
     await persistMediaPatch({ removePoze: [poza] });
   };
 
-  const handleUploadPoze = async (fileList, categoria = "generale") => {
+  const handleUploadPoze = async (fileList, categoria = "generale", reperMeta = null) => {
     const requested = Array.from(fileList || []);
     if (requested.length === 0) return;
 
@@ -771,6 +774,12 @@ export default function ClaimModal({
     const files = [];
     const respinse = [];
     for (const file of requested) {
+      // Securitate: validare extensie și mărime
+      const validation = validateFileUpload(file, { isImageOnly: true, maxSizeBytes: MAX_UPLOAD_SIZE_BYTES });
+      if (!validation.valid) {
+        respinse.push(`${file.name} (${validation.error})`);
+        continue;
+      }
       try {
         let fileToUpload = file;
         if (file.type && file.type.startsWith("image/")) {
@@ -793,7 +802,7 @@ export default function ClaimModal({
     }
 
     if (respinse.length) {
-      onNotify?.(`${respinse.length} fișier(e) peste ${MAX_UPLOAD_SIZE_MB}MB au fost ignorate: ${respinse.join(", ")}`, "error");
+      onNotify?.(`${respinse.length} fișier(e) respinse: ${respinse.join(", ")}`, "error");
     }
     if (requested.length > locMax && files.length === locMax) {
       onNotify?.(`Doar ${locMax} poze au fost încărcate — limita e ${MAX_POZE_PER_DOSAR}/dosar.`, "error");
@@ -822,11 +831,21 @@ export default function ClaimModal({
         continue;
       }
       const nume = fileToUpload.name || file.name || `Foto_${uid().slice(0, 4)}.jpg`;
-      noi.push({ id: uid(), path, url: signed?.signedUrl || "", nume, categoria, incarcatLa: nowISO() });
+      noi.push({
+        id: uid(),
+        path,
+        url: signed?.signedUrl || "",
+        nume,
+        categoria,
+        reper: reperMeta?.id || null,
+        reperLabel: reperMeta?.name || null,
+        incarcatLa: nowISO(),
+      });
     }
     if (noi.length) {
       setFormMedia({ poze: [...noi, ...currentPoze] });
-      onNotify?.(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}”.`, "success");
+      const extraMsg = reperMeta?.name ? ` pe reperul „${reperMeta.name}”` : "";
+      onNotify?.(`${noi.length} fotografie(i) încărcată(e) în categoria „${categoria}”${extraMsg}.`, "success");
       await persistMediaPatch({ appendPoze: noi });
     }
     setUploadingPoze(false);
@@ -838,7 +857,7 @@ export default function ClaimModal({
       await downloadClaimAsZip(form, form.numarDosar);
       onNotify?.("Arhiva ZIP a fost descărcată cu succes!", "success");
     } catch (err) {
-      onNotify?.(`Eroare la generarea arhivei ZIP: ${err.message}`, "error");
+      onNotify?.(`Eroare la generarea arhivei: ${err.message}`, "error");
     } finally {
       setDownloadingZip(false);
     }
@@ -858,12 +877,17 @@ export default function ClaimModal({
     const files = [];
     const respinse = [];
     for (const file of requested) {
-      if (file.size > MAX_UPLOAD_SIZE_BYTES) { respinse.push(file.name); continue; }
+      // Securitate: validare extensie și mărime
+      const validation = validateFileUpload(file, { isImageOnly: false, maxSizeBytes: MAX_UPLOAD_SIZE_BYTES });
+      if (!validation.valid) {
+        respinse.push(`${file.name} (${validation.error})`);
+        continue;
+      }
       if (files.length >= locMax) break;
       files.push(file);
     }
     if (respinse.length) {
-      onNotify?.(`${respinse.length} fișier(e) peste ${MAX_UPLOAD_SIZE_MB}MB au fost ignorate: ${respinse.join(", ")}`, "error");
+      onNotify?.(`${respinse.length} fișier(e) respinse: ${respinse.join(", ")}`, "error");
     }
     if (requested.length > locMax && files.length === locMax) {
       onNotify?.(`Doar ${locMax} documente au fost încărcate — limita e ${MAX_DOCUMENTE_PER_DOSAR}/dosar.`, "error");
@@ -877,7 +901,7 @@ export default function ClaimModal({
       const fileToUpload = file?.type?.startsWith("image/")
         ? await compressImage(file)
         : file;
-      const path = storagePath(claimId, fileToUpload);
+      const path = storagePath(claimId, fileToUpload, "documente");
       const { error } = await supabase.storage.from("documente-dosare").upload(path, fileToUpload, { upsert: false });
       if (error) { onNotify?.(`Eroare la încărcarea „${file.name}”: ${error.message}`, "error"); continue; }
       const { data: signed, error: signedError } = await supabase.storage.from("documente-dosare").createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
@@ -1035,6 +1059,7 @@ export default function ClaimModal({
           handleDownloadZip={handleDownloadZip}
           handleDuplicate={handleDuplicate}
           onOpenReceptie={() => setIsReceptieModalOpen(true)}
+          onOpenQuickEstimate={() => setIsQuickEstimateOpen(true)}
           onOpenSettlement={() => setIsSettlementModalOpen(true)}
           requestClose={requestClose}
           handleMouseDown={handleMouseDown}
@@ -1271,6 +1296,7 @@ export default function ClaimModal({
                   serviceCostBreakdown={serviceCostBreakdown}
                   onNotify={onNotify}
                   setActiveTab={setActiveTab}
+                  onOpenQuickEstimate={() => setIsQuickEstimateOpen(true)}
                 />
               )}
 
@@ -1415,6 +1441,20 @@ export default function ClaimModal({
             claim={form}
             onNotify={onNotify}
             atelierBranding={loadCachedBranding()}
+          />
+        )}
+
+        {/* Modal Notă de Constatare & Deviz Estimativ Rapid */}
+        {isQuickEstimateOpen && (
+          <QuickEstimateModal
+            isOpen={isQuickEstimateOpen}
+            onClose={() => setIsQuickEstimateOpen(false)}
+            claim={form}
+            tarifeAtelier={loadCachedManoperaTarife()}
+            onApplyToFinancial={(patch) => {
+              setFinancial((prev) => ({ ...prev, ...patch }));
+            }}
+            onNotify={onNotify}
           />
         )}
 

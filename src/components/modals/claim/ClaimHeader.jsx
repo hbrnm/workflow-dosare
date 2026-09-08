@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive
+  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator
 } from "lucide-react";
 import { getStatusDefinition } from "../../../constants/config";
 import ClaimAuditMeta from "../../common/ClaimAuditMeta";
@@ -30,6 +30,7 @@ export default function ClaimHeader({
   handleDuplicate,
   onDuplicate,
   onOpenReceptie,
+  onOpenQuickEstimate,
   onOpenSettlement,
   requestClose,
   handleMouseDown,
@@ -117,6 +118,17 @@ export default function ClaimHeader({
                 title="Recepție auto & Semnătură digitală pe ecran"
               >
                 <FileCheck size={12} /><span className="hidden md:inline"> Recepție</span>
+              </button>
+            )}
+
+            {onOpenQuickEstimate && (
+              <button
+                type="button"
+                onClick={onOpenQuickEstimate}
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-[var(--app-text)] hover:text-[var(--app-text-strong)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
+                title="Notă de Constatare & Estimare Rapidă deviz"
+              >
+                <Calculator size={12} /><span className="hidden md:inline"> Estimare</span>
               </button>
             )}
 

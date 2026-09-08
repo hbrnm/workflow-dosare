@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   ImageIcon, Download, Car, ClipboardList, Sparkles, Loader2, Upload,
-  Trash2, FolderOpen, FileText
+  Trash2, FolderOpen, FileText, Filter, Tag
 } from "lucide-react";
+import { CAR_PANELS } from "../../common/CarDamageVisualSelector";
 
 export default function ClaimMediaTab({
   form,
@@ -22,9 +23,38 @@ export default function ClaimMediaTab({
   const pozeList = Array.isArray(form.poze) ? form.poze : [];
   const documenteList = Array.isArray(form.documente) ? form.documente : [];
 
+  const [selectedReperFilter, setSelectedReperFilter] = useState("toate");
+  const [selectedUploadReper, setSelectedUploadReper] = useState("");
+
+  // Extrage lista unică a reperelor care au fotografii atașate
+  const repereWithPhotos = useMemo(() => {
+    const map = {};
+    pozeList.forEach((p) => {
+      if (p.reper) {
+        map[p.reper] = {
+          id: p.reper,
+          label: p.reperLabel || p.reper,
+          count: (map[p.reper]?.count || 0) + 1,
+        };
+      }
+    });
+    return Object.values(map);
+  }, [pozeList]);
+
+  // Lista de fotografii filtrate
+  const filteredPoze = useMemo(() => {
+    if (selectedReperFilter === "toate") return pozeList;
+    return pozeList.filter((p) => p.reper === selectedReperFilter);
+  }, [pozeList, selectedReperFilter]);
+
+  const onUploadCategory = (files, cat) => {
+    const reperObj = selectedUploadReper ? CAR_PANELS.find((p) => p.id === selectedUploadReper) : null;
+    handleUploadPoze(files, cat, reperObj);
+  };
+
   return (
     <div className="grid md:grid-cols-2 gap-3">
-      {/* Galerie Poze */}
+      {/* Galerie Poze organizată pe Repere Avariate */}
       <div className="bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-xl p-4 space-y-3 shadow-2xs flex flex-col">
         <div className="text-[12px] font-bold uppercase tracking-wide text-[var(--app-muted)] flex items-center justify-between border-b border-[var(--app-border)] pb-1.5">
           <span className="flex items-center gap-1.5"><ImageIcon size={14} /> Galerie Poze ({pozeList.length})</span>
@@ -38,20 +68,49 @@ export default function ClaimMediaTab({
           </button>
         </div>
 
+        {/* Selector Reper Avariat pentru Upload */}
+        <div className="bg-[var(--app-surface)] border border-[var(--app-border-soft)] rounded-lg p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="font-bold text-[var(--app-text)] flex items-center gap-1">
+              <Tag size={12} className="text-[var(--app-accent)]" /> Reper caroserie pentru foto:
+            </span>
+            {selectedUploadReper && (
+              <button
+                type="button"
+                onClick={() => setSelectedUploadReper("")}
+                className="text-[10px] text-[var(--app-muted)] hover:underline"
+              >
+                Resetează (Generale)
+              </button>
+            )}
+          </div>
+          <select
+            value={selectedUploadReper}
+            onChange={(e) => setSelectedUploadReper(e.target.value)}
+            className="w-full text-[11.5px] bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-md px-2 py-1.5 text-[var(--app-text)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+          >
+            <option value="">Fără reper specific (Generale)</option>
+            {CAR_PANELS.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Butoane Upload Categorie */}
         <div className="space-y-1.5">
           <div className="text-[10.5px] font-bold text-[var(--app-muted)]">Adaugă poze direct în Categorie:</div>
           <div className="grid grid-cols-3 gap-1.5 text-[11px]">
             <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
               <Car size={12} /> <span>Recepție</span>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "receptie")} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onUploadCategory(e.target.files, "receptie")} />
             </label>
             <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
               <ClipboardList size={12} /> <span>Reconstatare</span>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "reconstatare")} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onUploadCategory(e.target.files, "reconstatare")} />
             </label>
             <label className="flex items-center justify-center gap-1 border border-dashed border-[var(--app-border)] rounded-lg p-2 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] cursor-pointer text-[var(--app-text)] font-semibold text-center">
               <Sparkles size={12} /> <span>Predare</span>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "predare")} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onUploadCategory(e.target.files, "predare")} />
             </label>
           </div>
         </div>
@@ -59,25 +118,64 @@ export default function ClaimMediaTab({
         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--app-border)]">
           <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
             {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Galerie generală</>}
-            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadPoze(e.target.files, "generale")} />
+            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onUploadCategory(e.target.files, "generale")} />
           </label>
           <button type="button" onClick={() => onOpenLiveCamera?.("generale")} className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
             {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
           </button>
         </div>
 
-        {pozeList.length > 0 ? (
+        {/* Filtru pe repere dacă există fotografii etichetate */}
+        {repereWithPhotos.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[10.5px]">
+            <Filter size={11} className="text-[var(--app-muted)] shrink-0" />
+            <button
+              type="button"
+              onClick={() => setSelectedReperFilter("toate")}
+              className={`px-2 py-0.5 rounded-full border shrink-0 font-medium transition-colors ${
+                selectedReperFilter === "toate"
+                  ? "bg-[var(--app-accent)] text-white border-[var(--app-accent)]"
+                  : "bg-[var(--app-surface)] text-[var(--app-muted)] border-[var(--app-border)] hover:text-[var(--app-text)]"
+              }`}
+            >
+              Toate ({pozeList.length})
+            </button>
+            {repereWithPhotos.map((rep) => (
+              <button
+                key={rep.id}
+                type="button"
+                onClick={() => setSelectedReperFilter(rep.id)}
+                className={`px-2 py-0.5 rounded-full border shrink-0 font-medium transition-colors ${
+                  selectedReperFilter === rep.id
+                    ? "bg-[var(--app-accent)] text-white border-[var(--app-accent)]"
+                    : "bg-[var(--app-surface)] text-[var(--app-muted)] border-[var(--app-border)] hover:text-[var(--app-text)]"
+                }`}
+              >
+                {rep.label} ({rep.count})
+              </button>
+            ))}
+          </div>
+        )}
+
+        {filteredPoze.length > 0 ? (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 pt-1">
-            {pozeList.map((p, idx) => (
+            {filteredPoze.map((p, idx) => (
               <div key={p.id || idx} className="relative group rounded-lg overflow-hidden border border-[var(--app-border)] bg-black/5 aspect-square">
-                <button type="button" onClick={() => setPreviewPozaIndex(idx)} className="w-full h-full block text-left cursor-pointer">
+                <button type="button" onClick={() => setPreviewPozaIndex(pozeList.indexOf(p))} className="w-full h-full block text-left cursor-pointer">
                   <img src={p.url} alt={p.nume || "foto"} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </button>
-                {p.categoria && p.categoria !== "generale" && (
-                  <span className="absolute bottom-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1 rounded uppercase pointer-events-none">
-                    {p.categoria}
-                  </span>
-                )}
+                <div className="absolute bottom-1 left-1 flex flex-col gap-0.5 pointer-events-none max-w-[85%]">
+                  {p.reperLabel && (
+                    <span className="bg-sky-950/80 text-sky-200 text-[8.5px] font-bold px-1 rounded truncate border border-sky-600/40">
+                      {p.reperLabel}
+                    </span>
+                  )}
+                  {p.categoria && p.categoria !== "generale" && (
+                    <span className="bg-black/70 text-white text-[8.5px] font-bold px-1 rounded uppercase truncate">
+                      {p.categoria}
+                    </span>
+                  )}
+                </div>
                 <button type="button" onClick={() => removePoza(p)} className="absolute top-1 right-1 bg-black/70 hover:bg-[var(--app-danger)] text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Trash2 size={12} />
                 </button>
@@ -86,7 +184,9 @@ export default function ClaimMediaTab({
           </div>
         ) : (
           <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-            Nicio fotografie adăugată. Adaugă poze folosind butoanele de mai sus.
+            {selectedReperFilter !== "toate"
+              ? "Nicio fotografie pentru reperul selectat."
+              : "Nicio fotografie adăugată. Adaugă poze folosind butoanele de mai sus."}
           </div>
         )}
       </div>

@@ -85,7 +85,11 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       return;
     }
 
-    const { data, error } = await supabase.from("dosare").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("dosare").select("*").order("created_at", { ascending: false });
+    if (atelierIdRef.current) {
+      query = query.eq("atelier_id", atelierIdRef.current);
+    }
+    const { data, error } = await query;
     if (error) {
       const message = error.message || "Nu am putut încărca dosarele.";
       setLoadError({ message, offline: false });
@@ -129,16 +133,23 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
 
     loadAll();
 
+    let debounceTimer = null;
     const channel = supabase
-      .channel("public:dosare_changes")
+      .channel(`public:dosare_changes_${atelierId || "global"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "dosare" }, () => {
         // Don't reload if we have pending undo operations — avoid flickering
         const hasPending = pendingDeletes.current.size > 0 || pendingStatusChanges.current.size > 0;
-        if (!hasPending) loadAll();
+        if (!hasPending) {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            loadAll();
+          }, 300);
+        }
       })
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [loadAll, sessionUserId, atelierId]);
