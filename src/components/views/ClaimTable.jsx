@@ -361,7 +361,10 @@ export default function ClaimTable({
                 <button
                   type="button"
                   aria-label="Șterge dosar"
-                  onClick={() => onDelete && onDelete(c.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDelete) onDelete(c);
+                  }}
                   className="app-table-delete-btn inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold transition-colors"
                 >
                   <Trash2 size={11} />

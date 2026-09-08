@@ -11,11 +11,15 @@ import CommandPalette from "./components/common/CommandPalette";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import OnboardingModal from "./components/common/OnboardingModal";
 import BrandingSetupModal from "./components/common/BrandingSetupModal";
+import ConfirmDialog from "./components/common/ConfirmDialog";
+import SchedulePromptModal from "./components/common/SchedulePromptModal";
 import QuickViewDrawer from "./components/common/QuickViewDrawer";
 import SetariModal from "./components/modals/SetariModal";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { dismissOnboarding } from "./utils/onboardingPrefs";
 import { ROLES, resolveUserRole, canCreateClaim } from "./constants/roles";
+import { getStatusDefinition } from "./constants/config";
+import { fmtProgramare } from "./utils/dateUtils";
 import { useAuth } from "./hooks/useAuth";
 import { useClaims } from "./hooks/useClaims";
 import { useClaimFilters } from "./hooks/useClaimFilters";
@@ -633,15 +637,47 @@ export default function App() {
     [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate, setFilterStatus, setFilterAsigurator, setSearch, setOnlyBlocked]
   );
 
+  const [pendingDeleteClaim, setPendingDeleteClaim] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const handleDelete = useCallback(
-    async (claimId) => {
-      const res = await deleteClaim(claimId);
+    (claimOrId) => {
+      if (!claimOrId) return;
+      const id = typeof claimOrId === "object" ? claimOrId.id : claimOrId;
+      const target =
+        (typeof claimOrId === "object" && claimOrId.id ? claimOrId : null) ||
+        claims.find((c) => c?.id === id) ||
+        (modalClaim?.id === id ? modalClaim : null) ||
+        { id };
+
+      if (!canEdit(target)) {
+        showNotice("Poți șterge doar dosarele create de tine.", "error");
+        return;
+      }
+      setPendingDeleteClaim(target);
+    },
+    [claims, modalClaim, canEdit, showNotice]
+  );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDeleteClaim) return;
+    const id = pendingDeleteClaim.id;
+    try {
+      setDeleteLoading(true);
+      await deleteClaim(id, canEdit);
       closeClaimModal();
       closeFieldClaim();
-      return res ?? true;
-    },
-    [deleteClaim, closeClaimModal, closeFieldClaim]
-  );
+      setPendingDeleteClaim(null);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [pendingDeleteClaim, deleteClaim, canEdit, closeClaimModal, closeFieldClaim]);
+
+  const pendingDeleteClaimLabel = useMemo(() => {
+    if (!pendingDeleteClaim) return "";
+    const parts = [pendingDeleteClaim.numarDosar, pendingDeleteClaim.numarInmatriculare].filter(Boolean);
+    return parts.length > 0 ? parts.join(" — ") : "acest dosar";
+  }, [pendingDeleteClaim]);
 
   const handlePatchClaim = useCallback(
     async (claimId, patch) => {
@@ -650,11 +686,48 @@ export default function App() {
     [patchClaim]
   );
 
+  const [schedulePromptClaim, setSchedulePromptClaim] = useState(null);
+
   const handleMoveToStatus = useCallback(
-    async (claimId, newStatus) => {
-      return await moveToStatus(claimId, newStatus);
+    async (claimOrId, newStatus) => {
+      const targetKey = getStatusDefinition(newStatus).key;
+      const claim =
+        (typeof claimOrId === "object" && claimOrId !== null ? claimOrId : null) ||
+        claims.find((c) => c?.id === claimOrId);
+
+      if (targetKey === "programat" && claim) {
+        if (!canEdit(claim)) {
+          showNotice("Poți muta doar dosarele create de tine.", "error");
+          return false;
+        }
+        setSchedulePromptClaim(claim);
+        return false;
+      }
+
+      return await moveToStatus(claimOrId, newStatus, canEdit);
     },
-    [moveToStatus]
+    [claims, canEdit, moveToStatus, showNotice]
+  );
+
+  const handleConfirmSchedule = useCallback(
+    async (isoString) => {
+      if (!schedulePromptClaim) return;
+      const claim = schedulePromptClaim;
+      setSchedulePromptClaim(null);
+
+      const ok = await patchClaim(claim.id, {
+        status: "programat",
+        dataProgramare: isoString,
+      });
+
+      if (ok !== false) {
+        showNotice(
+          `Dosar programat pentru ${fmtProgramare(isoString)}.`,
+          "success"
+        );
+      }
+    },
+    [schedulePromptClaim, patchClaim, showNotice]
   );
 
   const activeModalClaim = useMemo(() => {
@@ -749,6 +822,27 @@ export default function App() {
           onSave={saveBranding}
           onUploadLogo={uploadBrandingLogo}
           onNotify={showNotice}
+        />
+        <ConfirmDialog
+          open={Boolean(pendingDeleteClaim)}
+          desktopUi={false}
+          title="Ștergi dosarul?"
+          message={`Sigur dorești să ștergi dosarul ${pendingDeleteClaimLabel !== "acest dosar" ? `„${pendingDeleteClaimLabel}”` : "selectat"}? Acesta va fi arhivat și eliminat din listă.`}
+          confirmLabel="Șterge dosarul"
+          cancelLabel="Anulează"
+          danger
+          loading={deleteLoading}
+          onCancel={() => {
+            if (!deleteLoading) setPendingDeleteClaim(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+        <SchedulePromptModal
+          open={Boolean(schedulePromptClaim)}
+          claim={schedulePromptClaim}
+          desktopUi={false}
+          onConfirm={handleConfirmSchedule}
+          onClose={() => setSchedulePromptClaim(null)}
         />
 
         <Suspense
@@ -977,6 +1071,27 @@ export default function App() {
         onUploadLogo={uploadBrandingLogo}
         onNotify={showNotice}
         desktopUi
+      />
+      <ConfirmDialog
+        open={Boolean(pendingDeleteClaim)}
+        desktopUi={true}
+        title="Ștergi dosarul?"
+        message={`Sigur dorești să ștergi dosarul ${pendingDeleteClaimLabel !== "acest dosar" ? `„${pendingDeleteClaimLabel}”` : "selectat"}? Acesta va fi arhivat și eliminat din listă.`}
+        confirmLabel="Șterge dosarul"
+        cancelLabel="Anulează"
+        danger
+        loading={deleteLoading}
+        onCancel={() => {
+          if (!deleteLoading) setPendingDeleteClaim(null);
+        }}
+        onConfirm={handleConfirmDelete}
+      />
+      <SchedulePromptModal
+        open={Boolean(schedulePromptClaim)}
+        claim={schedulePromptClaim}
+        desktopUi={true}
+        onConfirm={handleConfirmSchedule}
+        onClose={() => setSchedulePromptClaim(null)}
       />
 
       {/* Desktop Minimal Sidebar */}

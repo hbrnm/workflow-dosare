@@ -22,10 +22,9 @@ export default function ClaimFooter({
         ) : (
           <button
             type="button"
-            onClick={async () => {
+            onClick={() => {
               if (onDelete) {
-                await onDelete(claimId);
-                requestClose?.();
+                onDelete(claimId);
               }
             }}
             className="m-claim-footer-btn flex items-center gap-1 text-[var(--app-danger)] text-[12px] font-bold hover:bg-[var(--app-danger)]/10 px-3 py-1.5 transition-colors cursor-pointer"
