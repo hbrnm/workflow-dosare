@@ -3,7 +3,10 @@ import {
   getClientStatusCopy,
   getClientProgressPercent,
   getClientPhaseIndex,
+  getTrackingTokenFromLocation,
+  buildTrackingUrl,
 } from "../trackingCopy";
+import { generateTrackingToken } from "../../utils/claimModel";
 
 describe("trackingCopy", () => {
   it("returns friendly copy for known status", () => {
@@ -23,5 +26,15 @@ describe("trackingCopy", () => {
     expect(getClientProgressPercent({ status: "in_lucru", gataDeRidicare: true })).toBe(88);
     expect(getClientProgressPercent({ status: "accept_plata", ridicata: true })).toBe(100);
     expect(getClientProgressPercent({ status: "facturat" })).toBe(100);
+  });
+
+  it("builds short tracking url with ?t= param", () => {
+    const url = buildTrackingUrl("TK-78F2A");
+    expect(url).toContain("?t=TK-78F2A");
+  });
+
+  it("generates 8-char friendly token formatted as TK-XXXXX", () => {
+    const token = generateTrackingToken();
+    expect(token).toMatch(/^TK-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{5}$/);
   });
 });

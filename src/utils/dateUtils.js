@@ -314,7 +314,7 @@ export const WA_TEMPLATES = [
       const base = typeof window !== "undefined" && window.location?.origin
         ? `${window.location.origin}${window.location.pathname || ""}`
         : "https://app.workflow-daune.ro";
-      const trackingUrl = token ? `${base}?track=${token}` : "";
+      const trackingUrl = token ? `${base}?t=${token}` : "";
       return `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) in timp real aici: ${trackingUrl} — Echipa ${brandName}.`;
     }
   }

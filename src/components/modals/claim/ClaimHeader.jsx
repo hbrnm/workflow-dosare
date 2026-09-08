@@ -15,6 +15,7 @@ import {
 } from "../../../utils/pdfGenerator";
 import { resolveCerereDespagubireKind, OMNIASIG_CERERE_PLATA } from "../../../utils/cerereDespagubire";
 import { loadCachedBranding } from "../../../constants/branding";
+import { buildTrackingUrl } from "../../../constants/trackingCopy";
 
 export default function ClaimHeader({
   form,
@@ -135,7 +136,7 @@ export default function ClaimHeader({
 
             {!isNew && form.trackingToken && (
               <a
-                href={typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?track=${form.trackingToken}` : "#"}
+                href={buildTrackingUrl(form.trackingToken) || "#"}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-sky-700 hover:text-sky-800 border-sky-300/80 bg-sky-50/70 hover:bg-sky-100"

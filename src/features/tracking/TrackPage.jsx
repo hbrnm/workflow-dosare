@@ -39,10 +39,11 @@ export default function TrackPage({ token }) {
           rawPoze = row.poze;
         } else if (row) {
           try {
+            const cleanToken = String(token || "").trim();
             const { data: claimRows } = await supabase
               .from("dosare")
               .select("poze")
-              .eq("tracking_token", String(token).trim())
+              .ilike("tracking_token", cleanToken)
               .limit(1);
             if (!alive) return;
             rawPoze = Array.isArray(claimRows?.[0]?.poze) ? claimRows[0].poze : [];
