@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator, Link2
+  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator, Link2, ClipboardList
 } from "lucide-react";
 
 import { getStatusDefinition } from "../../../constants/config";
@@ -33,6 +33,7 @@ export default function ClaimHeader({
   onDuplicate,
   onOpenReceptie,
   onOpenQuickEstimate,
+  onOpenReconstatare,
   onOpenSettlement,
   requestClose,
   handleMouseDown,
@@ -134,6 +135,17 @@ export default function ClaimHeader({
               </button>
             )}
 
+            {onOpenReconstatare && (
+              <button
+                type="button"
+                onClick={onOpenReconstatare}
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-red-700 dark:text-red-300 hover:text-red-900 border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/40 hover:bg-red-100"
+                title="Cerere & Notă de Reconstatare Daune Asigurator"
+              >
+                <ClipboardList size={12} /><span className="hidden md:inline"> Reconstatare</span>
+              </button>
+            )}
+
             {!isNew && form.trackingToken && (
               <a
                 href={buildTrackingUrl(form.trackingToken) || "#"}
@@ -196,6 +208,19 @@ export default function ClaimHeader({
                   >
                     <FileText size={13} /> Fișă Intrare Service
                   </button>
+                  {onOpenReconstatare && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold text-[var(--app-text-strong)] hover:bg-[var(--app-surface-2)] rounded-lg transition-colors text-red-700 dark:text-red-300"
+                      onClick={() => {
+                        setPdfMenuOpen(false);
+                        onOpenReconstatare();
+                      }}
+                    >
+                      <ClipboardList size={13} /> Cerere Reconstatare (PDF)
+                    </button>
+                  )}
                   {onOpenSettlement && (
                     <button
                       type="button"
