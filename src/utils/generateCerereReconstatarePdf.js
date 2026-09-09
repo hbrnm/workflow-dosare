@@ -311,8 +311,10 @@ export async function generateCerereReconstatarePdf({
   const cleanNr = (claim?.numarDosar || claim?.numarInmatriculare || "reconstatare").replace(/[^a-zA-Z0-9_-]/g, "_");
   const fileName = `Cerere_Reconstatare_${cleanNr}.pdf`;
 
-  // Salvare & descărcare
-  doc.save(fileName);
+  // Salvare & descărcare în browser
+  if (typeof window !== "undefined" && typeof window.document !== "undefined") {
+    doc.save(fileName);
+  }
   return {
     doc,
     fileName,

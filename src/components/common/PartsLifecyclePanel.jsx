@@ -13,7 +13,8 @@ import {
   ChevronUp,
   Plus,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Tag
 } from "lucide-react";
 import { uid } from "../../utils/dateUtils";
 
@@ -107,6 +108,30 @@ export default function PartsLifecyclePanel({
     };
     const updated = [...operations, newItem];
     set("operatiuni", updated);
+  };
+
+  const handleRemovePart = (idx) => {
+    const updated = [...operations];
+    const opTarget = replacementOps[idx];
+    const realIndex = operations.findIndex((o) => o === opTarget || (o.id && o.id === opTarget.id));
+    if (realIndex >= 0) {
+      const op = updated[realIndex];
+      if (!op.rep && !op.rev && !op.uni) {
+        updated.splice(realIndex, 1);
+      } else {
+        updated[realIndex] = {
+          ...op,
+          inl: false,
+          statusPiesa: null,
+          furnizor: "",
+          codPiesa: "",
+          pretAchizitie: 0,
+          awb: "",
+        };
+      }
+      set("operatiuni", updated);
+      onNotify?.("Piesa a fost eliminată din lista comenzilor.", "info");
+    }
   };
 
   if (replacementOps.length === 0) {
@@ -216,6 +241,16 @@ export default function PartsLifecyclePanel({
                           </option>
                         ))}
                       </select>
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePart(idx)}
+                          className="p-1 text-slate-400 hover:text-red-600 dark:text-slate-500 dark:hover:text-red-400 rounded transition-colors cursor-pointer"
+                          title="Elimină piesa din comenzi"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
 
