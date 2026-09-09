@@ -19,6 +19,7 @@ import {
 import { loadCachedBranding } from "../../../constants/branding";
 import { buildTrackingUrl } from "../../../constants/trackingCopy";
 import { generateTrackingToken } from "../../../utils/claimModel";
+import PartsLifecyclePanel from "../../common/PartsLifecyclePanel";
 
 export default function ClaimGeneralTab({
   form,
@@ -228,6 +229,14 @@ export default function ClaimGeneralTab({
               )}
             </div>
           </div>
+
+          {/* Gestiune Piese Comandate & Ciclu de Viață */}
+          <PartsLifecyclePanel
+            form={form}
+            set={set}
+            readOnly={readOnly}
+            onNotify={onNotify}
+          />
         </div>
 
         {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT */}

@@ -39,6 +39,7 @@ import ClaimHistoryTab from "./claim/ClaimHistoryTab";
 import ClaimFooter from "./claim/ClaimFooter";
 import ClaimScannerOverlay from "./claim/ClaimScannerOverlay";
 import ReceptieAutoModal from "./ReceptieAutoModal";
+import ReconstatareModal from "./ReconstatareModal";
 import SettlementPackageModal from "./SettlementPackageModal";
 import QuickEstimateModal from "./QuickEstimateModal";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
@@ -183,6 +184,7 @@ export default function ClaimModal({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [savingLocal, setSavingLocal] = useState(false);
   const [isReceptieModalOpen, setIsReceptieModalOpen] = useState(false);
+  const [isReconstatareModalOpen, setIsReconstatareModalOpen] = useState(false);
   const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
   const [isQuickEstimateOpen, setIsQuickEstimateOpen] = useState(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
@@ -1084,6 +1086,7 @@ export default function ClaimModal({
           handleDuplicate={handleDuplicate}
           onOpenReceptie={() => setIsReceptieModalOpen(true)}
           onOpenQuickEstimate={() => setIsQuickEstimateOpen(true)}
+          onOpenReconstatare={() => setIsReconstatareModalOpen(true)}
           onOpenSettlement={() => setIsSettlementModalOpen(true)}
           requestClose={requestClose}
           handleMouseDown={handleMouseDown}
@@ -1455,6 +1458,20 @@ export default function ClaimModal({
             }}
             onNotify={onNotify}
             atelierBranding={loadCachedBranding()}
+          />
+        )}
+
+        {/* Modal Reconstatare Daune & Notă Suplimentară */}
+        {isReconstatareModalOpen && (
+          <ReconstatareModal
+            isOpen={isReconstatareModalOpen}
+            onClose={() => setIsReconstatareModalOpen(false)}
+            claim={form}
+            onPatchClaim={(patch) => {
+              setForm((prev) => ({ ...prev, ...patch }));
+              if (onPatch) onPatch(form.id, patch);
+            }}
+            onNotify={onNotify}
           />
         )}
 
