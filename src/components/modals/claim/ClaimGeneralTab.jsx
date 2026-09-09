@@ -2,7 +2,7 @@ import React from "react";
 import {
   FileText, Calendar, ShieldCheck, CalendarClock, AlertOctagon, Wrench,
   Car, Tag, User as UserIcon, Phone, MessageCircle, Trash2, Sparkles, FileDown,
-  Link2, ExternalLink, Copy, Check
+  Link2, ExternalLink, Copy, Check, RefreshCw
 } from "lucide-react";
 
 import {
@@ -18,6 +18,7 @@ import {
 } from "../../../utils/pdfGenerator";
 import { loadCachedBranding } from "../../../constants/branding";
 import { buildTrackingUrl } from "../../../constants/trackingCopy";
+import { generateTrackingToken } from "../../../utils/claimModel";
 import PartsLifecyclePanel from "../../common/PartsLifecyclePanel";
 
 export default function ClaimGeneralTab({
@@ -335,13 +336,29 @@ export default function ClaimGeneralTab({
             {/* Widget Urmărire Reparație Client (Live Tracking Portal) */}
             {form.trackingToken && (
               <div className="pt-2 mt-2 border-t border-[var(--app-border)]/70 space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-1">
                   <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-sky-700 flex items-center gap-1">
                     <Link2 size={12} className="text-sky-600" /> Urmărire Client (Live)
                   </span>
-                  <span className="text-[10px] text-sky-800 font-mono font-bold bg-sky-100/80 px-1.5 py-0.5 rounded border border-sky-200">
-                    Cod: {form.trackingToken}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-sky-800 font-mono font-bold bg-sky-100/80 px-1.5 py-0.5 rounded border border-sky-200">
+                      Cod: {form.trackingToken.length > 10 ? `${form.trackingToken.slice(0, 8)}…` : form.trackingToken}
+                    </span>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newToken = generateTrackingToken();
+                          set("trackingToken", newToken);
+                          onNotify?.(`Cod scurt generat: ${newToken}`, "success");
+                        }}
+                        className="p-1 text-sky-700 hover:text-sky-900 hover:bg-sky-100 rounded transition-colors cursor-pointer"
+                        title={form.trackingToken.length > 10 ? "Convertește în cod scurt profesional (TK-XXXXX)" : "Regenerează cod scurt"}
+                      >
+                        <RefreshCw size={11} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-1">
