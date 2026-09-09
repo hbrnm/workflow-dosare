@@ -14,12 +14,23 @@ import {
   Loader2,
   CheckCircle2,
   Tag,
-  AlertTriangle
+  AlertTriangle,
+  Mail,
+  Phone,
+  User,
+  Copy,
+  Check
 } from "lucide-react";
 import { CAR_PANELS } from "../common/CarDamageVisualSelector";
 import { generateCerereReconstatarePdf } from "../../utils/generateCerereReconstatarePdf";
 import { todayISO, waLink } from "../../utils/dateUtils";
 import { loadCachedBranding } from "../../constants/branding";
+import {
+  getInsurerDefaultEmail,
+  buildReconstatareEmailSubject,
+  buildReconstatareEmailBody,
+  buildReconstatareMailtoUrl,
+} from "../../utils/emailInspectorUtils";
 
 export default function ReconstatareModal({
   isOpen,
@@ -31,9 +42,20 @@ export default function ReconstatareModal({
   if (!isOpen || !claim) return null;
 
   const branding = loadCachedBranding() || {};
+  const defaultInsurerEmail = useMemo(
+    () => getInsurerDefaultEmail(claim.asigurator),
+    [claim.asigurator]
+  );
+
   const [inspectorDauna, setInspectorDauna] = useState(() => claim.inspectorDauna || "");
   const [nrDosarAsigurator, setNrDosarAsigurator] = useState(() => claim.nrDosarAsigurator || claim.numarDosar || "");
-  const [telefonInspector, setTelefonInspector] = useState("");
+  const [emailInspector, setEmailInspector] = useState(
+    () => claim.emailInspector || claim.financiar?.emailInspector || defaultInsurerEmail || ""
+  );
+  const [telefonInspector, setTelefonInspector] = useState(
+    () => claim.telefonInspector || claim.financiar?.telefonInspector || ""
+  );
+  const [copiedEmail, setCopiedEmail] = useState(false);
   const [dataCerere, setDataCerere] = useState(() => todayISO());
   const [modDesfasurare, setModDesfasurare] = useState("Fizic la atelier"); // "Fizic la atelier" | "Online / Plansa foto"
   const [intervalOrar, setIntervalOrar] = useState("09:00 - 17:00");
@@ -105,6 +127,78 @@ export default function ReconstatareModal({
     ]);
   };
 
+  const handlePersistContact = () => {
+    if (!onPatchClaim) return;
+    const patch = {};
+    if (inspectorDauna !== claim.inspectorDauna) patch.inspectorDauna = inspectorDauna;
+    if (nrDosarAsigurator !== claim.nrDosarAsigurator) patch.nrDosarAsigurator = nrDosarAsigurator;
+
+    const fin = { ...(claim.financiar || {}) };
+    let finChanged = false;
+    if (emailInspector && emailInspector !== fin.emailInspector) {
+      fin.emailInspector = emailInspector;
+      finChanged = true;
+    }
+    if (telefonInspector && telefonInspector !== fin.telefonInspector) {
+      fin.telefonInspector = telefonInspector;
+      finChanged = true;
+    }
+    if (finChanged) {
+      patch.financiar = fin;
+    }
+
+    if (Object.keys(patch).length > 0) {
+      onPatchClaim(patch);
+    }
+  };
+
+  const emailSubject = useMemo(() => {
+    return buildReconstatareEmailSubject({ claim, nrDosarAsigurator });
+  }, [claim, nrDosarAsigurator]);
+
+  const emailBody = useMemo(() => {
+    return buildReconstatareEmailBody({
+      claim,
+      inspectorDauna,
+      nrDosarAsigurator,
+      dataCerere,
+      modDesfasurare,
+      intervalOrar,
+      motivatie,
+      repere,
+      branding,
+    });
+  }, [
+    claim,
+    inspectorDauna,
+    nrDosarAsigurator,
+    dataCerere,
+    modDesfasurare,
+    intervalOrar,
+    motivatie,
+    repere,
+    branding,
+  ]);
+
+  const mailtoUrl = useMemo(() => {
+    return buildReconstatareMailtoUrl({
+      to: emailInspector,
+      subject: emailSubject,
+      body: emailBody,
+    });
+  }, [emailInspector, emailSubject, emailBody]);
+
+  const handleCopyEmailText = async () => {
+    try {
+      await navigator.clipboard.writeText(`Subiect: ${emailSubject}\r\n\r\n${emailBody}`);
+      setCopiedEmail(true);
+      onNotify?.("Textul complet al email-ului a fost copiat în clipboard!", "success");
+      setTimeout(() => setCopiedEmail(false), 2500);
+    } catch {
+      window.prompt("Copiază textul email-ului:", `Subiect: ${emailSubject}\n\n${emailBody}`);
+    }
+  };
+
   const handleGeneratePdf = async () => {
     setGenerating(true);
     try {
@@ -129,14 +223,7 @@ export default function ReconstatareModal({
         atelierBranding: branding,
       });
 
-      // Salvăm opțional datele de inspector/dosar în claim dacă s-au completat
-      if (onPatchClaim && (inspectorDauna !== claim.inspectorDauna || nrDosarAsigurator !== claim.nrDosarAsigurator)) {
-        onPatchClaim({
-          inspectorDauna: inspectorDauna || claim.inspectorDauna,
-          nrDosarAsigurator: nrDosarAsigurator || claim.nrDosarAsigurator,
-        });
-      }
-
+      handlePersistContact();
       onNotify?.("Cererea de reconstatare a fost generată și descărcată cu succes!", "success");
     } catch (err) {
       console.error(err);
@@ -181,10 +268,11 @@ export default function ReconstatareModal({
         {/* Content Scrollable */}
         <div className="p-4 space-y-4 overflow-y-auto text-[12px]">
           {/* Card Asigurator & Inspector */}
-          <div className="grid sm:grid-cols-3 gap-3 bg-[var(--app-surface-2)]/60 border border-[var(--app-border)]/80 rounded-xl p-3">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2.5 bg-[var(--app-surface-2)]/60 border border-[var(--app-border)]/80 rounded-xl p-3">
+            {/* 1. Asigurător */}
             <div>
               <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
-                <ShieldCheck size={12} /> Asigurător Daună
+                <ShieldCheck size={12} className="text-sky-600" /> Asigurător Daună
               </label>
               <input
                 type="text"
@@ -194,6 +282,7 @@ export default function ReconstatareModal({
               />
             </div>
 
+            {/* 2. Nr. Dosar Asigurator */}
             <div>
               <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">
                 Nr. Dosar Asigurator
@@ -207,9 +296,10 @@ export default function ReconstatareModal({
               />
             </div>
 
+            {/* 3. Nume Inspector */}
             <div>
-              <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1">
-                Nume Inspector / Constatator
+              <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
+                <User size={12} className="text-slate-500" /> Nume Inspector Daune
               </label>
               <input
                 type="text"
@@ -217,6 +307,46 @@ export default function ReconstatareModal({
                 onChange={(e) => setInspectorDauna(e.target.value)}
                 placeholder="ex: Popescu Ion"
                 className="w-full text-[11.5px] font-semibold bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-2.5 py-1.5 text-[var(--app-text)] focus:border-[var(--app-accent)]"
+              />
+            </div>
+
+            {/* 4. Email Inspector / Departament Daune */}
+            <div className="sm:col-span-2 md:col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10.5px] font-bold text-[var(--app-muted)] flex items-center gap-1">
+                  <Mail size={12} className="text-sky-600" /> Email Inspector / Departament Daune
+                </label>
+                {defaultInsurerEmail && emailInspector !== defaultInsurerEmail && (
+                  <button
+                    type="button"
+                    onClick={() => setEmailInspector(defaultInsurerEmail)}
+                    className="text-[9.5px] text-sky-600 hover:underline cursor-pointer font-semibold"
+                    title={`Folosește adresa implicită pentru ${claim.asigurator}`}
+                  >
+                    Reset la {defaultInsurerEmail}
+                  </button>
+                )}
+              </div>
+              <input
+                type="email"
+                value={emailInspector}
+                onChange={(e) => setEmailInspector(e.target.value)}
+                placeholder="ex: daune@omniasig.ro sau inspector@asigurator.ro"
+                className="w-full text-[11.5px] font-medium bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-2.5 py-1.5 text-[var(--app-text)] focus:border-[var(--app-accent)]"
+              />
+            </div>
+
+            {/* 5. Telefon Inspector (pentru WhatsApp) */}
+            <div>
+              <label className="block text-[10.5px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
+                <Phone size={12} className="text-emerald-600" /> Telefon Inspector (WhatsApp)
+              </label>
+              <input
+                type="tel"
+                value={telefonInspector}
+                onChange={(e) => setTelefonInspector(e.target.value)}
+                placeholder="ex: 0722123456"
+                className="w-full text-[11.5px] font-mono font-medium bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg px-2.5 py-1.5 text-[var(--app-text)] focus:border-[var(--app-accent)]"
               />
             </div>
           </div>
@@ -383,16 +513,39 @@ export default function ReconstatareModal({
 
         {/* Footer Actions */}
         <div className="p-3 border-t border-[var(--app-border)] bg-[var(--app-surface-2)] flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {/* Buton WhatsApp */}
             <a
               href={waLink(telefonInspector, waMessage)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-bold px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors"
+              onClick={handlePersistContact}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
               title="Trimite solicitare rapidă pe WhatsApp inspectorului"
             >
               <MessageCircle size={13} /> Solicită pe WhatsApp
             </a>
+
+            {/* Buton Trimite Email Inspector */}
+            <a
+              href={mailtoUrl}
+              onClick={handlePersistContact}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-colors cursor-pointer"
+              title="Deschide clientul de email cu cererea de reconstatare și lista de repere preformatate"
+            >
+              <Mail size={13} /> Trimite Email Inspector
+            </a>
+
+            {/* Buton Copiază Text Email (pt Webmail / Gmail) */}
+            <button
+              type="button"
+              onClick={handleCopyEmailText}
+              className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[var(--app-text)] transition-colors cursor-pointer"
+              title="Copiază subiectul și textul email-ului (util pentru Gmail / Webmail)"
+            >
+              {copiedEmail ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+              <span>{copiedEmail ? "Copiat!" : "Copiază text email"}</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -401,7 +554,7 @@ export default function ReconstatareModal({
               onClick={onClose}
               className="px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[var(--app-text)] text-[11px] font-bold transition-colors cursor-pointer"
             >
-              Anulează
+              Închide
             </button>
             <button
               type="button"
