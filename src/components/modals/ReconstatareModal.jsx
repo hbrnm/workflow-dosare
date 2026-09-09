@@ -30,6 +30,9 @@ import {
   buildReconstatareEmailSubject,
   buildReconstatareEmailBody,
   buildReconstatareMailtoUrl,
+  copyFormattedEmailToClipboard,
+  buildReconstatareWaMessage,
+  buildReconstatareWaUrl,
 } from "../../utils/emailInspectorUtils";
 
 export default function ReconstatareModal({
@@ -56,6 +59,7 @@ export default function ReconstatareModal({
     () => claim.telefonInspector || claim.financiar?.telefonInspector || ""
   );
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedSubject, setCopiedSubject] = useState(false);
   const [dataCerere, setDataCerere] = useState(() => todayISO());
   const [modDesfasurare, setModDesfasurare] = useState("Fizic la atelier"); // "Fizic la atelier" | "Online / Plansa foto"
   const [intervalOrar, setIntervalOrar] = useState("09:00 - 17:00");
@@ -190,12 +194,62 @@ export default function ReconstatareModal({
 
   const handleCopyEmailText = async () => {
     try {
-      await navigator.clipboard.writeText(`Subiect: ${emailSubject}\r\n\r\n${emailBody}`);
-      setCopiedEmail(true);
-      onNotify?.("Textul complet al email-ului a fost copiat în clipboard!", "success");
-      setTimeout(() => setCopiedEmail(false), 2500);
+      const ok = await copyFormattedEmailToClipboard({
+        subject: emailSubject,
+        body: emailBody,
+      });
+      if (ok) {
+        setCopiedEmail(true);
+        onNotify?.("Textul email-ului a fost copiat în clipboard (formatat pe linii separate)!", "success");
+        setTimeout(() => setCopiedEmail(false), 2500);
+      } else {
+        window.prompt("Copiază textul email-ului:", emailBody);
+      }
     } catch {
-      window.prompt("Copiază textul email-ului:", `Subiect: ${emailSubject}\n\n${emailBody}`);
+      window.prompt("Copiază textul email-ului:", emailBody);
+    }
+  };
+
+  const handleCopySubject = async () => {
+    try {
+      await navigator.clipboard.writeText(emailSubject);
+      setCopiedSubject(true);
+      onNotify?.("Subiectul email-ului a fost copiat în clipboard!", "success");
+      setTimeout(() => setCopiedSubject(false), 2500);
+    } catch {
+      window.prompt("Copiază subiectul:", emailSubject);
+    }
+  };
+
+  const repereCount = useMemo(() => {
+    return repere.filter((r) => r && String(r.piesa || "").trim().length > 0).length;
+  }, [repere]);
+
+  const waMessage = useMemo(() => {
+    return buildReconstatareWaMessage({
+      claim,
+      inspectorDauna,
+      nrDosarAsigurator,
+      branding,
+      repereCount,
+    });
+  }, [claim, inspectorDauna, nrDosarAsigurator, branding, repereCount]);
+
+  const handleOpenWhatsApp = (e) => {
+    e?.preventDefault();
+    handlePersistContact();
+    const waUrl = buildReconstatareWaUrl({
+      phone: telefonInspector,
+      message: waMessage,
+    });
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+    if (!telefonInspector || !String(telefonInspector).replace(/\D/g, "")) {
+      onNotify?.(
+        "S-a deschis WhatsApp. Selectează inspectorul din contacte (sau completează telefonul în formular).",
+        "info"
+      );
+    } else {
+      onNotify?.("S-a deschis conversația WhatsApp cu inspectorul de daună.", "success");
     }
   };
 
@@ -232,8 +286,6 @@ export default function ReconstatareModal({
       setGenerating(false);
     }
   };
-
-  const waMessage = `Buna ziua! Referitor la dosarul ${claim.numarDosar || ""} / ${claim.numarInmatriculare || ""} (${claim.asigurator || "asigurare"}), va solicitam o reconstatare pentru daune ascunse identificate dupa dezechipare. Autovehiculul este disponibil la ${branding?.atelierNume || "service"}. Va rugam sa ne comunicati data inspectiei. Va multumim!`;
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-[v2-fade-in_0.2s_ease]">
@@ -514,17 +566,15 @@ export default function ReconstatareModal({
         {/* Footer Actions */}
         <div className="p-3 border-t border-[var(--app-border)] bg-[var(--app-surface-2)] flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            {/* Buton WhatsApp */}
-            <a
-              href={waLink(telefonInspector, waMessage)}
-              target="_blank"
-              rel="noreferrer"
-              onClick={handlePersistContact}
+            {/* Buton WhatsApp (deschide garantat cu sau fără telefon) */}
+            <button
+              type="button"
+              onClick={handleOpenWhatsApp}
               className="inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-colors cursor-pointer"
               title="Trimite solicitare rapidă pe WhatsApp inspectorului"
             >
               <MessageCircle size={13} /> Solicită pe WhatsApp
-            </a>
+            </button>
 
             {/* Buton Trimite Email Inspector */}
             <a
@@ -541,10 +591,21 @@ export default function ReconstatareModal({
               type="button"
               onClick={handleCopyEmailText}
               className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-2.5 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[var(--app-text)] transition-colors cursor-pointer"
-              title="Copiază subiectul și textul email-ului (util pentru Gmail / Webmail)"
+              title="Copiază corpul email-ului formatat pe rânduri separate (util pentru Gmail / Webmail)"
             >
               {copiedEmail ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-              <span>{copiedEmail ? "Copiat!" : "Copiază text email"}</span>
+              <span>{copiedEmail ? "Text copiat!" : "Copiază text email"}</span>
+            </button>
+
+            {/* Buton Copiază Subiect */}
+            <button
+              type="button"
+              onClick={handleCopySubject}
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-2 rounded-xl border border-[var(--app-border)]/70 bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text)] transition-colors cursor-pointer"
+              title="Copiază doar linia de subiect pentru căsuța Subject din Gmail/Outlook"
+            >
+              {copiedSubject ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+              <span>{copiedSubject ? "Subiect copiat" : "Copiază subiect"}</span>
             </button>
           </div>
 
