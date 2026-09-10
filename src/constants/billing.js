@@ -124,8 +124,8 @@ export function normalizeBilling(input = {}) {
     : 0;
 
   const claimLimitReached = maxMonthlyClaims ? monthlyClaimsCount >= maxMonthlyClaims : false;
-  const canInvite = effectivePlanKey !== "canceled" && effectivePlanKey !== "past_due" && !overSeatLimit;
-  const canCreateClaim = effectivePlanKey !== "canceled" && effectivePlanKey !== "past_due" && !claimLimitReached;
+  const canInvite = effectivePlanKey !== "canceled" && !overSeatLimit;
+  const canCreateClaim = effectivePlanKey !== "canceled";
 
   const stripeCustomerId = input.stripeCustomerId || null;
   const stripeSubscriptionId = input.stripeSubscriptionId || null;
