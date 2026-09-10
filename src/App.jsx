@@ -80,7 +80,7 @@ export default function App() {
   const [dosareSubView, setDosareSubView] = useState(() => {
     try {
       const saved = localStorage.getItem("workflow_dosare_sub_view");
-      if (saved === "brief" || saved === "flux" || saved === "list") return saved;
+      if (saved === "brief" || saved === "flux" || saved === "list" || saved === "piese") return saved;
       return "brief";
     } catch (err) {
       return "brief";

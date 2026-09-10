@@ -139,7 +139,7 @@ export default function ClaimHeader({
               <button
                 type="button"
                 onClick={onOpenReconstatare}
-                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-red-700 dark:text-red-300 hover:text-red-900 border-red-200 dark:border-red-900/60 bg-red-50/60 dark:bg-red-950/40 hover:bg-red-100"
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-[var(--app-text)] hover:text-[var(--app-text-strong)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
                 title="Cerere & Notă de Reconstatare Daune Asigurator"
               >
                 <ClipboardList size={12} /><span className="hidden md:inline"> Reconstatare</span>
@@ -151,7 +151,7 @@ export default function ClaimHeader({
                 href={buildTrackingUrl(form.trackingToken) || "#"}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-sky-700 hover:text-sky-800 border-sky-300/80 bg-sky-50/70 hover:bg-sky-100"
+                className="flex items-center gap-1 text-[10.5px] font-semibold border rounded-lg px-2 py-1 transition-colors cursor-pointer text-[var(--app-text)] hover:text-[var(--app-text-strong)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
                 title="Deschide linkul de urmărire pe care îl vede clientul"
               >
                 <Link2 size={12} /><span className="hidden md:inline"> Tracking</span>

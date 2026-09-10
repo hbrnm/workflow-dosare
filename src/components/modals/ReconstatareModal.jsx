@@ -241,13 +241,13 @@ export default function ReconstatareModal({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
+            <div className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] text-[var(--app-text)]">
               <ClipboardList size={18} />
             </div>
             <div>
               <h2 className="text-sm font-extrabold text-[var(--app-text-strong)] flex items-center gap-1.5">
                 Cerere &amp; Notă de Reconstatare Daune
-                <span className="text-[10.5px] font-mono font-bold bg-[var(--app-accent)]/15 text-[var(--app-accent)] px-1.5 py-0.5 rounded">
+                <span className="text-[10.5px] font-mono font-bold bg-[var(--app-surface)] border border-[var(--app-border)] text-[var(--app-text-strong)] px-1.5 py-0.5 rounded">
                   {claim.numarInmatriculare || claim.numarDosar}
                 </span>
               </h2>
@@ -388,7 +388,7 @@ export default function ReconstatareModal({
                 <button
                   type="button"
                   onClick={handleAddRow}
-                  className="text-[10.5px] font-extrabold px-2 py-1 bg-red-50 hover:bg-red-100 text-red-800 border border-red-200 rounded-lg flex items-center gap-1 cursor-pointer"
+                  className="text-[10.5px] font-bold px-2.5 py-1 bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] text-[var(--app-text)] border border-[var(--app-border)] rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
                 >
                   <Plus size={12} /> Linie liberă
                 </button>
@@ -424,7 +424,7 @@ export default function ReconstatareModal({
                         <select
                           value={r.operatiune}
                           onChange={(e) => handleUpdateRow(r.id, "operatiune", e.target.value)}
-                          className="w-full text-[10.5px] font-bold p-1 bg-[var(--app-surface-2)]/60 border border-[var(--app-border)]/80 rounded text-red-700 dark:text-red-400"
+                          className="w-full text-[10.5px] font-semibold p-1 bg-[var(--app-surface-2)]/60 border border-[var(--app-border)]/80 rounded text-[var(--app-text)]"
                         >
                           <option value="INL (Inlocuire)">INL (Înlocuire)</option>
                           <option value="REP (Reparatie)">REP (Reparație)</option>
@@ -560,7 +560,7 @@ export default function ReconstatareModal({
               type="button"
               onClick={handleGeneratePdf}
               disabled={generating}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-[11.5px] font-extrabold shadow-sm transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] disabled:opacity-50 text-white text-[11.5px] font-extrabold shadow-sm transition-all cursor-pointer"
             >
               {generating ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
               <span>Generează &amp; Descarcă PDF Reconstatare</span>
