@@ -274,19 +274,51 @@ export function waLink(phone, message) {
   return `https://wa.me/${digits}${textParam}`;
 }
 
-// Șabloane pre-definite mesaje WhatsApp pentru recepție
+export function getClaimTrackingUrl(claim) {
+  const token = claim?.trackingToken;
+  if (!token) return "";
+  const base = typeof window !== "undefined" && window.location?.origin
+    ? `${window.location.origin}${window.location.pathname || ""}`
+    : "https://app.workflow-daune.ro";
+  return `${base.replace(/\/$/, "")}?t=${token}`;
+}
+
+// Șabloane pre-definite mesaje WhatsApp pentru recepție & comunicare clienți
 export const WA_TEMPLATES = [
   {
     key: "gata",
     label: "📦 Mașină Gata de Ridicare",
-    text: (c, brandName = "service") =>
-      `Buna ziua! Masina dvs. ${c.numarInmatriculare || ""} (dosar ${c.numarDosar || ""}) este gata de ridicare. Va asteptam la ${brandName}!`
+    text: (c, brandName = "service") => {
+      const trackUrl = getClaimTrackingUrl(c);
+      const trackSnippet = trackUrl ? ` Detalii: ${trackUrl}` : "";
+      return `Buna ziua! Masina dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) este finalizata si gata de ridicare! Va asteptam la ${brandName}.${trackSnippet}`;
+    }
+  },
+  {
+    key: "in_lucru",
+    label: "🔧 Intrat în Lucru / Vopsitorie",
+    text: (c, brandName = "service") => {
+      const trackUrl = getClaimTrackingUrl(c);
+      const trackSnippet = trackUrl ? ` Urmariti progresul reparației in timp real: ${trackUrl}` : "";
+      return `Buna ziua! Autovehiculul dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) a intrat in lucru la atelierul ${brandName}.${trackSnippet}`;
+    }
   },
   {
     key: "piese",
     label: "🛠️ Piese Sosite / Programare",
-    text: (c, brandName = "service") =>
-      `Buna ziua! Piesele pentru dosarul dvs. ${c.numarDosar || ""} (${c.numarInmatriculare || ""}) au sosit. Va asteptam la ${brandName}.`
+    text: (c, brandName = "service") => {
+      const trackUrl = getClaimTrackingUrl(c);
+      const trackSnippet = trackUrl ? ` Detalii dosar: ${trackUrl}` : "";
+      return `Buna ziua! Piesele pentru autovehiculul dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) au sosit la service. Va asteptam la ${brandName}.${trackSnippet}`;
+    }
+  },
+  {
+    key: "tracking",
+    label: "📱 Link Urmărire Reparație Client",
+    text: (c, brandName = "service") => {
+      const trackingUrl = getClaimTrackingUrl(c);
+      return `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) in timp real aici: ${trackingUrl} — Echipa ${brandName}.`;
+    }
   },
   {
     key: "acte",
@@ -305,21 +337,8 @@ export const WA_TEMPLATES = [
     label: "🚗 Returnare Auto la Schimb",
     text: (c, brandName = "service") =>
       `Buna ziua! Va rugam sa returnati autovehiculul la schimb oferit pentru dosarul ${c.numarDosar || ""} (${c.numarInmatriculare || ""}). Va asteptam la ${brandName}.`
-  },
-  {
-    key: "tracking",
-    label: "📱 Link Urmărire Reparație Client",
-    text: (c, brandName = "service") => {
-      const token = c.trackingToken || "";
-      const base = typeof window !== "undefined" && window.location?.origin
-        ? `${window.location.origin}${window.location.pathname || ""}`
-        : "https://app.workflow-daune.ro";
-      const trackingUrl = token ? `${base}?t=${token}` : "";
-      return `Buna ziua! Puteti urmari stadiul reparatiei autovehiculului dvs. ${c.marcaModel ? `${c.marcaModel} ` : ""}(${c.numarInmatriculare || ""}) in timp real aici: ${trackingUrl} — Echipa ${brandName}.`;
-    }
   }
 ];
-
 
 export function getWaTemplateLink(phone, templateKey, claim, brandName) {
   const tmpl = WA_TEMPLATES.find((t) => t.key === templateKey);

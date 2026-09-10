@@ -3,10 +3,12 @@ import { X } from "lucide-react";
 import { WA_TEMPLATES, getWaTemplateLink, waLink } from "../../utils/dateUtils";
 
 export function isWhatsAppTemplateRecommended(claim, templateKey) {
+  const status = claim?.status;
   return (
-    (claim?.status === "reparatie_finalizata" && templateKey === "gata") ||
-    (claim?.status === "piese_comandate" && templateKey === "piese") ||
-    (claim?.status === "deschidere" && templateKey === "acte")
+    ((status === "reparatie_finalizata" || status === "accept_plata" || claim?.gataDeRidicare) && templateKey === "gata") ||
+    (status === "piese_comandate" && templateKey === "piese") ||
+    (status === "in_lucru" && templateKey === "in_lucru") ||
+    (status === "deschidere" && templateKey === "acte")
   );
 }
 

@@ -14,6 +14,7 @@ const ClaimTable = lazyWithRetry(() => import("../views/ClaimTable"));
 const Dashboard = lazyWithRetry(() => import("../views/Dashboard"));
 const Programator = lazyWithRetry(() => import("../views/Programator"));
 const Rapoarte = lazyWithRetry(() => import("../views/Rapoarte"));
+const CentralizatorPiese = lazyWithRetry(() => import("../views/CentralizatorPiese"));
 
 export default function AppViewRouter({
   view,
@@ -182,6 +183,14 @@ export default function AppViewRouter({
                   activeClaimId={activeClaimId}
                 />
               </div>
+            ) : dosareSubView === "piese" ? (
+              <CentralizatorPiese
+                claims={claims}
+                onOpenClaim={openExisting || handleOpenClaim}
+                onPatchClaim={handlePatchClaim}
+                canEditFn={canEdit}
+                onNotify={showNotice}
+              />
             ) : (
               <TablouPeFaze
                 claims={onlyBlocked ? filteredClaims : stageClaims}

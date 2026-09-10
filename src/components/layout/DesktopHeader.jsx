@@ -1,5 +1,5 @@
 import React from "react";
-import { Layers, Sunrise, List, Search, X, Plus, Bell, Ban } from "lucide-react";
+import { Layers, Sunrise, List, Package, Search, X, Plus, Bell, Ban } from "lucide-react";
 import AppButton from "../common/AppButton";
 import TooltipGuide from "../common/TooltipGuide";
 import { ROLES } from "../../constants/roles";
@@ -78,6 +78,20 @@ export default function DesktopHeader({
             >
               <List size={14} />
               <span className="hidden md:inline">Tabel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDosareSubView("piese")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13.5px] md:text-[14px] font-medium transition-all cursor-pointer ${
+                dosareSubView === "piese"
+                  ? "app-segment-active"
+                  : "app-muted hover:text-[var(--app-text)]"
+              }`}
+              title="Centralizator comenzi & livrări piese"
+            >
+              <Package size={14} />
+              <span className="hidden md:inline">Piese</span>
             </button>
           </div>
         )}

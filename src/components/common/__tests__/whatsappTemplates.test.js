@@ -6,6 +6,7 @@ describe("WhatsApp templates", () => {
     expect(isWhatsAppTemplateRecommended({ status: "reparatie_finalizata" }, "gata")).toBe(true);
     expect(isWhatsAppTemplateRecommended({ status: "piese_comandate" }, "piese")).toBe(true);
     expect(isWhatsAppTemplateRecommended({ status: "deschidere" }, "acte")).toBe(true);
+    expect(isWhatsAppTemplateRecommended({ status: "in_lucru" }, "in_lucru")).toBe(true);
     expect(isWhatsAppTemplateRecommended({ status: "in_lucru" }, "gata")).toBe(false);
   });
 });
