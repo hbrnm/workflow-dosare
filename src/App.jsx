@@ -241,7 +241,6 @@ export default function App() {
     [myEmail, adminEmails, usersList]
   );
   const myRoleLabel = ROLES[myRole]?.label || myRole;
-  const userCanCreate = canCreateClaim(myRole) && (effectiveBilling?.canCreateClaim ?? true);
 
   const isAdmin = useMemo(() => {
     if (!myEmail) return false;
@@ -259,6 +258,8 @@ export default function App() {
     }
     return false;
   }, [myEmail, myRole, adminEmails, usersList, activeRole, memberCount, atelierId]);
+
+  const userCanCreate = canCreateClaim(myRole) && (isAdmin || (effectiveBilling?.canCreateClaim ?? true));
 
   const brandingGateOpen = !!(session && tenancyReady && isAdmin && needsBrandingSetup(branding));
 
