@@ -136,17 +136,17 @@ export default function PartsLifecyclePanel({
 
   if (replacementOps.length === 0) {
     return (
-      <div className="bg-[var(--app-surface)] border border-[var(--app-border)]/80 rounded-xl p-3 space-y-2">
+      <div className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase text-[var(--app-muted)]">
-            <Package size={13} className="text-amber-600" />
-            <span>Ciclu de Viață Piese (Comenzi &amp; Livrări)</span>
+            <Package size={13} className="text-[var(--app-muted)]" />
+            <span>Gestiune Piese (Comenzi &amp; Livrări)</span>
           </div>
           {!readOnly && (
             <button
               type="button"
               onClick={handleAddCustomPart}
-              className="text-[10px] font-bold text-amber-700 hover:text-amber-800 dark:text-amber-300 flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-900 cursor-pointer"
+              className="text-[10px] font-bold text-[var(--app-text)] hover:text-[var(--app-text-strong)] flex items-center gap-1 bg-[var(--app-surface-2)] px-2 py-0.5 rounded border border-[var(--app-border)] hover:bg-[var(--app-surface-muted)] cursor-pointer transition-colors"
             >
               <Plus size={11} /> Adaugă piesă de comandat
             </button>
@@ -160,21 +160,21 @@ export default function PartsLifecyclePanel({
   }
 
   return (
-    <div className="bg-[var(--app-surface)] border border-amber-300/60 dark:border-amber-900/60 rounded-xl overflow-hidden shadow-2xs space-y-0">
+    <div className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl overflow-hidden shadow-2xs space-y-0">
       {/* Header Panel */}
-      <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-transparent dark:from-amber-950/30 dark:via-amber-950/10 border-b border-amber-200/70 dark:border-amber-900/50">
+      <div className="flex items-center justify-between px-3 py-2 bg-[var(--app-surface-2)] border-b border-[var(--app-border)]">
         <div className="flex items-center gap-2">
-          <Package size={14} className="text-amber-600 dark:text-amber-400" />
-          <span className="text-[11.5px] font-extrabold text-[var(--app-text-strong)] uppercase tracking-wide">
-            Gestiune &amp; Livrare Piese ({replacementOps.length} {replacementOps.length === 1 ? "reper" : "repere"})
+          <Package size={14} className="text-[var(--app-muted)]" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--app-muted)]">
+            Gestiune Piese ({replacementOps.length} {replacementOps.length === 1 ? "reper" : "repere"})
           </span>
           {allPartsArrived ? (
-            <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300">
+            <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
               <CheckCircle2 size={10} /> Toate sosite
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300">
-              <Clock size={10} /> În așteptare livrare
+            <span className="inline-flex items-center gap-1 text-[9.5px] font-semibold px-1.5 py-0.5 rounded bg-[var(--app-surface)] text-[var(--app-muted)] border border-[var(--app-border)]">
+              <Clock size={10} /> În așteptare
             </span>
           )}
         </div>
@@ -184,7 +184,7 @@ export default function PartsLifecyclePanel({
             <button
               type="button"
               onClick={handleMarkAllArrived}
-              className="text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded-lg flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+              className="text-[10px] font-bold bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white px-2 py-1 rounded-lg flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
               title="Marchează toate piesele ca fiind sosite în atelier"
             >
               <CheckCircle2 size={11} /> Toate sosite
@@ -204,15 +204,15 @@ export default function PartsLifecyclePanel({
       {/* Tabel piese */}
       {isOpen && (
         <div className="p-2 space-y-2">
-          <div className="divide-y divide-[var(--app-border)]/50 border border-[var(--app-border)]/60 rounded-lg overflow-hidden bg-[var(--app-surface-2)]/30">
+          <div className="divide-y divide-[var(--app-border)] border border-[var(--app-border)] rounded-lg overflow-hidden bg-[var(--app-surface)]">
             {replacementOps.map((op, idx) => {
               const currentStatus = op.statusPiesa || (form.pieseSosite ? "sosit" : form.dataComandaPiese ? "comandat" : "necomandat");
               return (
-                <div key={op.id || idx} className="p-2 space-y-1.5 hover:bg-[var(--app-surface-2)]/50 transition-colors">
+                <div key={op.id || idx} className="p-2 space-y-1.5 hover:bg-[var(--app-surface-2)]/40 transition-colors">
                   {/* Linia 1: Denumire + Status */}
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 flex-1 min-w-[140px]">
-                      <span className="text-[10px] font-mono font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-1 py-0.5 rounded">
+                      <span className="text-[10px] font-mono font-bold text-[var(--app-muted)] bg-[var(--app-surface-2)] border border-[var(--app-border)] px-1 py-0.5 rounded">
                         #{idx + 1}
                       </span>
                       <input
@@ -331,16 +331,16 @@ export default function PartsLifecyclePanel({
               <button
                 type="button"
                 onClick={handleAddCustomPart}
-                className="text-[10.5px] font-bold text-amber-800 dark:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[10.5px] font-bold text-[var(--app-text)] hover:text-[var(--app-accent)] flex items-center gap-1 cursor-pointer transition-colors"
               >
-                <Plus size={12} /> + Adaugă alt reper de comandat
+                <Plus size={12} /> + Adaugă reper de comandat
               </button>
             )}
 
             {totalAchizitieCalculat > 0 && (
               <div className="text-[11px] font-bold text-[var(--app-text-strong)] flex items-center gap-1.5 ml-auto">
                 <span className="text-[var(--app-muted)] font-normal">Total achiziții piese:</span>
-                <span className="font-mono text-red-600 dark:text-red-400 font-extrabold">
+                <span className="font-mono text-[var(--app-text-strong)] font-extrabold">
                   {totalAchizitieCalculat.toLocaleString("ro-RO")} lei
                 </span>
               </div>

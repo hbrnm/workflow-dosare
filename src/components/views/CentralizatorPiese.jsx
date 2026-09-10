@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Package,
   Truck,
@@ -199,99 +199,99 @@ export default function CentralizatorPiese({
           onClick={() => setFilterStatus("all")}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
             filterStatus === "all"
-              ? "bg-slate-800 text-white border-slate-700 shadow-sm"
+              ? "bg-[var(--app-surface-2)] text-[var(--app-text-strong)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]"
               : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase opacity-80">Total Repere</span>
-            <Package size={14} className="text-amber-500" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">Total Repere</span>
+            <Package size={14} className="text-[var(--app-muted)]" />
           </div>
-          <p className="text-xl font-black mt-1 font-mono">{stats.total}</p>
-          <span className="text-[10px] opacity-70">toate piesele inlocuite</span>
+          <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">{stats.total}</p>
+          <span className="text-[10px] text-[var(--app-muted)]">toate piesele active</span>
         </div>
 
         <div
           onClick={() => setFilterStatus("nesosite")}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
             filterStatus === "nesosite"
-              ? "bg-amber-600 text-white border-amber-500 shadow-sm"
+              ? "bg-[var(--app-surface-2)] text-[var(--app-text-strong)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]"
               : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase opacity-80">In Asteptare</span>
-            <Clock size={14} className="text-amber-500" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">În Așteptare</span>
+            <Clock size={14} className="text-[var(--app-muted)]" />
           </div>
-          <p className="text-xl font-black mt-1 font-mono text-amber-500 dark:text-amber-400">
+          <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">
             {stats.comandate + stats.inTranzit + stats.necomandate}
           </p>
-          <span className="text-[10px] opacity-70">nelivrate inca</span>
+          <span className="text-[10px] text-[var(--app-muted)]">nelivrate încă</span>
         </div>
 
         <div
           onClick={() => setFilterStatus("in_tranzit")}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
             filterStatus === "in_tranzit"
-              ? "bg-purple-700 text-white border-purple-600 shadow-sm"
+              ? "bg-[var(--app-surface-2)] text-[var(--app-text-strong)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]"
               : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase opacity-80">In Tranzit</span>
-            <Truck size={14} className="text-purple-500" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">În Tranzit</span>
+            <Truck size={14} className="text-[var(--app-muted)]" />
           </div>
-          <p className="text-xl font-black mt-1 font-mono text-purple-600 dark:text-purple-400">
+          <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">
             {stats.inTranzit}
           </p>
-          <span className="text-[10px] opacity-70">pe traseu / curier</span>
+          <span className="text-[10px] text-[var(--app-muted)]">pe traseu / curier</span>
         </div>
 
         <div
           onClick={() => setFilterStatus("sosit")}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
             filterStatus === "sosit"
-              ? "bg-emerald-700 text-white border-emerald-600 shadow-sm"
+              ? "bg-[var(--app-surface-2)] text-[var(--app-text-strong)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]"
               : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase opacity-80">Sosite in Service</span>
-            <CheckCircle2 size={14} className="text-emerald-500" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">Sosite în Service</span>
+            <CheckCircle2 size={14} className="text-[var(--app-muted)]" />
           </div>
-          <p className="text-xl font-black mt-1 font-mono text-emerald-600 dark:text-emerald-400">
+          <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">
             {stats.sosite}
           </p>
-          <span className="text-[10px] opacity-70">receptionate / montate</span>
+          <span className="text-[10px] text-[var(--app-muted)]">recepționate / montate</span>
         </div>
 
         <div
           onClick={() => setFilterStatus("retur")}
           className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
             filterStatus === "retur"
-              ? "bg-red-700 text-white border-red-600 shadow-sm"
+              ? "bg-[var(--app-surface-2)] text-[var(--app-text-strong)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]"
               : "bg-[var(--app-surface)] text-[var(--app-text)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)]"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase opacity-80">Retur / Neconform</span>
-            <RotateCcw size={14} className="text-red-500" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">Retur</span>
+            <RotateCcw size={14} className="text-[var(--app-muted)]" />
           </div>
-          <p className="text-xl font-black mt-1 font-mono text-red-600 dark:text-red-400">
+          <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">
             {stats.retur}
           </p>
-          <span className="text-[10px] opacity-70">necesita re-comanda</span>
+          <span className="text-[10px] text-[var(--app-muted)]">necesită re-comandă</span>
         </div>
 
         <div className="p-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">Valoare Totala</span>
-            <DollarSign size={14} className="text-emerald-600" />
+            <span className="text-[10.5px] font-extrabold uppercase text-[var(--app-muted)]">Valoare Totală</span>
+            <DollarSign size={14} className="text-[var(--app-muted)]" />
           </div>
           <p className="text-xl font-black mt-1 font-mono text-[var(--app-text-strong)]">
             {stats.totalValoare.toLocaleString("ro-RO")} <span className="text-[11px] font-semibold text-[var(--app-muted)]">lei</span>
           </p>
-          <span className="text-[10px] text-[var(--app-muted)]">achizitie piese active</span>
+          <span className="text-[10px] text-[var(--app-muted)]">achiziție piese active</span>
         </div>
       </div>
 
@@ -456,7 +456,7 @@ export default function CentralizatorPiese({
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-amber-50/20 dark:hover:bg-amber-950/10 transition-colors group"
+                      className="hover:bg-[var(--app-surface-2)]/50 transition-colors group"
                     >
                       {/* Numar curent */}
                       <td className="p-2.5 text-center text-[10px] font-mono text-[var(--app-muted)] font-bold">
@@ -515,7 +515,7 @@ export default function CentralizatorPiese({
                       <td className="p-2.5">
                         {item.furnizor ? (
                           <span className="font-semibold text-[11px] text-[var(--app-text-strong)] flex items-center gap-1">
-                            <Building size={11} className="text-amber-600 dark:text-amber-400" />
+                            <Building size={11} className="text-[var(--app-muted)]" />
                             {item.furnizor}
                           </span>
                         ) : (
@@ -575,7 +575,7 @@ export default function CentralizatorPiese({
                             <button
                               type="button"
                               onClick={() => handleQuickMarkSosit(item)}
-                              className="p-1 px-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-0.5 shadow-2xs transition-colors cursor-pointer"
+                              className="p-1 px-1.5 rounded-md bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-white font-bold text-[10px] flex items-center gap-0.5 shadow-2xs transition-colors cursor-pointer"
                               title="Marcheaza ca Sosita in atelier"
                             >
                               <Check size={11} /> Sosit
