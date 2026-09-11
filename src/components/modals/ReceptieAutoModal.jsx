@@ -21,6 +21,7 @@ import WhatsAppButton from "../common/WhatsAppButton";
 import { uploadClaimPhoto } from "../../utils/claimMedia";
 import { supabase } from "../../supabaseClient";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
+import ConfirmDialog from "../common/ConfirmDialog";
 
 const OBIECTE_DEFAULT = [
   "Certificat Înmatriculare (Talon original)",
@@ -59,6 +60,7 @@ export default function ReceptieAutoModal({
   const [signatureDataUrl, setSignatureDataUrl] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [generatedPdf, setGeneratedPdf] = useState(null);
+  const [showUnsignedConfirm, setShowUnsignedConfirm] = useState(false);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -92,6 +94,14 @@ export default function ReceptieAutoModal({
 
   const handleRemovePhoto = (photoId) => {
     setReceptionPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  };
+
+  const handleGenerateClick = () => {
+    if (!signatureDataUrl) {
+      setShowUnsignedConfirm(true);
+      return;
+    }
+    handleGenerateAndSave();
   };
 
   const handleGenerateAndSave = async () => {
@@ -452,7 +462,7 @@ export default function ReceptieAutoModal({
             <button
               type="button"
               disabled={generating}
-              onClick={handleGenerateAndSave}
+              onClick={handleGenerateClick}
               className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
             >
               {generating ? <Loader2 size={14} className="animate-spin" /> : <FileCheck size={14} />}
@@ -461,6 +471,22 @@ export default function ReceptieAutoModal({
           )}
         </div>
       </div>
+
+      {showUnsignedConfirm && (
+        <ConfirmDialog
+          open={showUnsignedConfirm}
+          title="Generare PV fără Semnătură"
+          message="Clientul nu a semnat pe ecran. Doriți să continuați generarea Procesului-Verbal de Recepție fără semnătură digitală?"
+          confirmLabel="Continuă fără semnătură"
+          cancelLabel="Înapoi la semnare"
+          danger={false}
+          onConfirm={() => {
+            setShowUnsignedConfirm(false);
+            handleGenerateAndSave();
+          }}
+          onCancel={() => setShowUnsignedConfirm(false)}
+        />
+      )}
 
       {showLiveCamera && (
         <LiveStreamCameraModal

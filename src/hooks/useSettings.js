@@ -522,7 +522,7 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
   const saveTermeneAlertaStatus = async (map) => {
     const next = map && typeof map === "object" ? map : {};
     setTermeneAlertaStatus(next);
-    cacheStatusAlertOverrides(next);
+    cacheStatusAlertOverrides(next, atelierId);
     if (atelierId) {
       const { ok, error } = await persistAtelierPatch({ termene_alerta_status: next });
       if (!ok) {

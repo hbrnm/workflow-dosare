@@ -157,5 +157,18 @@ export function applyScheduleStatusEffects(current, patch = {}) {
     };
   }
 
+  // 6) Piese sosite pe Piese cu dată de programare existentă → Programat
+  if (
+    hasOwn(next, "pieseSosite") &&
+    next.pieseSosite === true &&
+    currentKey === "piese_comandate" &&
+    !hasOwn(next, "status") &&
+    Boolean(current.dataProgramare)
+  ) {
+    next.status = "programat";
+    next.dataSchimbareStatus = nowISO();
+    notices.push('Piese sosite — dosar promovat automat în „Programări".');
+  }
+
   return { patch: next, notices };
 }

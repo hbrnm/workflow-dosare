@@ -33,10 +33,21 @@ export default function ClaimGeneralTab({
   applyClaimStatusChange,
   onNotify,
 }) {
+  const isAiExtracted = Boolean(form.aiExtracted || form.financiar?.audatexImport);
+  const aiSource = form.aiDocumentType || form.financiar?.audatexImport?.source || "Deviz / Document OCR";
+
   return (
     <div className="space-y-3">
-      {/* ID — discret, vizibil doar la hover sau pe desktop */}
-      <div className="flex items-center justify-end">
+      {/* Top Bar: AI-Extracted Badge & ID Dosar */}
+      <div className="flex items-center justify-between">
+        {isAiExtracted ? (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 text-[11px] font-medium animate-in fade-in duration-200">
+            <Sparkles size={12} className="text-indigo-400 shrink-0" />
+            <span>Date extrase automat ({aiSource}) — Te rugăm să verifici acuratețea câmpurilor</span>
+          </div>
+        ) : (
+          <div />
+        )}
         <span className="text-[9.5px] font-mono text-[#B0A99A] hover:text-[var(--app-muted)] transition-colors select-all cursor-help" title="ID intern dosar">
           #{form.id?.slice(0, 8) || "Nou"}
         </span>

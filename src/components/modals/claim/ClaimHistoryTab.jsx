@@ -1,7 +1,8 @@
 import React from "react";
-import { Sparkles, Plus, Trash2, Layers } from "lucide-react";
+import { Sparkles, Plus, Trash2, Layers, MessageSquare } from "lucide-react";
 import { fmtDateTime } from "../../../utils/dateUtils";
 import ClaimTimeline from "../../common/ClaimTimeline";
+import EmptyState from "../../common/EmptyState";
 
 export default function ClaimHistoryTab({
   form,
@@ -117,9 +118,12 @@ export default function ClaimHistoryTab({
           })}
 
           {notesList.length === 0 && (
-            <div className="text-[12.5px] text-[var(--app-muted)] italic p-6 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-              Nicio notă înregistrată.
-            </div>
+            <EmptyState
+              icon={MessageSquare}
+              title="Nicio notă înregistrată"
+              message="Adaugă observații interne, decizii de atelier sau comenzi rapide folosind caseta de mai sus."
+              compact
+            />
           )}
         </div>
       </div>

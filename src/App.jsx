@@ -229,7 +229,7 @@ export default function App() {
     moveToStatus,
     removeDemoData,
     hasDemoData,
-  } = useClaims(session, showNotice, { atelierId });
+  } = useClaims(session, showNotice, { atelierId, tenancyReady });
 
   useDayNightTheme();
 
@@ -710,9 +710,11 @@ export default function App() {
         return false;
       }
 
-      return await moveToStatus(claimOrId, newStatus, canEdit);
+      return await moveToStatus(claimOrId, newStatus, canEdit, {
+        onUndoToast: setUndoToastItem,
+      });
     },
-    [claims, canEdit, moveToStatus, showNotice]
+    [claims, canEdit, moveToStatus, showNotice, setUndoToastItem]
   );
 
   const handleConfirmSchedule = useCallback(

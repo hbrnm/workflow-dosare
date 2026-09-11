@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter, ChevronRight, Clock, Gauge } from "lucide-react";
+import { Boxes, TrendingUp, AlertTriangle, Car, FileSpreadsheet, BarChart3, Wallet, Filter, ChevronRight, Clock, Gauge, PieChart as PieChartIcon } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   PieChart, Pie, Cell, Legend
@@ -16,6 +16,7 @@ import AppButton from "../common/AppButton";
 
 export default function Dashboard({
   claims,
+  totalClaimsCount = null,
   onOpen,
   pragRidicare = 3,
   onOpenRapoarte,
@@ -56,17 +57,49 @@ export default function Dashboard({
     color: PHASE_COLORS[s.phase].bar,
   }));
 
+  const [insurerChartMode, setInsurerChartMode] = useState("bar"); // "bar" | "pie"
+
   const perAsigurator = useMemo(() => {
     const map = {};
-    claims.forEach((c) => { const key = c.asigurator?.trim() || "Neprecizat"; map[key] = (map[key] || 0) + 1; });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
+    claims.forEach((c) => {
+      const a = c.asigurator || "Fără asigurător";
+      map[a] = (map[a] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
   }, [claims]);
+
+  // Grouping long-tail insurers for PieChart to avoid unreadable overlapping labels
+  const perAsiguratorPieData = useMemo(() => {
+    if (perAsigurator.length <= 5) return perAsigurator;
+    const top4 = perAsigurator.slice(0, 4);
+    const rest = perAsigurator.slice(4);
+    const restTotal = rest.reduce((acc, curr) => acc + curr.value, 0);
+    return [
+      ...top4,
+      {
+        name: `Alții (${rest.length})`,
+        value: restTotal,
+        breakdown: rest.map((r) => `${r.name}: ${r.value}`).join(", "),
+      },
+    ];
+  }, [perAsigurator]);
 
   const fleetMetrics = useMemo(() => computeFleetCycleMetrics(claims), [claims]);
   const avgDaysOpen = fleetMetrics.avgTotalCycleDays || null;
 
   return (
     <div className="space-y-4 pb-4 text-[var(--app-text)]">
+      {totalClaimsCount != null && totalClaimsCount > claims.length && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 flex items-center justify-between text-xs text-amber-200">
+          <span className="flex items-center gap-2 font-medium">
+            <Filter size={14} className="text-amber-400 shrink-0" />
+            Statistici calculate pe baza filtrelor active: <strong>{claims.length}</strong> din <strong>{totalClaimsCount}</strong> dosare afișate.
+          </span>
+        </div>
+      )}
+
       <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 flex items-center justify-between">
         <div>
           <h2 className="font-semibold app-type-md text-[var(--app-text-strong)] flex items-center gap-2">
@@ -249,14 +282,107 @@ export default function Dashboard({
         </div>
 
         <div className="rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] p-3">
-          <div className="app-type-xs font-semibold text-[var(--app-text-strong)] mb-2 flex items-center gap-1.5"><TrendingUp size={13} /> Dosare pe asigurător</div>
-          {perAsigurator.length === 0 ? <div className="app-empty">Fără date încă.</div> : (
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="app-type-xs font-semibold text-[var(--app-text-strong)] flex items-center gap-1.5">
+              <TrendingUp size={13} /> Dosare pe asigurător
+            </div>
+            {perAsigurator.length > 0 && (
+              <div className="flex items-center border border-[var(--app-border)] rounded-md p-0.5 bg-[var(--app-surface-2)] text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => setInsurerChartMode("bar")}
+                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                    insurerChartMode === "bar"
+                      ? "bg-[var(--app-accent)] text-white"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                  title="Afișează bare orizontale (ordonat descrescător)"
+                >
+                  <BarChart3 size={11} />
+                  <span>Bare</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInsurerChartMode("pie")}
+                  className={`px-2 py-0.5 rounded font-bold transition-colors cursor-pointer flex items-center gap-1 ${
+                    insurerChartMode === "pie"
+                      ? "bg-[var(--app-accent)] text-white"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                  title="Afișează diagramă circulară (cu grupare Alții)"
+                >
+                  <PieChartIcon size={11} />
+                  <span>Plăcintă</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {perAsigurator.length === 0 ? (
+            <div className="app-empty">Fără date încă.</div>
+          ) : insurerChartMode === "bar" ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={perAsigurator.slice(0, 6)}
+                layout="vertical"
+                margin={{ top: 4, right: 16, left: 10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--app-border-soft)" />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: "var(--app-muted)" }} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 10, fill: "var(--app-muted)" }}
+                  width={100}
+                />
+                <Tooltip
+                  itemStyle={{ color: "var(--app-text-strong)" }}
+                  formatter={(v) => [`${v} dosare`, "Total"]}
+                  contentStyle={{
+                    fontSize: 12,
+                    borderRadius: 6,
+                    border: "1px solid var(--app-border)",
+                    background: "var(--app-surface)",
+                    color: "var(--app-text)",
+                  }}
+                />
+                <Bar dataKey="value" fill="var(--app-accent)" radius={[0, 3, 3, 0]}>
+                  {perAsigurator.slice(0, 6).map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={perAsigurator} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={{ fontSize: 10 }}>
-                  {perAsigurator.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                <Pie
+                  data={perAsiguratorPieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={75}
+                  label={({ name, value }) => `${value}`}
+                >
+                  {perAsiguratorPieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
                 </Pie>
-                <Tooltip itemStyle={{ color: "var(--app-text-strong)" }} contentStyle={{ fontSize: 12, borderRadius: 6, border: "1px solid var(--app-border)", background: "var(--app-surface)", color: "var(--app-text)" }} />
+                <Tooltip
+                  itemStyle={{ color: "var(--app-text-strong)" }}
+                  formatter={(v, n, item) => [
+                    `${v} dosare${item.payload.breakdown ? ` (${item.payload.breakdown})` : ""}`,
+                    item.payload.name,
+                  ]}
+                  contentStyle={{
+                    fontSize: 12,
+                    borderRadius: 6,
+                    border: "1px solid var(--app-border)",
+                    background: "var(--app-surface)",
+                    color: "var(--app-text)",
+                  }}
+                />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>

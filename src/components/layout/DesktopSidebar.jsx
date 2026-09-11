@@ -17,8 +17,35 @@ export default function DesktopSidebar({
   showNotice,
   handleLogout,
 }) {
+  const activeMembership = memberships.find((m) => m.id === atelierId) || memberships[0];
+  const logoUrl = branding?.logoUrl || activeMembership?.logoUrl;
+  const atelierNume = branding?.atelierNume || activeMembership?.nume || "Atelier";
+  const atelierShort = branding?.atelierShort || activeMembership?.short || "AT";
+
   return (
     <aside className="hidden md:flex flex-col app-sidebar w-14 shrink-0 z-30 overflow-hidden">
+      {/* Brand Identity / Logo Atelier */}
+      <div className="p-2 shrink-0 border-b border-[var(--app-border)] flex items-center justify-center">
+        <button
+          type="button"
+          onClick={openSettings}
+          className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform hover:scale-105 overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)] shadow-xs cursor-pointer"
+          title={`${atelierNume} — Deschide Setări`}
+        >
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={atelierNume}
+              className="w-full h-full object-contain p-1"
+            />
+          ) : (
+            <span className="font-extrabold text-[12px] text-[var(--app-accent)] font-mono tracking-tighter">
+              {atelierShort}
+            </span>
+          )}
+        </button>
+      </div>
+
       {/* Navigare principală — doar icoane */}
       <div className="flex-1 py-2.5 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
         {[

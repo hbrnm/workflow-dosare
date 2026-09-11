@@ -241,22 +241,34 @@ Departamentul Daune · ${atelierNume}`;
 /**
  * Generează arhiva ZIP completă pentru lichidator și declanșează descărcarea automată
  */
-export async function generateSettlementPackageZip(claim, { atelierBranding = {} } = {}) {
+export async function generateSettlementPackageZip(claim, { atelierBranding = {}, onProgress = null } = {}) {
   const zip = new JSZip();
   const nrInmat = sanitize(claim?.numarInmatriculare || "fara_nr");
   const asig = sanitize(claim?.asigurator || "Asigurare");
   const folderName = `Pachet_Decont_${nrInmat}_${asig}`;
   const root = zip.folder(folderName);
 
+  const poze = Array.isArray(claim?.poze) ? claim.poze : [];
+  const docs = Array.isArray(claim?.documente) ? claim.documente : [];
+  const totalItems = poze.length + docs.length + 1; // +1 pentru generarea arhivei finale
+  let processedItems = 0;
+
   // 1. Centralizator Decont PDF
+  onProgress?.({ current: 0, total: totalItems, step: "pdf", message: "Generare Centralizator PDF..." });
   const centralizatorBytes = generateCentralizatorDecontPdf(claim, atelierBranding);
   root.file(`01_Centralizator_Decont_${nrInmat}.pdf`, centralizatorBytes);
 
   // 2. Poze organizate
-  const poze = Array.isArray(claim?.poze) ? claim.poze : [];
   if (poze.length > 0) {
     const fotoFolder = root.folder("02_Foto_Dosar");
     for (let i = 0; i < poze.length; i++) {
+      processedItems++;
+      onProgress?.({
+        current: processedItems,
+        total: totalItems,
+        step: "foto",
+        message: `Se descarcă fotografia ${i + 1} din ${poze.length}...`,
+      });
       const p = poze[i];
       const url = p?.url || p?.dataUrl;
       if (!url) continue;
@@ -276,10 +288,16 @@ export async function generateSettlementPackageZip(claim, { atelierBranding = {}
   }
 
   // 3. Documente atașate (Devize, Facturi, PV-uri)
-  const docs = Array.isArray(claim?.documente) ? claim.documente : [];
   if (docs.length > 0) {
     const docsFolder = root.folder("03_Documente_si_Devize");
     for (let i = 0; i < docs.length; i++) {
+      processedItems++;
+      onProgress?.({
+        current: processedItems,
+        total: totalItems,
+        step: "doc",
+        message: `Se adaugă documentul ${i + 1} din ${docs.length}...`,
+      });
       const d = docs[i];
       const url = d?.url || d?.dataUrl;
       if (!url) continue;
@@ -302,6 +320,12 @@ export async function generateSettlementPackageZip(claim, { atelierBranding = {}
   root.file("00_Text_Email_Asigurator.txt", emailText);
 
   // Generare arhivă ZIP
+  onProgress?.({
+    current: totalItems,
+    total: totalItems,
+    step: "compress",
+    message: "Se comprimă arhiva ZIP finală...",
+  });
   const zipBlob = await zip.generateAsync({ type: "blob" });
   const fileName = `${folderName}.zip`;
 

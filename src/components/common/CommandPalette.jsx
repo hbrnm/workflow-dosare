@@ -84,7 +84,8 @@ export default function CommandPalette({
       const initial = String(initialQuery || "");
       setQuery(initial);
       setSelectedIndex(0);
-      const t = window.setTimeout(() => inputRef.current?.focus(), 40);
+      inputRef.current?.focus();
+      const t = window.setTimeout(() => inputRef.current?.focus(), 30);
       wasOpenRef.current = true;
       return () => window.clearTimeout(t);
     }
@@ -247,6 +248,7 @@ export default function CommandPalette({
           <input
             ref={inputRef}
             type="text"
+            autoFocus
             className="w-full bg-transparent text-[14px] font-medium text-[var(--app-text-strong)] placeholder-[var(--app-muted)] focus:outline-none"
             placeholder="Căutare inteligentă: dosar, client, nr. auto, VIN, tab-uri, acțiuni…"
             value={query}

@@ -583,6 +583,8 @@ export default function QuickViewDrawer({
           claim={claim}
           onNotify={onNotify}
           atelierBranding={loadCachedBranding()}
+          onPatchClaim={onPatch}
+          onMoveToStatus={onMoveToStatus}
         />
       )}
 

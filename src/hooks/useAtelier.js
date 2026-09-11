@@ -210,6 +210,7 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
 
   return {
     atelierId,
+    activeAtelierId: atelierId,
     atelier: atelierRow,
     tenancyReady,
     billing,
@@ -218,5 +219,6 @@ export function useAtelier(session, { usersList = [], billingFromSettings = null
     activeRole,
     switchAtelier,
     refresh,
+    refreshAtelier: refresh,
   };
 }

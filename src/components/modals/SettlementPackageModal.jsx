@@ -24,9 +24,13 @@ export default function SettlementPackageModal({
   claim,
   onNotify,
   atelierBranding = {},
+  onPatchClaim = null,
+  onMoveToStatus = null,
 }) {
   const [downloading, setDownloading] = useState(false);
+  const [progressMsg, setProgressMsg] = useState("");
   const [copiedEmail, setCopiedEmail] = useState(false);
+  const [advanceToAccept, setAdvanceToAccept] = useState(() => claim?.status === "in_lucru");
 
   if (!isOpen || !claim) return null;
 
@@ -42,14 +46,32 @@ export default function SettlementPackageModal({
 
   const handleDownloadZip = async () => {
     setDownloading(true);
+    setProgressMsg("Pregătire pachet decont...");
     try {
-      await generateSettlementPackageZip(claim, { atelierBranding });
+      await generateSettlementPackageZip(claim, {
+        atelierBranding,
+        onProgress: (p) => setProgressMsg(p.message || `Descărcare ${p.current}/${p.total}...`),
+      });
       onNotify?.("Arhiva Pachet Decont ZIP a fost descărcată cu succes!", "success");
+
+      // Înregistrează trimiterea decontului și opțional avansează în Accept plată
+      if (onPatchClaim) {
+        const patch = {
+          dataTrimiteriiDecont: new Date().toISOString(),
+        };
+        if (advanceToAccept && claim.status !== "accept_plata" && claim.status !== "facturat") {
+          patch.status = "accept_plata";
+        }
+        await onPatchClaim(claim.id, patch);
+      } else if (advanceToAccept && onMoveToStatus && claim.status !== "accept_plata" && claim.status !== "facturat") {
+        onMoveToStatus(claim, "accept_plata");
+      }
     } catch (err) {
       console.error(err);
       onNotify?.(err.message || "Eroare la generarea arhivei de decont.", "error");
     } finally {
       setDownloading(false);
+      setProgressMsg("");
     }
   };
 
@@ -181,23 +203,37 @@ export default function SettlementPackageModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-950/60 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium"
-          >
-            Închide
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3 border-t border-slate-800 bg-slate-950/60 shrink-0">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={downloading}
+              className="px-3.5 py-1.5 text-xs text-slate-400 hover:text-slate-200 font-medium"
+            >
+              Închide
+            </button>
+            {claim?.status === "in_lucru" && (
+              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-[11px] select-none">
+                <input
+                  type="checkbox"
+                  checked={advanceToAccept}
+                  onChange={(e) => setAdvanceToAccept(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0"
+                />
+                <span>Avansează dosarul în „Accept plată”</span>
+              </label>
+            )}
+          </div>
 
           <button
             type="button"
             disabled={downloading}
             onClick={handleDownloadZip}
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-75 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
           >
-            {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            <span>Descarcă Pachetul ZIP (1-Click)</span>
+            {downloading ? <Loader2 size={14} className="animate-spin text-indigo-200" /> : <Download size={14} />}
+            <span>{downloading ? (progressMsg || "Se descarcă pachetul...") : "Descarcă Pachetul ZIP (1-Click)"}</span>
           </button>
         </div>
       </div>

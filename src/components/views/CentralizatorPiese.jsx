@@ -23,6 +23,7 @@ import { getStatusDefinition } from "../../constants/config";
 import { fmtDate, telLink, todayISO } from "../../utils/dateUtils";
 import ClaimPlate from "../common/ClaimPlate";
 import WhatsAppButton from "../common/WhatsAppButton";
+import EmptyState from "../common/EmptyState";
 
 export default function CentralizatorPiese({
   claims = [],
@@ -384,14 +385,26 @@ export default function CentralizatorPiese({
       <div className="flex-1 min-h-0 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl overflow-hidden flex flex-col shadow-xs">
         <div className="overflow-x-auto overflow-y-auto flex-1 scrollbar-thin">
           {filteredParts.length === 0 ? (
-            <div className="p-8 text-center text-[var(--app-muted)] space-y-2">
-              <Package size={36} className="mx-auto opacity-40 text-amber-500" />
-              <p className="text-[13px] font-bold text-[var(--app-text-strong)]">
-                Nicio piesa gasita conform filtrelor selectate.
-              </p>
-              <p className="text-[11px]">
-                Piesele apar aici automat atunci cand se bifeaza „INL” (Inlocuire) pe oricare dosar sau cand sunt adaugate in sectiunea Gestiune Piese.
-              </p>
+            <div className="p-8">
+              <EmptyState
+                icon={Package}
+                title="Nicio piesă găsită conform filtrelor"
+                message={
+                  searchTerm || filterSupplier !== "all" || filterStatus !== "all"
+                    ? "Nu există piese care să corespundă criteriilor de căutare. Încearcă să resetezi filtrele."
+                    : "Piesele apar aici automat când se bifează „INL” (Înlocuire) pe oricare dosar sau când sunt adăugate în secțiunea Gestiune Piese."
+                }
+                actionLabel={
+                  searchTerm || filterSupplier !== "all" || filterStatus !== "all"
+                    ? "Resetează filtrele"
+                    : null
+                }
+                onAction={() => {
+                  setSearchTerm("");
+                  setFilterSupplier("all");
+                  setFilterStatus("all");
+                }}
+              />
             </div>
           ) : (
             <table className="w-full text-left border-collapse text-[11.5px]">

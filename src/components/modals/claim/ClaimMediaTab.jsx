@@ -4,6 +4,7 @@ import {
   Trash2, FolderOpen, FileText, Filter, Tag, Eye, EyeOff
 } from "lucide-react";
 import { CAR_PANELS } from "../../common/CarDamageVisualSelector";
+import EmptyState from "../../common/EmptyState";
 
 export default function ClaimMediaTab({
   form,
@@ -21,6 +22,11 @@ export default function ClaimMediaTab({
   setCropImageSrc,
   onOpenLiveCamera,
 }) {
+  const isUploadingPoze = Boolean(uploadingPoze);
+  const pozeProgress = typeof uploadingPoze === "object" && uploadingPoze !== null ? uploadingPoze : null;
+
+  const isUploadingDocs = Boolean(uploadingDocumente);
+  const docsProgress = typeof uploadingDocumente === "object" && uploadingDocumente !== null ? uploadingDocumente : null;
 
   const pozeList = Array.isArray(form.poze) ? form.poze : [];
   const documenteList = Array.isArray(form.documente) ? form.documente : [];
@@ -118,12 +124,23 @@ export default function ClaimMediaTab({
         </div>
 
         <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[var(--app-border)]">
-          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
-            {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Galerie generală</>}
+          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${isUploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
+            {isUploadingPoze ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-[var(--app-accent)]" />
+                <span>
+                  {pozeProgress?.total > 1
+                    ? `Se încarcă ${pozeProgress.current}/${pozeProgress.total}...`
+                    : "Se încarcă..."}
+                </span>
+              </>
+            ) : (
+              <><Upload size={13} /> Galerie generală</>
+            )}
             <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onUploadCategory(e.target.files, "generale")} />
           </label>
-          <button type="button" onClick={() => onOpenLiveCamera?.("generale")} className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${uploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
-            {uploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
+          <button type="button" onClick={() => onOpenLiveCamera?.("generale")} className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2 text-[11.5px] cursor-pointer transition-all ${isUploadingPoze ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-border)] text-[var(--app-muted)] font-bold"}`}>
+            {isUploadingPoze ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><Car size={13} /> Cameră auto</>}
           </button>
         </div>
 
@@ -219,11 +236,18 @@ export default function ClaimMediaTab({
           </div>
 
         ) : (
-          <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-            {selectedReperFilter !== "toate"
-              ? "Nicio fotografie pentru reperul selectat."
-              : "Nicio fotografie adăugată. Adaugă poze folosind butoanele de mai sus."}
-          </div>
+          <EmptyState
+            icon={ImageIcon}
+            title={selectedReperFilter !== "toate" ? "Nicio fotografie pentru reperul selectat" : "Nicio fotografie atașată"}
+            message={
+              selectedReperFilter !== "toate"
+                ? "Schimbă filtrul pe „Toate” pentru a vedea pozele din alte secțiuni ale vehiculului."
+                : "Încarcă fotografii de constatare sau deschide camera foto auto pentru a documenta dauna."
+            }
+            actionLabel={selectedReperFilter !== "toate" ? "Arată toate pozele" : null}
+            onAction={selectedReperFilter !== "toate" ? () => setSelectedReperFilter("toate") : null}
+            compact
+          />
         )}
       </div>
 
@@ -234,17 +258,28 @@ export default function ClaimMediaTab({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-muted)]/40 text-[var(--app-muted)] font-bold"}`}>
-            {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Se încarcă...</> : <><Upload size={13} /> Încarcă documente</>}
+          <label className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${isUploadingDocs ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-muted)]/40 text-[var(--app-muted)] font-bold"}`}>
+            {isUploadingDocs ? (
+              <>
+                <Loader2 size={13} className="animate-spin text-[var(--app-accent)]" />
+                <span>
+                  {docsProgress?.total > 1
+                    ? `Se încarcă ${docsProgress.current}/${docsProgress.total}...`
+                    : "Se încarcă..."}
+                </span>
+              </>
+            ) : (
+              <><Upload size={13} /> Încarcă documente</>
+            )}
             <input type="file" multiple className="hidden" onChange={(e) => handleUploadDocumente(e.target.files)} />
           </label>
           <button
             type="button"
             onClick={() => onOpenLiveCamera?.("scan_crop")}
-            disabled={uploadingDocumente}
-            className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${uploadingDocumente ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-accent)]/40 text-[var(--app-warning)] font-bold"}`}
+            disabled={isUploadingDocs}
+            className={`flex items-center justify-center gap-2 border border-dashed rounded-xl py-2.5 text-[12px] cursor-pointer transition-all ${isUploadingDocs ? "opacity-50 pointer-events-none" : "hover:bg-[var(--app-surface-2)] border-[var(--app-accent)]/40 text-[var(--app-warning)] font-bold"}`}
           >
-            {uploadingDocumente ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
+            {isUploadingDocs ? <><Loader2 size={13} className="animate-spin" /> Cameră...</> : <><FileText size={13} /> Scanează &amp; Crop Pro</>}
           </button>
         </div>
 
@@ -259,9 +294,12 @@ export default function ClaimMediaTab({
             </div>
           ))}
           {documenteList.length === 0 && (
-            <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-              Niciun document atașat.
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="Niciun document atașat"
+              message="Poți atașa certificate de înmatriculare, permise, procese verbale sau devize PDF."
+              compact
+            />
           )}
         </div>
       </div>

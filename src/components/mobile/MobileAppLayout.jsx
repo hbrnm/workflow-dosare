@@ -246,9 +246,17 @@ export default function MobileAppLayout({
           aria-label={`Meniu ${userEmail || atelierName}`}
           title={userEmail || atelierName}
         >
-          <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
-            {letter}
-          </span>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt={atelierName}
+              className="w-full h-full object-contain p-1 rounded-full"
+            />
+          ) : (
+            <span className="m-float-brand-mark m-float-brand-icon" aria-hidden="true">
+              {letter}
+            </span>
+          )}
         </button>
 
         {menuOpen ? (
