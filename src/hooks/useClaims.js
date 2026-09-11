@@ -23,7 +23,7 @@ import { DEMO_CLAIMS } from "../utils/demoClaims";
 
 const DEMO_DISABLED_KEY = "workflow_dosare_demo_disabled";
 
-export function useClaims(session, showNotice, { atelierId = null } = {}) {
+export function useClaims(session, showNotice, { atelierId = null, tenancyReady = true } = {}) {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -46,6 +46,8 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
 
   const atelierIdRef = useRef(atelierId);
   atelierIdRef.current = atelierId;
+  const tenancyReadyRef = useRef(tenancyReady);
+  tenancyReadyRef.current = tenancyReady;
 
   // Undo queue: { id, type, payload, timer, onCommit }
   const [undoItem, setUndoItem] = useState(null);
@@ -72,6 +74,13 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
   }, []);
 
   const loadAll = useCallback(async () => {
+    // Guard: Dacă userul este autentificat dar inițializarea tenancy nu este gata sau atelierId lipsește,
+    // blocăm interogarea pentru a preveni scurgerea de date cross-tenant din RLS global.
+    if (sessionUserId && !tenancyReadyRef.current) {
+      setLoading(true);
+      return;
+    }
+
     setLoading(true);
     setLoadError(null);
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
@@ -88,6 +97,12 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
     let query = supabase.from("dosare").select("*").order("created_at", { ascending: false });
     if (atelierIdRef.current) {
       query = query.eq("atelier_id", atelierIdRef.current);
+    } else if (sessionUserId) {
+      // Dacă utilizatorul este logat dar nu are atelierId asociat (ex: cont nou fără atelier),
+      // nu interogăm fără filtru pentru a nu expune dosare din alte ateliere.
+      setLoading(false);
+      setClaims([]);
+      return;
     }
     const { data, error } = await query;
     if (error) {
@@ -120,14 +135,20 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       }
     }
     setLoading(false);
-  }, [showNotice, demoDisabled]);
+  }, [showNotice, demoDisabled, sessionUserId]);
 
-  // Real-time subscription — reload when the user actually logs in (not only on mount).
+  // Real-time subscription — reload when the user actually logs in and tenancy is ready.
   useEffect(() => {
     if (!sessionUserId) {
       setClaims([]);
       setLoadError(null);
       setLoading(false);
+      return undefined;
+    }
+
+    // Așteptăm ca datele de tenancy (atelier activ) să fie determinate complet
+    if (!tenancyReady) {
+      setLoading(true);
       return undefined;
     }
 
@@ -152,7 +173,7 @@ export function useClaims(session, showNotice, { atelierId = null } = {}) {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [loadAll, sessionUserId, atelierId]);
+  }, [loadAll, sessionUserId, atelierId, tenancyReady]);
 
   const saveClaim = useCallback(
     async (claim, { openProgramator = false } = {}) => {

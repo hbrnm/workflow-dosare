@@ -229,7 +229,7 @@ export default function App() {
     moveToStatus,
     removeDemoData,
     hasDemoData,
-  } = useClaims(session, showNotice, { atelierId });
+  } = useClaims(session, showNotice, { atelierId, tenancyReady });
 
   useDayNightTheme();
 
