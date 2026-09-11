@@ -75,7 +75,13 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
 
   const handleConfirmApply = () => {
     if (editableClaim && onDataExtracted) {
-      onDataExtracted(editableClaim, result?.tipDocument);
+      const enrichedClaim = {
+        ...editableClaim,
+        aiExtracted: true,
+        aiDocumentType: result?.tipDocument || "Document",
+        aiExtractedAt: new Date().toISOString(),
+      };
+      onDataExtracted(enrichedClaim, result?.tipDocument);
       onClose();
     }
   };

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { CheckCircle2, Clock, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, ShieldCheck, Filter } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 import StatCard from "../common/StatCard";
 import { nowISO, fmtDate } from "../../utils/dateUtils";
 
-export default function Rapoarte({ claims, onPatch, canEditFn }) {
+export default function Rapoarte({ claims, totalClaimsCount = null, onPatch, canEditFn }) {
   const [filterIncasare, setFilterIncasare] = useState("toate"); // 'toate' | 'incasate' | 'neincasate'
 
   const facturate = useMemo(() => claims.filter((c) => c.status === "facturat"), [claims]);
@@ -85,6 +85,15 @@ export default function Rapoarte({ claims, onPatch, canEditFn }) {
 
   return (
     <div className="space-y-4 text-[var(--app-text)]">
+      {totalClaimsCount != null && totalClaimsCount > claims.length && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 flex items-center justify-between text-xs text-amber-200">
+          <span className="flex items-center gap-2 font-medium">
+            <Filter size={14} className="text-amber-400 shrink-0" />
+            Rapoarte calculate pe baza filtrelor active: <strong>{claims.length}</strong> din <strong>{totalClaimsCount}</strong> dosare afișate.
+          </span>
+        </div>
+      )}
+
       {/* Financial Stat Cards */}
       <div className="flex flex-wrap gap-3">
         <StatCard label="Venit Piese (Marjă)" value={leiFmt(totalPiese)} tone="amber" />

@@ -227,6 +227,7 @@ export default function AppViewRouter({
           ) : view === "dashboard" ? (
             <Dashboard
               claims={filteredClaims}
+              totalClaimsCount={userClaims.length}
               onOpen={openExisting}
               pragRidicare={pragRidicare}
               onOpenRapoarte={() => setView("rapoarte")}
@@ -249,6 +250,7 @@ export default function AppViewRouter({
           ) : (
             <Rapoarte
               claims={filteredClaims}
+              totalClaimsCount={userClaims.length}
               onPatch={handlePatchClaim}
               canEditFn={canEdit}
             />

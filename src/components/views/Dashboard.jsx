@@ -16,6 +16,7 @@ import AppButton from "../common/AppButton";
 
 export default function Dashboard({
   claims,
+  totalClaimsCount = null,
   onOpen,
   pragRidicare = 3,
   onOpenRapoarte,
@@ -58,8 +59,13 @@ export default function Dashboard({
 
   const perAsigurator = useMemo(() => {
     const map = {};
-    claims.forEach((c) => { const key = c.asigurator?.trim() || "Neprecizat"; map[key] = (map[key] || 0) + 1; });
-    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => ({ name, value }));
+    claims.forEach((c) => {
+      const a = c.asigurator || "Fără asigurător";
+      map[a] = (map[a] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
   }, [claims]);
 
   const fleetMetrics = useMemo(() => computeFleetCycleMetrics(claims), [claims]);
@@ -67,6 +73,15 @@ export default function Dashboard({
 
   return (
     <div className="space-y-4 pb-4 text-[var(--app-text)]">
+      {totalClaimsCount != null && totalClaimsCount > claims.length && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 flex items-center justify-between text-xs text-amber-200">
+          <span className="flex items-center gap-2 font-medium">
+            <Filter size={14} className="text-amber-400 shrink-0" />
+            Statistici calculate pe baza filtrelor active: <strong>{claims.length}</strong> din <strong>{totalClaimsCount}</strong> dosare afișate.
+          </span>
+        </div>
+      )}
+
       <div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] p-3.5 flex items-center justify-between">
         <div>
           <h2 className="font-semibold app-type-md text-[var(--app-text-strong)] flex items-center gap-2">

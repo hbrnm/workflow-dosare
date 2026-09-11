@@ -142,4 +142,35 @@ describe("isPendingArrivalToday", () => {
       })
     ).toBe(false);
   });
+
+  it("promotes piese_comandate to programat when pieseSosite is true and dataProgramare exists", () => {
+    const { patch, notices } = applyScheduleStatusEffects(
+      {
+        id: "1",
+        status: "piese_comandate",
+        dataProgramare: "2026-08-15T10:00:00",
+        pieseSosite: false,
+      },
+      { pieseSosite: true }
+    );
+    expect(patch.pieseSosite).toBe(true);
+    expect(patch.status).toBe("programat");
+    expect(notices[0]).toMatch(/promovat automat/i);
+  });
+
+  it("keeps piese_comandate when pieseSosite is true but dataProgramare is missing", () => {
+    const { patch, notices } = applyScheduleStatusEffects(
+      {
+        id: "1",
+        status: "piese_comandate",
+        dataProgramare: null,
+        pieseSosite: false,
+      },
+      { pieseSosite: true }
+    );
+    expect(patch.pieseSosite).toBe(true);
+    expect(patch.status).toBeUndefined();
+    expect(notices).toEqual([]);
+  });
 });
+

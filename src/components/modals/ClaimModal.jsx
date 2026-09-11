@@ -836,9 +836,13 @@ export default function ClaimModal({
       return;
     }
 
+    setUploadingPoze({ current: 0, total: files.length });
     const noi = [];
     const claimId = form.id || claim?.id || uid();
+    let uploadedCount = 0;
     for (const file of files) {
+      uploadedCount++;
+      setUploadingPoze({ current: uploadedCount, total: files.length });
       const fileToUpload = file?.type?.startsWith("image/")
         ? await compressImage(file)
         : file;
@@ -920,10 +924,13 @@ export default function ClaimModal({
     }
     if (files.length === 0) return;
 
-    setUploadingDocumente(true);
+    setUploadingDocumente({ current: 0, total: files.length });
     const noi = [];
     const claimId = form.id || claim?.id || uid();
+    let uploadedCount = 0;
     for (const file of files) {
+      uploadedCount++;
+      setUploadingDocumente({ current: uploadedCount, total: files.length });
       const fileToUpload = file?.type?.startsWith("image/")
         ? await compressImage(file)
         : file;
@@ -1483,6 +1490,7 @@ export default function ClaimModal({
             claim={form}
             onNotify={onNotify}
             atelierBranding={loadCachedBranding()}
+            onPatchClaim={onPatch}
           />
         )}
 

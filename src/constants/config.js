@@ -122,9 +122,17 @@ export function getPhaseColumnColors(phaseKey) {
 
 const STATUS_ALERT_OVERRIDES_KEY = "workflow_dosare_termene_alerta";
 
+export function getStatusAlertOverridesStorageKey(atelierId) {
+  return atelierId ? `${STATUS_ALERT_OVERRIDES_KEY}_${atelierId}` : STATUS_ALERT_OVERRIDES_KEY;
+}
+
 /** Praguri alertă per stadiu — din Setări (localStorage) sau default din STATUSES. */
-export function getStatusAlertOverrides() {
+export function getStatusAlertOverrides(atelierId = null) {
   try {
+    if (atelierId) {
+      const tenantRaw = localStorage.getItem(getStatusAlertOverridesStorageKey(atelierId));
+      if (tenantRaw) return JSON.parse(tenantRaw);
+    }
     const raw = localStorage.getItem(STATUS_ALERT_OVERRIDES_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch {
@@ -132,9 +140,13 @@ export function getStatusAlertOverrides() {
   }
 }
 
-export function cacheStatusAlertOverrides(overrides) {
+export function cacheStatusAlertOverrides(overrides, atelierId = null) {
   try {
-    localStorage.setItem(STATUS_ALERT_OVERRIDES_KEY, JSON.stringify(overrides || {}));
+    const serialized = JSON.stringify(overrides || {});
+    if (atelierId) {
+      localStorage.setItem(getStatusAlertOverridesStorageKey(atelierId), serialized);
+    }
+    localStorage.setItem(STATUS_ALERT_OVERRIDES_KEY, serialized);
   } catch {
     /* ignore */
   }

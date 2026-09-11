@@ -106,7 +106,11 @@ export default function CanvasSignaturePad({
   return (
     <div className={`space-y-2 ${className}`}>
       <div
-        className="relative w-full rounded-xl border border-slate-700/80 bg-white dark:bg-slate-900 overflow-hidden shadow-inner touch-none select-none"
+        className={`relative w-full rounded-xl border transition-all overflow-hidden shadow-inner touch-none select-none ${
+          isEmpty
+            ? "border-slate-700/80 bg-white dark:bg-slate-900"
+            : "border-emerald-500/80 ring-1 ring-emerald-500/30 bg-emerald-500/[0.02] dark:bg-slate-900"
+        }`}
         style={{ height }}
       >
         <canvas
@@ -133,14 +137,19 @@ export default function CanvasSignaturePad({
       </div>
 
       <div className="flex items-center justify-between px-1">
-        <span className="text-[11px] text-slate-500 font-medium">
-          {isEmpty ? "Semnătură nesalvată" : "Semnătură capturată ✓"}
+        <span
+          className={`text-[11px] font-medium flex items-center gap-1.5 transition-colors ${
+            isEmpty ? "text-slate-500" : "text-emerald-500 font-semibold"
+          }`}
+        >
+          {!isEmpty && <Check size={13} className="text-emerald-500" />}
+          <span>{isEmpty ? "Semnătură nesalvată" : "Semnătură capturată"}</span>
         </span>
         <button
           type="button"
           onClick={clearSignature}
           disabled={isEmpty}
-          className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none font-medium transition-colors"
+          className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-400 disabled:opacity-30 disabled:pointer-events-none font-medium transition-colors cursor-pointer"
         >
           <RotateCcw size={12} />
           <span>Șterge &amp; Reîncearcă</span>

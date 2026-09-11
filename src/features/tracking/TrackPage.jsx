@@ -247,7 +247,7 @@ export default function TrackPage({ token }) {
         </ol>
 
         {/* Galeria Foto din Atelier (Jurnal de Lucru) */}
-        {photos.length > 0 && (
+        {photos.length > 0 ? (
           <div className="mt-6 rounded-2xl border border-[var(--v2-border)] bg-[var(--v2-surface)] p-4 shadow-sm">
             <div className="flex items-center justify-between mb-3 border-b border-[var(--v2-border)]/70 pb-2">
               <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--v2-accent)] flex items-center gap-1.5">
@@ -290,6 +290,18 @@ export default function TrackPage({ token }) {
                 );
               })}
             </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-[var(--v2-border)]/70 bg-[var(--v2-surface)]/60 p-4 text-center">
+            <div className="w-9 h-9 mx-auto mb-2 rounded-xl bg-[var(--v2-surface-2)] border border-[var(--v2-border)] flex items-center justify-center text-[var(--v2-muted)]">
+              <Camera size={16} />
+            </div>
+            <div className="text-xs font-semibold text-[var(--v2-text)]">
+              Jurnal Foto din Atelier
+            </div>
+            <p className="text-[11px] text-[var(--v2-muted)] mt-0.5 max-w-xs mx-auto">
+              Echipa atelierului va adăuga fotografii pe măsură ce autovehiculul avansează în etapele de lucru.
+            </p>
           </div>
         )}
 
