@@ -4,6 +4,7 @@ import {
   Trash2, FolderOpen, FileText, Filter, Tag, Eye, EyeOff
 } from "lucide-react";
 import { CAR_PANELS } from "../../common/CarDamageVisualSelector";
+import EmptyState from "../../common/EmptyState";
 
 export default function ClaimMediaTab({
   form,
@@ -235,11 +236,18 @@ export default function ClaimMediaTab({
           </div>
 
         ) : (
-          <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-            {selectedReperFilter !== "toate"
-              ? "Nicio fotografie pentru reperul selectat."
-              : "Nicio fotografie adăugată. Adaugă poze folosind butoanele de mai sus."}
-          </div>
+          <EmptyState
+            icon={ImageIcon}
+            title={selectedReperFilter !== "toate" ? "Nicio fotografie pentru reperul selectat" : "Nicio fotografie atașată"}
+            message={
+              selectedReperFilter !== "toate"
+                ? "Schimbă filtrul pe „Toate” pentru a vedea pozele din alte secțiuni ale vehiculului."
+                : "Încarcă fotografii de constatare sau deschide camera foto auto pentru a documenta dauna."
+            }
+            actionLabel={selectedReperFilter !== "toate" ? "Arată toate pozele" : null}
+            onAction={selectedReperFilter !== "toate" ? () => setSelectedReperFilter("toate") : null}
+            compact
+          />
         )}
       </div>
 
@@ -286,9 +294,12 @@ export default function ClaimMediaTab({
             </div>
           ))}
           {documenteList.length === 0 && (
-            <div className="text-[12px] text-[var(--app-muted)] italic p-8 text-center border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]">
-              Niciun document atașat.
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="Niciun document atașat"
+              message="Poți atașa certificate de înmatriculare, permise, procese verbale sau devize PDF."
+              compact
+            />
           )}
         </div>
       </div>

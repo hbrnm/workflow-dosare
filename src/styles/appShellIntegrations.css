@@ -89,8 +89,9 @@
 }
 
 .app-shell .app-flux-card.is-alert {
-  background: var(--app-surface);
-  border-left: 4px solid var(--app-danger, #ef4444) !important;
+  background: color-mix(in srgb, var(--app-danger, #ef4444) 6%, var(--app-surface)) !important;
+  border-left-width: 4px !important;
+  border-left-color: var(--app-danger, #ef4444) !important;
 }
 
 .app-shell .app-flux-card select {

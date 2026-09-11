@@ -230,7 +230,7 @@ export default function ClaimTable({
         id={`claim-row-${c.id}`}
         onClick={() => onOpen(c)}
         className={`group cursor-pointer transition-colors
-          ${i % 2 === 0 ? "bg-[var(--app-surface)]" : "bg-[var(--app-surface-2)]/40"}
+          ${(c.blocat || overdue) ? "border-l-4 border-l-[var(--app-danger)] bg-red-500/[0.04] dark:bg-red-500/[0.08]" : (i % 2 === 0 ? "bg-[var(--app-surface)]" : "bg-[var(--app-surface-2)]/40")}
           hover:bg-amber-50/30 dark:hover:bg-amber-400/5
           border-b border-slate-100 dark:border-zinc-800/50 last:border-b-0
           ${inGroup ? "opacity-90" : ""}
@@ -323,9 +323,12 @@ export default function ClaimTable({
         {/* ── Col 5: Status & Acțiuni ── */}
         <td className={`${cell} whitespace-nowrap`} onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[13px] font-bold truncate">
-                {String(s.num).padStart(2, "0")}. {getStatusShortLabel(c.status)}
+            <div className="flex flex-col gap-0.5 min-w-0 max-w-[140px]">
+              <span
+                className="text-[13px] font-bold truncate block"
+                title={`${String(s.num).padStart(2, "0")}. ${s.label}`}
+              >
+                {String(s.num).padStart(2, "0")}. {s.label}
               </span>
               <span className="text-[11.5px] font-medium text-slate-400 dark:text-zinc-500 whitespace-nowrap">
                 {fmtDate(c.dataDeschiderii)}
