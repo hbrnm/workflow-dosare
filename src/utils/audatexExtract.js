@@ -218,6 +218,32 @@ export function extractEstimateLineItems(text) {
   }
 
   const operations = mergeLineItemsToOperations(parts, labour, paint);
+
+  // Contract de Reparație / Comandă Service (ex: Denumirea operatiei / Mec. / 1 REP - ... / 2 INL - ...)
+  if (!operations.length) {
+    const contractOpsMatch = raw.match(/Denumirea\s+operatiei[\s\S]*?(?=Observatii:|LUCRARI\s+SUPLIMENTARE|PROCES\s+VERBAL|$)/i);
+    if (contractOpsMatch) {
+      const oLines = contractOpsMatch[0].split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      for (const l of oLines) {
+        const m = l.match(/^(\d{1,3})\s+([A-Z0-9\s\-_/.,+]+)/i);
+        if (m && !/denumirea|nr:|mec\./i.test(m[2])) {
+          const opName = m[2].trim();
+          const inl = /INL\b|INLOCUIRE/i.test(opName);
+          const rep = /REP\b|REPARATIE/i.test(opName);
+          const rev = /VOPS|VOPSIT/i.test(opName);
+          operations.push({
+            id: `op_contract_${m[1]}`,
+            piesa: opName,
+            inl,
+            rep,
+            rev,
+            uni: !inl && !rep && !rev,
+          });
+        }
+      }
+    }
+  }
+
   return { parts, labour, paint, operations };
 }
 
@@ -427,6 +453,7 @@ function detectFormatHint(text) {
   const t = String(text || "");
   if (/Audatex|AudaNet|Qapter/i.test(t)) return "audatex";
   if (/Sistem\s+DAT|DAT\s*€uropa|CalculatePro|SilverDAT/i.test(t)) return "dat";
+  if (/CONTRACT\s+DE\s+REPARATIE|PROCES\s+VERBAL\s+DE\s+PREDARE/i.test(t)) return "contract_reparatie";
   return "unknown";
 }
 

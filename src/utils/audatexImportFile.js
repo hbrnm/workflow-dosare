@@ -14,36 +14,45 @@ async function ensurePdfWorker(pdfjs) {
   pdfWorkerReady = true;
 }
 
-async function extractPdfText(arrayBuffer) {
+export async function extractPdfText(arrayBuffer) {
   const pdfjs = await import("pdfjs-dist");
   await ensurePdfWorker(pdfjs);
-  const data = arrayBuffer instanceof Uint8Array ? arrayBuffer : new Uint8Array(arrayBuffer);
+  let data;
+  if (arrayBuffer instanceof Uint8Array && arrayBuffer.constructor.name === "Uint8Array") {
+    data = arrayBuffer;
+  } else if (arrayBuffer?.buffer) {
+    data = new Uint8Array(arrayBuffer.buffer, arrayBuffer.byteOffset, arrayBuffer.byteLength);
+  } else {
+    data = new Uint8Array(arrayBuffer);
+  }
   const doc = await pdfjs.getDocument({ data }).promise;
   const pages = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const rows = [];
-    let currentY = null;
-    let buf = [];
+    const linesMap = new Map();
     for (const it of content.items) {
       const str = it.str || "";
-      if (!str.trim()) {
-        if (str === " " || str === "\u00a0") buf.push(" ");
-        continue;
-      }
+      if (!str.trim() && str !== " " && str !== "\u00a0") continue;
       const y = it.transform ? Math.round(it.transform[5]) : 0;
-      if (currentY == null || Math.abs(y - currentY) <= 2) {
-        buf.push(str);
-        currentY = y;
-      } else {
-        rows.push(buf.join("").replace(/\s+/g, " ").trim());
-        buf = [str];
-        currentY = y;
+      const x = it.transform ? Math.round(it.transform[4]) : 0;
+      let foundKey = null;
+      for (const k of linesMap.keys()) {
+        if (Math.abs(k - y) <= 3) {
+          foundKey = k;
+          break;
+        }
       }
+      const key = foundKey !== null ? foundKey : y;
+      if (!linesMap.has(key)) linesMap.set(key, []);
+      linesMap.get(key).push({ x, str });
     }
-    if (buf.length) rows.push(buf.join("").replace(/\s+/g, " ").trim());
-    pages.push(rows.filter(Boolean).join("\n"));
+    const sortedY = Array.from(linesMap.keys()).sort((a, b) => b - a);
+    const rows = sortedY.map((y) => {
+      const sortedX = linesMap.get(y).sort((a, b) => a.x - b.x);
+      return sortedX.map((it) => it.str).join(" ").replace(/\s+/g, " ").trim();
+    }).filter(Boolean);
+    pages.push(rows.join("\n"));
   }
   return pages.join("\n");
 }
