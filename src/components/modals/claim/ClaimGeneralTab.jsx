@@ -2,7 +2,7 @@ import React from "react";
 import {
   FileText, Calendar, ShieldCheck, CalendarClock, AlertOctagon, Wrench,
   Car, Tag, User as UserIcon, Phone, MessageCircle, Trash2, Sparkles, FileDown,
-  Link2, ExternalLink, Copy, Check, RefreshCw
+  Link2, ExternalLink, Copy, Check, RefreshCw, Gauge
 } from "lucide-react";
 
 import {
@@ -284,17 +284,31 @@ export default function ClaimGeneralTab({
             />
           </div>
 
-          {/* Marcă & Model */}
-          <div>
-            <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
-              <Car size={13} className="text-[var(--app-muted)]" /> Marcă &amp; Model Vehicul
-            </label>
-            <input
-              className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
-              value={form.marcaModel}
-              onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
-              placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
-            />
+          {/* Marcă & Model + Kilometraj */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
+                <Car size={13} className="text-[var(--app-muted)]" /> Marcă &amp; Model Vehicul
+              </label>
+              <input
+                className="w-full text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] uppercase text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                value={form.marcaModel}
+                onChange={(e) => set("marcaModel", e.target.value.toUpperCase())}
+                placeholder="ex: VOLKSWAGEN PASSAT 2.0 TDI"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-[var(--app-muted)] mb-1 flex items-center gap-1">
+                <Gauge size={13} className="text-[var(--app-muted)]" /> Kilometraj (km)
+              </label>
+              <input
+                type="number"
+                className="w-full font-mono text-[12px] p-1.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text-strong)] focus:border-[var(--app-muted)]"
+                value={form.kilometraj ?? ""}
+                onChange={(e) => set("kilometraj", e.target.value === "" ? null : Number(e.target.value))}
+                placeholder="ex: 145000"
+              />
+            </div>
           </div>
 
           {/* Proprietar & Delegat */}
