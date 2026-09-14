@@ -35,7 +35,7 @@ export function matchCanonicalInsurer(candidate, customList = []) {
   if (/omniasig/i.test(lower)) return "Omniasig VIG";
   if (/allianz/i.test(lower) || /tiriac/i.test(lower)) return "Allianz-Țiriac";
   if (/groupama/i.test(lower)) return "Groupama Asigurări";
-  if (/generali/i.test(lower)) return "Generali România";
+  if (/\bgenerali\b/i.test(lower)) return "Generali România";
   if (/asirom/i.test(lower)) return "Asirom VIG";
   if (/grawe/i.test(lower)) return "Grawe România";
   if (/euroins/i.test(lower)) return "Euroins România";
@@ -98,8 +98,8 @@ export function extractEstimateMetadataFromText(text) {
     meta.vin = vinMatch[1].toUpperCase();
   }
 
-  // 3. Dosar daună asigurător / deviz
-  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?|NR\.?\s*DEVIZ|NRO?\b)\s*[:=\s\-]+\s*([A-Z0-9\-_/]+)/i);
+  // 3. Dosar daună asigurător / deviz / contract reparație
+  const dosarMatch = raw.match(/(?:NR\.?\s*DOSAR|DOSAR\s*DAUN[AĂ]|NR\.?\s*DAUN[AĂ]|CLAIM\s*NO|DOSAR\s*NR\.?|NR\.?\s*DEVIZ|NUMAR\s+CONTRACT|NUMAR\s+INTERN|NRO?\b)\s*[:=\s\-]+\s*([A-Z0-9\-_/]+)/i);
   if (dosarMatch) {
     meta.nrDosarAsigurator = dosarMatch[1].trim();
     meta.numarDosar = dosarMatch[1].trim();
@@ -119,13 +119,20 @@ export function extractEstimateMetadataFromText(text) {
   }
 
   // 6. Kilometraj
-  const kmMatch = raw.match(/(?:KM|KILOMETRAJ|RULAJ|ODOMETER)\s*[:=\s\-]+\s*(\d{1,3}(?:[.\s]\d{3})*|\d+)/i);
+  const kmMatch = raw.match(/(?:(?:NR\.?\s*)?KM|KILOMETRAJ|RULAJ|ODOMETER)\s*[:=\s\-]?\s*(\d{1,3}(?:[.\s]\d{3})*|\d+)/i);
   if (kmMatch) {
     meta.kilometraj = parseNumber(kmMatch[1], null);
+  } else {
+    // În documente tip tabel (unde eticheta 'Nr km' e pe un rând și valoarea pe rândul următor)
+    const kmTableMatch = raw.match(/Nr\s*km[\s\S]{0,100}?\b\d{4}\s+(?:\d{4}\s+)?(\d{4,7})\b/i);
+    if (kmTableMatch) {
+      meta.kilometraj = parseNumber(kmTableMatch[1], null);
+    }
   }
 
   // 7. Client / Proprietar (multi-pattern resilient search)
   const clientPatterns = [
+    /(?:CUMP[AĂ]R[AĂ]TOR)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,70})(?=\r?\n|$|\s{2,}|Nr\.ord|C\.?N\.?P|CUI|CIF|Sediul|Tel)/i,
     /(?:PROPRIETAR(?:\s*[\/&]\s*(?:ASIGURAT|P[AĂ]GUBIT|UTILIZATOR))?|ASIGURAT(?:\s*[\/&]\s*P[AĂ]GUBIT)?|P[AĂ]GUBIT|CLIENT|BENEFICIAR|DETINATOR|UTILIZATOR|NUME\s*PROPRIETAR|NUME\s*ASIGURAT|NUME\s*[\/&]\s*PRENUME|NUME\s*[\/&]\s*DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,70})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|CIF|TEL|ADRES|STR|COD)/i,
     /(?:PROPRIETAR|ASIGURAT|P[AĂ]GUBIT|BENEFICIAR)\s*[\r\n]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|TEL|ADRES|CUI)/i,
     /(?:NUME|DENUMIRE)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|C\.?N\.?P|CUI|TEL|ADRES)/i,
@@ -147,10 +154,14 @@ export function extractEstimateMetadataFromText(text) {
     meta.telefonClient = telMatch[1].replace(/[^\d+]/g, "").trim();
   }
 
-  // 9. Inspector Daună
+  // 9. Inspector Daună / Consilier Service
   const inspMatch = raw.match(/(?:INSPECTOR(?:\s+DAUN[AĂ])?|CONSTATARE\s+EFECTUAT[AĂ]\s+DE|EVALUATOR)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})/i);
   if (inspMatch) {
     meta.inspectorDauna = inspMatch[1].trim();
+  }
+  const consilierMatch = raw.match(/(?:CONSILIER(?:\s+SERVICE)?)\s*[:=\s\-]?\s*([A-ZĂÂÎȘȚa-zăâîșț]{2,30})(?=\s+Telefon|\s+\d|\s+Termen|$)/i);
+  if (consilierMatch && !meta.delegat) {
+    meta.delegat = consilierMatch[1].trim();
   }
 
   // 10. Marcă & Model Vehicul
@@ -164,6 +175,20 @@ export function extractEstimateMetadataFromText(text) {
       meta.model = parts.slice(1).join(" ");
     } else {
       meta.marca = parts[0] || "";
+    }
+  }
+
+  // Contract format: 'Cod model Tip Cutie viteze Tractiune Masa proprie \n [! BMW 3 (G20) 0'
+  const contractCarMatch = raw.match(/Cod\s+model\s+Tip[\s\S]{0,80}?\n\s*(?:\[!\s*)?([^\n\r]+?)(?=\s*SERIE|\s*\n|$)/i);
+  if (contractCarMatch && contractCarMatch[1].trim()) {
+    let cCar = contractCarMatch[1].replace(/^[!\[\]\s]+/, "").trim();
+    // Elimină numărul de la capăt care corespunde coloanei Masa proprie (ex: 'BMW 3 (G20) 0' -> 'BMW 3 (G20)')
+    cCar = cCar.replace(/\s+\d+\s*$/, "").trim();
+    if (cCar.length >= 2) {
+      meta.marcaModel = cCar;
+      const parts = cCar.split(/\s+/);
+      meta.marca = parts[0];
+      meta.model = parts.slice(1).join(" ");
     }
   }
 
@@ -219,6 +244,8 @@ export function mapOcrTextToClaim(ocrText = "") {
     tipDocument = "Proces-Verbal Daună";
   } else if (/\b(AUDATEX|DAT|CALCUL\s+REPARATIE|DEVIZ)\b/i.test(raw)) {
     tipDocument = "Deviz de Reparație";
+  } else if (/\b(CONTRACT\s+DE\s+REPARATIE|COMAND[AĂ]\s+DE\s+LUCRU|PREDARE\s+IN\s+VEDEREA\s+REPARATIEI)\b/i.test(raw)) {
+    tipDocument = "Contract de Reparație";
   }
 
   // Talon fields specific regex (A, E, D.1, D.3, C.1)
@@ -382,9 +409,14 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
     },
   };
 
+  let tipDoc = "Deviz Audatex / DAT (Parser Nativ)";
+  if (parsed.format === "contract_reparatie" || /CONTRACT\s+DE\s+REPARATIE/i.test(rawText)) {
+    tipDoc = "Contract de Reparație";
+  }
+
   return {
     claimPartial: sanitizeClaim(populated),
-    tipDocument: "Deviz Audatex / DAT (Parser Nativ)",
+    tipDocument: tipDoc,
     extractedRaw: parsed,
   };
 }

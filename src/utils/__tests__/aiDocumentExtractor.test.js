@@ -215,4 +215,61 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(claimPartial.operatiuni[2].rev).toBe(true);
     expect(claimPartial.operatiuni[3].uni).toBe(true);
   });
+
+  it("analizează documente utile/import.pdf și extrage corect dosarul", async () => {
+    const fs = await import("fs");
+    const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+    const { extractEstimateMetadataFromText } = await import("../aiDocumentExtractor");
+    const { parseEstimateText } = await import("../audatexExtract");
+
+    const buf = fs.readFileSync("documente utile/import.pdf");
+    const data = new Uint8Array(buf);
+    const doc = await pdfjs.getDocument({ data }).promise;
+    const pages = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      const linesMap = new Map();
+      for (const it of content.items) {
+        const str = it.str || "";
+        if (!str.trim() && str !== " " && str !== "\u00a0") continue;
+        const y = it.transform ? Math.round(it.transform[5]) : 0;
+        const x = it.transform ? Math.round(it.transform[4]) : 0;
+        let foundKey = null;
+        for (const k of linesMap.keys()) {
+          if (Math.abs(k - y) <= 3) {
+            foundKey = k;
+            break;
+          }
+        }
+        const key = foundKey !== null ? foundKey : y;
+        if (!linesMap.has(key)) linesMap.set(key, []);
+        linesMap.get(key).push({ x, str });
+      }
+      const sortedY = Array.from(linesMap.keys()).sort((a, b) => b - a);
+      const rows = sortedY.map((y) => {
+        const sortedX = linesMap.get(y).sort((a, b) => a.x - b.x);
+        return sortedX.map((it) => it.str).join(" ").replace(/\s+/g, " ").trim();
+      }).filter(Boolean);
+      pages.push(rows.join("\n"));
+    }
+    const fullText = pages.join("\n");
+    const meta = extractEstimateMetadataFromText(fullText);
+    const parsed = parseEstimateText(fullText);
+
+    expect(meta.numarInmatriculare).toBe("CJ 14 CIW");
+    expect(meta.vin).toBe("WBA5V71070FJ38241");
+    expect(meta.numarDosar).toBe("15422");
+    expect(meta.client).toBe("ROMANIUC DIANA MARIA");
+    expect(meta.telefonClient).toBe("0743588848");
+    expect(meta.marca).toBe("BMW");
+    expect(meta.model).toBe("3 (G20)");
+    expect(meta.kilometraj).toBe(175990);
+    expect(parsed.format).toBe("contract_reparatie");
+    expect(parsed.lineItems.operations.length).toBe(2);
+    expect(parsed.lineItems.operations[0].piesa).toBe("REP - BARA SPATE");
+    expect(parsed.lineItems.operations[0].rep).toBe(true);
+    expect(parsed.lineItems.operations[1].piesa).toBe("INL - SPOILER BARA SPATE");
+    expect(parsed.lineItems.operations[1].inl).toBe(true);
+  });
 });
