@@ -273,6 +273,11 @@ export default function ClaimTable({
             <span className="text-[14px] font-semibold text-[var(--app-text-strong)] truncate" title={c.client || ""}>
               {c.client || "—"}
             </span>
+            {c.delegat && c.delegat.trim().toLowerCase() !== (c.client || "").trim().toLowerCase() && (
+              <span className="text-[11.5px] text-slate-500 dark:text-zinc-400 truncate" title={`Delegat: ${c.delegat}`}>
+                Del: <strong className="font-semibold text-slate-700 dark:text-zinc-300">{c.delegat}</strong>
+              </span>
+            )}
             {phone ? (
               <a
                 href={telLink(phone)}

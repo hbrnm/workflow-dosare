@@ -276,6 +276,12 @@ export default function QuickViewDrawer({
                  <span className="text-[var(--app-muted)] font-semibold">Client:</span>
                  <span className="font-bold text-[var(--app-text)]">{claim.client || "—"}</span>
                </div>
+               {claim.delegat && claim.delegat.trim().toLowerCase() !== (claim.client || "").trim().toLowerCase() && (
+                 <div className="flex items-center justify-between">
+                   <span className="text-[var(--app-muted)] font-semibold">Delegat / Contact:</span>
+                   <span className="font-bold text-[var(--app-text)]">{claim.delegat}</span>
+                 </div>
+               )}
             </div>
           </div>
 

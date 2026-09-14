@@ -261,6 +261,7 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(meta.vin).toBe("WBA5V71070FJ38241");
     expect(meta.numarDosar).toBe("15422");
     expect(meta.client).toBe("ROMANIUC DIANA MARIA");
+    expect(meta.delegat).toBe("");
     expect(meta.telefonClient).toBe("0743588848");
     expect(meta.marca).toBe("BMW");
     expect(meta.model).toBe("3 (G20)");
@@ -271,5 +272,22 @@ describe("aiDocumentExtractor & schema mapping", () => {
     expect(parsed.lineItems.operations[0].rep).toBe(true);
     expect(parsed.lineItems.operations[1].piesa).toBe("INL - SPOILER BARA SPATE");
     expect(parsed.lineItems.operations[1].inl).toBe(true);
+  });
+
+  it("extrage corect delegatul / utilizatorul când este prezent în document", async () => {
+    const { extractEstimateMetadataFromText } = await import("../aiDocumentExtractor");
+    const textWithDelegat = `
+      Furnizor: AUTO WASH IMPEX SRL Numar contract 99999
+      Cumparator: RAIFFEISEN LEASING IFN SA
+      Delegat: POPESCU ION
+      Telefon: 0722111222
+      Serie sasiu: WBA5V71070FJ38241
+      Nr.Inmatriculare: B 100 ABC
+    `;
+    const meta = extractEstimateMetadataFromText(textWithDelegat);
+    expect(meta.client).toBe("RAIFFEISEN LEASING IFN SA");
+    expect(meta.delegat).toBe("POPESCU ION");
+    expect(meta.telefonClient).toBe("0722111222");
+    expect(meta.numarInmatriculare).toBe("B 100 ABC");
   });
 });

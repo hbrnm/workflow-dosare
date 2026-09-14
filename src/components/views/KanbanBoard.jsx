@@ -103,6 +103,13 @@ const ClaimCard = React.memo(function ClaimCardBase({ claim, onOpen, onMove, onD
             )}
           </div>
 
+          {claim.delegat && claim.delegat.trim().toLowerCase() !== (claim.client || "").trim().toLowerCase() && (
+            <div className="text-[10px] text-[var(--app-muted)] truncate flex items-center gap-1 leading-tight -mt-0.5" title={`Delegat: ${claim.delegat}`}>
+              <span className="opacity-70">Del:</span>
+              <span className="font-semibold text-[var(--app-text-strong)]">{claim.delegat}</span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-1 text-[10.5px] text-[var(--app-muted)]">
             <span className="flex items-center gap-1">
               <Car size={12} className="text-[var(--app-accent)]" />
