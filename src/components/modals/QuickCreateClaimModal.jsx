@@ -52,6 +52,7 @@ export default function QuickCreateClaimModal({
   const [numarInmatriculare, setNumarInmatriculare] = useState("");
   const [numarDosar, setNumarDosar] = useState("");
   const [client, setClient] = useState("");
+  const [delegat, setDelegat] = useState("");
   const [telefon, setTelefon] = useState("");
   const [asigurator, setAsigurator] = useState(defaultInsurer);
   const [customAsigurator, setCustomAsigurator] = useState("");
@@ -130,6 +131,7 @@ export default function QuickCreateClaimModal({
         numarDosar: numarDosar.trim(),
         nrDosarAsigurator: numarDosar.trim() || importedData?.nrDosarAsigurator || "",
         client: client.trim().toUpperCase(),
+        delegat: delegat.trim().toUpperCase() || (importedData?.delegat ? String(importedData.delegat).trim().toUpperCase() : ""),
         telefonClient: telefon.trim(),
         asigurator: selectedInsurer,
         vin: (vin || importedData?.vin || "").trim().toUpperCase(),
@@ -155,6 +157,7 @@ export default function QuickCreateClaimModal({
       setNumarInmatriculare("");
       setNumarDosar("");
       setClient("");
+      setDelegat("");
       setTelefon("");
       setVin("");
       setMarcaModel("");
@@ -181,6 +184,7 @@ export default function QuickCreateClaimModal({
     if (extractedClaim.numarInmatriculare) setNumarInmatriculare(extractedClaim.numarInmatriculare);
     if (extractedClaim.numarDosar) setNumarDosar(extractedClaim.numarDosar);
     if (extractedClaim.client) setClient(extractedClaim.client);
+    if (extractedClaim.delegat) setDelegat(extractedClaim.delegat);
     if (extractedClaim.telefonClient) setTelefon(extractedClaim.telefonClient);
     if (extractedClaim.asigurator) setAsigurator(extractedClaim.asigurator);
     if (extractedClaim.vin) setVin(extractedClaim.vin);
@@ -220,6 +224,7 @@ export default function QuickCreateClaimModal({
     setImportedDocType("");
     setOperatiuni([]);
     setCeEsteDeReparat("");
+    setDelegat("");
   };
 
   return (
@@ -338,6 +343,11 @@ export default function QuickCreateClaimModal({
                 {kilometraj && (
                   <span className="bg-slate-800/90 text-slate-200 px-2 py-0.5 rounded border border-slate-700">
                     {kilometraj} km
+                  </span>
+                )}
+                {delegat && (
+                  <span className="bg-slate-800/90 text-slate-200 px-2 py-0.5 rounded border border-slate-700 font-medium">
+                    Delegat: {delegat}
                   </span>
                 )}
                 {operatiuni.length > 0 && (
@@ -463,7 +473,7 @@ export default function QuickCreateClaimModal({
             </div>
           )}
 
-          {/* Proprietar Auto & Telefon */}
+          {/* Proprietar Auto, Delegat & Telefon */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass(desktopUi)}>
@@ -472,7 +482,7 @@ export default function QuickCreateClaimModal({
               <input
                 type="text"
                 className={`${fieldClass(desktopUi)} font-semibold uppercase`}
-                placeholder="Ex: Popescu Ion"
+                placeholder="Ex: Popescu Ion sau Leasing IFN"
                 value={client}
                 onChange={(e) => setClient(e.target.value)}
               />
@@ -480,7 +490,20 @@ export default function QuickCreateClaimModal({
 
             <div>
               <label className={labelClass(desktopUi)}>
-                <Phone size={13} className="text-[var(--app-muted)]" /> Telefon client
+                <User size={13} className="text-[var(--app-muted)]" /> Delegat / Utilizator (opțional)
+              </label>
+              <input
+                type="text"
+                className={`${fieldClass(desktopUi)} font-semibold uppercase`}
+                placeholder="Ex: Nume delegat sau șofer"
+                value={delegat}
+                onChange={(e) => setDelegat(e.target.value)}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass(desktopUi)}>
+                <Phone size={13} className="text-[var(--app-muted)]" /> Telefon client / delegat
               </label>
               <input
                 type="tel"

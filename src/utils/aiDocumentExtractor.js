@@ -154,14 +154,32 @@ export function extractEstimateMetadataFromText(text) {
     meta.telefonClient = telMatch[1].replace(/[^\d+]/g, "").trim();
   }
 
-  // 9. Inspector Daună / Consilier Service
+  // 9. Delegat / Utilizator / Împuternicit / Reprezentant
+  const delegatStopWords = /\b(TELEFON|CONSILIER|TERMEN|SEMNATURA|CLIENT|FURNIZOR|CUMPARATOR|DATA|SERVICII|OBSERVATII|TABEL|REPARATIE|CONTRACT|SERIE|SASIU|MODEL|MOTOR|PRET|PLATA|BENEFICIAR|INSPECTOR|CONSTATARE|AUDATEX|DAT|CALCUL|DEVIZ|SISTEM|LEI|RON)\b/i;
+
+  const delegatPatterns = [
+    /(?:DELEGAT(?:\s*CUMP[AĂ]R[AĂ]TOR)?)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|Nr\.ord|C\.?N\.?P|CUI|CIF|Sediul|Tel|Telefon|Consilier|Termen|Data|Serie|Semnatura)/i,
+    /(?:UTILIZATOR(?:\s*AUTO)?|ÎMPUTERNICIT|IMPUTERNICIT|REPREZENTANT(?:\s*LEGAL)?|PERSOAN[AĂ]\s+DE\s+CONTACT|PREZENTAT\s+DE|[SȘ]OFER)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț0-9\s.\-&]{3,60})(?=\r?\n|$|\s{2,}|Nr\.ord|C\.?N\.?P|CUI|CIF|Sediul|Tel|Telefon|Consilier|Termen|Data|Serie|Semnatura)/i,
+  ];
+  for (const pat of delegatPatterns) {
+    const dm = raw.match(pat);
+    if (dm && dm[1]) {
+      const candidate = dm[1].replace(/^(?:DOMNUL|DOAMNA)\s+/i, "").trim();
+      if (candidate.length >= 3 && !isRepairShopName(candidate) && !delegatStopWords.test(candidate)) {
+        meta.delegat = candidate;
+        break;
+      }
+    }
+  }
+
+  // 10. Inspector Daună / Consilier Service
   const inspMatch = raw.match(/(?:INSPECTOR(?:\s+DAUN[AĂ])?|CONSTATARE\s+EFECTUAT[AĂ]\s+DE|EVALUATOR)\s*[:=\s\-]+\s*([A-ZĂÂÎȘȚa-zăâîșț\s.\-]{4,40})/i);
   if (inspMatch) {
     meta.inspectorDauna = inspMatch[1].trim();
   }
   const consilierMatch = raw.match(/(?:CONSILIER(?:\s+SERVICE)?)\s*[:=\s\-]?\s*([A-ZĂÂÎȘȚa-zăâîșț]{2,30})(?=\s+Telefon|\s+\d|\s+Termen|$)/i);
-  if (consilierMatch && !meta.delegat) {
-    meta.delegat = consilierMatch[1].trim();
+  if (consilierMatch) {
+    meta.consilier = consilierMatch[1].trim();
   }
 
   // 10. Marcă & Model Vehicul
@@ -278,6 +296,7 @@ export function mapOcrTextToClaim(ocrText = "") {
     asigurator: meta.asigurator || base.asigurator,
     tipAsigurare: meta.tipAsigurare || base.tipAsigurare,
     client: meta.client || base.client,
+    delegat: meta.delegat || base.delegat,
     telefonClient: meta.telefonClient || base.telefonClient,
     kilometraj: meta.kilometraj != null ? meta.kilometraj : base.kilometraj,
     inspectorDauna: meta.inspectorDauna || base.inspectorDauna,
@@ -354,6 +373,7 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
   if (meta.asigurator) populated.asigurator = meta.asigurator;
   if (meta.tipAsigurare) populated.tipAsigurare = meta.tipAsigurare;
   if (meta.client) populated.client = meta.client;
+  if (meta.delegat) populated.delegat = meta.delegat;
   if (meta.telefonClient) populated.telefonClient = meta.telefonClient;
   if (meta.kilometraj != null) populated.kilometraj = meta.kilometraj;
   if (meta.inspectorDauna) populated.inspectorDauna = meta.inspectorDauna;
@@ -501,6 +521,8 @@ Extrage următoarele date și returnează-le într-un JSON strict:
   "marca": "ex: BMW",
   "model": "ex: Seria 3",
   "client": "Numele proprietarului / asiguratului",
+  "delegat": "Numele delegatului / utilizatorului / persoanei de contact (dacă există)",
+  "telefonClient": "Numărul de telefon al clientului / delegatului (dacă există)",
   "asigurator": "Compania de asigurări",
   "numarDosar": "Numărul dosarului de daună dacă există"
 }
@@ -610,6 +632,7 @@ export function mapExtractedJsonToClaim(rawJson) {
   const plate = root.numarInmatriculare || root.numar_inmatriculare || root.license_plate || repair.license_plate || "";
   const vin = root.vin || root.serie_sasiu || root.vehicle_vin || repair.vehicle_vin || "";
   const client = root.client || root.proprietar || root.asigurat || root.owner_name || root.client_name || repair.client_name || "";
+  const delegat = root.delegat || root.reprezentant || root.imputernicit || root.utilizator || root.contact_person || repair.contact_person || "";
   const phone = root.telefonClient || root.telefon || root.owner_phone || root.client_phone || repair.client_phone || "";
   const make = root.marca || root.vehicle_make || repair.vehicle_make || (root.brand_model ? root.brand_model.split(" ")[0] : "");
   const model = root.model || root.vehicle_model || repair.vehicle_model || (root.brand_model ? root.brand_model.split(" ").slice(1).join(" ") : "");
@@ -654,6 +677,7 @@ export function mapExtractedJsonToClaim(rawJson) {
     asigurator: insurer || base.asigurator,
     tipAsigurare: insuranceType,
     client: client || base.client,
+    delegat: delegat || base.delegat,
     telefonClient: phone || base.telefonClient,
     inspectorDauna: inspector || base.inspectorDauna,
     marca: make || base.marca,

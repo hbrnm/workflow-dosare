@@ -273,16 +273,30 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-slate-400 text-[11px]">Client / Proprietar:</label>
-                      <input
-                        type="text"
-                        value={editableClaim.client || ""}
-                        onChange={(e) =>
-                          setEditableClaim({ ...editableClaim, client: e.target.value })
-                        }
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Client / Proprietar:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.client || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, client: e.target.value })
+                          }
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px]">Delegat / Utilizator:</label>
+                        <input
+                          type="text"
+                          value={editableClaim.delegat || ""}
+                          onChange={(e) =>
+                            setEditableClaim({ ...editableClaim, delegat: e.target.value })
+                          }
+                          placeholder="Opțional"
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -112,6 +112,11 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
               {claim.client || claim.marcaModel}
             </p>
           )}
+          {claim.delegat && claim.delegat.trim().toLowerCase() !== (claim.client || "").trim().toLowerCase() && (
+            <p className="text-[11px] md:text-[12px] text-[var(--app-text-strong)]/85 truncate leading-tight mt-0.5" title={`Delegat: ${claim.delegat}`}>
+              <span className="text-[var(--app-muted)]">Del:</span> <span className="font-semibold">{claim.delegat}</span>
+            </p>
+          )}
           {stageSinceLabel ? (
             <p className="text-[11.5px] md:text-[12.5px] text-[var(--app-muted)] truncate leading-tight mt-0.5" title={stageSinceLabel}>
               {stageSinceLabel}

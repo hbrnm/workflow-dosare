@@ -202,6 +202,13 @@ export default function ProgramatorClaimCard({
         </span>
       </div>
 
+      {claim.delegat && claim.delegat.trim().toLowerCase() !== (claim.client || "").trim().toLowerCase() && (
+        <div className="text-[10.5px] text-[var(--app-muted)] truncate flex items-center gap-1 -mt-0.5" title={`Delegat: ${claim.delegat}`}>
+          <span className="opacity-70">Del:</span>
+          <span className="font-semibold text-[var(--app-text-strong)]">{claim.delegat}</span>
+        </div>
+      )}
+
       {claim.ceEsteDeReparat && claim.ceEsteDeReparat.trim() !== "—" && (
         <div className="app-prog-claim-footer text-[11px] text-[var(--app-muted)] border-t pt-1 mt-1 truncate flex items-center gap-1">
           <span>⚙️</span>
