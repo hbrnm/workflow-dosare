@@ -181,73 +181,15 @@ export default function ClaimGeneralTab({
             </div>
           )}
 
-          {/* Linii reparații */}
-          <div className="space-y-1.5 border-t border-[var(--app-border)]/60 pt-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-[10.5px] font-extrabold text-[var(--app-muted)] uppercase flex items-center gap-1">
-                <Wrench size={12} className="text-[var(--app-muted)]" /> Operațiuni de efectuat (linii &amp; bife)
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const newList = [...(form.operatiuni || []), { id: uid(), piesa: "", inl: false, rev: false, rep: false, uni: false }];
-                  set("operatiuni", newList);
-                }}
-                className="text-[10px] font-extrabold text-[var(--app-muted)] hover:bg-[var(--app-border-soft)] px-2 py-0.5 rounded border border-[var(--app-border)] flex items-center gap-1 cursor-pointer"
-              >
-                + Adaugă Linie
-              </button>
-            </div>
-
-            <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-              {(!form.operatiuni || form.operatiuni.length === 0) ? (
-                <div className="text-[10.5px] text-[var(--app-muted)] italic p-2 border border-dashed border-[var(--app-border)] rounded-lg text-center">
-                  Nicio linie adăugată. Apasă pe „+ Adaugă Linie” de mai sus.
-                </div>
-              ) : (
-                form.operatiuni.map((op, idx) => (
-                  <div key={op.id || idx} className="flex items-center gap-1 bg-[var(--app-surface)] p-1 rounded-lg border border-[var(--app-border)]">
-                    <input
-                      className="flex-1 font-semibold text-[11px] px-1.5 py-0.5 border border-[var(--app-border)] rounded uppercase text-[var(--app-text-strong)]"
-                      placeholder="ex: Oglindă ext. stanga, Bara față..."
-                      value={op.piesa || ""}
-                      onChange={(e) => {
-                        const newList = [...form.operatiuni];
-                        newList[idx] = { ...newList[idx], piesa: e.target.value.toUpperCase() };
-                        set("operatiuni", newList);
-                        set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", "));
-                      }}
-                    />
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.inl ? "bg-[#B8791E] text-white border-[#B8791E]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Înlocuire">
-                        <input type="checkbox" checked={!!op.inl} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], inl: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> INL
-                      </label>
-                      <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rev ? "bg-[var(--app-muted)] text-white border-[var(--app-muted)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Revopsire">
-                        <input type="checkbox" checked={!!op.rev} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rev: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REV
-                      </label>
-                      <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.rep ? "bg-[var(--app-success)] text-white border-[var(--app-success)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Reparație">
-                        <input type="checkbox" checked={!!op.rep} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], rep: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> REP
-                      </label>
-                      <label className={`px-1.5 py-0.5 rounded-lg text-[10px] font-extrabold cursor-pointer transition-all border ${op.uni ? "bg-[var(--app-text)] text-white border-[var(--app-text)]" : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border-[var(--app-border)] hover:bg-[var(--app-surface-muted)]"}`} title="Demontare / Remontare (D/R)">
-                        <input type="checkbox" checked={!!op.uni} onChange={(e) => { const newList = [...form.operatiuni]; newList[idx] = { ...newList[idx], uni: e.target.checked }; set("operatiuni", newList); }} className="hidden" /> D/R
-                      </label>
-                      <button type="button" onClick={() => { const newList = form.operatiuni.filter((_, i) => i !== idx); set("operatiuni", newList); set("ceEsteDeReparat", newList.map((o) => o.piesa).filter(Boolean).join(", ")); }} className="p-1 text-[var(--app-danger)] hover:bg-red-50 rounded-lg transition-colors ml-0.5 cursor-pointer" title="Șterge linia">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+          {/* Modul Unificat: Operațiuni de Efectuat & Gestiune Piese */}
+          <div className="border-t border-[var(--app-border)]/60 pt-2">
+            <PartsLifecyclePanel
+              form={form}
+              set={set}
+              readOnly={readOnly}
+              onNotify={onNotify}
+            />
           </div>
-
-          {/* Gestiune Piese Comandate & Ciclu de Viață */}
-          <PartsLifecyclePanel
-            form={form}
-            set={set}
-            readOnly={readOnly}
-            onNotify={onNotify}
-          />
         </div>
 
         {/* COLOANA 2: VEHICUL, PROPRIETAR & DELEGAT */}
