@@ -5,6 +5,7 @@ import {
   canCreateClaim,
   canEditClaimFull,
   canEditWorkshop,
+  canChangeStatus,
   canManageUsers,
   canInspectVehicle,
   canEditFinancials,
@@ -48,6 +49,9 @@ describe("roles v2", () => {
     expect(canInspectVehicle("inspector")).toBe(true);
     expect(canEditFinancials("contabil")).toBe(true);
     expect(canEditWorkshop("mecanic")).toBe(true);
+    expect(canChangeStatus("mecanic")).toBe(true);
+    expect(canChangeStatus("receptioner")).toBe(true);
+    expect(canChangeStatus("contabil")).toBe(false);
     expect(canEditClaimFull("mecanic", { createdBy: "1" }, "1", "m@x.ro")).toBe(false);
     expect(canEditClaimFull("admin", {}, null, null)).toBe(true);
     expect(canManageUsers("admin")).toBe(true);

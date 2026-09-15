@@ -17,7 +17,7 @@ import QuickViewDrawer from "./components/common/QuickViewDrawer";
 import SetariModal from "./components/modals/SetariModal";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { dismissOnboarding } from "./utils/onboardingPrefs";
-import { ROLES, resolveUserRole, canCreateClaim } from "./constants/roles";
+import { ROLES, resolveUserRole, canCreateClaim, canEditWorkshop } from "./constants/roles";
 import { getStatusDefinition } from "./constants/config";
 import { fmtProgramare } from "./utils/dateUtils";
 import { useAuth } from "./hooks/useAuth";
@@ -603,11 +603,12 @@ export default function App() {
       if (!session?.user) return false;
       if (isAdmin) return true;
       if (!claim) return true;
+      if (canEditWorkshop(myRole)) return true;
       const cOwner = (claim.createdByEmail || "").toLowerCase();
       const uEmail = (myEmail || "").toLowerCase();
       return Boolean(cOwner && uEmail && cOwner === uEmail);
     },
-    [session, isAdmin, myEmail]
+    [session, isAdmin, myRole, myEmail]
   );
 
   const handleSave = useCallback(

@@ -19,6 +19,7 @@ import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { isSearchHighlighted } from "../../utils/searchUtils";
 import { getLatestClaimNoteText, isPartsArrivedUnscheduled } from "../../utils/alertUtils";
 import { glossaryTitle, GLOSSARY } from "../../constants/glossary";
+import { softHaptic } from "../../utils/mobilePrefs";
 
 const STAGE_ICONS = {
   deschidere: ClipboardCheck,
@@ -58,21 +59,26 @@ function CompactClaimCard({
   const showPieseRow = isPieseComandateStatus(c.status);
   const canEdit = !canEditFn || canEditFn(c);
 
+  const handleCardClick = () => {
+    softHaptic(8);
+    onOpen(c);
+  };
+
   return (
     <article
       id={`mobile-claim-${c.id}`}
-      className={`app-alerte-row m-flow-card is-compact ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
-      onClick={() => onOpen(c)}
+      className={`app-alerte-row m-flow-card is-compact active:scale-[0.985] transition-transform duration-100 cursor-pointer ${showPieseRow ? "has-piese-meta" : ""} ${stageAccent.className} ${isSearchHighlighted(c.id, highlightClaimIds) ? "is-search-highlight" : ""}`}
+      onClick={handleCardClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onOpen(c);
+          handleCardClick();
         }
       }}
       role="button"
       tabIndex={0}
     >
-      <ClaimCardOpenHit onOpen={() => onOpen(c)} />
+      <ClaimCardOpenHit onOpen={handleCardClick} />
       <div className="app-alerte-metric is-icon" title={sDef.label}>
         <Icon size={14} />
       </div>
@@ -160,6 +166,7 @@ export default function MobileClaimsList({
   const statusFilter = controlled ? statusFilterProp : internalFilter;
 
   const setStatusFilter = (id) => {
+    softHaptic(8);
     if (!controlled) setInternalFilter(id);
     onStatusFilterChange?.(id);
   };
@@ -188,7 +195,7 @@ export default function MobileClaimsList({
 
   const handleTogglePieseSosite = async (claim, val) => {
     if (canEditFn && !canEditFn(claim)) {
-      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      onNotify?.("Nu ai permisiuni de editare pe acest dosar.", "error");
       return;
     }
     const ok = await onPatch?.(claim.id, { pieseSosite: val });
@@ -203,7 +210,7 @@ export default function MobileClaimsList({
 
   const handleScheduleFromPiese = async (claim, iso) => {
     if (canEditFn && !canEditFn(claim)) {
-      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      onNotify?.("Nu ai permisiuni de editare pe acest dosar.", "error");
       return false;
     }
     const ok = await onPatch?.(claim.id, { dataProgramare: iso });
@@ -217,7 +224,7 @@ export default function MobileClaimsList({
 
   const handlePatchPieseDates = async (claim, patch) => {
     if (canEditFn && !canEditFn(claim)) {
-      onNotify?.("Poți modifica doar dosarele tale.", "error");
+      onNotify?.("Nu ai permisiuni de editare pe acest dosar.", "error");
       return false;
     }
     const ok = await onPatch?.(claim.id, patch);

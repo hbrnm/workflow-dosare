@@ -16,6 +16,7 @@ import SettlementPackageModal from "../modals/SettlementPackageModal";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import MobilePieseSositeRow from "./MobilePieseSositeRow";
 import { loadCachedBranding } from "../../constants/branding";
+import { softHaptic } from "../../utils/mobilePrefs";
 
 /**
  * Thin field sheet for mobile — plate, client, phone, status, photos, next step.
@@ -53,6 +54,7 @@ export default function MobileClaimSheet({
   const cameraOpen = liveCameraOpen ?? showLiveCam;
 
   const openLiveCam = () => {
+    softHaptic(8);
     if (onLiveCameraOpen) onLiveCameraOpen();
     else setShowLiveCam(true);
   };
@@ -74,7 +76,11 @@ export default function MobileClaimSheet({
   }, [claim?.status, initialCameraCategory]);
 
   const handleDirectPhotoUpload = async (files, targetCategory = null) => {
-    if (!claim?.id || readOnly || !files?.length) return;
+    if (!claim?.id || !files?.length) return;
+    if (readOnly) {
+      onNotify?.("Nu ai permisiuni de editare pentru a adăuga fotografii pe acest dosar.", "error");
+      return;
+    }
     const cat = targetCategory || suggestedCategory;
     setUploadingPhotos(true);
     try {
@@ -84,7 +90,7 @@ export default function MobileClaimSheet({
           onNotify?.(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
           continue;
         }
-        const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        const optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
         const uploaded = await uploadStorageItem({
           supabaseClient: supabase,
           claimId: claim.id,
@@ -109,19 +115,29 @@ export default function MobileClaimSheet({
           supabase
         );
         setPhotos(updatedPoze);
+        softHaptic(15);
 
         onNotify?.(`S-au salvat ${uploadedPhotos.length} foto [${cat.toUpperCase()}] în dosar.`, "success");
       }
     } catch (err) {
       console.error(err);
-      onNotify?.("Eroare la încărcarea fotografiilor: " + err.message, "error");
+      const isQuotaErr = String(err?.message || "").toLowerCase().includes("quota") || err?.status === 402;
+      onNotify?.(
+        isQuotaErr
+          ? "Limita de spațiu Supabase (Storage Quota) a fost depășită. Eliberați spațiu sau extindeți planul."
+          : "Eroare la încărcarea fotografiilor: " + (err?.message || err),
+        "error"
+      );
     } finally {
       setUploadingPhotos(false);
     }
   };
 
   const handleDeletePhoto = async (photoToDelete, idx) => {
-    if (readOnly || !claim?.id) return;
+    if (readOnly || !claim?.id) {
+      if (readOnly) onNotify?.("Nu ai permisiuni pentru a șterge fotografii.", "error");
+      return;
+    }
     if (!window.confirm("Sigur dorești să ștergi această fotografie?")) return;
     try {
       if (photoToDelete?.path) {
@@ -136,6 +152,7 @@ export default function MobileClaimSheet({
       await onPatch?.(claim.id, { poze: updatedPoze }, { canEditFn: () => !readOnly });
       const refreshed = await refreshStorageUrls(updatedPoze, "poze-dosare", supabase);
       setPhotos(refreshed);
+      softHaptic(12);
       onNotify?.("Fotografia a fost ștearsă.", "success");
       if (previewIndex != null) {
         if (refreshed.length === 0) setPreviewIndex(null);
@@ -217,19 +234,29 @@ export default function MobileClaimSheet({
 
   const handleStatusChange = (key) => {
     setStatusOpen(false);
-    if (readOnly || key === claim.status) return;
+    if (readOnly) {
+      onNotify?.("Nu ai permisiuni pentru a schimba statusul acestui dosar.", "error");
+      return;
+    }
+    if (key === claim.status) return;
+    softHaptic(15);
     onMoveToStatus?.(claim, key);
   };
 
   const handleAddNote = async () => {
     const text = noteDraft.trim();
-    if (!text || readOnly) return;
+    if (!text) return;
+    if (readOnly) {
+      onNotify?.("Nu ai permisiuni pentru a adăuga notițe pe acest dosar.", "error");
+      return;
+    }
     const author = String(userEmail || "").trim() || null;
     const entry = { id: uid(), data: nowISO(), text, ...(author ? { author } : {}) };
     setNoteDraft("");
     setSaving(true);
     try {
       await onPatch(claim.id, { note: [entry, ...(claim.note || [])] });
+      softHaptic(10);
       onNotify?.("Notiță adăugată.", "success");
     } finally {
       setSaving(false);
@@ -263,7 +290,7 @@ export default function MobileClaimSheet({
           <button
             type="button"
             onClick={onClose}
-            className="m-sheet-close"
+            className="m-sheet-close active:scale-90 transition-transform"
             aria-label="Închide"
           >
             <X size={18} />
@@ -277,11 +304,14 @@ export default function MobileClaimSheet({
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => !readOnly && setStatusOpen((v) => !v)}
-              disabled={readOnly}
+              onClick={() => {
+                softHaptic(8);
+                if (!readOnly) setStatusOpen((v) => !v);
+                else onNotify?.("Nu ai permisiuni pentru a schimba statusul dosarului.", "error");
+              }}
               aria-expanded={statusOpen}
               aria-label="Schimbă status"
-              className="flex items-center gap-2 min-w-0 flex-1 text-left disabled:opacity-80"
+              className="flex items-center gap-2 min-w-0 flex-1 text-left active:scale-[0.99] transition-transform"
             >
               <span
                 className="w-2.5 h-2.5 rounded-full shrink-0"
@@ -308,7 +338,7 @@ export default function MobileClaimSheet({
                     key={s.key}
                     type="button"
                     onClick={() => handleStatusChange(s.key)}
-                    className={`m-status-option w-full text-left px-3 py-2 rounded-full text-[13px] font-bold transition-colors ${
+                    className={`m-status-option w-full text-left px-3 py-2 rounded-full text-[13px] font-bold transition-colors active:scale-[0.98] ${
                       active ? "is-active" : ""
                     }`}
                   >
@@ -337,7 +367,7 @@ export default function MobileClaimSheet({
               <div className="flex items-center gap-1.5 shrink-0">
                 <a
                   href={telLink(phone)}
-                  className="m-call-btn p-2 rounded-full"
+                  className="m-call-btn p-2 rounded-full active:scale-90 transition-transform"
                   title="Sună"
                   aria-label="Sună"
                 >
@@ -352,8 +382,11 @@ export default function MobileClaimSheet({
         {nextStatus && !readOnly && (
           <button
             type="button"
-            onClick={() => onMoveToStatus?.(claim, nextStatus.key)}
-            className="m-sheet-next-row"
+            onClick={() => {
+              softHaptic(15);
+              onMoveToStatus?.(claim, nextStatus.key);
+            }}
+            className="m-sheet-next-row active:scale-[0.98] transition-transform"
           >
             <span className="truncate">
               Pas următor · {nextStatus.short || nextStatus.label}
