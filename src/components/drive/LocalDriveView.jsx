@@ -3,7 +3,7 @@ import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
   AlertCircle, AlertTriangle, RefreshCw, ExternalLink, Sparkles, Plus, Copy,
   MessageCircle, Upload, ChevronRight, Download, RotateCw, Maximize2,
-  Search, X
+  Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck
 } from "lucide-react";
 import {
   getDriveCars,
@@ -19,6 +19,11 @@ import {
   createDriveCar,
 } from "../../utils/localDriveService";
 import { normalizePlate } from "../../utils/plateSchedule";
+import { emptyClaim, generateTrackingToken } from "../../utils/claimModel";
+import { generateUUID, todayISO, nowISO, uid } from "../../utils/dateUtils";
+import { INSURERS } from "../../constants/config";
+import { extractPdfText } from "../../utils/audatexImportFile";
+import { extractEstimateMetadataFromText } from "../../utils/aiDocumentExtractor";
 import ClaimPlate from "../common/ClaimPlate";
 import AppButton from "../common/AppButton";
 
@@ -29,6 +34,30 @@ const CATEGORIES = [
   { key: "04_Reconstatare", label: "04 Reconstatare", icon: "🔧", desc: "Acte și poze reconstatare / demontare" },
   { key: "05_Dosar_Final", label: "05 Dosar Final", icon: "🏁", desc: "Facturi finale, chitanțe, procese-verbale" },
 ];
+
+export function mapLocalStatusToOnline(localStatus) {
+  if (!localStatus) return "deschidere";
+  const s = String(localStatus).toLowerCase().trim();
+  if (s.includes("piese")) return "piese_comandate";
+  if (s.includes("programat")) return "programat";
+  if (s.includes("lucru") || s.includes("reparatie") || s.includes("tinichigerie") || s.includes("vopsitorie")) return "in_lucru";
+  if (s.includes("accept") || s.includes("plata")) return "accept_plata";
+  if (s.includes("final") || s.includes("facturat") || s.includes("ridicat")) return "facturat";
+  return "deschidere";
+}
+
+export function mapOnlineStatusToLocal(onlineStatus) {
+  if (!onlineStatus) return "Constatare";
+  switch (onlineStatus) {
+    case "deschidere": return "Constatare";
+    case "piese_comandate": return "Așteaptă piese";
+    case "programat": return "Programat";
+    case "in_lucru": return "În lucru";
+    case "accept_plata": return "Accept plată";
+    case "facturat": return "Finalizat";
+    default: return "Constatare";
+  }
+}
 
 export default function LocalDriveView({
   claims = [],
@@ -58,13 +87,32 @@ export default function LocalDriveView({
   const [notes, setNotes] = useState("");
   const [carStatus, setCarStatus] = useState("Constatare");
 
-  // Modal states
+  // Modal states: Create Car
   const [isNewCarModalOpen, setIsNewCarModalOpen] = useState(false);
   const [newPlate, setNewPlate] = useState("");
   const [newClient, setNewClient] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newVin, setNewVin] = useState("");
   const [newDosar, setNewDosar] = useState("");
+
+  // Modal states: Preluare Online
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isExtractingOnlineData, setIsExtractingOnlineData] = useState(false);
+  const [isSubmittingSync, setIsSubmittingSync] = useState(false);
+  const [syncPlate, setSyncPlate] = useState("");
+  const [syncDosar, setSyncDosar] = useState("");
+  const [syncAsigurator, setSyncAsigurator] = useState("Omniasig VIG");
+  const [syncTipAsigurare, setSyncTipAsigurare] = useState("RCA");
+  const [syncClient, setSyncClient] = useState("");
+  const [syncPhone, setSyncPhone] = useState("");
+  const [syncVin, setSyncVin] = useState("");
+  const [syncMarcaModel, setSyncMarcaModel] = useState("");
+  const [syncStatus, setSyncStatus] = useState("deschidere");
+  const [syncPiese, setSyncPiese] = useState("");
+  const [syncPieseSosite, setSyncPieseSosite] = useState(false);
+  const [syncNotes, setSyncNotes] = useState("");
+  const [syncPhotoCount, setSyncPhotoCount] = useState(0);
+  const [syncDocCount, setSyncDocCount] = useState(0);
 
   // Templates modal
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
@@ -207,14 +255,15 @@ export default function LocalDriveView({
       if (matchingOnlineClaim && onSaveClaim) {
         await onSaveClaim({
           ...matchingOnlineClaim,
-          status: carStatus,
+          status: mapLocalStatusToOnline(carStatus),
           numarDosar: numarDosar || matchingOnlineClaim.numarDosar,
+          nrDosarAsigurator: numarDosar || matchingOnlineClaim.nrDosarAsigurator || matchingOnlineClaim.numarDosar,
           vin: vin || matchingOnlineClaim.vin,
-          client: clientName || matchingOnlineClaim.client,
+          client: clientName ? clientName.toUpperCase() : matchingOnlineClaim.client,
           telefonClient: clientPhone || matchingOnlineClaim.telefonClient,
           observatii: notes || matchingOnlineClaim.observatii,
-          piese,
-          pieseSosite,
+          ceEsteDeReparat: piese || matchingOnlineClaim.ceEsteDeReparat,
+          pieseSosite: !!pieseSosite,
         });
       }
 
@@ -225,26 +274,204 @@ export default function LocalDriveView({
     }
   };
 
-  // 1-Click Sync this car to Online Workflow
-  const handleSyncToOnline = async () => {
-    if (!selectedCarName || !onSaveClaim) return;
+  // Open the intelligent Preluare Online Modal with full auto-extraction
+  const handleOpenSyncModal = async () => {
+    if (!selectedCarName) return;
+    setIsExtractingOnlineData(true);
     try {
       const cleanPlate = normalizePlate(selectedCarName);
-      const newClaim = {
-        numarInmatriculare: cleanPlate,
-        status: carStatus || "constatare",
-        client: clientName || "",
-        telefonClient: clientPhone || "",
-        numarDosar: numarDosar || "",
-        vin: vin || "",
-        observatii: notes || "Preluat din folderul local DOSARE.",
-        piese: piese || "",
-        pieseSosite: !!pieseSosite,
-      };
-      await onSaveClaim(newClaim);
-      showNotice?.(`Dosarul ${cleanPlate} a fost sincronizat cu succes în Workflow Daune!`, "success");
+      const d = carDetails || {};
+
+      let dosar = d.numarDosar || numarDosar || "";
+      let asig = d.asigurator || "";
+      let tipAsig = d.tipAsigurare || "RCA";
+      let cl = d.clientName || clientName || "";
+      let tel = d.clientPhone || clientPhone || "";
+      let v = d.vin || vin || "";
+      let mm = d.marcaModel || "";
+      let pieseTxt = d.piese || piese || "";
+      let pieseSos = Boolean(d.pieseSosite || pieseSosite);
+      let localSt = d.status || carStatus || "Constatare";
+
+      // Scan local PDFs in 01_Acte_Client or 02_Asigurator_si_Dauna for deep metadata extraction
+      const candidatePdfs = [];
+      ["02_Asigurator_si_Dauna", "01_Acte_Client"].forEach((cat) => {
+        (d.categories?.[cat] || []).forEach((f) => {
+          if (f.name.toLowerCase().endsWith(".pdf")) {
+            candidatePdfs.push({ cat, name: f.name });
+          }
+        });
+      });
+
+      for (const pdf of candidatePdfs.slice(0, 2)) {
+        try {
+          const fileUrl = getDriveFileUrl(selectedCarName, pdf.cat, pdf.name);
+          const resp = await fetch(fileUrl);
+          if (resp.ok) {
+            const ab = await resp.arrayBuffer();
+            const pdfText = await extractPdfText(ab);
+            if (pdfText) {
+              const meta = extractEstimateMetadataFromText(pdfText);
+              if (!dosar && meta.numarDosar) dosar = meta.numarDosar;
+              if (!asig && meta.asigurator) asig = meta.asigurator;
+              if (!cl && meta.client) cl = meta.client;
+              if (!tel && meta.telefonClient) tel = meta.telefonClient;
+              if (!v && meta.vin) v = meta.vin;
+              if (!mm && meta.marcaModel) mm = meta.marcaModel;
+              if (meta.tipAsigurare) tipAsig = meta.tipAsigurare;
+            }
+          }
+        } catch (e) {
+          console.warn("Scanare document PDF eșuată pentru", pdf.name, e);
+        }
+      }
+
+      const photoCount = d.categories?.["03_Foto_Dauna"]?.length || 0;
+      let docCount = 0;
+      ["01_Acte_Client", "02_Asigurator_si_Dauna", "04_Reconstatare", "05_Dosar_Final"].forEach((cat) => {
+        docCount += (d.categories?.[cat] || []).length;
+      });
+
+      setSyncPlate(cleanPlate);
+      setSyncDosar(dosar);
+      setSyncAsigurator(asig || "Omniasig VIG");
+      setSyncTipAsigurare(tipAsig || "RCA");
+      setSyncClient(cl);
+      setSyncPhone(tel);
+      setSyncVin(v);
+      setSyncMarcaModel(mm);
+      setSyncStatus(mapLocalStatusToOnline(localSt));
+      setSyncPiese(pieseTxt);
+      setSyncPieseSosite(pieseSos);
+      setSyncNotes(notes || d.notes || "Preluat din dosarul fizic de pe calculator.");
+      setSyncPhotoCount(photoCount);
+      setSyncDocCount(docCount);
+
+      setIsSyncModalOpen(true);
     } catch (err) {
-      showNotice?.(`Eroare sincronizare: ${err.message}`, "error");
+      showNotice?.(`Eroare pregătire preluare: ${err.message}`, "error");
+    } finally {
+      setIsExtractingOnlineData(false);
+    }
+  };
+
+  // Confirm and persist the full dossier into Online Workflow Daune
+  const handleConfirmSyncToOnline = async (e) => {
+    e.preventDefault();
+    if (!selectedCarName || !onSaveClaim) return;
+    setIsSubmittingSync(true);
+    try {
+      const cleanPlate = normalizePlate(syncPlate || selectedCarName);
+      const targetStatus = syncStatus || "deschidere";
+
+      // Map local photos for online claim.poze
+      const localPhotos = (carDetails?.categories?.["03_Foto_Dauna"] || []).map((f) => ({
+        id: generateUUID(),
+        name: f.name,
+        url: getDriveFileUrl(selectedCarName, "03_Foto_Dauna", f.name),
+        size: f.size,
+        date: nowISO(),
+        category: "dauna",
+        isImage: true,
+        source: "local_drive",
+      }));
+
+      // Map local documents for online claim.documente
+      const localDocs = [];
+      ["01_Acte_Client", "02_Asigurator_si_Dauna", "04_Reconstatare", "05_Dosar_Final"].forEach((cat) => {
+        (carDetails?.categories?.[cat] || []).forEach((f) => {
+          localDocs.push({
+            id: generateUUID(),
+            name: f.name,
+            url: getDriveFileUrl(selectedCarName, cat, f.name),
+            size: f.size,
+            date: nowISO(),
+            category: cat === "01_Acte_Client" ? "acte" : cat === "02_Asigurator_si_Dauna" ? "dauna" : "altele",
+            source: "local_drive",
+          });
+        });
+      });
+
+      // Parse parts into structured operations
+      const operations = syncPiese
+        ? syncPiese
+            .split(/[,;\n]+/)
+            .map((p, idx) => ({
+              id: `${generateUUID()}_${idx}`,
+              piesa: p.trim(),
+              inl: true,
+              statusPiesa: syncPieseSosite ? "sosit" : "necomandat",
+            }))
+            .filter((o) => o.piesa.length > 0)
+        : [];
+
+      let finalMarca = "";
+      let finalModel = "";
+      if (syncMarcaModel) {
+        const parts = syncMarcaModel.trim().split(/\s+/);
+        finalMarca = parts[0] || "";
+        finalModel = parts.slice(1).join(" ") || "";
+      }
+
+      const base = emptyClaim(targetStatus, syncAsigurator || "Omniasig VIG");
+
+      const fullClaim = {
+        ...base,
+        id: generateUUID(),
+        numarInmatriculare: cleanPlate,
+        numarDosar: (syncDosar || "").trim(),
+        nrDosarAsigurator: (syncDosar || "").trim(),
+        asigurator: syncAsigurator || base.asigurator || "Omniasig VIG",
+        tipAsigurare: syncTipAsigurare || "RCA",
+        client: (syncClient || "").trim().toUpperCase(),
+        telefonClient: (syncPhone || "").trim(),
+        vin: (syncVin || "").trim().toUpperCase(),
+        marcaModel: (syncMarcaModel || "").trim().toUpperCase(),
+        marca: finalMarca.toUpperCase(),
+        model: finalModel.toUpperCase(),
+        ceEsteDeReparat: (syncPiese || "").trim(),
+        pieseSosite: Boolean(syncPieseSosite),
+        operatiuni: operations.length > 0 ? operations : base.operatiuni,
+        status: targetStatus,
+        dataDeschiderii: todayISO(),
+        dataSchimbareStatus: nowISO(),
+        dataUltimeiActualizari: nowISO(),
+        poze: localPhotos,
+        documente: localDocs,
+        note: syncNotes ? [{ id: generateUUID(), text: syncNotes.trim(), date: nowISO() }] : [],
+        trackingToken: generateTrackingToken(),
+      };
+
+      const saveRes = await onSaveClaim(fullClaim);
+      if (saveRes && saveRes.success === false) {
+        throw new Error(saveRes.error?.message || "Eroare la salvarea în baza de date.");
+      }
+
+      // Also sync back to status.json on the hard drive
+      await updateDriveCarStatus(selectedCarName, {
+        status: mapOnlineStatusToLocal(targetStatus),
+        numarDosar: syncDosar,
+        asigurator: syncAsigurator,
+        tipAsigurare: syncTipAsigurare,
+        clientName: syncClient,
+        clientPhone: syncPhone,
+        vin: syncVin,
+        marcaModel: syncMarcaModel,
+        piese: syncPiese,
+        pieseSosite: syncPieseSosite,
+        notes: syncNotes,
+        isOnlineSynced: true,
+      }).catch(() => {});
+
+      showNotice?.(`Dosarul ${cleanPlate} a fost preluat cu succes în Workflow Daune cu toate datele!`, "success");
+      setIsSyncModalOpen(false);
+
+      // Automatically open the dossier so the user sees it immediately
+      onOpenClaim?.(fullClaim);
+    } catch (err) {
+      showNotice?.(`Eroare la preluarea online: ${err.message}`, "error");
+    } finally {
+      setIsSubmittingSync(false);
     }
   };
 
@@ -310,14 +537,21 @@ export default function LocalDriveView({
       });
 
       if (onSaveClaim) {
+        const base = emptyClaim("deschidere");
         await onSaveClaim({
+          ...base,
+          id: generateUUID(),
           numarInmatriculare: plate,
-          status: "constatare",
-          client: newClient,
+          status: "deschidere",
+          client: newClient.toUpperCase(),
           telefonClient: newPhone,
-          vin: newVin,
+          vin: newVin.toUpperCase(),
           numarDosar: newDosar,
-          observatii: "Creat pe Hard Drive DOSARE.",
+          nrDosarAsigurator: newDosar,
+          dataDeschiderii: todayISO(),
+          dataSchimbareStatus: nowISO(),
+          dataUltimeiActualizari: nowISO(),
+          note: [{ id: generateUUID(), text: "Creat pe Hard Drive DOSARE.", date: nowISO() }],
         });
       }
 
@@ -631,11 +865,20 @@ export default function LocalDriveView({
               ) : (
                 <AppButton
                   variant="primary"
-                  onClick={handleSyncToOnline}
-                  title="Preia acest dosar în Workflow Daune Online"
+                  disabled={isExtractingOnlineData}
+                  onClick={handleOpenSyncModal}
+                  title="Preia acest dosar cu toate datele pe Workflow Daune Online"
                   className="text-xs"
                 >
-                  <Sparkles size={12} /> Preia Online
+                  {isExtractingOnlineData ? (
+                    <>
+                      <RefreshCw size={12} className="animate-spin" /> Scanare...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={12} /> Preia Online
+                    </>
+                  )}
                 </AppButton>
               )}
             </div>
@@ -930,6 +1173,241 @@ export default function LocalDriveView({
           </div>
         </section>
       </div>
+
+      {/* MODAL: PRELUARE DOSAR ÎN WORKFLOW ONLINE */}
+      {isSyncModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-2xl overflow-hidden my-6">
+            <div className="p-4 border-b border-[var(--app-border)] flex items-center justify-between">
+              <h3 className="text-base font-bold text-[var(--app-text-strong)] flex items-center gap-2">
+                <Sparkles size={18} className="text-[var(--app-accent)]" /> Preluare Dosar în Workflow Daune Online
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsSyncModalOpen(false)}
+                className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-sm cursor-pointer p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Informații despre fișierele preluate */}
+            <div className="mx-4 mt-4 p-3 rounded-xl bg-[var(--app-surface-2)] border border-[var(--app-border)] flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <ClaimPlate value={syncPlate} className="text-sm shadow-2xs shrink-0" />
+                <span className="text-[var(--app-muted)] truncate">• Folder local pe PC</span>
+              </div>
+              <div className="flex items-center gap-2 font-medium text-[var(--app-text)] shrink-0">
+                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                  📸 {syncPhotoCount} poze
+                </span>
+                <span className="bg-sky-500/10 text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded-md border border-sky-500/20">
+                  📄 {syncDocCount} acte
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmSyncToOnline} className="p-4 space-y-3.5 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Număr Înmatriculare *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={syncPlate}
+                    onChange={(e) => setSyncPlate(e.target.value.toUpperCase())}
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 font-mono font-bold text-[var(--app-text-strong)] uppercase tracking-wider focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Nr. Dosar Daună
+                  </label>
+                  <input
+                    type="text"
+                    value={syncDosar}
+                    onChange={(e) => setSyncDosar(e.target.value)}
+                    placeholder="ex: 60339613 sau DA-10293/2026"
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Asigurător
+                  </label>
+                  <select
+                    value={syncAsigurator}
+                    onChange={(e) => setSyncAsigurator(e.target.value)}
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  >
+                    {INSURERS.map((ins) => (
+                      <option key={ins} value={ins}>
+                        {ins}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Tip Asigurare
+                  </label>
+                  <select
+                    value={syncTipAsigurare}
+                    onChange={(e) => setSyncTipAsigurare(e.target.value)}
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  >
+                    <option value="RCA">RCA (Păgubit)</option>
+                    <option value="CASCO">CASCO (Proprie)</option>
+                    <option value="Regie Proprie">Regie Proprie</option>
+                    <option value="Fără asigurare">Fără asigurare</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Client / Proprietar
+                  </label>
+                  <input
+                    type="text"
+                    value={syncClient}
+                    onChange={(e) => setSyncClient(e.target.value)}
+                    placeholder="Nume client sau denumire firmă..."
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Telefon Client
+                  </label>
+                  <input
+                    type="tel"
+                    value={syncPhone}
+                    onChange={(e) => setSyncPhone(e.target.value)}
+                    placeholder="07xxxxxxxx"
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Serie Șasiu (VIN)
+                  </label>
+                  <input
+                    type="text"
+                    value={syncVin}
+                    onChange={(e) => setSyncVin(e.target.value.toUpperCase())}
+                    placeholder="17 caractere"
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 font-mono text-[var(--app-text)] uppercase focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Marcă &amp; Model
+                  </label>
+                  <input
+                    type="text"
+                    value={syncMarcaModel}
+                    onChange={(e) => setSyncMarcaModel(e.target.value)}
+                    placeholder="ex: SEAT ATECA, VW GOLF..."
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Stadiu Inițial în Workflow
+                  </label>
+                  <select
+                    value={syncStatus}
+                    onChange={(e) => setSyncStatus(e.target.value)}
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  >
+                    <option value="deschidere">1. Acord reparație (AIR)</option>
+                    <option value="piese_comandate">2. Piese comandate</option>
+                    <option value="programat">3. Programat în atelier</option>
+                    <option value="in_lucru">4. Reparație (În lucru)</option>
+                    <option value="accept_plata">5. Accept plată</option>
+                    <option value="facturat">6. Facturat / Finalizat</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                    Piese necesare / Comandate
+                  </label>
+                  <input
+                    type="text"
+                    value={syncPiese}
+                    onChange={(e) => setSyncPiese(e.target.value)}
+                    placeholder="ex: Bară față, Far stânga LED..."
+                    className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] focus:outline-none focus:border-[var(--app-accent)]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[var(--app-text-strong)] font-semibold mb-1">
+                  Observații / Notițe inițiale
+                </label>
+                <textarea
+                  value={syncNotes}
+                  onChange={(e) => setSyncNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Observații service, detalii daună..."
+                  className="w-full bg-[var(--app-surface-2)] border border-[var(--app-border)] rounded-lg p-2.5 text-[var(--app-text)] resize-none focus:outline-none focus:border-[var(--app-accent)]"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-[var(--app-border)]">
+                <span className="text-[11px] text-[var(--app-muted)] flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-500" />
+                  Sincronizează datele fizice și online fără duplicate.
+                </span>
+
+                <div className="flex gap-2">
+                  <AppButton
+                    variant="ghost"
+                    onClick={() => setIsSyncModalOpen(false)}
+                    disabled={isSubmittingSync}
+                  >
+                    Anulează
+                  </AppButton>
+                  <AppButton
+                    variant="primary"
+                    type="submit"
+                    disabled={isSubmittingSync}
+                  >
+                    {isSubmittingSync ? (
+                      <>
+                        <RefreshCw size={13} className="animate-spin" /> Salvare...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUpRight size={14} /> Confirmă &amp; Deschide Online
+                      </>
+                    )}
+                  </AppButton>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: ADAUGĂ DOSAR NOU PE HARD DRIVE */}
       {isNewCarModalOpen && (
