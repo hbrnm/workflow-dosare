@@ -35,18 +35,55 @@ export function setLocalDriveUrl(url) {
 }
 
 /**
+ * Helper fetch robust cu timeout și fallback automat de la localhost la 127.0.0.1
+ */
+export async function driveFetch(endpoint, options = {}) {
+  const base = getLocalDriveUrl();
+  const ctrl = new AbortController();
+  const timeoutMs = options.timeout || 12000;
+  const timeoutId = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${base}${endpoint}`, {
+      ...options,
+      signal: ctrl.signal,
+    });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    // Dacă localhost dă eroare (rezoluție DNS / PNA), încercăm direct cu 127.0.0.1
+    if (base.includes("localhost")) {
+      const altBase = base.replace("localhost", "127.0.0.1");
+      const altCtrl = new AbortController();
+      const altTimer = setTimeout(() => altCtrl.abort(), 6000);
+      try {
+        const altRes = await fetch(`${altBase}${endpoint}`, {
+          ...options,
+          signal: altCtrl.signal,
+        });
+        clearTimeout(altTimer);
+        if (altRes.ok || altRes.status < 500) {
+          setLocalDriveUrl(altBase);
+          return altRes;
+        }
+      } catch {
+        clearTimeout(altTimer);
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * Verifică starea conexiunii cu serverul local DOSARE
  */
 export async function checkDriveStatus() {
-  const base = getLocalDriveUrl();
   try {
-    const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 2500);
-    const res = await fetch(`${base}/api/network-info`, {
+    const res = await driveFetch("/api/network-info", {
       method: "GET",
-      signal: ctrl.signal,
+      timeout: 3500,
     });
-    clearTimeout(timeout);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     return {
@@ -55,13 +92,13 @@ export async function checkDriveStatus() {
       port: data.port || DEFAULT_PORT,
       baseDir: data.baseDir || "C:\\Users\\pc1\\Desktop\\DOSARE",
       totalKnownCars: data.totalKnownCars !== undefined ? data.totalKnownCars : (data.totalCars || 0),
-      url: base,
+      url: getLocalDriveUrl(),
     };
   } catch (err) {
     return {
       connected: false,
       error: err.message,
-      url: base,
+      url: getLocalDriveUrl(),
     };
   }
 }
@@ -70,8 +107,7 @@ export async function checkDriveStatus() {
  * Returnează toate dosarele de pe hard drive
  */
 export async function getDriveCars() {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/cars`);
+  const res = await driveFetch("/api/cars");
   if (!res.ok) throw new Error(`Eroare încărcare mașini hard drive (${res.status})`);
   return await res.json();
 }
@@ -80,8 +116,7 @@ export async function getDriveCars() {
  * Returnează detaliile și lista de fișiere pe categorii pentru un dosar specific
  */
 export async function getDriveCarDetails(carName) {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/cars/${encodeURIComponent(carName)}`);
+  const res = await driveFetch(`/api/cars/${encodeURIComponent(carName)}`);
   if (!res.ok) throw new Error(`Dosarul ${carName} nu a fost găsit pe hard drive`);
   return await res.json();
 }
@@ -90,8 +125,7 @@ export async function getDriveCarDetails(carName) {
  * Deschide folderul dosarului în Windows Explorer pe calculator
  */
 export async function openCarInExplorer(carName) {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/cars/${encodeURIComponent(carName)}/open-explorer`, {
+  const res = await driveFetch(`/api/cars/${encodeURIComponent(carName)}/open-explorer`, {
     method: "POST",
   });
   if (!res.ok) {
@@ -105,8 +139,7 @@ export async function openCarInExplorer(carName) {
  * Deschide folderul principal DOSARE în Windows Explorer
  */
 export async function openRootInExplorer() {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/drive/open-root`, {
+  const res = await driveFetch("/api/drive/open-root", {
     method: "POST",
   });
   if (!res.ok) {
@@ -120,11 +153,10 @@ export async function openRootInExplorer() {
  * Creează un nou folder de mașină pe hard drive cu cele 5 subfoldere standard
  */
 export async function createDriveCar(plateOrData, extraData = {}) {
-  const base = getLocalDriveUrl();
   const payload = typeof plateOrData === "string"
     ? { plate: normalizePlate(plateOrData), ...extraData }
     : { ...plateOrData, plate: normalizePlate(plateOrData?.plate || plateOrData?.name || "") };
-  const res = await fetch(`${base}/api/cars/new`, {
+  const res = await driveFetch("/api/cars/new", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -138,14 +170,13 @@ export async function createDriveCar(plateOrData, extraData = {}) {
  * Sincronizează datele unui dosar (status, client, vin, etc.) în status.json de pe hard drive
  */
 export async function pushClaimToDrive(claim) {
-  const base = getLocalDriveUrl();
   const payload = {
     ...claim,
     plate: claim?.numarInmatriculare || claim?.plate || "",
     workflowStatus: claim?.status || claim?.workflowStatus || "",
     clientName: claim?.client || claim?.clientName || "",
   };
-  const res = await fetch(`${base}/api/sync/push`, {
+  const res = await driveFetch("/api/sync/push", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -159,8 +190,7 @@ export async function pushClaimToDrive(claim) {
  * Actualizează statusul unui dosar pe hard drive
  */
 export async function updateDriveCarStatus(carName, patch) {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/cars/${encodeURIComponent(carName)}/status`, {
+  const res = await driveFetch(`/api/cars/${encodeURIComponent(carName)}/status`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(patch),
@@ -174,8 +204,7 @@ export async function updateDriveCarStatus(carName, patch) {
  * Rulează organizarea automată a fișierelor pe hard drive
  */
 export async function organizeDriveFiles() {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/organize`, { method: "POST" });
+  const res = await driveFetch("/api/organize", { method: "POST" });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || "Eroare organizare fișiere");
   return json;
@@ -185,14 +214,13 @@ export async function organizeDriveFiles() {
  * Încarcă fișiere direct într-o categorie a unui dosar de pe hard drive
  */
 export async function uploadFilesToDrive(carName, category, files) {
-  const base = getLocalDriveUrl();
   const formData = new FormData();
   formData.append("car", carName);
   formData.append("category", category || "03_Foto_Dauna");
   for (const file of files) {
     formData.append("file", file);
   }
-  const res = await fetch(`${base}/api/upload`, {
+  const res = await driveFetch("/api/upload", {
     method: "POST",
     body: formData,
   });
@@ -205,18 +233,20 @@ export async function uploadFilesToDrive(carName, category, files) {
  * Returnează lista de șabloane de documente oficiale de pe calculator
  */
 export async function getDriveTemplates() {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/templates`);
-  if (!res.ok) return [];
-  return await res.json();
+  try {
+    const res = await driveFetch("/api/templates");
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 /**
  * Atașează un șablon în folderul mașinii
  */
 export async function attachDriveTemplate(carName, templatePath, targetCategory) {
-  const base = getLocalDriveUrl();
-  const res = await fetch(`${base}/api/templates/attach`, {
+  const res = await driveFetch("/api/templates/attach", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ carName, templatePath, targetCategory }),

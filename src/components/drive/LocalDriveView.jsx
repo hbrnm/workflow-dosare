@@ -73,9 +73,12 @@ export default function LocalDriveView({
   const fileInputRef = useRef(null);
 
   // Load cars list from hard drive
+  const [loadError, setLoadError] = useState(null);
+
   const loadCars = async (keepSelection = true) => {
     try {
       setLoading(true);
+      setLoadError(null);
       const list = await getDriveCars();
       setCars(list || []);
       if (!keepSelection || !selectedCarName) {
@@ -84,6 +87,7 @@ export default function LocalDriveView({
         }
       }
     } catch (err) {
+      setLoadError(err.message || "Conexiunea la hard drive a eșuat");
       showNotice?.(`Eroare încărcare dosare hard drive: ${err.message}`, "error");
     } finally {
       setLoading(false);
@@ -467,6 +471,25 @@ export default function LocalDriveView({
             {loading ? (
               <div className="p-6 text-center text-xs text-slate-400">
                 <RefreshCw className="animate-spin inline mr-1.5" size={14} /> Se citesc dosarele de pe hard drive...
+              </div>
+            ) : loadError ? (
+              <div className="m-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
+                <AlertTriangle className="mx-auto text-amber-400" size={22} />
+                <p className="text-xs font-bold text-amber-200">Permisiune necesară în browser</p>
+                <p className="text-[11px] text-slate-300 leading-relaxed text-left">
+                  Chrome blochează accesul la serverul PC local până la acordarea permisiunii:
+                </p>
+                <ol className="text-[10.5px] text-slate-300 text-left list-decimal list-inside space-y-1 bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                  <li>Apasă pe pictograma cu setări (lângă <b>workflow-dosare.vercel.app</b> în bara de sus).</li>
+                  <li>Setează <b>"Apps on device"</b> sau <b>"Acces rețea locală"</b> pe <b>Allow (Permite)</b>.</li>
+                </ol>
+                <button
+                  type="button"
+                  onClick={() => loadCars(false)}
+                  className="w-full py-1.5 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer shadow transition-all"
+                >
+                  <RefreshCw size={13} /> Reîncearcă conexiunea
+                </button>
               </div>
             ) : filteredCars.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">
