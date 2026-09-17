@@ -10,6 +10,7 @@ const QuickCreateClaimModal = lazyWithRetry(() => import("../modals/QuickCreateC
 const AiDocumentUploadModal = lazyWithRetry(() => import("../modals/AiDocumentUploadModal"));
 const AlerteModal = lazyWithRetry(() => import("../modals/AlerteModal"));
 const QuickCapture = lazyWithRetry(() => import("../views/QuickCapture"));
+const LocalDriveSyncModal = lazyWithRetry(() => import("../modals/LocalDriveSyncModal"));
 
 export default function AppModalsLayer({
   // Alerte
@@ -78,6 +79,18 @@ export default function AppModalsLayer({
   upgradeModalOpen = false,
   requestCloseUpgradeModal,
   upgradeModalReason,
+  // Local Drive Sync Modal
+  isDriveSyncModalOpen = false,
+  requestCloseDriveSyncModal,
+  driveState,
+  driveCars = [],
+  loadingDriveCars = false,
+  refreshDriveCars,
+  openDriveRoot,
+  organizeDrive,
+  importDriveToWorkflow,
+  pushClaimToDrive,
+  onOpenDriveView,
 }) {
   return (
     <Suspense
@@ -215,6 +228,24 @@ export default function AppModalsLayer({
           onClose={requestCloseUpgradeModal}
           reason={upgradeModalReason}
           onSelectPlan={startStripeCheckout}
+        />
+      )}
+
+      {isDriveSyncModalOpen && (
+        <LocalDriveSyncModal
+          isOpen={isDriveSyncModalOpen}
+          onClose={requestCloseDriveSyncModal}
+          driveState={driveState}
+          driveCars={driveCars}
+          claims={claims}
+          loadingDriveCars={loadingDriveCars}
+          onRefreshDriveCars={refreshDriveCars}
+          onOpenRoot={openDriveRoot}
+          onOrganizeDrive={organizeDrive}
+          onImportDriveCar={importDriveToWorkflow}
+          onPushClaimToDrive={pushClaimToDrive}
+          onOpenDriveView={onOpenDriveView}
+          showNotice={showNotice}
         />
       )}
     </Suspense>

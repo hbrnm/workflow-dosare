@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText, ImageIcon, Wallet, History, ShieldCheck, AlertOctagon,
-  Package, Car, Phone, ClipboardList, Wrench
+  Package, Car, Phone, ClipboardList, Wrench, HardDrive
 } from "lucide-react";
 import {
   STATUSES, INSURERS, getStatusDefinition, isPieseComandateStatus, getPhaseColors,
@@ -34,6 +34,7 @@ import { useModalEscape } from "../../hooks/useModalEscape";
 import ClaimHeader from "./claim/ClaimHeader";
 import ClaimGeneralTab from "./claim/ClaimGeneralTab";
 import ClaimMediaTab from "./claim/ClaimMediaTab";
+import ClaimDriveTab from "./claim/ClaimDriveTab";
 import ClaimFinancialTab from "./claim/ClaimFinancialTab";
 import ClaimHistoryTab from "./claim/ClaimHistoryTab";
 import ClaimFooter from "./claim/ClaimFooter";
@@ -1213,6 +1214,17 @@ export default function ClaimModal({
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab("drive")}
+            className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
+              activeTab === "drive"
+                ? "border-[var(--app-accent)] text-[var(--app-accent)] bg-[var(--app-surface-2)]"
+                : "border-transparent text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)]/50"
+            }`}
+          >
+            <HardDrive size={14} className="text-amber-500" /> Hard Drive PC
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab("financial")}
             className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold rounded-t-lg border-b-2 transition-colors cursor-pointer ${
               activeTab === "financial"
@@ -1284,6 +1296,10 @@ export default function ClaimModal({
                   }}
                   onStartScan={handleStartScanSession}
                 />
+              )}
+
+              {activeTab === "drive" && (
+                <ClaimDriveTab form={form} onNotify={onNotify} />
               )}
 
               {activeTab === "financial" && (

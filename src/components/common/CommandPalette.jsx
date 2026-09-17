@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Search, FileText, Layers, Sunrise, List, BarChart3, CalendarClock,
-  Wallet, Plus, Download, X, CornerDownLeft, Camera, Sparkles,
+  Wallet, Plus, Download, X, CornerDownLeft, Camera, Sparkles, HardDrive,
 } from "lucide-react";
 import { getStatusDefinition } from "../../constants/config";
 import ClaimPlate from "./ClaimPlate";
@@ -128,6 +128,7 @@ export default function CommandPalette({
       { type: "view", id: "programator", label: "Calendar Service", sub: "Agendă programări săptămânală & lunară", icon: CalendarClock },
       { type: "view", id: "dashboard", label: "Statistici & Grafice", sub: "Indicatori cheie de performanță", icon: BarChart3 },
       { type: "view", id: "rapoarte", label: "Rapoarte Financiar", sub: "Marjă piese & venit manoperă", icon: Wallet },
+      { type: "view", id: "drive", label: "Hard Drive (DOSARE PC)", sub: "Sincronizare și fișiere locale", icon: HardDrive },
     ];
 
     // Acțiuni rapide

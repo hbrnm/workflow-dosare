@@ -28,6 +28,7 @@ import { useAlerts } from "./hooks/useAlerts";
 import { useSettings } from "./hooks/useSettings";
 import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
+import { useLocalDrive } from "./hooks/useLocalDrive";
 import { normalizeBilling } from "./constants/billing";
 import { mergeAtelierBranding, needsBrandingSetup } from "./constants/branding";
 import { getSearchHighlightIds } from "./utils/searchUtils";
@@ -333,6 +334,31 @@ export default function App() {
     quickCreateDefaults,
   } = useClaimModal(showNotice);
 
+  const [isDriveSyncModalOpen, setIsDriveSyncModalOpen] = useState(false);
+
+  const {
+    driveState,
+    driveCars,
+    loadingDriveCars,
+    refreshDriveCars,
+    openExplorer: openDriveExplorer,
+    openRoot: openDriveRoot,
+    organizeDrive,
+    importDriveToWorkflow,
+    pushClaimToDrive,
+  } = useLocalDrive({
+    claims,
+    saveClaim,
+    onAutoOpenClaim: (claimDraft) => {
+      if (claimDraft?.id && claims.some((c) => c.id === claimDraft.id)) {
+        openExisting(claimDraft);
+      } else {
+        openNew(claimDraft);
+      }
+    },
+    showNotice,
+  });
+
   const [fieldClaimId, setFieldClaimId] = useState(null);
   const [fieldCameraCategory, setFieldCameraCategory] = useState(null);
   const [mobileTab, setMobileTab] = useState("brief");
@@ -390,6 +416,7 @@ export default function App() {
     setWhatsappSheet(null);
     setPwaInstallOpen(false);
     setIsCommandPaletteOpen(false);
+    setIsDriveSyncModalOpen(false);
     setView("dosare");
     setDosareSubView("brief");
     setMobileTab("brief");
@@ -619,6 +646,10 @@ export default function App() {
       setSaving(false);
 
       if (res && res.success !== false) {
+        if (driveState?.connected && claimData?.numarInmatriculare) {
+          pushClaimToDrive(claimData).catch(() => {});
+        }
+
         showNotice(
           isNew ? "Dosar creat cu succes!" : "Dosar actualizat cu succes!",
           "success"
@@ -641,7 +672,7 @@ export default function App() {
       }
       return res;
     },
-    [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate, setFilterStatus, setFilterAsigurator, setSearch, setOnlyBlocked]
+    [claims, saveClaim, showNotice, closeClaimModal, closeQuickCreate, setFilterStatus, setFilterAsigurator, setSearch, setOnlyBlocked, driveState?.connected, pushClaimToDrive]
   );
 
   const [pendingDeleteClaim, setPendingDeleteClaim] = useState(null);
@@ -1125,6 +1156,7 @@ export default function App() {
         setView={setView}
         setDosareSubView={setDosareSubView}
         userClaimsCount={userClaims.length}
+        driveCarsCount={driveCars.length}
         setariOpen={setariOpen}
         openSettings={openSettings}
         memberships={memberships}
@@ -1158,6 +1190,9 @@ export default function App() {
           claims={claims}
           userEmail={myEmail}
           openSettings={openSettings}
+          driveState={driveState}
+          driveCarsCount={driveCars.length}
+          onOpenDriveSync={() => setIsDriveSyncModalOpen(true)}
         />
 
         {/* Desktop Advanced Filter Bar */}
@@ -1228,6 +1263,7 @@ export default function App() {
           handleDelete={handleDelete}
           handlePatchClaim={handlePatchClaim}
           handleMoveToStatus={handleMoveToStatus}
+          saveClaim={saveClaim}
           canEdit={canEdit}
           pragRidicare={pragRidicare}
           pragInactivitate={pragInactivitate}
@@ -1313,6 +1349,20 @@ export default function App() {
         upgradeModalOpen={upgradeModalOpen}
         requestCloseUpgradeModal={() => setUpgradeModalOpen(false)}
         upgradeModalReason={upgradeModalReason}
+        isDriveSyncModalOpen={isDriveSyncModalOpen}
+        requestCloseDriveSyncModal={() => setIsDriveSyncModalOpen(false)}
+        driveState={driveState}
+        driveCars={driveCars}
+        loadingDriveCars={loadingDriveCars}
+        refreshDriveCars={refreshDriveCars}
+        openDriveRoot={openDriveRoot}
+        organizeDrive={organizeDrive}
+        importDriveToWorkflow={importDriveToWorkflow}
+        pushClaimToDrive={pushClaimToDrive}
+        onOpenDriveView={() => {
+          setIsDriveSyncModalOpen(false);
+          setView("drive");
+        }}
       />
 
       {/* Drawer */}

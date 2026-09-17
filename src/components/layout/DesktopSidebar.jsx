@@ -1,5 +1,5 @@
 import React from "react";
-import { Layers, CalendarClock, BarChart3, Settings } from "lucide-react";
+import { Layers, CalendarClock, BarChart3, Settings, HardDrive } from "lucide-react";
 import AtelierSwitcher from "../atelier/AtelierSwitcher";
 
 export default function DesktopSidebar({
@@ -8,6 +8,7 @@ export default function DesktopSidebar({
   setView,
   setDosareSubView,
   userClaimsCount = 0,
+  driveCarsCount = 0,
   setariOpen = false,
   openSettings,
   memberships = [],
@@ -50,6 +51,7 @@ export default function DesktopSidebar({
       <div className="flex-1 py-2.5 px-1.5 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
         {[
           { id: "dosare", label: "Dosare (Brief / Flux / Tabel)", icon: Layers, badge: userClaimsCount },
+          { id: "drive", label: "Hard Drive (DOSARE PC)", icon: HardDrive, badge: driveCarsCount },
           { id: "programator", label: "Programări", icon: CalendarClock },
           { id: "dashboard", label: "Statistici", icon: BarChart3 },
         ].map(({ id, label, icon: Icon, badge }) => {
