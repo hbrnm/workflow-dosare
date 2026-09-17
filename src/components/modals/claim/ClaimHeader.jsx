@@ -298,6 +298,24 @@ export default function ClaimHeader({
                 </div>
               )}
             </div>
+            {form.numarInmatriculare && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { openCarInExplorer } = await import("../../../utils/localDriveService");
+                    await openCarInExplorer(form.numarInmatriculare);
+                  } catch (err) {
+                    alert("Eroare deschidere folder calculator: " + err.message);
+                  }
+                }}
+                className="h-8 px-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                title={`Deschide folderul fizic C:\\DOSARE\\${form.numarInmatriculare} în Windows Explorer`}
+              >
+                <ExternalLink size={13} />
+                <span className="hidden sm:inline">Explorer PC</span>
+              </button>
+            )}
           </div>
         )}
         <button

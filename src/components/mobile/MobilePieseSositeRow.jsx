@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { PackageCheck, CalendarClock, Save, ShoppingBag, Truck } from "lucide-react";
 import { isPieseComandateStatus } from "../../constants/config";
 import { todayISO } from "../../utils/dateUtils";
+import { softHaptic } from "../../utils/mobilePrefs";
 
 function toInputDate(val) {
   return val ? String(val).slice(0, 10) : "";
@@ -47,10 +48,16 @@ export default function MobilePieseSositeRow({
   const canEditDates = canEdit && typeof onPatchDates === "function";
   const inline = layout === "inline";
 
+  const handleCheckboxChange = (e) => {
+    softHaptic(12);
+    onToggle?.(claim, e.target.checked);
+  };
+
   const openScheduler = (e) => {
     e.preventDefault();
     e.stopPropagation();
     if (!canSchedule) return;
+    softHaptic(8);
     setEditDate(todayISO());
     setEditTime("09:00");
     setScheduling(true);
@@ -71,6 +78,7 @@ export default function MobilePieseSositeRow({
       const iso = `${editDate}T${editTime || "09:00"}:00`;
       const ok = await onSchedule(claim, iso);
       if (ok === false) return;
+      softHaptic(12);
       setScheduling(false);
     } finally {
       setSaving(false);
@@ -263,7 +271,7 @@ export default function MobilePieseSositeRow({
               type="checkbox"
               checked={checked}
               disabled={toggleDisabled}
-              onChange={(e) => onToggle?.(claim, e.target.checked)}
+              onChange={handleCheckboxChange}
               className="m-piese-inline-checkbox"
             />
             <span>Sosite</span>
@@ -333,7 +341,7 @@ export default function MobilePieseSositeRow({
                   type="checkbox"
                   checked={checked}
                   disabled={toggleDisabled}
-                  onChange={(e) => onToggle?.(claim, e.target.checked)}
+                  onChange={handleCheckboxChange}
                   className={`rounded accent-[#2F8F5B] shrink-0 cursor-pointer disabled:cursor-not-allowed ${
                     compact ? "w-3.5 h-3.5" : "w-4 h-4"
                   }`}
@@ -358,7 +366,7 @@ export default function MobilePieseSositeRow({
               type="checkbox"
               checked={checked}
               disabled={toggleDisabled}
-              onChange={(e) => onToggle?.(claim, e.target.checked)}
+              onChange={handleCheckboxChange}
               className="rounded accent-[#2F8F5B] w-4 h-4 shrink-0 cursor-pointer disabled:cursor-not-allowed"
             />
             <span className="flex items-center gap-1.5 text-[11px] font-extrabold">

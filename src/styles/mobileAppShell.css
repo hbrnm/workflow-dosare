@@ -2307,6 +2307,11 @@ html[data-app-theme="dark"] .mobile-shell.app-shell .mobile-bottom-chrome {
     0 2px 10px color-mix(in srgb, #000 6%, transparent),
     inset 3px 0 0 var(--flow-accent);
   isolation: isolate;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.mobile-shell.app-shell .m-flow-card:active {
+  transform: scale(0.985);
 }
 
 .mobile-shell.app-shell .m-flow-card-open-hit {

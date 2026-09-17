@@ -1,5 +1,5 @@
 import React from "react";
-import { Layers, Sunrise, List, Package, Search, X, Plus, Bell, Ban } from "lucide-react";
+import { Layers, Sunrise, List, Package, Search, X, Plus, Bell, Ban, HardDrive } from "lucide-react";
 import AppButton from "../common/AppButton";
 import TooltipGuide from "../common/TooltipGuide";
 import { ROLES } from "../../constants/roles";
@@ -24,6 +24,9 @@ export default function DesktopHeader({
   claims = [],
   userEmail = "",
   openSettings,
+  driveState,
+  driveCarsCount = 0,
+  onOpenDriveSync,
 }) {
   const isDosareView = view === "dosare" || view === "flux" || view === "brief" || view === "list";
 
@@ -164,6 +167,31 @@ export default function DesktopHeader({
 
       {/* Right Header Actions */}
       <div className="flex items-center gap-2">
+        {onOpenDriveSync && (
+          <button
+            type="button"
+            onClick={onOpenDriveSync}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer ${
+              driveState?.connected
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 shadow-xs"
+                : "bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200"
+            }`}
+            title={
+              driveState?.connected
+                ? `Hard Drive Conectat: ${driveState.baseDir || "C:\\Users\\pc1\\Desktop\\DOSARE"} (${driveCarsCount} dosare găsite pe PC)`
+                : "Hard Drive Deconectat — apasă pentru detalii și conectare"
+            }
+          >
+            <HardDrive size={14} className={driveState?.connected ? "text-emerald-400" : "text-slate-500"} />
+            <span className="hidden xl:inline font-mono text-[11px]">
+              {driveState?.connected ? "DOSARE PC" : "Drive Offline"}
+            </span>
+            {driveState?.connected && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            )}
+          </button>
+        )}
+
         {userCanCreate ? (
           <TooltipGuide
             id="tt-dosar-nou"

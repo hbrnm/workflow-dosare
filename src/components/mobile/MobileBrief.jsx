@@ -207,6 +207,7 @@ export default function MobileBrief({
   const [internalFocus, setInternalFocus] = useState(readStoredFocus);
   const focus = onInboxFocusChange ? inboxFocus ?? null : internalFocus;
   const setFocus = (next) => {
+    softHaptic(8);
     if (onInboxFocusChange) onInboxFocusChange(next);
     else setInternalFocus(next);
   };
@@ -405,21 +406,26 @@ export default function MobileBrief({
     const showFactureaza = item.type === "accept_plata";
     const sinceBits = [stageSince.dateTimeShort, stageSince.daysLabel].filter(Boolean);
 
+    const handleOpenAttention = () => {
+      softHaptic(8);
+      onOpen(c);
+    };
+
     return (
       <li key={item.id}>
         <article
-          className={`app-alerte-row m-flow-card is-compact is-attention ${isExiting ? "is-exiting" : ""}`}
-          onClick={() => onOpen(c)}
+          className={`app-alerte-row m-flow-card is-compact is-attention active:scale-[0.985] transition-transform duration-100 cursor-pointer ${isExiting ? "is-exiting" : ""}`}
+          onClick={handleOpenAttention}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              onOpen(c);
+              handleOpenAttention();
             }
           }}
           role="button"
           tabIndex={0}
         >
-          <ClaimCardOpenHit onOpen={() => onOpen(c)} />
+          <ClaimCardOpenHit onOpen={handleOpenAttention} />
           {metric ? (
             <div className="app-alerte-metric" title={metric.hint}>
               <span className="app-alerte-metric-value">{metric.value}</span>
@@ -638,21 +644,26 @@ export default function MobileBrief({
     const isFlash = flashIds.has(c.id);
     const subline = noteText || "";
 
+    const handleOpenPipeline = () => {
+      softHaptic(8);
+      onOpen(c);
+    };
+
     return (
       <li key={c.id}>
         <article
-          className={`app-alerte-row m-flow-card is-compact ${stageAccent.className} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
-          onClick={() => onOpen(c)}
+          className={`app-alerte-row m-flow-card is-compact active:scale-[0.985] transition-transform duration-100 cursor-pointer ${stageAccent.className} ${isExiting ? "is-exiting" : ""} ${isFlash ? "is-flash" : ""}`}
+          onClick={handleOpenPipeline}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              onOpen(c);
+              handleOpenPipeline();
             }
           }}
           role="button"
           tabIndex={0}
         >
-          <ClaimCardOpenHit onOpen={() => onOpen(c)} />
+          <ClaimCardOpenHit onOpen={handleOpenPipeline} />
           <div className="app-alerte-metric is-icon" title={stFull}>
             <RowIcon size={14} />
           </div>

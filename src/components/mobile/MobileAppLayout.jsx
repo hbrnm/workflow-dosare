@@ -82,6 +82,7 @@ export default function MobileAppLayout({
   const [internalTab, setInternalTab] = useState("brief");
   const activeTab = mobileTab ?? internalTab;
   const setActiveTab = (id) => {
+    softHaptic(8);
     if (onMobileTabChange) onMobileTabChange(id);
     else setInternalTab(id);
   };

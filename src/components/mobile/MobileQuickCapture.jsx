@@ -148,6 +148,7 @@ export default function MobileQuickCapture({
   // Deschide camera live direct cu WebRTC getUserMedia (stil iPhone Camera UI)
   const openLiveCamera = async () => {
     if (!selectedClaim) return;
+    softHaptic(8);
     setShowLiveCamera(true);
   };
 
@@ -166,7 +167,7 @@ export default function MobileQuickCapture({
           continue;
         }
 
-        const optimizedFile = await compressImage(file, { maxDim: 1800, quality: 0.80 });
+        const optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
         const uploaded = await uploadStorageItem({
           supabaseClient: supabase,
           claimId: selectedClaim.id,
@@ -187,11 +188,18 @@ export default function MobileQuickCapture({
 
       if (uploadedPhotos.length > 0) {
         await onPatch(selectedClaim.id, { appendPoze: uploadedPhotos }, { canEditFn });
+        softHaptic(15);
         onNotify(`S-au salvat ${uploadedPhotos.length} foto la [${cat.toUpperCase()}]`, "success");
       }
     } catch (err) {
       console.error(err);
-      onNotify("Eroare la încărcarea fotografiilor: " + err.message, "error");
+      const isQuotaErr = String(err?.message || "").toLowerCase().includes("quota") || err?.status === 402;
+      onNotify(
+        isQuotaErr
+          ? "Limita de spațiu Supabase (Storage Quota) a fost depășită. Eliberați spațiu sau extindeți planul."
+          : "Eroare la încărcarea fotografiilor: " + (err?.message || err),
+        "error"
+      );
     } finally {
       setUploading(false);
     }
@@ -200,6 +208,7 @@ export default function MobileQuickCapture({
   // Deschide scannerul de documente live (camera cu detecție chenar)
   const openLiveDocumentScanner = () => {
     if (!selectedClaim) return;
+    softHaptic(8);
     setShowLiveScanner(true);
   };
 

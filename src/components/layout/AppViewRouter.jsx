@@ -15,6 +15,7 @@ const Dashboard = lazyWithRetry(() => import("../views/Dashboard"));
 const Programator = lazyWithRetry(() => import("../views/Programator"));
 const Rapoarte = lazyWithRetry(() => import("../views/Rapoarte"));
 const CentralizatorPiese = lazyWithRetry(() => import("../views/CentralizatorPiese"));
+const LocalDriveView = lazyWithRetry(() => import("../drive/LocalDriveView"));
 
 export default function AppViewRouter({
   view,
@@ -40,6 +41,7 @@ export default function AppViewRouter({
   handleDelete,
   handlePatchClaim,
   handleMoveToStatus,
+  saveClaim,
   canEdit,
   pragRidicare,
   pragInactivitate,
@@ -234,6 +236,13 @@ export default function AppViewRouter({
               onOpenAlerts={openAlerts}
               onOpenBlocked={openBlockedClaims}
               stageOverdueCount={alertBuckets.counts.stagnate}
+            />
+          ) : view === "drive" ? (
+            <LocalDriveView
+              claims={claims}
+              onOpenClaim={openExisting || handleOpenClaim}
+              onSaveClaim={saveClaim}
+              showNotice={showNotice}
             />
           ) : view === "programator" ? (
             <Programator
