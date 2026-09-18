@@ -220,6 +220,7 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
       }
     }
 
+    console.error("writeDosarWithSchemaCompat failed", { mode, attempt, payload: body, error });
     return { error, payload: body };
   }
   return { error: { message: "Schema bazei de date e incompatibilă cu aplicația." }, payload: body };
