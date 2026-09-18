@@ -76,7 +76,16 @@ export const MAX_DOCUMENTE_PER_DOSAR = 15;
 export function getStatusDefinition(statusKey) {
   const keyNorm = String(statusKey || "").toLowerCase();
   const mappedKey = STATUS_MIGRATION[keyNorm] || keyNorm;
-  return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
+  const def = STATUSES.find((status) => status.key === mappedKey);
+  if (!def) {
+    // Unknown statusKey — return safe fallback and warn for diagnostics in DevTools.
+    if (typeof console !== "undefined" && console.warn) {
+      // Keep the original input in the message for easier debugging
+      console.warn(`Unknown status key "${statusKey}" (normalized: "${mappedKey}"). Using fallback "${FALLBACK_STATUS.key}".`);
+    }
+    return FALLBACK_STATUS;
+  }
+  return def;
 }
 
 /** Prescurtare stadiu (UI compact: alerte, carduri). */
