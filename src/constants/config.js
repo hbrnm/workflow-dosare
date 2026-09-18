@@ -20,6 +20,7 @@ export const STATUS_MIGRATION = {
   primit: "deschidere",
   cerere_reparatie: "deschidere",
   reconstatare: "deschidere",
+  constatare: "deschidere",
   piese_sosite: "piese_comandate",
   chemat_lucru: "programat",
   finalizat: "in_lucru",
@@ -73,7 +74,8 @@ export const MAX_POZE_PER_DOSAR = 20;
 export const MAX_DOCUMENTE_PER_DOSAR = 15;
 
 export function getStatusDefinition(statusKey) {
-  const mappedKey = STATUS_MIGRATION[statusKey] || statusKey;
+  const keyNorm = String(statusKey || "").toLowerCase();
+  const mappedKey = STATUS_MIGRATION[keyNorm] || keyNorm;
   return STATUSES.find((status) => status.key === mappedKey) || FALLBACK_STATUS;
 }
 
