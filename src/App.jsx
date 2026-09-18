@@ -669,6 +669,9 @@ export default function App() {
           setView("programator");
           setProgramatorFocusDate(claimData.dataProgramare || null);
         }
+      } else {
+        // Logging for debugging: saveClaim returned a failure or no result
+        console.error("saveClaim failed in handleSave", res);
       }
       return res;
     },
