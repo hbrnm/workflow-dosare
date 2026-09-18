@@ -10,7 +10,7 @@ import {
   organizeDriveFiles,
   subscribeToDriveEvents,
 } from "../utils/localDriveService";
-import { normalizePlate } from "../utils/plateSchedule";
+import { normalizePlate, cleanPlateKey, formatPlateStandard } from "../utils/plateSchedule";
 import { emptyClaim } from "../utils/claimUtils";
 
 export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNotice } = {}) {
@@ -39,61 +39,62 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
 
   // Refresh Drive status
   const checkStatus = useCallback(async () => {
-    const res = await checkDriveStatus();
-    setDriveState((prev) => ({
-      ...prev,
-      ...res,
-      checking: false,
-    }));
-    return res.connected;
+    setDriveState((prev) => ({ ...prev, checking: true }));
+    const status = await checkDriveStatus();
+    setDriveState({ ...status, checking: false });
+    return status.connected;
   }, []);
 
-  // Fetch all cars from hard drive
+  // Fetch cars on Drive
   const refreshDriveCars = useCallback(async () => {
     try {
       setLoadingDriveCars(true);
       const cars = await getDriveCars();
-      setDriveCars(cars || []);
+      setDriveCars(cars);
+      setDriveState((prev) => ({ ...prev, connected: true, totalKnownCars: cars.length }));
     } catch {
-      /* ignore if offline */
+      setDriveState((prev) => ({ ...prev, connected: false }));
     } finally {
       setLoadingDriveCars(false);
     }
   }, []);
 
-  // Initial check & interval
+  // Initial check and periodic polling
   useEffect(() => {
     checkStatus().then((connected) => {
       if (connected) refreshDriveCars();
     });
 
-    const interval = setInterval(async () => {
-      const isConn = await checkStatus();
-      if (isConn) {
-        // quiet refresh
-        getDriveCars().then((cars) => setDriveCars(cars || [])).catch(() => {});
-      }
-    }, 10000);
+    const timer = setInterval(() => {
+      checkStatus().then((connected) => {
+        if (connected) refreshDriveCars();
+      });
+    }, 15000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [checkStatus, refreshDriveCars]);
 
   // Real-time listener for events (e.g. user creates a new folder in Windows Explorer)
   useEffect(() => {
     const unsubscribe = subscribeToDriveEvents({
       onNewFolder: async (event) => {
-        const plate = normalizePlate(event.plate || event.name || "");
-        if (!plate) return;
+        const plate = formatPlateStandard(event.plate || event.name || "");
+        const cleanKey = cleanPlateKey(plate);
+        if (!cleanKey) return;
 
         showNoticeRef.current?.(
-          `📁 Folder nou detectat pe Hard Drive: ${plate}! Se preia automat în Workflow Daune...`,
+          `📁 Folder nou detectat pe Hard Drive: ${plate}! Se sincronizează cu Workflow Daune...`,
           "info"
         );
 
         // Check if already in claims list
         const currentClaims = claimsRef.current || [];
         const existing = currentClaims.find(
-          (c) => normalizePlate(c.numarInmatriculare || "") === plate
+          (c) =>
+            cleanPlateKey(c.numarInmatriculare || "") === cleanKey ||
+            (event.statusData?.numarDosar &&
+              c.numarDosar &&
+              String(c.numarDosar).trim() === String(event.statusData.numarDosar).trim())
         );
 
         if (!existing && saveClaimRef.current) {
@@ -186,14 +187,59 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
     }
   }, [refreshDriveCars]);
 
-  // Sincronizează toate dosarele de pe hard drive în online
+  // Sincronizează un dosar de pe hard drive în online (cu verificare anti-duplicare și îmbinare automată)
   const handleImportDriveToWorkflow = useCallback(
     async (driveCar) => {
       if (!saveClaimRef.current) return false;
-      const plate = normalizePlate(driveCar.name || "");
+      const cleanKey = cleanPlateKey(driveCar.name || "");
+      const formattedPlate = formatPlateStandard(driveCar.name || "");
+
+      // Căutare dosar existent online pentru prevenirea duplicării (după număr mașină, număr dosar sau VIN)
+      const currentClaims = claimsRef.current || [];
+      const existing = currentClaims.find((c) => {
+        if (cleanKey && cleanPlateKey(c.numarInmatriculare) === cleanKey) return true;
+        if (
+          driveCar.numarDosar &&
+          c.numarDosar &&
+          String(c.numarDosar).trim() === String(driveCar.numarDosar).trim()
+        )
+          return true;
+        if (
+          driveCar.vin &&
+          c.vin &&
+          String(c.vin).trim().toUpperCase() === String(driveCar.vin).trim().toUpperCase()
+        )
+          return true;
+        return false;
+      });
+
+      if (existing) {
+        // DUPĂ CUM A CERUT UTILIZATORUL: NU se duplică! Cele duble sunt îmbinate în unul singur
+        const mergedClaim = {
+          ...existing,
+          numarInmatriculare: formattedPlate || existing.numarInmatriculare,
+          client: existing.client || driveCar.clientName || "",
+          telefonClient: existing.telefonClient || driveCar.clientPhone || "",
+          vin: existing.vin || driveCar.vin || "",
+          numarDosar: existing.numarDosar || driveCar.numarDosar || "",
+          asigurator: existing.asigurator || driveCar.asigurator || "",
+          observatii: existing.observatii
+            ? driveCar.notes && !existing.observatii.includes(driveCar.notes)
+              ? `${existing.observatii}\n${driveCar.notes}`
+              : existing.observatii
+            : driveCar.notes || "Sincronizat de pe Hard Drive DOSARE.",
+          piese: existing.piese || driveCar.piese || "",
+          pieseSosite:
+            existing.pieseSosite !== undefined ? existing.pieseSosite : !!driveCar.pieseSosite,
+        };
+        const res = await saveClaimRef.current(mergedClaim);
+        return res?.success;
+      }
+
+      // Nu există încă online -> creăm dosar nou cu numărul standardizat
       const newClaimDraft = {
         ...emptyClaim(driveCar.status || "constatare"),
-        numarInmatriculare: plate,
+        numarInmatriculare: formattedPlate,
         client: driveCar.clientName || "",
         telefonClient: driveCar.clientPhone || "",
         vin: driveCar.vin || "",
@@ -213,8 +259,12 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
   const handlePushClaimToDrive = useCallback(
     async (claim) => {
       try {
-        await pushClaimToDrive(claim);
-        showNoticeRef.current?.(`Folder creat / actualizat pe Hard Drive pentru ${claim.numarInmatriculare}`, "success");
+        const standardPlate = formatPlateStandard(claim.numarInmatriculare);
+        await pushClaimToDrive({ ...claim, numarInmatriculare: standardPlate });
+        showNoticeRef.current?.(
+          `Folder creat / actualizat pe Hard Drive pentru ${standardPlate}`,
+          "success"
+        );
         refreshDriveCars();
         return true;
       } catch (err) {

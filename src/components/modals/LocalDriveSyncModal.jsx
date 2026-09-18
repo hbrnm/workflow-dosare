@@ -3,7 +3,7 @@ import {
   HardDrive, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink,
   Sparkles, ArrowRight, FolderPlus, Download, Check
 } from "lucide-react";
-import { normalizePlate } from "../../utils/plateSchedule";
+import { normalizePlate, cleanPlateKey, formatPlateStandard } from "../../utils/plateSchedule";
 import ClaimPlate from "../common/ClaimPlate";
 import AppButton from "../common/AppButton";
 
@@ -23,37 +23,39 @@ export default function LocalDriveSyncModal({
   showNotice,
 }) {
   const [syncingAll, setSyncingAll] = useState(false);
-  const [syncedPlates, setSyncedPlates] = useState(new Set());
+  const [syncedDriveKeys, setSyncedDriveKeys] = useState(new Set());
+  const [createdLocalKeys, setCreatedLocalKeys] = useState(new Set());
 
   // Comparison between hard drive and online claims
   const { onlyOnDrive, onlyOnline, matched } = useMemo(() => {
+    // Map canonical alphanumeric plate keys (e.g. "B879CMN" matches "B 879 CMN")
     const claimsPlateMap = new Map();
     for (const c of claims) {
-      const p = normalizePlate(c.numarInmatriculare || "");
-      if (p) claimsPlateMap.set(p, c);
+      const key = cleanPlateKey(c.numarInmatriculare || "");
+      if (key) claimsPlateMap.set(key, c);
     }
 
     const drivePlateMap = new Map();
     for (const d of driveCars) {
-      const p = normalizePlate(d.name || "");
-      if (p) drivePlateMap.set(p, d);
+      const key = cleanPlateKey(d.name || "");
+      if (key) drivePlateMap.set(key, d);
     }
 
     const onDrive = [];
     const online = [];
     const both = [];
 
-    for (const [p, d] of drivePlateMap.entries()) {
-      if (claimsPlateMap.has(p)) {
-        both.push({ plate: p, driveCar: d, claim: claimsPlateMap.get(p) });
-      } else {
-        onDrive.push({ plate: p, driveCar: d });
+    for (const [key, d] of drivePlateMap.entries()) {
+      if (claimsPlateMap.has(key)) {
+        both.push({ key, plate: formatPlateStandard(d.name), driveCar: d, claim: claimsPlateMap.get(key) });
+      } else if (!syncedDriveKeys.has(key)) {
+        onDrive.push({ key, plate: formatPlateStandard(d.name), driveCar: d });
       }
     }
 
-    for (const [p, c] of claimsPlateMap.entries()) {
-      if (!drivePlateMap.has(p)) {
-        online.push({ plate: p, claim: c });
+    for (const [key, c] of claimsPlateMap.entries()) {
+      if (!drivePlateMap.has(key) && !createdLocalKeys.has(key)) {
+        online.push({ key, plate: formatPlateStandard(c.numarInmatriculare), claim: c });
       }
     }
 
@@ -62,20 +64,19 @@ export default function LocalDriveSyncModal({
       onlyOnline: online,
       matched: both,
     };
-  }, [driveCars, claims]);
+  }, [driveCars, claims, syncedDriveKeys, createdLocalKeys]);
 
   // Bulk Import all unsynced Drive cars to Online
   const handleImportAll = async () => {
     if (!onlyOnDrive.length) return;
     try {
       setSyncingAll(true);
+      const keysToSync = onlyOnDrive.map((i) => i.key);
+      setSyncedDriveKeys((prev) => new Set([...prev, ...keysToSync]));
       let count = 0;
       for (const item of onlyOnDrive) {
         const ok = await onImportDriveCar(item.driveCar);
-        if (ok) {
-          count++;
-          setSyncedPlates((prev) => new Set(prev).add(item.plate));
-        }
+        if (ok) count++;
       }
       showNotice?.(`Sincronizare completă: ${count} dosare preluate în Workflow Daune!`, "success");
       onRefreshDriveCars?.();
@@ -91,13 +92,12 @@ export default function LocalDriveSyncModal({
     if (!onlyOnline.length) return;
     try {
       setSyncingAll(true);
+      const keysToPush = onlyOnline.map((i) => i.key);
+      setCreatedLocalKeys((prev) => new Set([...prev, ...keysToPush]));
       let count = 0;
       for (const item of onlyOnline) {
         const ok = await onPushClaimToDrive(item.claim);
-        if (ok) {
-          count++;
-          setSyncedPlates((prev) => new Set(prev).add(item.plate));
-        }
+        if (ok) count++;
       }
       showNotice?.(`S-au creat ${count} foldere fizice noi pe calculator!`, "success");
       onRefreshDriveCars?.();
@@ -224,9 +224,9 @@ export default function LocalDriveSyncModal({
               </div>
 
               <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                {onlyOnDrive.map(({ plate, driveCar }) => (
+                {onlyOnDrive.map(({ key, plate, driveCar }) => (
                   <div
-                    key={plate}
+                    key={key}
                     className="flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border-soft)] text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -238,6 +238,7 @@ export default function LocalDriveSyncModal({
                     <AppButton
                       variant="primary"
                       onClick={async () => {
+                        setSyncedDriveKeys((prev) => new Set(prev).add(key));
                         await onImportDriveCar(driveCar);
                         showNotice?.(`Dosar ${plate} preluat online!`, "success");
                         onRefreshDriveCars?.();
@@ -273,9 +274,9 @@ export default function LocalDriveSyncModal({
               </div>
 
               <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
-                {onlyOnline.slice(0, 15).map(({ plate, claim }) => (
+                {onlyOnline.slice(0, 15).map(({ key, plate, claim }) => (
                   <div
-                    key={plate}
+                    key={key}
                     className="flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border-soft)] text-xs"
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -287,6 +288,7 @@ export default function LocalDriveSyncModal({
                     <AppButton
                       variant="primary"
                       onClick={async () => {
+                        setCreatedLocalKeys((prev) => new Set(prev).add(key));
                         await onPushClaimToDrive(claim);
                         showNotice?.(`Folder creat pe PC pentru ${plate}!`, "success");
                         onRefreshDriveCars?.();

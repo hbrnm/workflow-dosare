@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   normalizePlate,
+  cleanPlateKey,
+  formatPlateStandard,
   isCoScheduleEligible,
   findCoScheduleSiblings,
   groupClaimsByPlate,
@@ -13,6 +15,24 @@ import {
 describe("plateSchedule", () => {
   it("normalizes plates", () => {
     expect(normalizePlate(" b-123-abc ")).toBe("B-123-ABC");
+  });
+
+  it("cleanPlateKey normalizes plates for canonical matching", () => {
+    expect(cleanPlateKey("B 879 CMN")).toBe("B879CMN");
+    expect(cleanPlateKey("B879CMN")).toBe("B879CMN");
+    expect(cleanPlateKey("B 027129")).toBe("B027129");
+    expect(cleanPlateKey("B027129")).toBe("B027129");
+    expect(cleanPlateKey("FX  66  THK")).toBe("FX66THK");
+    expect(cleanPlateKey("b-123-abc")).toBe("B123ABC");
+  });
+
+  it("formatPlateStandard formats Romanian and provisional plates with standard spacing", () => {
+    expect(formatPlateStandard("B879CMN")).toBe("B 879 CMN");
+    expect(formatPlateStandard("B 879 CMN")).toBe("B 879 CMN");
+    expect(formatPlateStandard("B027129")).toBe("B 027129");
+    expect(formatPlateStandard("B 027129")).toBe("B 027129");
+    expect(formatPlateStandard("b093321")).toBe("B 093321");
+    expect(formatPlateStandard("FX66THK")).toBe("FX 66 THK");
   });
 
   it("marks awaiting / programat siblings eligible", () => {

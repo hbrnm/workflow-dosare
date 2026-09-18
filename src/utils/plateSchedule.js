@@ -5,13 +5,45 @@ export function normalizePlate(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+export function cleanPlateKey(value) {
+  if (!value) return "";
+  return String(value)
+    .replace(/[^A-Za-z0-9]/g, "")
+    .toUpperCase();
+}
+
+export function formatPlateStandard(value) {
+  if (!value || typeof value !== "string") return "";
+  const trimmed = value.trim();
+  const suffixMatch = trimmed.match(/^(.+?)(\s+-\s+.*|\s+\(.*)$/);
+  let basePart = trimmed;
+  let suffixPart = "";
+  if (suffixMatch) {
+    basePart = suffixMatch[1];
+    suffixPart = suffixMatch[2];
+  }
+
+  const clean = basePart.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  const ro = clean.match(/^([A-Z]{1,2})(\d{2,3})([A-Z]{3})$/);
+  if (ro) {
+    return `${ro[1]} ${ro[2]} ${ro[3]}${suffixPart}`;
+  }
+  const red = clean.match(/^([A-Z]{1,2})(\d{6})$/);
+  if (red) {
+    return `${red[1]} ${red[2]}${suffixPart}`;
+  }
+
+  return trimmed.toUpperCase().replace(/\s+/g, " ");
+}
+
 export function isValidPlateKey(plate) {
-  return Boolean(plate && String(plate).length > 2);
+  const key = cleanPlateKey(plate);
+  return Boolean(key && key.length > 2);
 }
 
 export function plateGroupKey(claim) {
-  const plate = normalizePlate(claim?.numarInmatriculare);
-  return isValidPlateKey(plate) ? plate : claim?.id || "";
+  const key = cleanPlateKey(claim?.numarInmatriculare);
+  return isValidPlateKey(key) ? key : claim?.id || "";
 }
 
 /** Sibling eligible to receive the same appointment when one dosar is scheduled. */
@@ -46,12 +78,12 @@ export function isCoScheduleEligible(sibling) {
  * @param {string|null} previousDate — for clear: only siblings on this datetime
  */
 export function findCoScheduleSiblings(claims, claim, { mode = "set", previousDate } = {}) {
-  const plate = normalizePlate(claim?.numarInmatriculare);
+  const plate = cleanPlateKey(claim?.numarInmatriculare);
   if (!isValidPlateKey(plate) || !claim?.id) return [];
 
   return (claims || []).filter((c) => {
     if (!c || c.id === claim.id) return false;
-    if (normalizePlate(c.numarInmatriculare) !== plate) return false;
+    if (cleanPlateKey(c.numarInmatriculare) !== plate) return false;
     if (!isCoScheduleEligible(c)) return false;
 
     if (mode === "clear") {
