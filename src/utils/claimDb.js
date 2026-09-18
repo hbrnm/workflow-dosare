@@ -136,6 +136,31 @@ export function parseMissingColumnError(message) {
 
 export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, { id } = {}) {
   let body = { ...payload };
+
+  // Normalize status keys to DB enum values to avoid Postgres enum errors like 22P02
+  try {
+    if (body && body.status != null) {
+      const raw = String(body.status || "").trim();
+      const norm = raw.toLowerCase();
+      const mapped = STATUS_MIGRATION[norm] || norm;
+      const exists = STATUSES.some((s) => s.key === mapped);
+      if (exists) {
+        body.status = mapped;
+      } else {
+        // Unknown status — fallback to safe default
+        if (typeof console !== "undefined" && console.warn) {
+          console.warn(
+            `writeDosarWithSchemaCompat: unknown status '${body.status}' normalized->'${mapped}'. Using fallback '${FALLBACK_STATUS.key}'.`
+          );
+        }
+        body.status = FALLBACK_STATUS.key;
+      }
+    }
+  } catch (err) {
+    // If normalization fails for any reason, don't block the main flow — log and continue
+    if (typeof console !== "undefined" && console.warn) console.warn("Failed to normalize status for dosar payload", err);
+  }
+
   for (let attempt = 0; attempt < 16; attempt++) {
     const query =
       mode === "update"
