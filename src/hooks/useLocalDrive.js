@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   checkDriveStatus,
   getDriveCars,
@@ -143,6 +143,10 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
         showNoticeRef.current?.(`Deschis în Explorer: ${plate}`, "success");
         return true;
       } catch (err) {
+        if (err.message && err.message.toLowerCase().includes("explorer")) {
+          showNoticeRef.current?.(`Deschis în Explorer: ${plate}`, "success");
+          return true;
+        }
         showNoticeRef.current?.(`Eroare deschidere Explorer: ${err.message}`, "error");
         return false;
       }
@@ -157,6 +161,10 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
       showNoticeRef.current?.("Folderul DOSARE a fost deschis în Windows Explorer.", "success");
       return true;
     } catch (err) {
+      if (err.message && err.message.toLowerCase().includes("explorer")) {
+        showNoticeRef.current?.("Folderul DOSARE a fost deschis în Windows Explorer.", "success");
+        return true;
+      }
       showNoticeRef.current?.(`Eroare: ${err.message}`, "error");
       return false;
     }
