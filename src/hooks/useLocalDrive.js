@@ -119,6 +119,7 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
             onAutoOpenClaimRef.current?.(newClaimDraft);
           } else {
             console.error("saveClaim failed in useLocalDrive.subscribe.onNewFolder", res);
+            showNoticeRef.current?.("Eroare la crearea dosarului online — verifică Console pentru detalii.", "error");
           }
         } else if (existing) {
           showNoticeRef.current?.(
@@ -237,6 +238,7 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
         const res = await saveClaimRef.current(mergedClaim);
         if (!res || res.success === false) {
           console.error("saveClaim failed when merging existing claim in useLocalDrive.importDriveToWorkflow", res);
+          showNoticeRef.current?.("Eroare la actualizarea dosarului online — verifică Console pentru detalii.", "error");
           return false;
         }
         return res?.success;
@@ -258,6 +260,7 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
       const res = await saveClaimRef.current(newClaimDraft);
       if (!res || res.success === false) {
         console.error("saveClaim failed when creating new claim in useLocalDrive.importDriveToWorkflow", res);
+        showNoticeRef.current?.("Eroare la crearea dosarului online — verifică Console pentru detalii.", "error");
         return false;
       }
       return res?.success;
