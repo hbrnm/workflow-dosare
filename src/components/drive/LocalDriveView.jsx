@@ -399,6 +399,7 @@ export default function LocalDriveView({
           _onlineSaveOk = false;
           _onlineSaveErrMsg = saveRes?.error?.message || "Eroare necunoscută";
           console.error("onSaveClaim failed when saving inspector changes", saveRes);
+          showNotice?.("Eroare la salvarea dosarului online — verifică Console pentru detalii.", "error");
         }
       }
 
@@ -694,6 +695,7 @@ export default function LocalDriveView({
         });
         if (!saveRes || saveRes.success === false) {
           console.error("onSaveClaim failed when creating new drive dossier", saveRes);
+          showNotice?.("Eroare la crearea dosarului online — verifică Console pentru detalii.", "error");
           showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive, dar nu a fost salvat online: ${saveRes?.error?.message || "Eroare necunoscută"}`, "error");
         } else {
           showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive și salvat online!`, "success");
