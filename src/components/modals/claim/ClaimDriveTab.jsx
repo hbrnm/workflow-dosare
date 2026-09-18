@@ -181,12 +181,12 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
       {/* Top Banner with Quick Actions */}
       <div className="p-3 rounded-xl bg-[var(--app-surface)] border border-[var(--app-border)] flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[var(--app-success)]/10 text-[var(--app-success)] flex items-center justify-center border border-[var(--app-success)]/20 shrink-0">
             <HardDrive size={16} />
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold block flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Folder Fizic Conectat
+            <span className="text-[11px] text-[var(--app-success)] font-bold block flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--app-success)]"></span> Folder Fizic Conectat
             </span>
             <span className="text-xs font-mono font-bold text-[var(--app-text-strong)] truncate block">
               C:\DOSARE\{plate}
@@ -198,25 +198,25 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
           <button
             type="button"
             onClick={handleOpenExplorer}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--app-surface-2)] hover:bg-[var(--app-border-soft)] text-[var(--app-text-strong)] border border-[var(--app-border)] transition-colors cursor-pointer"
           >
-            <ExternalLink size={13} /> Deschide în Windows Explorer
+            <ExternalLink size={13} className="text-[var(--app-muted)]" /> Deschide în Explorer
           </button>
 
           <button
             type="button"
             onClick={handleOrganize}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--app-surface-2)] hover:bg-[var(--app-border-soft)] text-[var(--app-text-strong)] border border-[var(--app-border)] transition-colors cursor-pointer"
           >
-            <Sparkles size={13} /> Curăță &amp; Sortează
+            <Sparkles size={13} className="text-[var(--app-muted)]" /> Sortează
           </button>
 
           <button
             type="button"
             onClick={handleOpenTemplates}
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-purple-600/15 hover:bg-purple-600/25 text-purple-600 dark:text-purple-400 border border-purple-500/30 transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--app-surface-2)] hover:bg-[var(--app-border-soft)] text-[var(--app-text-strong)] border border-[var(--app-border)] transition-colors cursor-pointer"
           >
-            <FileText size={13} /> Atașează Șablon
+            <FileText size={13} className="text-[var(--app-muted)]" /> Șabloane
           </button>
         </div>
       </div>
@@ -233,15 +233,19 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
               onClick={() => setActiveCategory(cat.key)}
               className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                 isActive
-                  ? "bg-amber-400/15 border-amber-400 text-[var(--app-text-strong)] font-bold shadow-xs"
+                  ? "bg-[var(--app-accent)]/10 border-[var(--app-accent)] text-[var(--app-text-strong)] font-bold shadow-xs"
                   : "bg-[var(--app-surface)] border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-text)]"
               }`}
             >
               <div className="flex items-center justify-between text-sm mb-1">
                 <span>{cat.icon}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                    count > 0 ? "bg-amber-400 text-slate-950" : "bg-slate-700 text-slate-300"
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                    isActive
+                      ? "bg-[var(--app-accent)] text-[var(--app-accent-text)]"
+                      : count > 0
+                      ? "bg-[var(--app-surface-2)] text-[var(--app-text)] border border-[var(--app-border-soft)]"
+                      : "bg-transparent text-[var(--app-muted)]"
                   }`}
                 >
                   {count}
@@ -262,7 +266,7 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
             Fișiere în {activeCategory} ({categoryFiles.length})
           </span>
 
-          <label className="flex items-center gap-1.5 text-xs font-bold text-sky-600 hover:text-sky-500 cursor-pointer">
+          <label className="flex items-center gap-1.5 text-xs font-bold text-[var(--app-accent)] hover:opacity-80 cursor-pointer">
             <Upload size={14} /> Încarcă în acest folder
             <input type="file" multiple onChange={handleUpload} className="hidden" />
           </label>
@@ -281,11 +285,11 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {f.isImage ? (
-                    <Image size={15} className="text-emerald-500 shrink-0" />
+                    <Image size={15} className="text-[var(--app-muted)] shrink-0" />
                   ) : f.isVideo ? (
-                    <Film size={15} className="text-purple-500 shrink-0" />
+                    <Film size={15} className="text-[var(--app-muted)] shrink-0" />
                   ) : (
-                    <FileText size={15} className="text-sky-500 shrink-0" />
+                    <FileText size={15} className="text-[var(--app-muted)] shrink-0" />
                   )}
                   <span className="font-mono text-[11px] truncate text-[var(--app-text-strong)]" title={f.name}>
                     {f.name}
@@ -297,7 +301,7 @@ export default function ClaimDriveTab({ form = {}, onNotify }) {
                   <a
                     href={getDriveFileUrl(plate, activeCategory, f.name)}
                     download={f.name}
-                    className="p-1 rounded hover:bg-[var(--app-surface-3)] text-sky-500"
+                    className="p-1 rounded hover:bg-[var(--app-surface)] text-[var(--app-muted)] hover:text-[var(--app-accent)] transition-colors"
                     title="Descarcă fișierul"
                   >
                     <Download size={13} />

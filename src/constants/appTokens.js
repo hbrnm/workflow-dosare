@@ -13,10 +13,10 @@ const SHARED_TOKENS = {
   "--app-danger-hover": "#a40e26",
   "--app-danger-muted": "#ffebe9",
   "--app-danger-text": "#ffffff",
-  "--app-success": "#1a7f37",
-  "--app-success-muted": "#dafbe1",
-  "--app-warning": "#9a6700",
-  "--app-warning-muted": "#fff8c5",
+  "--app-success": "#2F6B4E",
+  "--app-success-muted": "#E7F1EC",
+  "--app-warning": "#B8791E",
+  "--app-warning-muted": "#FBF0DE",
   "--app-radius": "8px",
   "--app-radius-sm": "6px",
   "--app-radius-lg": "12px",
@@ -35,7 +35,7 @@ const SHARED_TOKENS = {
   "--app-btn-height-lg": "2.5rem",
 };
 
-/** Noapte — Warm Charcoal / Slate cu accent Sky Blue vibrant. */
+/** Noapte — Warm Charcoal / Slate cu accent Chihlimbar Cald (Atelier Classic). */
 export const APP_TOKEN_DARK = {
   ...SHARED_TOKENS,
   "--app-bg": "#0f172a",           // slate-900 canvas
@@ -51,20 +51,22 @@ export const APP_TOKEN_DARK = {
   "--app-chrome": "#0f172a",       // dark slate sidebar/header
   "--app-chrome-text": "#f8fafc",
   "--app-chrome-muted": "#94a3b8",
-  "--app-accent": "#0284c7",       // vibrant sky-600 accent
-  "--app-accent-hover": "#0369a1", // sky-700
-  "--app-accent-text": "#ffffff",  // white text over sky blue
+  "--app-accent": "#C98A2B",       // warm amber Atelier
+  "--app-accent-hover": "#B37A22", // darker amber
+  "--app-accent-text": "#ffffff",  // white text over amber
   "--app-danger-muted": "#450a0a",
-  "--app-success-muted": "#064e3b",
-  "--app-warning-muted": "#451a03",
+  "--app-success": "#3E6B45",
+  "--app-success-muted": "#162E21",
+  "--app-warning": "#C98A2B",
+  "--app-warning-muted": "#3D2808",
 };
 
-/** Zi — alb curat & bg-slate-50, ca aplicațiile SaaS moderne. */
+/** Zi — Atelier Classic curat & tonuri calde slate, fără nuanțe neon. */
 export const APP_TOKEN_LIGHT = {
   ...SHARED_TOKENS,
   "--app-bg": "#f1f5f9",          // slate-100 canvas (provides better contrast against white cards)
   "--app-surface": "#ffffff",     // white cards/containers
-  "--app-surface-2": "#e2e8f0",   // slate-200 minor surfaces
+  "--app-surface-2": "#f1f5f9",   // slate-100 minor surfaces
   "--app-surface-muted": "#f8fafc",
   "--app-text": "#334155",        // slate-700
   "--app-text-strong": "#0f172a", // slate-900
@@ -72,12 +74,16 @@ export const APP_TOKEN_LIGHT = {
   "--app-muted-2": "#94a3b8",     // slate-400
   "--app-border": "#cbd5e1",      // slate-300
   "--app-border-soft": "#e2e8f0", // slate-200
-  "--app-chrome": "#0f172a",      // slate-900 Dark chrome
+  "--app-chrome": "#1e293b",      // slate-800 dark chrome
   "--app-chrome-text": "#f8fafc", // slate-50
   "--app-chrome-muted": "#94a3b8",// slate-400
-  "--app-accent": "#0284c7",      // vibrant sky-600 accent
-  "--app-accent-hover": "#0369a1",// sky-700
-  "--app-accent-text": "#ffffff", // white text over sky blue
+  "--app-accent": "#C98A2B",      // warm amber Atelier
+  "--app-accent-hover": "#B37A22",// darker amber
+  "--app-accent-text": "#ffffff", // white text over amber
+  "--app-success": "#2F6B4E",
+  "--app-success-muted": "#E7F1EC",
+  "--app-warning": "#B8791E",
+  "--app-warning-muted": "#FBF0DE",
 };
 
 /** @deprecated — folosește APP_TOKEN_DARK */

@@ -762,7 +762,7 @@ export default function LocalDriveView({
               title="Deschide dosarul fizic în Windows Explorer"
               className="text-xs"
             >
-              <ExternalLink size={13} className="text-emerald-500" />
+              <ExternalLink size={13} className="text-[var(--app-muted)]" />
               <span className="hidden md:inline">Explorer</span>
             </AppButton>
           )}
@@ -777,7 +777,7 @@ export default function LocalDriveView({
             title="Curăță și sortează automat fișierele pe cele 5 categorii standard"
             className="text-xs"
           >
-            <Sparkles size={13} className="text-indigo-500" />
+            <Sparkles size={13} className="text-[var(--app-muted)]" />
             <span className="hidden lg:inline">Sortează</span>
           </AppButton>
 
@@ -787,7 +787,7 @@ export default function LocalDriveView({
             title="Atașează Cereri Despăgubire RCA / CASCO sau Declarații"
             className="text-xs"
           >
-            <FileText size={13} className="text-purple-500" />
+            <FileText size={13} className="text-[var(--app-muted)]" />
             <span className="hidden lg:inline">Șabloane</span>
           </AppButton>
 
@@ -923,7 +923,7 @@ export default function LocalDriveView({
                   >
                     <div className="flex items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <Folder size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-amber-500 shrink-0"} />
+                        <Folder size={15} className="text-[var(--app-accent)] shrink-0" />
                         <ClaimPlate value={car.name} className="text-xs" />
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -942,12 +942,12 @@ export default function LocalDriveView({
                         <span
                           className={`text-[9.5px] px-2 py-0.5 rounded-full font-semibold border ${
                             car.status === "Constatare"
-                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                              ? "bg-[var(--app-accent)]/10 text-[var(--app-accent)] border-[var(--app-accent)]/25"
                               : car.status === "În lucru"
-                              ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
+                              ? "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/25"
                               : car.status === "Finalizat"
-                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                              : "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
+                              ? "bg-[var(--app-success)]/10 text-[var(--app-success)] border-[var(--app-success)]/25"
+                              : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20"
                           }`}
                         >
                           {car.status}
@@ -964,11 +964,11 @@ export default function LocalDriveView({
                           📸 {car.stats?.totalPhotos || 0}
                         </span>
                         {isOnlineSynced ? (
-                          <span title="Sincronizat în Workflow Daune" className="inline-flex items-center text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 gap-0.5">
+                          <span title="Sincronizat în Workflow Daune" className="inline-flex items-center text-[10px] font-semibold text-[var(--app-success)] gap-0.5">
                             <CheckCircle2 size={11} /> Sincronizat
                           </span>
                         ) : (
-                          <span title="Doar pe Hard Drive local" className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                          <span title="Doar pe Hard Drive local" className="text-[10px] font-medium text-[var(--app-muted)]">
                             Local
                           </span>
                         )}
@@ -982,7 +982,7 @@ export default function LocalDriveView({
 
           <div className="p-2.5 border-t border-[var(--app-border)] bg-[var(--app-surface)] flex items-center justify-between text-[11px] text-[var(--app-muted)]">
             <span className="flex items-center gap-1.5 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Hard Drive Conectat
+              <span className="w-2 h-2 rounded-full bg-[var(--app-success)]"></span> Hard Drive Conectat
             </span>
             <button
               type="button"
@@ -1014,7 +1014,7 @@ export default function LocalDriveView({
                   href={`https://wa.me/4${clientPhone.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
+                  className="p-1.5 rounded-lg bg-[var(--app-surface-2)] text-[var(--app-text)] hover:bg-[var(--app-border-soft)] border border-[var(--app-border)] transition-colors"
                   title="Trimite WhatsApp"
                 >
                   <MessageCircle size={15} />
@@ -1075,10 +1075,12 @@ export default function LocalDriveView({
                       <span className="truncate">{cat.label}</span>
                     </div>
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                        count > 0
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        isActive
                           ? "bg-[var(--app-accent)] text-[var(--app-accent-text)]"
-                          : "bg-[var(--app-surface)] text-[var(--app-muted)] border border-[var(--app-border-soft)]"
+                          : count > 0
+                          ? "bg-[var(--app-surface-2)] text-[var(--app-text)] border border-[var(--app-border-soft)]"
+                          : "bg-transparent text-[var(--app-muted)]"
                       }`}
                     >
                       {count}
@@ -1123,11 +1125,11 @@ export default function LocalDriveView({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {f.isImage ? (
-                        <Image size={15} className="text-emerald-500 shrink-0" />
+                        <Image size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       ) : f.isVideo ? (
-                        <Film size={15} className="text-purple-500 shrink-0" />
+                        <Film size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       ) : (
-                        <FileText size={15} className="text-sky-500 shrink-0" />
+                        <FileText size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       )}
                       <span className="truncate font-mono text-[11px]">{f.name}</span>
                     </div>
@@ -1212,7 +1214,7 @@ export default function LocalDriveView({
               />
             ) : (
               <div className="text-center p-8 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm max-w-md">
-                <FileText size={48} className="mx-auto text-sky-500 mb-3" />
+                <FileText size={48} className="mx-auto text-[var(--app-accent)] opacity-80 mb-3" />
                 <h4 className="font-bold text-sm text-[var(--app-text-strong)] mb-1">{selectedFile.name}</h4>
                 <p className="text-xs text-[var(--app-muted)] mb-4">
                   Dimensiune: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
@@ -1297,7 +1299,7 @@ export default function LocalDriveView({
                       type="checkbox"
                       checked={pieseSosite}
                       onChange={(e) => setPieseSosite(e.target.checked)}
-                      className="rounded border-[var(--app-border)] text-sky-600 focus:ring-0"
+                      className="rounded border-[var(--app-border)] accent-[var(--app-accent)] cursor-pointer"
                     />
                     Au sosit piesele?
                   </label>
@@ -1375,10 +1377,10 @@ export default function LocalDriveView({
                 <span className="text-[var(--app-muted)] truncate">• Folder local pe PC</span>
               </div>
               <div className="flex items-center gap-2 font-medium text-[var(--app-text)] shrink-0">
-                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                <span className="bg-[var(--app-surface)] text-[var(--app-text)] px-2.5 py-0.5 rounded-md border border-[var(--app-border)]">
                   📸 {syncPhotoCount} poze
                 </span>
-                <span className="bg-sky-500/10 text-sky-600 dark:text-sky-400 px-2 py-0.5 rounded-md border border-sky-500/20">
+                <span className="bg-[var(--app-surface)] text-[var(--app-text)] px-2.5 py-0.5 rounded-md border border-[var(--app-border)]">
                   📄 {syncDocCount} acte
                 </span>
               </div>
