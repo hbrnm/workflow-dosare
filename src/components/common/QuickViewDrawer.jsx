@@ -548,10 +548,7 @@ export default function QuickViewDrawer({
         <div className="p-4 border-t border-[var(--app-border)] bg-[var(--app-surface-2)] shrink-0">
           <button
             type="button"
-            onClick={() => {
-              onClose();
-              setTimeout(() => onOpenFull(claim), 150);
-            }}
+            onClick={() => onOpenFull?.(claim)}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-accent-text)] font-extrabold rounded-xl shadow-sm transition-all active:scale-98 cursor-pointer"
           >
             <ExternalLink size={16} />

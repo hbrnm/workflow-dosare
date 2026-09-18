@@ -230,11 +230,138 @@ export default function LocalDriveView({
   }, [cars, searchQuery, stageFilter]);
 
   // Check if active car is already synced in online claims
+  const findMatchingOnlineClaim = (carName, details = null) => {
+    if (!carName || !Array.isArray(claims)) return null;
+    const cleanDrivePlate = String(carName).replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+    // 1. Try matching by exact or alphanumeric plate
+    let match = claims.find((c) => {
+      const cleanClaimPlate = String(c.numarInmatriculare || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      if (!cleanClaimPlate || !cleanDrivePlate) return false;
+      return cleanClaimPlate === cleanDrivePlate || cleanDrivePlate.startsWith(cleanClaimPlate) || cleanClaimPlate.startsWith(cleanDrivePlate);
+    });
+    if (match) return match;
+
+    // 2. Try matching by numarDosar if available
+    const dDosar = details?.numarDosar || (carName === selectedCarName ? numarDosar : null);
+    if (dDosar && String(dDosar).trim().length > 3) {
+      const cleanDosar = String(dDosar).trim().toLowerCase();
+      match = claims.find(
+        (c) =>
+          String(c.numarDosar || "").trim().toLowerCase() === cleanDosar ||
+          String(c.nrDosarAsigurator || "").trim().toLowerCase() === cleanDosar
+      );
+      if (match) return match;
+    }
+
+    // 3. Try matching by VIN if available
+    const dVin = details?.vin || (carName === selectedCarName ? vin : null);
+    if (dVin && String(dVin).trim().length >= 6) {
+      const cleanVin = String(dVin).trim().toUpperCase();
+      match = claims.find((c) => String(c.vin || "").trim().toUpperCase() === cleanVin);
+      if (match) return match;
+    }
+
+    return null;
+  };
+
   const matchingOnlineClaim = useMemo(() => {
-    if (!selectedCarName) return null;
-    const cleanPlate = normalizePlate(selectedCarName);
-    return claims.find((c) => normalizePlate(c.numarInmatriculare || "") === cleanPlate);
-  }, [selectedCarName, claims]);
+    return findMatchingOnlineClaim(selectedCarName, carDetails);
+  }, [selectedCarName, carDetails, claims, numarDosar, vin]);
+
+  // Open the complete dossier details (ClaimModal) for any car folder
+  const handleOpenFullClaim = async (carName = selectedCarName, details = carDetails) => {
+    if (!carName) return;
+
+    // 1. If matching online claim exists, open it directly!
+    const match = findMatchingOnlineClaim(carName, details);
+    if (match) {
+      onOpenClaim?.(match);
+      return;
+    }
+
+    // 2. Local-only dossier: fetch full details if not loaded
+    let effectiveDetails = details;
+    if (!effectiveDetails || effectiveDetails.name !== carName) {
+      try {
+        effectiveDetails = await getDriveCarDetails(carName);
+      } catch {
+        effectiveDetails = cars.find((c) => c.name === carName) || {};
+      }
+    }
+
+    const photoFiles = effectiveDetails?.categories?.["03_Foto_Dauna"] || [];
+    const clientFiles = effectiveDetails?.categories?.["01_Acte_Client"] || [];
+    const insurerFiles = effectiveDetails?.categories?.["02_Asigurator_si_Dauna"] || [];
+    const reconstatareFiles = effectiveDetails?.categories?.["04_Reconstatare"] || [];
+    const finalFiles = effectiveDetails?.categories?.["05_Dosar_Final"] || [];
+
+    const drivePhotos = photoFiles.map((f) => ({
+      id: uid(),
+      name: f.name,
+      url: getDriveFileUrl(carName, "03_Foto_Dauna", f.name),
+      size: f.size,
+      uploadedAt: f.mtime || nowISO(),
+      isLocalDrive: true,
+    }));
+
+    const driveDocs = [
+      ...clientFiles.map((f) => ({
+        id: uid(),
+        name: f.name,
+        url: getDriveFileUrl(carName, "01_Acte_Client", f.name),
+        categorie: "01_Acte_Client",
+        uploadedAt: f.mtime || nowISO(),
+        isLocalDrive: true,
+      })),
+      ...insurerFiles.map((f) => ({
+        id: uid(),
+        name: f.name,
+        url: getDriveFileUrl(carName, "02_Asigurator_si_Dauna", f.name),
+        categorie: "02_Asigurator_si_Dauna",
+        uploadedAt: f.mtime || nowISO(),
+        isLocalDrive: true,
+      })),
+      ...reconstatareFiles.map((f) => ({
+        id: uid(),
+        name: f.name,
+        url: getDriveFileUrl(carName, "04_Reconstatare", f.name),
+        categorie: "04_Reconstatare",
+        uploadedAt: f.mtime || nowISO(),
+        isLocalDrive: true,
+      })),
+      ...finalFiles.map((f) => ({
+        id: uid(),
+        name: f.name,
+        url: getDriveFileUrl(carName, "05_Dosar_Final", f.name),
+        categorie: "05_Dosar_Final",
+        uploadedAt: f.mtime || nowISO(),
+        isLocalDrive: true,
+      })),
+    ];
+
+    const localClaim = {
+      ...emptyClaim(mapLocalStatusToOnline(effectiveDetails?.status || carStatus)),
+      id: uid(),
+      numarInmatriculare: carName,
+      numarDosar: effectiveDetails?.numarDosar || numarDosar || "",
+      nrDosarAsigurator: effectiveDetails?.numarDosar || numarDosar || "",
+      vin: effectiveDetails?.vin || vin || "",
+      client: (effectiveDetails?.clientName || clientName || "").toUpperCase(),
+      telefonClient: effectiveDetails?.clientPhone || clientPhone || "",
+      asigurator: effectiveDetails?.asigurator || "Omniasig VIG",
+      tipAsigurare: effectiveDetails?.tipAsigurare || "RCA",
+      marcaModel: effectiveDetails?.marcaModel || "",
+      ceEsteDeReparat: effectiveDetails?.piese || piese || "",
+      pieseSosite: !!(effectiveDetails?.pieseSosite !== undefined ? effectiveDetails?.pieseSosite : pieseSosite),
+      observatii: effectiveDetails?.notes || notes || "",
+      poze: drivePhotos,
+      documente: driveDocs,
+      isLocalDrive: true,
+    };
+
+    onOpenClaim?.(localClaim);
+  };
 
   // Save inspector metadata changes
   const handleSaveInspector = async () => {
@@ -781,15 +908,14 @@ export default function LocalDriveView({
             ) : (
               filteredCars.map((car) => {
                 const isSelected = selectedCarName === car.name;
-                const isOnlineSynced = claims.some(
-                  (c) => normalizePlate(c.numarInmatriculare || "") === normalizePlate(car.name)
-                );
+                const isOnlineSynced = Boolean(findMatchingOnlineClaim(car.name));
 
                 return (
                   <div
                     key={car.name}
                     onClick={() => setSelectedCarName(car.name)}
-                    className={`p-2.5 rounded-xl cursor-pointer transition-all border ${
+                    onDoubleClick={() => handleOpenFullClaim(car.name)}
+                    className={`p-2.5 rounded-xl cursor-pointer transition-all border group ${
                       isSelected
                         ? "bg-[var(--app-surface)] border-[var(--app-accent)] shadow-xs ring-1 ring-[var(--app-accent)]/25"
                         : "bg-[var(--app-surface)]/60 hover:bg-[var(--app-surface)] border-[var(--app-border-soft)] hover:border-[var(--app-border)]"
@@ -800,19 +926,33 @@ export default function LocalDriveView({
                         <Folder size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-amber-500 shrink-0"} />
                         <ClaimPlate value={car.name} className="text-xs" />
                       </div>
-                      <span
-                        className={`text-[9.5px] px-2 py-0.5 rounded-full font-semibold border shrink-0 ${
-                          car.status === "Constatare"
-                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
-                            : car.status === "În lucru"
-                            ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
-                            : car.status === "Finalizat"
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
-                            : "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
-                        }`}
-                      >
-                        {car.status}
-                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCarName(car.name);
+                            handleOpenFullClaim(car.name);
+                          }}
+                          className="p-1 rounded hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-accent)] transition-colors opacity-70 hover:opacity-100"
+                          title="Deschide dosarul complet (dublu-click)"
+                        >
+                          <ExternalLink size={12} />
+                        </button>
+                        <span
+                          className={`text-[9.5px] px-2 py-0.5 rounded-full font-semibold border ${
+                            car.status === "Constatare"
+                              ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20"
+                              : car.status === "În lucru"
+                              ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20"
+                              : car.status === "Finalizat"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20"
+                              : "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
+                          }`}
+                        >
+                          {car.status}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-[var(--app-muted)] mt-2 pt-1.5 border-t border-[var(--app-border-soft)]">
@@ -880,18 +1020,18 @@ export default function LocalDriveView({
                   <MessageCircle size={15} />
                 </a>
               )}
-              {matchingOnlineClaim ? (
+              <AppButton
+                variant="primary"
+                onClick={() => handleOpenFullClaim(selectedCarName, carDetails)}
+                title="Deschide dosarul complet în fereastra principală (date complete, foto, acte, financiar)"
+                className="text-xs font-bold"
+              >
+                <ExternalLink size={13} />
+                Detalii Complete
+              </AppButton>
+              {!matchingOnlineClaim && (
                 <AppButton
-                  variant="secondary"
-                  onClick={() => onOpenClaim?.(matchingOnlineClaim)}
-                  title="Deschide dosarul complet în fereastra principală"
-                  className="text-xs"
-                >
-                  Deschide
-                </AppButton>
-              ) : (
-                <AppButton
-                  variant="primary"
+                  variant="outline"
                   disabled={isExtractingOnlineData}
                   onClick={handleOpenSyncModal}
                   title="Preia acest dosar cu toate datele pe Workflow Daune Online"
@@ -1122,13 +1262,23 @@ export default function LocalDriveView({
                 ))}
               </div>
 
-              <AppButton
-                variant="primary"
-                onClick={handleSaveInspector}
-                className="text-xs font-bold"
-              >
-                <CheckCircle2 size={13} /> <span>Salvează pe PC &amp; Online</span>
-              </AppButton>
+              <div className="flex items-center gap-2 shrink-0">
+                <AppButton
+                  variant="secondary"
+                  onClick={() => handleOpenFullClaim(selectedCarName, carDetails)}
+                  className="text-xs font-bold"
+                  title="Deschide dosarul complet în fereastra principală (toate taburile, devize, costuri, istoric)"
+                >
+                  <ExternalLink size={13} /> <span>Dosar Complet</span>
+                </AppButton>
+                <AppButton
+                  variant="primary"
+                  onClick={handleSaveInspector}
+                  className="text-xs font-bold"
+                >
+                  <CheckCircle2 size={13} /> <span>Salvează pe PC &amp; Online</span>
+                </AppButton>
+              </div>
             </div>
 
             {/* Inspector Tab Content */}
