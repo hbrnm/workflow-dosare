@@ -380,8 +380,10 @@ export default function LocalDriveView({
       await updateDriveCarStatus(selectedCarName, patch);
 
       // If online claim exists, sync to it as well!
+      let _onlineSaveOk = true;
+      let _onlineSaveErrMsg = null;
       if (matchingOnlineClaim && onSaveClaim) {
-        await onSaveClaim({
+        const saveRes = await onSaveClaim({
           ...matchingOnlineClaim,
           status: mapLocalStatusToOnline(carStatus),
           numarDosar: numarDosar || matchingOnlineClaim.numarDosar,
@@ -393,9 +395,18 @@ export default function LocalDriveView({
           ceEsteDeReparat: piese || matchingOnlineClaim.ceEsteDeReparat,
           pieseSosite: !!pieseSosite,
         });
+        if (!saveRes || saveRes.success === false) {
+          _onlineSaveOk = false;
+          _onlineSaveErrMsg = saveRes?.error?.message || "Eroare necunoscută";
+          console.error("onSaveClaim failed when saving inspector changes", saveRes);
+        }
       }
 
-      showNotice?.("Modificările au fost salvate pe Hard Drive și online!", "success");
+      if (_onlineSaveOk) {
+        showNotice?.("Modificările au fost salvate pe Hard Drive și online!", "success");
+      } else {
+        showNotice?.(`Modificările au fost salvate pe Hard Drive, dar nu am putut salva online: ${_onlineSaveErrMsg}`, "error");
+      }
       loadCars(true);
     } catch (err) {
       showNotice?.(`Eroare salvare: ${err.message}`, "error");
@@ -666,7 +677,7 @@ export default function LocalDriveView({
 
       if (onSaveClaim) {
         const base = emptyClaim("deschidere");
-        await onSaveClaim({
+        const saveRes = await onSaveClaim({
           ...base,
           id: generateUUID(),
           numarInmatriculare: plate,
@@ -681,9 +692,16 @@ export default function LocalDriveView({
           dataUltimeiActualizari: nowISO(),
           note: [{ id: generateUUID(), text: "Creat pe Hard Drive DOSARE.", date: nowISO() }],
         });
+        if (!saveRes || saveRes.success === false) {
+          console.error("onSaveClaim failed when creating new drive dossier", saveRes);
+          showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive, dar nu a fost salvat online: ${saveRes?.error?.message || "Eroare necunoscută"}`, "error");
+        } else {
+          showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive și salvat online!`, "success");
+        }
+      } else {
+        showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive.`, "success");
       }
 
-      showNotice?.(`Dosarul ${plate} a fost creat pe Hard Drive și salvat online!`, "success");
       setIsNewCarModalOpen(false);
       setNewPlate("");
       setNewClient("");

@@ -117,6 +117,8 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
             );
             // Deschide automat dosarul pentru completare date
             onAutoOpenClaimRef.current?.(newClaimDraft);
+          } else {
+            console.error("saveClaim failed in useLocalDrive.subscribe.onNewFolder", res);
           }
         } else if (existing) {
           showNoticeRef.current?.(
@@ -233,6 +235,10 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
             existing.pieseSosite !== undefined ? existing.pieseSosite : !!driveCar.pieseSosite,
         };
         const res = await saveClaimRef.current(mergedClaim);
+        if (!res || res.success === false) {
+          console.error("saveClaim failed when merging existing claim in useLocalDrive.importDriveToWorkflow", res);
+          return false;
+        }
         return res?.success;
       }
 
@@ -250,6 +256,10 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
         pieseSosite: !!driveCar.pieseSosite,
       };
       const res = await saveClaimRef.current(newClaimDraft);
+      if (!res || res.success === false) {
+        console.error("saveClaim failed when creating new claim in useLocalDrive.importDriveToWorkflow", res);
+        return false;
+      }
       return res?.success;
     },
     []

@@ -111,6 +111,8 @@ function AppAuthenticated() {
     if (result?.success) {
       setActiveId(claim.id);
       setScreen("detail");
+    } else {
+      console.error("saveClaim failed in handleCreated", result);
     }
   };
 
@@ -249,6 +251,8 @@ function AppAuthenticated() {
                 if (r?.success) {
                   setScreen("list");
                   setActiveId(null);
+                } else {
+                  console.error("saveClaim failed in ClaimDetail onSave", r);
                 }
               }}
               onDelete={(id) => {
