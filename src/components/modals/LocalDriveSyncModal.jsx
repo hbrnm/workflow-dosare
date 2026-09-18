@@ -4,6 +4,8 @@ import {
   Sparkles, ArrowRight, FolderPlus, Download, Check
 } from "lucide-react";
 import { normalizePlate } from "../../utils/plateSchedule";
+import ClaimPlate from "../common/ClaimPlate";
+import AppButton from "../common/AppButton";
 
 export default function LocalDriveSyncModal({
   isOpen,
@@ -109,28 +111,28 @@ export default function LocalDriveSyncModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-2xl bg-[var(--app-surface,#1e293b)] border border-[var(--app-border,#334155)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-2xl bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-4 border-b border-[var(--app-border,#334155)] flex items-center justify-between bg-slate-900/50">
+        <div className="p-4 border-b border-[var(--app-border)] flex items-center justify-between bg-[var(--app-surface-2)]">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+            <div className="w-9 h-9 rounded-xl bg-[var(--app-accent)]/15 text-[var(--app-accent)] flex items-center justify-center border border-[var(--app-accent)]/25">
               <HardDrive size={18} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-[var(--app-text,#f8fafc)] flex items-center gap-2">
+              <h3 className="font-bold text-sm text-[var(--app-text-strong)] flex items-center gap-2">
                 Conectivitate &amp; Sincronizare Hard Drive
                 {driveState.connected ? (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.2 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Conectat
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--app-success)] bg-[var(--app-success)]/10 border border-[var(--app-success)]/20 px-2.5 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--app-success)]"></span> Conectat
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.2 rounded-full">
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--app-danger)] bg-[var(--app-danger)]/10 border border-[var(--app-danger)]/20 px-2.5 py-0.5 rounded-full">
                     Deconectat
                   </span>
                 )}
               </h3>
-              <p className="text-xs text-[var(--app-muted,#94a3b8)] font-mono">
+              <p className="text-xs text-[var(--app-muted)] font-mono">
                 {driveState.baseDir || "C:\\Users\\pc1\\Desktop\\DOSARE"}
               </p>
             </div>
@@ -139,7 +141,7 @@ export default function LocalDriveSyncModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:bg-[var(--app-surface)] transition-colors cursor-pointer"
           >
             ✕
           </button>
@@ -149,23 +151,23 @@ export default function LocalDriveSyncModal({
         <div className="p-4 space-y-4 overflow-y-auto flex-1 text-xs">
           {/* Status Metrics Cards */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Dosare Hard Drive</span>
-              <strong className="text-lg font-extrabold text-white font-mono">
+            <div className="p-3 rounded-xl bg-[var(--app-surface-2)] border border-[var(--app-border)] text-center">
+              <span className="text-[11px] text-[var(--app-muted)] block mb-0.5 font-medium">Dosare Hard Drive</span>
+              <strong className="text-xl font-extrabold text-[var(--app-text-strong)] font-mono">
                 {driveCars.length}
               </strong>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Sincronizate Online</span>
-              <strong className="text-lg font-extrabold text-emerald-400 font-mono">
+            <div className="p-3 rounded-xl bg-[var(--app-surface-2)] border border-[var(--app-border)] text-center">
+              <span className="text-[11px] text-[var(--app-muted)] block mb-0.5 font-medium">Sincronizate Online</span>
+              <strong className="text-xl font-extrabold text-[var(--app-success)] font-mono">
                 {matched.length}
               </strong>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 text-center">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Doar pe Calculator</span>
-              <strong className="text-lg font-extrabold text-amber-400 font-mono">
+            <div className="p-3 rounded-xl bg-[var(--app-surface-2)] border border-[var(--app-border)] text-center">
+              <span className="text-[11px] text-[var(--app-muted)] block mb-0.5 font-medium">Doar pe Calculator</span>
+              <strong className="text-xl font-extrabold text-[var(--app-accent)] font-mono">
                 {onlyOnDrive.length}
               </strong>
             </div>
@@ -173,75 +175,77 @@ export default function LocalDriveSyncModal({
 
           {/* Quick Actions Grid */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button
-              type="button"
+            <AppButton
+              variant="secondary"
               onClick={onOpenRoot}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold cursor-pointer"
+              className="text-xs"
             >
-              <ExternalLink size={13} /> Deschide C:\DOSARE în Windows Explorer
-            </button>
+              <ExternalLink size={13} className="text-[var(--app-muted)]" /> Deschide C:\DOSARE în Windows Explorer
+            </AppButton>
 
-            <button
-              type="button"
+            <AppButton
+              variant="secondary"
               onClick={onOrganizeDrive}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold cursor-pointer"
+              className="text-xs"
             >
-              <Sparkles size={13} /> Curăță &amp; Sortează Automat Fișierele pe Categorii
-            </button>
+              <Sparkles size={13} className="text-[var(--app-muted)]" /> Curăță &amp; Sortează Automat Fișierele pe Categorii
+            </AppButton>
 
-            <button
-              type="button"
+            <AppButton
+              variant="primary"
               onClick={() => {
                 onClose();
                 onOpenDriveView?.();
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 font-semibold ml-auto cursor-pointer"
+              className="text-xs ml-auto"
             >
               <ArrowRight size={13} /> Deschide Vizualizarea File Pilot Auto
-            </button>
+            </AppButton>
           </div>
 
           {/* Unsynced Section: Folders on Hard Drive not yet online */}
           {onlyOnDrive.length > 0 && (
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-[var(--app-accent)]/10 border border-[var(--app-accent)]/25 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle size={15} className="text-amber-400" />
-                  <span className="font-bold text-amber-300">
+                  <AlertTriangle size={15} className="text-[var(--app-accent)]" />
+                  <span className="font-bold text-[var(--app-text-strong)] text-xs">
                     {onlyOnDrive.length} dosare găsite pe hard drive nepreluate online
                   </span>
                 </div>
-                <button
-                  type="button"
+                <AppButton
+                  variant="primary"
                   disabled={syncingAll}
                   onClick={handleImportAll}
-                  className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] shadow-sm cursor-pointer"
+                  className="text-xs py-1 px-3"
                 >
                   {syncingAll ? "Se preiau..." : "Preia Toate în Workflow"}
-                </button>
+                </AppButton>
               </div>
 
-              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
+              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
                 {onlyOnDrive.map(({ plate, driveCar }) => (
                   <div
                     key={plate}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px]"
+                    className="flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border-soft)] text-xs"
                   >
-                    <span className="font-mono font-bold text-slate-200">{plate}</span>
-                    <span className="text-slate-400 truncate max-w-[200px]">
-                      {driveCar.clientName || "Fără detalii client"}
-                    </span>
-                    <button
-                      type="button"
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ClaimPlate value={plate} className="text-xs" />
+                      <span className="text-[var(--app-muted)] truncate max-w-[220px]">
+                        {driveCar.clientName || "Fără detalii client"}
+                      </span>
+                    </div>
+                    <AppButton
+                      variant="primary"
                       onClick={async () => {
                         await onImportDriveCar(driveCar);
                         showNotice?.(`Dosar ${plate} preluat online!`, "success");
                         onRefreshDriveCars?.();
                       }}
-                      className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-semibold text-[10px] cursor-pointer"
+                      className="text-[11px] py-1 px-2.5"
                     >
                       + Preia
-                    </button>
+                    </AppButton>
                   </div>
                 ))}
               </div>
@@ -250,45 +254,47 @@ export default function LocalDriveSyncModal({
 
           {/* Unsynced Section: Online Claims without hard drive folder */}
           {onlyOnline.length > 0 && (
-            <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="p-3.5 rounded-xl bg-[var(--app-surface-2)] border border-[var(--app-border)] space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <FolderPlus size={15} className="text-sky-400" />
-                  <span className="font-bold text-sky-300">
+                  <FolderPlus size={15} className="text-[var(--app-accent)]" />
+                  <span className="font-bold text-[var(--app-text-strong)] text-xs">
                     {onlyOnline.length} dosare create online nu au folder pe calculator
                   </span>
                 </div>
-                <button
-                  type="button"
+                <AppButton
+                  variant="primary"
                   disabled={syncingAll}
                   onClick={handlePushAllToDrive}
-                  className="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] shadow-sm cursor-pointer"
+                  className="text-xs py-1 px-3"
                 >
                   {syncingAll ? "Se creează..." : "Creează Foldere pe PC"}
-                </button>
+                </AppButton>
               </div>
 
-              <div className="max-h-36 overflow-y-auto space-y-1 pr-1">
-                {onlyOnline.slice(0, 10).map(({ plate, claim }) => (
+              <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                {onlyOnline.slice(0, 15).map(({ plate, claim }) => (
                   <div
                     key={plate}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-[11px]"
+                    className="flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border-soft)] text-xs"
                   >
-                    <span className="font-mono font-bold text-slate-200">{plate}</span>
-                    <span className="text-slate-400 truncate max-w-[200px]">
-                      {claim.client || "Client nespecificat"}
-                    </span>
-                    <button
-                      type="button"
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ClaimPlate value={plate} className="text-xs" />
+                      <span className="text-[var(--app-muted)] truncate max-w-[220px]">
+                        {claim.client || "Client nespecificat"}
+                      </span>
+                    </div>
+                    <AppButton
+                      variant="primary"
                       onClick={async () => {
                         await onPushClaimToDrive(claim);
                         showNotice?.(`Folder creat pe PC pentru ${plate}!`, "success");
                         onRefreshDriveCars?.();
                       }}
-                      className="px-2 py-0.5 rounded bg-sky-600 hover:bg-sky-500 text-white font-semibold text-[10px] cursor-pointer"
+                      className="text-[11px] py-1 px-2.5"
                     >
                       Creează Folder
-                    </button>
+                    </AppButton>
                   </div>
                 ))}
               </div>
@@ -296,10 +302,10 @@ export default function LocalDriveSyncModal({
           )}
 
           {onlyOnDrive.length === 0 && onlyOnline.length === 0 && (
-            <div className="p-6 text-center text-slate-400 border border-dashed border-slate-700 rounded-xl">
-              <CheckCircle2 size={32} className="mx-auto text-emerald-400 mb-2" />
-              <p className="font-bold text-slate-200">Hard Drive-ul este sincronizat 100% cu Workflow Daune!</p>
-              <p className="text-[11px] text-slate-500 mt-1">
+            <div className="p-6 text-center text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl bg-[var(--app-surface-2)]/30">
+              <CheckCircle2 size={32} className="mx-auto text-[var(--app-success)] mb-2" />
+              <p className="font-bold text-[var(--app-text-strong)]">Hard Drive-ul este sincronizat 100% cu Workflow Daune!</p>
+              <p className="text-[11px] text-[var(--app-muted)] mt-1">
                 Toate folderele create pe calculator sunt preluate automat online în timp real.
               </p>
             </div>
@@ -307,21 +313,21 @@ export default function LocalDriveSyncModal({
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-[var(--app-border,#334155)] bg-slate-900/70 flex items-center justify-between">
+        <div className="p-3 border-t border-[var(--app-border)] bg-[var(--app-surface-2)] flex items-center justify-between">
           <button
             type="button"
             onClick={onRefreshDriveCars}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 font-semibold cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--app-muted)] hover:text-[var(--app-text-strong)] font-semibold cursor-pointer text-xs"
           >
             <RefreshCw size={13} className={loadingDriveCars ? "animate-spin" : ""} /> Reîncarcă starea
           </button>
-          <button
-            type="button"
+          <AppButton
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold cursor-pointer"
+            className="text-xs px-4"
           >
             Închide
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>
