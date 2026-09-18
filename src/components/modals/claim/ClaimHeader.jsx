@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator, Link2, ClipboardList
+  FileText, Car, AlertOctagon, Copy, Download, Loader2, Printer, X, FileCheck, FolderArchive, Calculator, Link2, ClipboardList, ExternalLink
 } from "lucide-react";
 
 import { getStatusDefinition } from "../../../constants/config";

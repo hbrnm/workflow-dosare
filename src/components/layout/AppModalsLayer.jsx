@@ -173,7 +173,7 @@ export default function AppModalsLayer({
       {modalClaim && (
         <ErrorBoundary
           key={activeModalClaim?.id || "new-claim"}
-          onReset={requestCloseClaimModal}
+          onClose={requestCloseClaimModal}
         >
           <ClaimModal
             claim={activeModalClaim}

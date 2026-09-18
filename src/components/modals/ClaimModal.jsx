@@ -1111,10 +1111,11 @@ export default function ClaimModal({
           {/* 9 Segmented Progress Bar */}
           <div className="flex items-center gap-1 h-2 w-full bg-[var(--app-border-soft)] rounded-full overflow-hidden p-0.5">
             {STATUSES.map((s, idx) => {
-              const curIdx = Math.max(0, STATUSES.findIndex((x) => x.key === form.status));
+              const currentStatusKey = getStatusDefinition(form.status).key;
+              const curIdx = Math.max(0, STATUSES.findIndex((x) => x.key === currentStatusKey));
               const isDone = idx < curIdx;
               const isCurrent = idx === curIdx;
-              const phaseColor = getPhaseColors(s.phase)?.bar || "var(--app-muted)";
+              const phaseColor = getPhaseColors(s.key)?.bar || "var(--app-muted)";
 
               return (
                 <button
@@ -1141,7 +1142,7 @@ export default function ClaimModal({
             </span>
 
             <select
-              value={form.status}
+              value={getStatusDefinition(form.status).key}
               onChange={(e) => {
                 handleSelectStatus(e.target.value);
               }}
@@ -1155,7 +1156,7 @@ export default function ClaimModal({
             </select>
           </div>
 
-          {form.status === "programat" && (
+          {getStatusDefinition(form.status).key === "programat" && (
             <ClaimScheduleFields
               dataProgramare={form.dataProgramare}
               readOnly={readOnly}
@@ -1168,16 +1169,21 @@ export default function ClaimModal({
               claim={form}
               canEdit={!readOnly}
               layout="inline"
-              onToggle={(val) => set("pieseSosite", val)}
-              onSchedule={(iso) => {
+              onToggle={(_claim, val) => {
+                const isChecked = typeof val === "boolean" ? val : !!_claim?.pieseSosite;
+                set("pieseSosite", isChecked);
+              }}
+              onSchedule={(_claim, iso) => {
+                const targetIso = typeof iso === "string" ? iso : (typeof _claim === "string" ? _claim : "");
                 setForm((f) => {
                   const draft = applyClaimStatusChange(f, "programat");
-                  draft.dataProgramare = iso;
+                  draft.dataProgramare = targetIso;
                   return draft;
                 });
               }}
-              onPatchDates={(updates) => {
-                setForm((f) => ({ ...f, ...updates }));
+              onPatchDates={(_claim, updates) => {
+                const patch = (updates && typeof updates === "object") ? updates : ((_claim && typeof _claim === "object") ? _claim : {});
+                setForm((f) => ({ ...f, ...patch }));
               }}
             />
           )}

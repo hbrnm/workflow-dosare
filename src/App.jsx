@@ -781,13 +781,9 @@ export default function App() {
       if (!claimOrRef) return;
       const id = typeof claimOrRef === "object" ? claimOrRef.id : claimOrRef;
       const fresh = id ? claims.find((c) => c.id === id) : null;
-      if (activeMode === "desktop") {
-        setDrawerClaim(fresh || claimOrRef);
-      } else {
-        openExisting(fresh || claimOrRef);
-      }
+      openExisting(fresh || claimOrRef);
     },
-    [claims, openExisting, activeMode]
+    [claims, openExisting]
   );
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;

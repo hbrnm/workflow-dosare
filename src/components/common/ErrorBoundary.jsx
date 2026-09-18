@@ -27,9 +27,15 @@ export default class ErrorBoundary extends React.Component {
     // Auto-Healing: dacă este prima eroare pe modul, încearcă o rerandare automată după 150ms
     if (!this.state.autoRetriedOnce && !this.isNetworkOrChunkError(error)) {
       this.setState({ isAutoRetrying: true, autoRetriedOnce: true });
-      setTimeout(() => {
-        this.resetErrorState();
+      this.autoRetryTimer = setTimeout(() => {
+        this.handleAutoRetry();
       }, 150);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.autoRetryTimer) {
+      clearTimeout(this.autoRetryTimer);
     }
   }
 
@@ -43,6 +49,15 @@ export default class ErrorBoundary extends React.Component {
       msg.includes("NetworkError")
     );
   }
+
+  handleAutoRetry = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      isAutoRetrying: false,
+    });
+  };
 
   resetErrorState = () => {
     this.setState({
@@ -62,7 +77,7 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     const { hasError, error, isAutoRetrying } = this.state;
-    const { children, level = "module", fallbackTitle, onGoHome } = this.props;
+    const { children, level = "module", fallbackTitle, onGoHome, onClose } = this.props;
 
     if (!hasError) {
       return children;
@@ -123,7 +138,7 @@ export default class ErrorBoundary extends React.Component {
               <button
                 type="button"
                 onClick={this.handleHardReload}
-                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <RotateCcw size={14} /> Reîncarcă Aplicația
               </button>
@@ -131,9 +146,19 @@ export default class ErrorBoundary extends React.Component {
               <button
                 type="button"
                 onClick={this.resetErrorState}
-                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2.5 bg-[var(--app-accent)] text-[var(--app-accent-text)] text-[12.5px] font-bold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <RotateCcw size={14} /> Reîncearcă
+              </button>
+            )}
+
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3.5 py-2.5 bg-[var(--app-surface-2)] hover:bg-[var(--app-border)] text-[var(--app-text-strong)] text-[12.5px] font-bold rounded-xl transition-all flex items-center gap-1.5 border border-[var(--app-border)] cursor-pointer"
+              >
+                Închide
               </button>
             )}
 
@@ -144,7 +169,7 @@ export default class ErrorBoundary extends React.Component {
                   this.resetErrorState();
                   onGoHome();
                 }}
-                className="px-3.5 py-2.5 bg-[var(--app-surface-2)] hover:bg-[var(--app-border)] text-[var(--app-text-strong)] text-[12.5px] font-bold rounded-xl transition-all flex items-center gap-1.5 border border-[var(--app-border)]"
+                className="px-3.5 py-2.5 bg-[var(--app-surface-2)] hover:bg-[var(--app-border)] text-[var(--app-text-strong)] text-[12.5px] font-bold rounded-xl transition-all flex items-center gap-1.5 border border-[var(--app-border)] cursor-pointer"
               >
                 <Home size={14} /> Acasă
               </button>

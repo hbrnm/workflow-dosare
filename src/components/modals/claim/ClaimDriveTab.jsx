@@ -23,8 +23,8 @@ const CATEGORIES = [
   { key: "05_Dosar_Final", label: "05 Dosar Final", icon: "🏁" },
 ];
 
-export default function ClaimDriveTab({ form, onNotify }) {
-  const plate = normalizePlate(form.numarInmatriculare || "");
+export default function ClaimDriveTab({ form = {}, onNotify }) {
+  const plate = normalizePlate(form?.numarInmatriculare || "");
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
