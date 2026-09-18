@@ -18,7 +18,14 @@ const STORAGE_KEY_URL = "workflow_dosare_local_drive_url";
 export function getLocalDriveUrl() {
   try {
     const custom = localStorage.getItem(STORAGE_KEY_URL);
-    if (custom && custom.trim()) return custom.trim().replace(/\/+$/, "");
+    if (custom && custom.trim()) {
+      const clean = custom.trim().replace(/\/+$/, "");
+      // Nu persista 127.0.0.1 dacă utilizatorul a acordat permisiuni pe localhost
+      if (clean === "http://127.0.0.1:3000" || clean === "127.0.0.1:3000") {
+        return `http://localhost:${DEFAULT_PORT}`;
+      }
+      return clean.startsWith("http") ? clean : `http://${clean}`;
+    }
   } catch {
     /* ignore */
   }
@@ -29,6 +36,14 @@ export function setLocalDriveUrl(url) {
   try {
     if (!url) localStorage.removeItem(STORAGE_KEY_URL);
     else localStorage.setItem(STORAGE_KEY_URL, url.trim().replace(/\/+$/, ""));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function resetLocalDriveUrl() {
+  try {
+    localStorage.removeItem(STORAGE_KEY_URL);
   } catch {
     /* ignore */
   }
@@ -52,7 +67,7 @@ export async function driveFetch(endpoint, options = {}) {
     return res;
   } catch (err) {
     clearTimeout(timeoutId);
-    // Dacă localhost dă eroare (rezoluție DNS / PNA), încercăm direct cu 127.0.0.1
+    // Dacă localhost dă eroare, încercăm o singură dată și cu 127.0.0.1
     if (base.includes("localhost")) {
       const altBase = base.replace("localhost", "127.0.0.1");
       const altCtrl = new AbortController();
@@ -64,7 +79,6 @@ export async function driveFetch(endpoint, options = {}) {
         });
         clearTimeout(altTimer);
         if (altRes.ok || altRes.status < 500) {
-          setLocalDriveUrl(altBase);
           return altRes;
         }
       } catch {

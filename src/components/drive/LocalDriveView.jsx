@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
   AlertCircle, AlertTriangle, RefreshCw, ExternalLink, Sparkles, Plus, Copy,
-  MessageCircle, Upload, ChevronRight, Download, RotateCw, Maximize2,
+  MessageCircle, Upload, ChevronRight, Download, RotateCw, RotateCcw, Maximize2,
   Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck
 } from "lucide-react";
 import {
@@ -17,6 +17,7 @@ import {
   attachDriveTemplate,
   getDriveFileUrl,
   createDriveCar,
+  resetLocalDriveUrl,
 } from "../../utils/localDriveService";
 import { normalizePlate } from "../../utils/plateSchedule";
 import { emptyClaim, generateTrackingToken } from "../../utils/claimModel";
@@ -729,23 +730,49 @@ export default function LocalDriveView({
                 <RefreshCw className="animate-spin inline mr-1.5" size={14} /> Se citesc dosarele de pe hard drive...
               </div>
             ) : loadError ? (
-              <div className="m-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2">
-                <AlertTriangle className="mx-auto text-amber-500" size={22} />
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-200">Permisiune necesară în browser</p>
-                <p className="text-[11px] text-[var(--app-text)] leading-relaxed text-left">
-                  Chrome blochează accesul la serverul PC local până la acordarea permisiunii:
+              <div className="m-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center space-y-2.5">
+                <AlertTriangle className="mx-auto text-amber-500" size={24} />
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-200">
+                  Conexiune Hard Drive indisponibilă
                 </p>
-                <ol className="text-[10.5px] text-[var(--app-text)] text-left list-decimal list-inside space-y-1 bg-[var(--app-surface)] p-2.5 rounded-lg border border-[var(--app-border)]">
-                  <li>Apasă pe pictograma cu setări (lângă <b>workflow-dosare.vercel.app</b> în bara de sus).</li>
-                  <li>Setează <b>"Apps on device"</b> sau <b>"Acces rețea locală"</b> pe <b>Allow (Permite)</b>.</li>
-                </ol>
-                <AppButton
-                  variant="primary"
-                  onClick={() => loadCars(false)}
-                  className="w-full text-xs"
-                >
-                  <RefreshCw size={13} /> Reîncearcă conexiunea
-                </AppButton>
+                <div className="text-[11px] text-[var(--app-text)] text-left space-y-2 bg-[var(--app-surface)] p-2.5 rounded-lg border border-[var(--app-border)]">
+                  <div>
+                    <span className="font-semibold text-amber-700 dark:text-amber-300">1. Aplicația locală rulează pe PC?</span>
+                    <p className="text-[10.5px] text-[var(--app-muted)] mt-0.5 leading-relaxed">
+                      Serverul DOSARE trebuie să ruleze pe calculator la <b>http://localhost:3000</b>. Dacă este oprit, deschide <code>C:\Users\pc1\Desktop\DOSARE</code> și rulează <b>Porneste_Aplicatie.bat</b> (sau <i>Activeaza_Pornire_Automata_Windows.bat</i> pentru pornire permanentă).
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-amber-700 dark:text-amber-300">2. Permisiune Chrome acordată?</span>
+                    <p className="text-[10.5px] text-[var(--app-muted)] mt-0.5 leading-relaxed">
+                      Dacă ai activat deja <b>"Apps on device"</b> în Chrome (așa cum se vede în setări), apasă butonul de reîncercare de mai jos.
+                    </p>
+                  </div>
+                  {loadError && (
+                    <div className="text-[10px] font-mono text-[var(--app-muted)] break-all border-t border-[var(--app-border-soft)] pt-1.5">
+                      Stare: {loadError}
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5 pt-0.5">
+                  <AppButton
+                    variant="primary"
+                    onClick={() => loadCars(false)}
+                    className="w-full text-xs"
+                  >
+                    <RefreshCw size={13} /> Reîncearcă conexiunea
+                  </AppButton>
+                  <AppButton
+                    variant="secondary"
+                    onClick={() => {
+                      resetLocalDriveUrl();
+                      loadCars(false);
+                    }}
+                    className="w-full text-xs text-[var(--app-muted)]"
+                  >
+                    <RotateCcw size={12} /> Resetează adresa la localhost:3000
+                  </AppButton>
+                </div>
               </div>
             ) : filteredCars.length === 0 ? (
               <div className="p-8 text-center text-xs text-[var(--app-muted)]">
