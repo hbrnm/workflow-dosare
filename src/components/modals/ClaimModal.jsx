@@ -375,7 +375,8 @@ export default function ClaimModal({
     if (isNew || !claim?.id) { setIstoric([]); return; }
     setLoadingIstoric(true);
     let cancelled = false;
-    supabase.from("istoric_dosar").select("*").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(100)
+    // Proiecție ușoară: omite câmpurile voluminoase din istoric pentru reducere egress
+    supabase.from("istoric_dosar").select("id, dosar_id, user_email, action, modificari, created_at").eq("dosar_id", claim.id).order("created_at", { ascending: false }).limit(50)
       .then(({ data }) => { if (!cancelled) setIstoric(data || []); })
       .finally(() => setLoadingIstoric(false));
     return () => { cancelled = true; };

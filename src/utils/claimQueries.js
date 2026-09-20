@@ -36,10 +36,14 @@ export const CLAIM_LIST_COLUMNS = [
   "termen_livrare_piese",
   "adusa_fizic",
   "ce_este_de_reparat",
+  "operatiuni",
   "masina_schimb",
+  "data_darii_la_schimb",
+  "zile_chirie_audatex",
   "valoare_piese_audatex",
   "valoare_achizitie_piese",
   "financiar",
+  "manopera",
   "blocat",
   "motiv_blocare",
   "created_by",
@@ -54,7 +58,16 @@ export const CLAIM_LIST_COLUMNS = [
   "alerte_ack",
   "piese_sosite",
   "programare_status",
+  "tracking_token",
+  "termen_plata",
+  "suma_decont",
+  "mesaj_client",
+  "tip_documente",
+  "damage_marks",
   "created_at",
+  // EXCLUSE INTENȚIONAT (JSONB grele cu blob-uri/URL-uri semnate):
+  // "poze", "documente", "note", "devize"
+  // Acestea se încarcă LAZY prin fetchClaimMediaLazy() la deschiderea dosarului.
 ].join(", ");
 
 /**

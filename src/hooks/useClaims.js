@@ -18,6 +18,7 @@ import {
   normalizePlate,
   isValidPlateKey,
 } from "../utils/plateSchedule";
+import { CLAIM_LIST_COLUMNS } from "../utils/claimQueries";
 
 import { DEMO_CLAIMS } from "../utils/demoClaims";
 
@@ -94,7 +95,8 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       return;
     }
 
-    let query = supabase.from("dosare").select("*").order("created_at", { ascending: false });
+    // Proiecție ușoară: omite poze/documente/note (JSONB grele) — se încarcă lazy la deschiderea dosarului
+    let query = supabase.from("dosare").select(CLAIM_LIST_COLUMNS).order("created_at", { ascending: false });
     if (atelierIdRef.current) {
       query = query.eq("atelier_id", atelierIdRef.current);
     } else if (sessionUserId) {
@@ -242,7 +244,9 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         showNotice(error.message, "error");
         return { success: false, error };
       }
-      await loadAll();
+      // Nu mai apelăm loadAll() — real-time granular (INSERT/UPDATE events) sincronizează
+      // lista local fără a redescărca întregul tabel (economisire egress critică).
+      // La noi, INSERT emis de Supabase va apărea imediat prin subscription.
 
       // After modal save, align sibling dosare pe aceeași mașină
       if (scheduleChanged && isValidPlateKey(normalizePlate(claimToSave.numarInmatriculare))) {
@@ -274,7 +278,7 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       showNotice(isNewClaim ? "Dosarul a fost creat." : "Dosarul a fost salvat.", "success");
       return { success: true, openProgramator };
     },
-    [loadAll, myEmail, myId, showNotice]
+    [myEmail, myId, showNotice]
   );
 
   /**
