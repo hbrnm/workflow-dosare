@@ -60,15 +60,26 @@ export async function refreshStorageUrls(items = [], bucketName, supabaseClient)
   return result;
 }
 
-/** Don't persist expired signed URLs — only path (+ metadata). data: URLs kept. */
+/** Don't persist expired signed URLs, blob URLs, or heavy data URLs — only path (+ metadata). */
 export function stripEphemeralMediaUrls(items = []) {
   if (!Array.isArray(items)) return items || [];
   return items.map((item) => {
     if (!item || typeof item !== "object") return item;
-    const url = item.url ? String(item.url) : "";
-    if (url.startsWith("data:")) return item;
-    if (!item.path) return item;
-    const { url: _drop, ...rest } = item;
+    const { dataUrl: _dropDataUrl, ...withoutDataUrl } = item;
+    const url = withoutDataUrl.url ? String(withoutDataUrl.url) : "";
+    // blob: URLs sunt doar locale sesiunii curente de browser — nu au sens persistate pe server
+    if (url.startsWith("blob:")) {
+      const { url: _drop, ...rest } = withoutDataUrl;
+      return rest;
+    }
+    // data: URLs mari (> 4KB) nu trebuie salvate în DB pentru a nu epuiza cota Supabase
+    if (url.startsWith("data:") && url.length > 4096) {
+      const { url: _drop, ...rest } = withoutDataUrl;
+      return rest;
+    }
+    if (url.startsWith("data:")) return withoutDataUrl;
+    if (!withoutDataUrl.path) return withoutDataUrl;
+    const { url: _drop, ...rest } = withoutDataUrl;
     return rest;
   });
 }

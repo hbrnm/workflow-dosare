@@ -18,7 +18,7 @@ import CanvasSignaturePad from "../common/CanvasSignaturePad";
 import CarDamageVisualSelector, { CAR_PANELS } from "../common/CarDamageVisualSelector";
 import { generatePvReceptiePdf } from "../../utils/generatePvReceptiePdf";
 import WhatsAppButton from "../common/WhatsAppButton";
-import { uploadClaimPhoto } from "../../utils/claimMedia";
+import { uploadClaimPhoto, uploadStorageItem } from "../../utils/claimMedia";
 import { supabase } from "../../supabaseClient";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import ConfirmDialog from "../common/ConfirmDialog";
@@ -141,15 +141,34 @@ export default function ReceptieAutoModal({
             if (uploaded) uploadedPoze.push(uploaded);
           } catch (err) {
             console.warn("Could not upload reception photo:", err);
-            // Fallback la salvare locală
+            // Fallback metadata fără base64 în Postgres pentru a preveni explozia de egress
             uploadedPoze.push({
               id: p.id,
               nume: p.name,
               categoria: "receptie",
-              dataUrl: p.dataUrl,
               data: new Date().toISOString(),
             });
           }
+        }
+      }
+
+      // Încărcare document PDF în Storage (documente-dosare) pentru a nu stoca base64 în Postgres
+      let uploadedDoc = null;
+      if (result.blob && claim.id) {
+        try {
+          const pdfFile = new File([result.blob], result.fileName, { type: "application/pdf" });
+          uploadedDoc = await uploadStorageItem({
+            supabaseClient: supabase,
+            bucketName: "documente-dosare",
+            claimId: claim.id,
+            file: pdfFile,
+            folder: "receptie",
+            extraFields: {
+              categorie: "receptie",
+            },
+          });
+        } catch (uploadErr) {
+          console.warn("Could not upload reception PDF to storage:", uploadErr);
         }
       }
 
@@ -158,11 +177,10 @@ export default function ReceptieAutoModal({
         const existingDocs = Array.isArray(claim.documente) ? claim.documente : [];
         const existingPoze = Array.isArray(claim.poze) ? claim.poze : [];
 
-        const newDocItem = {
+        const newDocItem = uploadedDoc || {
           id: `pv_receptie_${Date.now()}`,
           nume: result.fileName,
           categorie: "receptie",
-          dataUrl: result.dataUrl,
           adaugatLa: new Date().toISOString(),
         };
 

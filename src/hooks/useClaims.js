@@ -157,15 +157,38 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
     let debounceTimer = null;
     const channel = supabase
       .channel(`public:dosare_changes_${atelierId || "global"}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "dosare" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "dosare" }, (payload) => {
         // Don't reload if we have pending undo operations — avoid flickering
         const hasPending = pendingDeletes.current.size > 0 || pendingStatusChanges.current.size > 0;
-        if (!hasPending) {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            loadAll();
-          }, 300);
+        if (hasPending) return;
+
+        // Optimizare critică Egress: actualizare granulară fără re-descărcarea întregului tabel la fiecare modificare
+        if (payload?.eventType === "DELETE" && payload.old?.id) {
+          setClaims((prev) => prev.filter((c) => c.id !== payload.old.id));
+          return;
         }
+
+        if (payload?.eventType === "INSERT" && payload.new?.id) {
+          if (atelierIdRef.current && payload.new.atelier_id && payload.new.atelier_id !== atelierIdRef.current) {
+            return;
+          }
+          const newClaim = fromDb(payload.new);
+          setClaims((prev) => [newClaim, ...prev.filter((c) => c.id !== newClaim.id)]);
+          return;
+        }
+
+        if (payload?.eventType === "UPDATE" && payload.new?.id) {
+          const updatedClaim = fromDb(payload.new);
+          setClaims((prev) =>
+            prev.map((c) => (c.id === updatedClaim.id ? { ...c, ...updatedClaim } : c))
+          );
+          return;
+        }
+
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          loadAll();
+        }, 1000);
       })
       .subscribe();
 
