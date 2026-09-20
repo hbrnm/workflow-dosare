@@ -12,5 +12,18 @@ if (!url || !key) {
 // Folosim valori fictive dacă lipsesc variabilele, pentru a preveni erorile de tip crash
 export const supabase = createClient(
   url || "https://placeholder.supabase.co",
-  key || "placeholder-key"
+  key || "placeholder-key",
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+    realtime: {
+      params: {
+        // Limitare rate evenimente realtime — previne flood WebSocket pe Free tier
+        eventsPerSecond: 2,
+      },
+    },
+  }
 );

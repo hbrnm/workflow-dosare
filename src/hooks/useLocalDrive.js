@@ -59,15 +59,21 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
     }
   }, []);
 
-  // Initial check and periodic polling
+  // Initial check and periodic polling — cu back-off după eșecuri consecutive
   useEffect(() => {
+    let failCount = 0;
+    const MAX_FAILS = 3; // după 3 eșecuri oprim polling-ul (server local nu e activ)
+
     checkStatus().then((connected) => {
-      if (connected) refreshDriveCars();
+      if (connected) { failCount = 0; refreshDriveCars(); }
+      else failCount++;
     });
 
     const timer = setInterval(() => {
+      if (failCount >= MAX_FAILS) return; // server local offline — nu mai pollăm
       checkStatus().then((connected) => {
-        if (connected) refreshDriveCars();
+        if (connected) { failCount = 0; refreshDriveCars(); }
+        else failCount++;
       });
     }, 15000);
 
