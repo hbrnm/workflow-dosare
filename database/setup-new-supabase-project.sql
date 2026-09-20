@@ -161,7 +161,8 @@ create table if not exists public.istoric_dosar (
 -- 5. VIEW-URI PUBLICE & BRANDING
 -- ----------------------------------------------------------------------------
 drop view if exists public.setari_publice cascade;
-create view public.setari_publice as
+create view public.setari_publice
+with (security_invoker = true) as
 select
   id,
   capacitate_zilnica,
@@ -179,7 +180,8 @@ from public.setari;
 grant select on public.setari_publice to authenticated;
 
 drop view if exists public.atelier_branding cascade;
-create view public.atelier_branding as
+create view public.atelier_branding
+with (security_invoker = true) as
 select
   id,
   atelier_nume,
@@ -241,6 +243,10 @@ for all to authenticated using (true) with check (true);
 
 create policy "setari_all_authenticated" on public.setari
 for all to authenticated using (true) with check (true);
+
+drop policy if exists "setari_anon_select" on public.setari;
+create policy "setari_anon_select" on public.setari
+for select to anon using (true);
 
 create policy "istoric_all_authenticated" on public.istoric_dosar
 for all to authenticated using (true) with check (true);

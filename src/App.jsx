@@ -262,7 +262,8 @@ export default function App() {
 
   const userCanCreate = canCreateClaim(myRole) && (isAdmin || (effectiveBilling?.canCreateClaim ?? true));
 
-  const brandingGateOpen = !!(session && tenancyReady && isAdmin && needsBrandingSetup(branding));
+  const [brandingGateDismissed, setBrandingGateDismissed] = useState(false);
+  const brandingGateOpen = !!(!brandingGateDismissed && session && tenancyReady && isAdmin && needsBrandingSetup(branding));
 
   const {
     search,
@@ -874,6 +875,7 @@ export default function App() {
           open={brandingGateOpen}
           branding={branding}
           onSave={saveBranding}
+          onDismiss={() => setBrandingGateDismissed(true)}
           onUploadLogo={uploadBrandingLogo}
           onNotify={showNotice}
         />
@@ -1122,6 +1124,7 @@ export default function App() {
         open={brandingGateOpen}
         branding={branding}
         onSave={saveBranding}
+        onDismiss={() => setBrandingGateDismissed(true)}
         onUploadLogo={uploadBrandingLogo}
         onNotify={showNotice}
         desktopUi

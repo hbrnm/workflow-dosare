@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Building2, ImagePlus, X } from "lucide-react";
 import AppButton from "./AppButton";
 import {
@@ -16,6 +16,7 @@ export default function BrandingSetupModal({
   open,
   branding,
   onSave,
+  onDismiss,
   onUploadLogo,
   onNotify,
   desktopUi = false,
@@ -25,16 +26,23 @@ export default function BrandingSetupModal({
   const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!open) return;
-    const nextName = String(branding?.atelierNume || "").trim();
-    setName(nextName);
-    setShort(String(branding?.atelierShort || atelierInitials(nextName)).slice(0, 4));
-    setLogoUrl(String(branding?.logoUrl || "").trim());
-  }, [open, branding]);
+    if (!open) {
+      initializedRef.current = false;
+      return;
+    }
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      const nextName = String(branding?.atelierNume || "").trim();
+      setName(nextName);
+      setShort(String(branding?.atelierShort || atelierInitials(nextName)).slice(0, 4));
+      setLogoUrl(String(branding?.logoUrl || "").trim());
+    }
+  }, [open]);
 
-  useModalEscape(() => {}, { enabled: false });
+  useModalEscape(onDismiss || (() => {}), { enabled: Boolean(onDismiss) });
 
   if (!open) return null;
 
@@ -94,13 +102,25 @@ export default function BrandingSetupModal({
         aria-labelledby="branding-setup-title"
         aria-modal="true"
       >
-        <div className="px-5 pt-5 pb-3 border-b border-[var(--app-border)]">
-          <h2 id="branding-setup-title" className="font-semibold text-[17px] text-[var(--app-text-strong)] tracking-tight">
-            Identitate atelier
-          </h2>
-          <p className="text-[12px] text-[var(--app-muted)] mt-1 leading-relaxed">
-            Numele și logo-ul apar pe laptop și pe telefon. Fără ele, ecranul arată ca un demo.
-          </p>
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-[var(--app-border)]">
+          <div>
+            <h2 id="branding-setup-title" className="font-semibold text-[17px] text-[var(--app-text-strong)] tracking-tight">
+              Identitate atelier
+            </h2>
+            <p className="text-[12px] text-[var(--app-muted)] mt-1 leading-relaxed">
+              Numele și logo-ul apar pe laptop și pe telefon. Fără ele, ecranul arată ca un demo.
+            </p>
+          </div>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text-strong)] rounded-lg hover:bg-[var(--app-surface-2)] transition ml-2"
+              title="Închide"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -135,7 +155,7 @@ export default function BrandingSetupModal({
                   setShort(atelierInitials(v));
                 }
               }}
-              className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-[var(--app-surface)]"
+              className="w-full p-2.5 border border-[var(--app-border,#cbd5e1)] rounded-lg text-[14px] font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--app-accent,#c98a2b)]"
               placeholder="ex. AutoService Popescu"
             />
           </div>
@@ -147,7 +167,7 @@ export default function BrandingSetupModal({
               maxLength={4}
               value={short}
               onChange={(e) => setShort(e.target.value.toUpperCase().slice(0, 4))}
-              className="w-full p-2 border border-[var(--app-border)] rounded-lg text-[13px] font-semibold bg-[var(--app-surface)] uppercase"
+              className="w-full p-2.5 border border-[var(--app-border,#cbd5e1)] rounded-lg text-[14px] font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 uppercase focus:outline-none focus:ring-2 focus:ring-[var(--app-accent,#c98a2b)]"
               placeholder="AP"
             />
           </div>
@@ -173,10 +193,19 @@ export default function BrandingSetupModal({
           </div>
         </div>
 
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 space-y-2">
           <AppButton type="submit" variant="primary" className="w-full app-btn-lg" disabled={saving}>
             <Building2 size={16} /> {saving ? "Se salvează..." : "Salvează identitatea"}
           </AppButton>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="w-full text-center py-1 text-[12px] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] hover:underline"
+            >
+              Configurează mai târziu
+            </button>
+          )}
         </div>
       </form>
     </div>
