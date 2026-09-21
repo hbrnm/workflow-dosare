@@ -301,16 +301,8 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       // Remove from UI immediately
       setClaims((prev) => prev.filter((c) => c.id !== id));
 
-      const clearPendingTimer = () => {
-        const existing = pendingDeletes.current.get(id);
-        if (existing?.timer) clearTimeout(existing.timer);
-      };
-
-      const commitDelete = async () => {
-        // Idempotent — toast + timer pot apela ambele
-        if (!pendingDeletes.current.has(id)) return;
-        clearPendingTimer();
-        pendingDeletes.current.delete(id);
+      // Ștergere imediată din DB (nu mai așteptăm 5s — previne reapariția la refresh)
+      void (async () => {
         const { error } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
         if (error) {
           const raw = error.message || "";
@@ -324,34 +316,16 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
             return already ? prev : [target, ...prev];
           });
         }
-      };
+      })();
 
-      const undoDelete = () => {
-        if (!pendingDeletes.current.has(id)) return;
-        clearPendingTimer();
-        pendingDeletes.current.delete(id);
-        // Restore claim to UI
-        setClaims((prev) => {
-          const already = prev.some((c) => c.id === id);
-          return already ? prev : [target, ...prev];
-        });
-        showNotice(`Dosarul „${target.numarDosar || target.numarInmatriculare}" a fost restaurat.`, "success");
-      };
-
-      clearPendingTimer();
-      const timer = setTimeout(() => {
-        commitDelete();
-      }, 5000);
-      pendingDeletes.current.set(id, { claim: target, commitDelete, undoDelete, timer });
-
-      // Signal parent to show undo toast
+      // Toast informativ (fără undo — dosarul e deja șters din DB)
       onUndoToast?.({
         id,
         icon: "delete",
         message: `Dosarul „${target.numarDosar || target.numarInmatriculare}" a fost șters.`,
-        timeoutMs: 5000,
-        onCommit: commitDelete,
-        onUndo: undoDelete,
+        timeoutMs: 4000,
+        onCommit: () => {},
+        onUndo: () => {},
       });
     },
     [showNotice]
