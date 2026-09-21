@@ -4,8 +4,8 @@ import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
   AlertCircle, AlertTriangle, RefreshCw, ExternalLink, Sparkles, Plus, Copy,
   MessageCircle, Upload, ChevronRight, Download, RotateCw, RotateCcw, Maximize2,
-  Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck,
-  Code, FileSpreadsheet, FileCode2, WrapText, Loader2
+  Code, FileSpreadsheet, FileCode2, WrapText, Loader2,
+  Building2, Calendar, CreditCard, Receipt, Eye
 } from "lucide-react";
 import {
   getDriveCars,
@@ -59,6 +59,114 @@ export function mapOnlineStatusToLocal(onlineStatus) {
     case "accept_plata": return "Accept plată";
     case "facturat": return "Finalizat";
     default: return "Constatare";
+  }
+}
+
+function getXmlTag(str, tag) {
+  if (!str) return "";
+  const reg = new RegExp("<([a-zA-Z0-9_-]+:)?" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/\\1?" + tag + ">", "i");
+  const m = str.match(reg);
+  return m ? m[2].trim() : "";
+}
+
+function getXmlTags(str, tag) {
+  if (!str) return [];
+  const reg = new RegExp("<([a-zA-Z0-9_-]+:)?" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)<\\/\\1?" + tag + ">", "gi");
+  const res = [];
+  let m;
+  while ((m = reg.exec(str)) !== null) {
+    res.push(m[2].trim());
+  }
+  return res;
+}
+
+function parseEFacturaXml(raw) {
+  if (!raw || !raw.includes("Invoice")) return null;
+  try {
+    const isUBL = raw.includes("urn:oasis:names:specification:ubl:schema:xsd:Invoice-2") || raw.includes("efactura");
+    if (!isUBL) return null;
+
+    const supplierParty = getXmlTag(raw, "AccountingSupplierParty");
+    const supplier = {
+      name: getXmlTag(supplierParty, "RegistrationName") || getXmlTag(supplierParty, "Name"),
+      cif: getXmlTag(supplierParty, "CompanyID") || getXmlTag(supplierParty, "ID"),
+      regCom: getXmlTag(supplierParty, "CompanyID"),
+      legalForm: getXmlTag(supplierParty, "CompanyLegalForm"),
+      street: getXmlTag(supplierParty, "StreetName"),
+      city: getXmlTag(supplierParty, "CityName"),
+      subentity: getXmlTag(supplierParty, "CountrySubentity"),
+      country: getXmlTag(supplierParty, "IdentificationCode"),
+      email: getXmlTag(supplierParty, "ElectronicMail") || getXmlTag(supplierParty, "EndpointID"),
+      contactName: getXmlTag(supplierParty, "Name"),
+      phone: getXmlTag(supplierParty, "Telephone")
+    };
+
+    const customerParty = getXmlTag(raw, "AccountingCustomerParty");
+    const customer = {
+      name: getXmlTag(customerParty, "RegistrationName") || getXmlTag(customerParty, "Name"),
+      cif: getXmlTag(customerParty, "CompanyID") || getXmlTag(customerParty, "ID"),
+      regCom: getXmlTag(customerParty, "CompanyID"),
+      street: getXmlTag(customerParty, "StreetName"),
+      city: getXmlTag(customerParty, "CityName"),
+      subentity: getXmlTag(customerParty, "CountrySubentity"),
+      country: getXmlTag(customerParty, "IdentificationCode"),
+      phone: getXmlTag(customerParty, "Telephone"),
+      email: getXmlTag(customerParty, "ElectronicMail"),
+      contactName: getXmlTag(customerParty, "Name")
+    };
+
+    const paymentMeans = getXmlTag(raw, "PaymentMeans");
+    const bank = {
+      iban: getXmlTag(paymentMeans, "ID"),
+      bankName: getXmlTag(paymentMeans, "Name"),
+      paymentCode: getXmlTag(paymentMeans, "PaymentMeansCode")
+    };
+
+    const legalTotal = getXmlTag(raw, "LegalMonetaryTotal");
+    const taxTotal = getXmlTag(raw, "TaxTotal");
+    const taxSubtotal = getXmlTag(taxTotal, "TaxSubtotal");
+
+    const totals = {
+      netAmount: getXmlTag(legalTotal, "LineExtensionAmount") || getXmlTag(legalTotal, "TaxExclusiveAmount"),
+      vatAmount: getXmlTag(taxTotal, "TaxAmount"),
+      vatPercent: getXmlTag(taxSubtotal, "Percent") || "19",
+      grossAmount: getXmlTag(legalTotal, "TaxInclusiveAmount") || getXmlTag(legalTotal, "PayableAmount"),
+      currency: getXmlTag(raw, "DocumentCurrencyCode") || "RON"
+    };
+
+    const notes = getXmlTags(raw, "Note").filter(Boolean);
+
+    const lineBlocks = getXmlTags(raw, "InvoiceLine");
+    const lines = lineBlocks.map((l) => {
+      const item = getXmlTag(l, "Item");
+      const price = getXmlTag(l, "Price");
+      const unitCodeMatch = l.match(/unitCode="([^"]+)"/i);
+      return {
+        id: getXmlTag(l, "ID"),
+        name: getXmlTag(item, "Name"),
+        description: getXmlTag(item, "Description"),
+        quantity: getXmlTag(l, "InvoicedQuantity") || "1",
+        unitCode: unitCodeMatch ? unitCodeMatch[1] : "buc",
+        price: getXmlTag(price, "PriceAmount"),
+        netAmount: getXmlTag(l, "LineExtensionAmount"),
+        vatPercent: getXmlTag(item, "Percent") || totals.vatPercent
+      };
+    });
+
+    return {
+      seriesNumber: getXmlTag(raw, "ID"),
+      issueDate: getXmlTag(raw, "IssueDate"),
+      dueDate: getXmlTag(raw, "DueDate"),
+      typeCode: getXmlTag(raw, "InvoiceTypeCode"),
+      notes,
+      supplier,
+      customer,
+      bank,
+      totals,
+      lines
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -177,6 +285,8 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [textContent, setTextContent] = useState("");
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [viewMode, setViewMode] = useState("formatted"); // "formatted" | "xml"
   const [docxElements, setDocxElements] = useState([]);
   const [copied, setCopied] = useState(false);
   const [wrapLines, setWrapLines] = useState(true);
@@ -189,6 +299,8 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
   useEffect(() => {
     setError(null);
     setTextContent("");
+    setInvoiceData(null);
+    setViewMode("formatted");
     setDocxElements([]);
     setSearchQuery("");
 
@@ -203,8 +315,18 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
           return res.text();
         })
         .then((raw) => {
-          if (ext === "xml") setTextContent(formatXml(raw));
-          else setTextContent(raw);
+          if (ext === "xml") {
+            const parsedInv = parseEFacturaXml(raw);
+            if (parsedInv) {
+              setInvoiceData(parsedInv);
+              setViewMode("formatted");
+            } else {
+              setViewMode("xml");
+            }
+            setTextContent(formatXml(raw));
+          } else {
+            setTextContent(raw);
+          }
         })
         .catch((err) => setError(`Eroare citire fișier: ${err.message}`))
         .finally(() => setLoading(false));
@@ -282,8 +404,9 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
     );
   }
 
-  // 2. XML, STC (Audatex), TXT, CSV, JSON Code/Text Preview
+  // 2. XML, STC (Audatex), TXT, CSV, JSON Code/Text/Invoice Preview
   if (["xml", "stc", "txt", "csv", "json", "log", "ini"].includes(ext)) {
+    const isEFactura = ext === "xml" && !!invoiceData;
     const lines = textContent ? textContent.split("\n") : [];
     const filteredLines = searchQuery
       ? lines.filter((l) => l.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -293,7 +416,9 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
       <div className="w-full h-full flex flex-col min-h-0 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] overflow-hidden shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]/60 text-xs shrink-0">
           <div className="flex items-center gap-2 font-medium text-[var(--app-text-strong)] truncate">
-            {ext === "xml" ? (
+            {isEFactura ? (
+              <Receipt size={15} className="text-emerald-500 shrink-0" />
+            ) : ext === "xml" ? (
               <FileCode2 size={15} className="text-amber-500 shrink-0" />
             ) : ext === "stc" ? (
               <Code size={15} className="text-emerald-500 shrink-0" />
@@ -304,33 +429,66 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
             )}
             <span className="truncate font-mono text-[11px]">{fileName}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-muted)] shrink-0 uppercase font-mono font-bold">
-              {ext === "stc" ? "Audatex STC" : ext === "xml" ? "e-Factura XML" : ext}
+              {isEFactura ? "e-Factura ANAF" : ext === "stc" ? "Audatex STC" : ext === "xml" ? "XML" : ext}
             </span>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <div className="relative flex items-center">
-              <Search size={12} className="absolute left-2 text-[var(--app-muted)]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Caută în fișier..."
-                className="w-24 sm:w-32 pl-6 pr-2 py-1 text-[11px] bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg focus:outline-none focus:border-[var(--app-accent)] text-[var(--app-text)]"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setWrapLines(!wrapLines)}
-              className={`p-1.5 rounded-lg border transition-colors cursor-pointer text-[11px] ${
-                wrapLines
-                  ? "bg-[var(--app-accent)]/15 border-[var(--app-accent)]/40 text-[var(--app-accent-text)]"
-                  : "bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
-              }`}
-              title="Comută Wrap Text"
-            >
-              <WrapText size={13} />
-            </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* View Mode Toggle for e-Factura */}
+            {isEFactura && (
+              <div className="inline-flex p-0.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("formatted")}
+                  className={`px-2 py-0.5 rounded font-semibold cursor-pointer transition-colors ${
+                    viewMode === "formatted"
+                      ? "bg-[var(--app-accent)] text-[var(--app-accent-text)]"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                >
+                  Factură
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("xml")}
+                  className={`px-2 py-0.5 rounded font-semibold cursor-pointer transition-colors ${
+                    viewMode === "xml"
+                      ? "bg-[var(--app-accent)] text-[var(--app-accent-text)]"
+                      : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                >
+                  Cod XML
+                </button>
+              </div>
+            )}
+
+            {viewMode === "xml" && (
+              <>
+                <div className="relative flex items-center">
+                  <Search size={12} className="absolute left-2 text-[var(--app-muted)]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Caută în fișier..."
+                    className="w-24 sm:w-32 pl-6 pr-2 py-1 text-[11px] bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg focus:outline-none focus:border-[var(--app-accent)] text-[var(--app-text)]"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWrapLines(!wrapLines)}
+                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer text-[11px] ${
+                    wrapLines
+                      ? "bg-[var(--app-accent)]/15 border-[var(--app-accent)]/40 text-[var(--app-accent-text)]"
+                      : "bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                  }`}
+                  title="Comută Wrap Text"
+                >
+                  <WrapText size={13} />
+                </button>
+              </>
+            )}
+
             <button
               type="button"
               onClick={handleCopy}
@@ -370,7 +528,7 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 relative overflow-auto bg-[var(--app-surface-2)]/20 p-3">
+        <div className="flex-1 min-h-0 relative overflow-auto bg-neutral-100 dark:bg-neutral-900/40 p-3 sm:p-6 flex justify-center">
           {loading ? (
             <div className="h-full flex flex-col items-center justify-center text-[var(--app-muted)] text-xs gap-2">
               <Loader2 className="animate-spin text-[var(--app-accent)]" size={24} />
@@ -382,21 +540,192 @@ function LocalDocumentPreviewer({ file, fileUrl }) {
               <div className="font-semibold text-[var(--app-text-strong)] mb-1">Eroare încărcare</div>
               <div className="text-[var(--app-muted)] max-w-sm">{error}</div>
             </div>
-          ) : (
-            <pre
-              className={`text-[12px] font-mono leading-relaxed text-[var(--app-text)] selection:bg-[var(--app-accent)]/30 ${
-                wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
-              }`}
-            >
-              {filteredLines.map((line, idx) => (
-                <div key={idx} className="flex hover:bg-[var(--app-surface-2)]/60 rounded px-1">
-                  <span className="w-10 select-none text-[10px] text-[var(--app-muted)]/60 text-right pr-3 font-mono shrink-0">
-                    {idx + 1}
-                  </span>
-                  <span className="flex-1 font-mono">{line || " "}</span>
+          ) : isEFactura && viewMode === "formatted" && invoiceData ? (
+            /* ========================================================================= */
+            /* FACTURA VIZUALĂ CURATĂ ȘI LIZIBILĂ PENTRU ORICINE (UBL RO e-Factura ANAF) */
+            /* ========================================================================= */
+            <div className="w-full max-w-3xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-md border border-neutral-200 dark:border-neutral-700 p-6 sm:p-8 space-y-6 self-start">
+              {/* Header Factură */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-neutral-200 dark:border-neutral-700 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <Receipt size={13} /> e-Factura ANAF (UBL 2.1)
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+                    FACTURĂ FISCALĂ
+                  </h2>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-neutral-600 dark:text-neutral-300">
+                    <span>Serie / Număr: <strong className="font-mono text-neutral-900 dark:text-white">{invoiceData.seriesNumber || "—"}</strong></span>
+                  </div>
                 </div>
-              ))}
-            </pre>
+
+                <div className="bg-neutral-50 dark:bg-neutral-700/40 p-3 rounded-xl border border-neutral-200/80 dark:border-neutral-700 text-xs space-y-1.5 shrink-0">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-neutral-500 dark:text-neutral-400">Data emiterii:</span>
+                    <span className="font-semibold text-neutral-900 dark:text-white">{invoiceData.issueDate || "—"}</span>
+                  </div>
+                  {invoiceData.dueDate && (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-neutral-500 dark:text-neutral-400">Data scadenței:</span>
+                      <span className="font-semibold text-red-600 dark:text-red-400">{invoiceData.dueDate}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-neutral-500 dark:text-neutral-400">Monedă:</span>
+                    <span className="font-bold text-neutral-900 dark:text-white font-mono">{invoiceData.totals?.currency || "RON"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Furnizor & Client */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Furnizor */}
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/70 dark:bg-neutral-700/20 space-y-2">
+                  <div className="flex items-center gap-1.5 font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[10px]">
+                    <Building2 size={13} className="text-[var(--app-accent)]" /> Furnizor (Emitent)
+                  </div>
+                  <div className="font-bold text-sm text-neutral-900 dark:text-white">
+                    {invoiceData.supplier?.name || "—"}
+                  </div>
+                  <div className="space-y-1 text-neutral-600 dark:text-neutral-300">
+                    <div><strong>CIF / CUI:</strong> <span className="font-mono">{invoiceData.supplier?.cif || "—"}</span></div>
+                    {invoiceData.supplier?.regCom && <div><strong>Reg. Com:</strong> {invoiceData.supplier.regCom}</div>}
+                    {invoiceData.supplier?.address && <div><strong>Adresă:</strong> {invoiceData.supplier.address}</div>}
+                    {invoiceData.supplier?.email && <div><strong>Email:</strong> {invoiceData.supplier.email}</div>}
+                    {invoiceData.supplier?.contactName && <div><strong>Pers. contact:</strong> {invoiceData.supplier.contactName}</div>}
+                  </div>
+                </div>
+
+                {/* Client / Beneficiar */}
+                <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/70 dark:bg-neutral-700/20 space-y-2">
+                  <div className="flex items-center gap-1.5 font-bold text-neutral-700 dark:text-neutral-300 uppercase tracking-wider text-[10px]">
+                    <Building2 size={13} className="text-blue-500" /> Client (Beneficiar)
+                  </div>
+                  <div className="font-bold text-sm text-neutral-900 dark:text-white">
+                    {invoiceData.customer?.name || "—"}
+                  </div>
+                  <div className="space-y-1 text-neutral-600 dark:text-neutral-300">
+                    <div><strong>CIF / CUI:</strong> <span className="font-mono">{invoiceData.customer?.cif || "—"}</span></div>
+                    {invoiceData.customer?.address && <div><strong>Adresă:</strong> {invoiceData.customer.address}</div>}
+                    {invoiceData.customer?.phone && <div><strong>Telefon:</strong> {invoiceData.customer.phone}</div>}
+                    {invoiceData.customer?.email && <div><strong>Email:</strong> {invoiceData.customer.email}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Informații bancare */}
+              {invoiceData.bank?.iban && (
+                <div className="p-3 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-700/20 text-xs flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={15} className="text-neutral-500" />
+                    <span><strong>Cont IBAN:</strong> <span className="font-mono font-bold text-neutral-900 dark:text-white">{invoiceData.bank.iban}</span></span>
+                  </div>
+                  {invoiceData.bank.bankName && (
+                    <span className="text-neutral-500 dark:text-neutral-400">Bancă: <strong>{invoiceData.bank.bankName}</strong></span>
+                  )}
+                </div>
+              )}
+
+              {/* Tabel Linii Factură */}
+              <div className="rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden shadow-2xs">
+                <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700 text-xs">
+                  <thead className="bg-neutral-100 dark:bg-neutral-700/60 font-bold text-neutral-700 dark:text-neutral-200">
+                    <tr>
+                      <th className="py-2.5 px-3 text-left">Nr.</th>
+                      <th className="py-2.5 px-3 text-left">Denumire Produse / Servicii</th>
+                      <th className="py-2.5 px-3 text-center">Cant.</th>
+                      <th className="py-2.5 px-3 text-right">Preț Unitar</th>
+                      <th className="py-2.5 px-3 text-right">Valoare Net</th>
+                      <th className="py-2.5 px-3 text-right">TVA (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700 bg-white dark:bg-neutral-800">
+                    {invoiceData.lines?.map((line, idx) => (
+                      <tr key={idx} className="hover:bg-neutral-50/80 dark:hover:bg-neutral-700/30 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-neutral-400">{idx + 1}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-neutral-900 dark:text-white">{line.name || "Articol"}</div>
+                          {line.description && (
+                            <div className="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5">{line.description}</div>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono">
+                          {line.quantity} {line.unitCode !== "H87" ? line.unitCode : "buc"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-neutral-700 dark:text-neutral-300">
+                          {line.price ? Number(line.price).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-medium text-neutral-900 dark:text-white">
+                          {line.netAmount ? Number(line.netAmount).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono text-neutral-600 dark:text-neutral-400">
+                          {line.vatPercent || "19"}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totaluri & Notițe */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                {/* Note / Mențiuni legale */}
+                <div className="space-y-2">
+                  {invoiceData.notes?.length > 0 && (
+                    <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-neutral-600 dark:text-neutral-300">
+                      <div className="font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider text-[10px] mb-1">
+                        Mențiuni Factură:
+                      </div>
+                      <div className="space-y-1">
+                        {invoiceData.notes.map((note, nIdx) => (
+                          <p key={nIdx} className="leading-relaxed">{note}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Caseta de Totaluri */}
+                <div className="bg-neutral-50 dark:bg-neutral-700/40 p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 text-xs space-y-2">
+                  <div className="flex justify-between text-neutral-600 dark:text-neutral-300">
+                    <span>Valoare Netă:</span>
+                    <span className="font-mono font-semibold">
+                      {invoiceData.totals?.netAmount ? Number(invoiceData.totals.netAmount).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "—"} {invoiceData.totals?.currency}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-neutral-600 dark:text-neutral-300">
+                    <span>TVA ({invoiceData.totals?.vatPercent}%):</span>
+                    <span className="font-mono font-semibold">
+                      {invoiceData.totals?.vatAmount ? Number(invoiceData.totals.vatAmount).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "—"} {invoiceData.totals?.currency}
+                    </span>
+                  </div>
+                  <div className="border-t border-neutral-200 dark:border-neutral-600 pt-2 flex justify-between items-baseline">
+                    <span className="font-bold text-sm text-neutral-900 dark:text-white">TOTAL DE PLATĂ:</span>
+                    <span className="font-mono font-black text-lg text-emerald-600 dark:text-emerald-400">
+                      {invoiceData.totals?.grossAmount ? Number(invoiceData.totals.grossAmount).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "—"} {invoiceData.totals?.currency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Vizualizator text / cod XML / STC */
+            <div className="w-full bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] p-3">
+              <pre
+                className={`text-[12px] font-mono leading-relaxed text-[var(--app-text)] selection:bg-[var(--app-accent)]/30 ${
+                  wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
+                }`}
+              >
+                {filteredLines.map((line, idx) => (
+                  <div key={idx} className="flex hover:bg-[var(--app-surface-2)]/60 rounded px-1">
+                    <span className="w-10 select-none text-[10px] text-[var(--app-muted)]/60 text-right pr-3 font-mono shrink-0">
+                      {idx + 1}
+                    </span>
+                    <span className="flex-1 font-mono">{line || " "}</span>
+                  </div>
+                ))}
+              </pre>
+            </div>
           )}
         </div>
       </div>
