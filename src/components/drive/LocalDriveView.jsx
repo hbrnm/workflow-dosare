@@ -6,7 +6,7 @@ import {
   MessageCircle, Upload, ChevronRight, Download, RotateCw, RotateCcw, Maximize2,
   Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck,
   Code, FileSpreadsheet, FileCode2, WrapText, Loader2,
-  Building2, Calendar, CreditCard, Receipt, Eye
+  Building2, Calendar, CreditCard, Receipt, Eye, LayoutGrid, List
 } from "lucide-react";
 import {
   getDriveCars,
@@ -913,6 +913,7 @@ export default function LocalDriveView({
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("03_Foto_Dauna");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [filesViewMode, setFilesViewMode] = useState("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [inspectorTab, setInspectorTab] = useState("parts");
@@ -1558,6 +1559,8 @@ export default function LocalDriveView({
   };
 
   const activeCategoryFiles = carDetails?.categories?.[selectedCategory] || [];
+  const imageFiles = useMemo(() => activeCategoryFiles.filter((f) => f.isImage), [activeCategoryFiles]);
+  const otherFiles = useMemo(() => activeCategoryFiles.filter((f) => !f.isImage), [activeCategoryFiles]);
 
   return (
     <div className="flex flex-col h-full bg-[var(--app-surface)] text-[var(--app-text)] font-sans overflow-hidden rounded-2xl border border-[var(--app-border)] shadow-xs transition-colors">
@@ -1951,9 +1954,39 @@ export default function LocalDriveView({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2.5 space-y-1 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5 scrollbar-thin">
             <div className="flex items-center justify-between text-xs text-[var(--app-muted)] px-1 pb-1">
               <span className="font-semibold">Fișiere în folder ({activeCategoryFiles.length})</span>
+              {imageFiles.length > 0 && (
+                <div className="flex items-center gap-0.5 bg-[var(--app-surface-2)] p-0.5 rounded-lg border border-[var(--app-border)]">
+                  <button
+                    type="button"
+                    onClick={() => setFilesViewMode("grid")}
+                    className={`p-1 rounded cursor-pointer transition-colors ${
+                      filesViewMode === "grid"
+                        ? "bg-[var(--app-surface)] text-[var(--app-accent)] shadow-2xs font-bold"
+                        : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                    }`}
+                    title="Miniaturi foto (grilă)"
+                    aria-label="Vizualizare miniaturi foto"
+                  >
+                    <LayoutGrid size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilesViewMode("list")}
+                    className={`p-1 rounded cursor-pointer transition-colors ${
+                      filesViewMode === "list"
+                        ? "bg-[var(--app-surface)] text-[var(--app-accent)] shadow-2xs font-bold"
+                        : "text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                    }`}
+                    title="Listă fișiere"
+                    aria-label="Vizualizare listă fișiere"
+                  >
+                    <List size={12} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {loadingDetails ? (
@@ -1966,6 +1999,113 @@ export default function LocalDriveView({
                 <div className="text-[11px] text-[var(--app-muted)] mt-1">
                   Încarcă fișiere sau atașează din șabloane.
                 </div>
+              </div>
+            ) : filesViewMode === "grid" && imageFiles.length > 0 ? (
+              <div className="space-y-2.5">
+                {/* Grilă miniaturi pentru fotografii */}
+                <div className="grid grid-cols-3 gap-2">
+                  {imageFiles.map((f) => {
+                    const isSelected = selectedFile?.name === f.name;
+                    const fileUrl = getDriveFileUrl(selectedCarName, selectedCategory, f.name);
+                    return (
+                      <div
+                        key={f.name}
+                        onClick={() => {
+                          setSelectedFile(f);
+                          setImgRotation(0);
+                        }}
+                        title={`${f.name} • ${(f.size / (1024 * 1024)).toFixed(1)}MB`}
+                        className={`group relative aspect-square rounded-xl overflow-hidden cursor-pointer border transition-all ${
+                          isSelected
+                            ? "ring-2 ring-[var(--app-accent)] border-[var(--app-accent)] shadow-md scale-[0.98]"
+                            : "border-[var(--app-border)] hover:border-[var(--app-accent)]/60 bg-[var(--app-surface-2)]/60 hover:bg-[var(--app-surface-2)]"
+                        }`}
+                      >
+                        <img
+                          src={fileUrl}
+                          alt={f.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-1.5 pointer-events-none">
+                          <span className="text-[10px] font-mono text-white/95 truncate max-w-[65%] font-medium">
+                            {(f.size / (1024 * 1024)).toFixed(1)}M
+                          </span>
+                          <a
+                            href={fileUrl}
+                            download={f.name}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors pointer-events-auto"
+                            title="Descarcă fotografia"
+                          >
+                            <Download size={11} />
+                          </a>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-text)] flex items-center justify-center shadow-xs">
+                            <Check size={10} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Alte fișiere non-imagine din folder */}
+                {otherFiles.length > 0 && (
+                  <div className="space-y-1 pt-1.5 border-t border-[var(--app-border-soft)]">
+                    <div className="text-[10px] font-semibold text-[var(--app-muted)] uppercase tracking-wider px-1">
+                      Documente ({otherFiles.length})
+                    </div>
+                    {otherFiles.map((f) => {
+                      const isSelected = selectedFile?.name === f.name;
+                      return (
+                        <div
+                          key={f.name}
+                          onClick={() => {
+                            setSelectedFile(f);
+                            setImgRotation(0);
+                          }}
+                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer text-xs transition-all border ${
+                            isSelected
+                              ? "bg-[var(--app-accent)]/10 border-[var(--app-accent)] text-[var(--app-text-strong)] font-semibold shadow-2xs"
+                              : "bg-[var(--app-surface-2)]/40 hover:bg-[var(--app-surface-2)] border-transparent text-[var(--app-text)]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            {f.isVideo ? (
+                              <Film size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
+                            ) : f.name?.toLowerCase().endsWith(".pdf") ? (
+                              <FileText size={15} className={isSelected ? "text-red-500 shrink-0" : "text-red-400/80 shrink-0"} />
+                            ) : f.name?.toLowerCase().endsWith(".xml") ? (
+                              <FileCode2 size={15} className={isSelected ? "text-amber-500 shrink-0" : "text-amber-400/80 shrink-0"} />
+                            ) : f.name?.toLowerCase().endsWith(".stc") ? (
+                              <Code size={15} className={isSelected ? "text-emerald-500 shrink-0" : "text-emerald-400/80 shrink-0"} />
+                            ) : (f.name?.toLowerCase().endsWith(".doc") || f.name?.toLowerCase().endsWith(".docx")) ? (
+                              <FileText size={15} className={isSelected ? "text-blue-500 shrink-0" : "text-blue-400/80 shrink-0"} />
+                            ) : (
+                              <FileText size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
+                            )}
+                            <span className="truncate font-mono text-[11px]">{f.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 text-[10px] text-[var(--app-muted)]">
+                            <span>{(f.size / (1024 * 1024)).toFixed(1)}MB</span>
+                            <a
+                              href={getDriveFileUrl(selectedCarName, selectedCategory, f.name)}
+                              download={f.name}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1 rounded hover:bg-[var(--app-surface-muted)] text-[var(--app-text)] transition-colors"
+                              title="Descarcă"
+                            >
+                              <Download size={12} />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ) : (
               activeCategoryFiles.map((f) => {
@@ -1985,7 +2125,12 @@ export default function LocalDriveView({
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       {f.isImage ? (
-                        <Image size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
+                        <img
+                          src={getDriveFileUrl(selectedCarName, selectedCategory, f.name)}
+                          alt=""
+                          loading="lazy"
+                          className="w-6 h-6 rounded-md object-cover shrink-0 border border-[var(--app-border)]"
+                        />
                       ) : f.isVideo ? (
                         <Film size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       ) : f.name?.toLowerCase().endsWith(".pdf") ? (
