@@ -301,11 +301,46 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       // Remove from UI immediately
       setClaims((prev) => prev.filter((c) => c.id !== id));
 
-      // Ștergere imediată din DB (nu mai așteptăm 5s — previne reapariția la refresh)
+      // Ștergere imediată din DB cu fallback robust dacă RPC-ul lipsește
       void (async () => {
-        const { error } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
-        if (error) {
-          const raw = error.message || "";
+        let deleteError = null;
+        try {
+          const { error: rpcError } = await supabase.rpc("delete_dosar_with_archive", { p_dosar_id: id });
+          if (rpcError) {
+            const rpcMsg = String(rpcError.message || "");
+            const isMissingRpc =
+              rpcMsg.includes("Could not find the function") ||
+              rpcMsg.includes("schema cache") ||
+              rpcError.code === "PGRST202" ||
+              rpcError.code === "42883";
+
+            if (isMissingRpc) {
+              // Fallback: funcția RPC delete_dosar_with_archive nu a fost instalată în Supabase.
+              // Ștergem întâi din istoric_dosar (pentru evitarea erorilor FK dacă lipsește CASCADE),
+              // apoi ștergem dosarul din tabela dosare.
+              try {
+                await supabase.from("istoric_dosar").delete().eq("dosar_id", id);
+              } catch (_) {}
+              const { error: directErr } = await supabase.from("dosare").delete().eq("id", id);
+              if (directErr) {
+                deleteError = directErr;
+              }
+            } else {
+              deleteError = rpcError;
+            }
+          }
+        } catch (err) {
+          try {
+            await supabase.from("istoric_dosar").delete().eq("dosar_id", id);
+            const { error: directErr } = await supabase.from("dosare").delete().eq("id", id);
+            if (directErr) deleteError = directErr;
+          } catch (err2) {
+            deleteError = err2;
+          }
+        }
+
+        if (deleteError) {
+          const raw = deleteError.message || "";
           const friendly = /foreign key|update or delete on table/i.test(raw)
             ? "Nu am putut șterge dosarul (legate de istoric). Rulează migrarea 28 în Supabase, apoi reîncearcă."
             : raw || "Eroare la ștergerea dosarului.";

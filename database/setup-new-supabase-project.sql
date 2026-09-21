@@ -145,7 +145,7 @@ values ('default', 'Dosare Daună', 'WD', 'pro')
 on conflict (slug) do nothing;
 
 -- ----------------------------------------------------------------------------
--- 4. TABEL ISTORIC DOSAR
+-- 4. TABEL ISTORIC DOSAR & ARHIVĂ
 -- ----------------------------------------------------------------------------
 create table if not exists public.istoric_dosar (
   id uuid primary key default gen_random_uuid(),
@@ -156,6 +156,52 @@ create table if not exists public.istoric_dosar (
   campuri_modificate jsonb default '{}'::jsonb,
   created_at timestamptz default now()
 );
+
+create table if not exists public.dosare_arhiva (
+  id uuid primary key,
+  payload jsonb not null,
+  arhivat_at timestamptz not null default now(),
+  arhivat_de uuid,
+  arhivat_de_email text,
+  atelier_id uuid references public.ateliere(id) on delete cascade
+);
+
+create or replace function public.delete_dosar_with_archive(p_dosar_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row public.dosare%rowtype;
+  v_email text := coalesce(auth.jwt() ->> 'email', '');
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'Neautentificat';
+  end if;
+
+  select * into v_row from public.dosare where id = p_dosar_id for update;
+  if not found then
+    return;
+  end if;
+
+  insert into public.dosare_arhiva (id, payload, arhivat_de, arhivat_de_email, atelier_id)
+  values (v_row.id, to_jsonb(v_row), v_uid, v_email, v_row.atelier_id)
+  on conflict (id) do update
+    set payload = excluded.payload,
+        arhivat_at = now(),
+        arhivat_de = excluded.arhivat_de,
+        arhivat_de_email = excluded.arhivat_de_email,
+        atelier_id = excluded.atelier_id;
+
+  delete from public.istoric_dosar where dosar_id = p_dosar_id;
+  delete from public.dosare where id = p_dosar_id;
+end;
+$$;
+
+revoke all on function public.delete_dosar_with_archive(uuid) from public;
+grant execute on function public.delete_dosar_with_archive(uuid) to authenticated;
 
 -- ----------------------------------------------------------------------------
 -- 5. VIEW-URI PUBLICE & BRANDING
