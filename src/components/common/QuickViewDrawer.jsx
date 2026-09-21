@@ -69,16 +69,37 @@ export default function QuickViewDrawer({
     };
   }, [claim?.id, claim?.poze]);
 
-  // Handle escape key
+  // Handle keyboard shortcuts (Escape, Spacebar QuickLook)
   useEffect(() => {
-    const handleEsc = (e) => {
+    const handleKey = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
       if (e.key === "Escape" && claim) {
+        if (previewIndex != null) return;
         onClose();
+        return;
+      }
+
+      if (e.code === "Space" || e.key === " ") {
+        if (previewIndex != null) return;
+        if (claim && photos.length > 0) {
+          e.preventDefault();
+          setPreviewIndex(0);
+        }
       }
     };
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [claim, onClose]);
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [claim, onClose, previewIndex, photos]);
 
   const nextStatus = useMemo(() => {
     if (!claim?.status) return null;

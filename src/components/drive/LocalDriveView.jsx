@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import JSZip from "jszip";
 import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
@@ -8,6 +8,7 @@ import {
   Code, FileSpreadsheet, FileCode2, WrapText, Loader2,
   Building2, Calendar, CreditCard, Receipt, Eye, LayoutGrid, List
 } from "lucide-react";
+import PhotoLightbox from "../common/PhotoLightbox";
 import {
   getDriveCars,
   getDriveCarDetails,
@@ -918,6 +919,7 @@ export default function LocalDriveView({
   const [stageFilter, setStageFilter] = useState("all");
   const [inspectorTab, setInspectorTab] = useState("parts");
   const [imgRotation, setImgRotation] = useState(0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
 
   // Inspector form states
   const [piese, setPiese] = useState("");
@@ -1562,6 +1564,110 @@ export default function LocalDriveView({
   const imageFiles = useMemo(() => activeCategoryFiles.filter((f) => f.isImage), [activeCategoryFiles]);
   const otherFiles = useMemo(() => activeCategoryFiles.filter((f) => !f.isImage), [activeCategoryFiles]);
 
+  const drivePhotoItems = useMemo(() => {
+    return imageFiles.map((f) => ({
+      id: f.name,
+      name: f.name,
+      nume: f.name,
+      url: getDriveFileUrl(selectedCarName, selectedCategory, f.name),
+      size: f.size,
+      category: selectedCategory,
+      categoria: selectedCategory,
+    }));
+  }, [imageFiles, selectedCarName, selectedCategory]);
+
+  const handleLightboxIndexChange = useCallback(
+    (newIdx) => {
+      if (imageFiles[newIdx]) {
+        setSelectedFile(imageFiles[newIdx]);
+      }
+    },
+    [imageFiles]
+  );
+
+  // Keyboard navigation: Spacebar QuickLook, Arrow keys gallery, 'r' Rotate, Esc
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (isNewCarModalOpen || isSyncModalOpen || isTemplatesOpen) {
+        return;
+      }
+
+      // Spacebar: QuickLook Preview Toggle
+      if (e.code === "Space" || e.key === " ") {
+        e.preventDefault();
+        if (lightboxIndex !== null) {
+          setLightboxIndex(null);
+        } else if (selectedFile?.isImage) {
+          const idx = imageFiles.findIndex((f) => f.name === selectedFile.name);
+          setLightboxIndex(idx >= 0 ? idx : 0);
+        } else if (imageFiles.length > 0) {
+          setLightboxIndex(0);
+        }
+        return;
+      }
+
+      // 'r' or 'R': Rotate current image by 90°
+      if (e.key === "r" || e.key === "R") {
+        if (selectedFile?.isImage) {
+          e.preventDefault();
+          setImgRotation((r) => (r + 90) % 360);
+        }
+        return;
+      }
+
+      // Escape: close lightbox if open
+      if (e.key === "Escape") {
+        if (lightboxIndex !== null) {
+          e.preventDefault();
+          setLightboxIndex(null);
+          return;
+        }
+      }
+
+      // Arrow navigation through files in the current folder (when lightbox is closed)
+      if (lightboxIndex === null && activeCategoryFiles.length > 0) {
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+          e.preventDefault();
+          const curIdx = activeCategoryFiles.findIndex((f) => f.name === selectedFile?.name);
+          const nextIdx = curIdx >= 0 ? (curIdx + 1) % activeCategoryFiles.length : 0;
+          setSelectedFile(activeCategoryFiles[nextIdx]);
+          setImgRotation(0);
+        } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+          e.preventDefault();
+          const curIdx = activeCategoryFiles.findIndex((f) => f.name === selectedFile?.name);
+          const prevIdx =
+            curIdx >= 0
+              ? (curIdx - 1 + activeCategoryFiles.length) % activeCategoryFiles.length
+              : activeCategoryFiles.length - 1;
+          setSelectedFile(activeCategoryFiles[prevIdx]);
+          setImgRotation(0);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    lightboxIndex,
+    selectedFile,
+    imageFiles,
+    activeCategoryFiles,
+    isNewCarModalOpen,
+    isSyncModalOpen,
+    isTemplatesOpen,
+  ]);
+
   return (
     <div className="flex flex-col h-full bg-[var(--app-surface)] text-[var(--app-text)] font-sans overflow-hidden rounded-2xl border border-[var(--app-border)] shadow-xs transition-colors">
       {/* TOP HEADER: BREADCRUMBS & ACTIONS */}
@@ -2014,7 +2120,11 @@ export default function LocalDriveView({
                           setSelectedFile(f);
                           setImgRotation(0);
                         }}
-                        title={`${f.name} • ${(f.size / (1024 * 1024)).toFixed(1)}MB`}
+                        onDoubleClick={() => {
+                          const idx = imageFiles.findIndex((x) => x.name === f.name);
+                          setLightboxIndex(idx >= 0 ? idx : 0);
+                        }}
+                        title={`${f.name} • ${(f.size / (1024 * 1024)).toFixed(1)}MB (Dublu-click sau Space pentru mărire)`}
                         className={`group relative aspect-square rounded-xl overflow-hidden cursor-pointer border transition-all ${
                           isSelected
                             ? "ring-2 ring-[var(--app-accent)] border-[var(--app-accent)] shadow-md scale-[0.98]"
@@ -2028,18 +2138,32 @@ export default function LocalDriveView({
                           className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-1.5 pointer-events-none">
-                          <span className="text-[10px] font-mono text-white/95 truncate max-w-[65%] font-medium">
+                          <span className="text-[10px] font-mono text-white/95 truncate max-w-[60%] font-medium">
                             {(f.size / (1024 * 1024)).toFixed(1)}M
                           </span>
-                          <a
-                            href={fileUrl}
-                            download={f.name}
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors pointer-events-auto"
-                            title="Descarcă fotografia"
-                          >
-                            <Download size={11} />
-                          </a>
+                          <div className="flex items-center gap-1 pointer-events-auto">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const idx = imageFiles.findIndex((x) => x.name === f.name);
+                                setLightboxIndex(idx >= 0 ? idx : 0);
+                              }}
+                              className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors cursor-pointer"
+                              title="Previzualizează fotografie (Space)"
+                            >
+                              <Maximize2 size={11} />
+                            </button>
+                            <a
+                              href={fileUrl}
+                              download={f.name}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1 rounded bg-black/60 hover:bg-black/90 text-white transition-colors"
+                              title="Descarcă fotografia"
+                            >
+                              <Download size={11} />
+                            </a>
+                          </div>
                         </div>
                         {isSelected && (
                           <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-text)] flex items-center justify-center shadow-xs">
@@ -2197,16 +2321,32 @@ export default function LocalDriveView({
                   src={getDriveFileUrl(selectedCarName, selectedCategory, selectedFile.name)}
                   alt={selectedFile.name}
                   style={{ transform: `rotate(${imgRotation}deg)` }}
-                  className="max-h-[50vh] sm:max-h-[58vh] max-w-full object-contain rounded-xl shadow-md transition-transform duration-200"
+                  onClick={() => {
+                    const idx = imageFiles.findIndex((f) => f.name === selectedFile.name);
+                    setLightboxIndex(idx >= 0 ? idx : 0);
+                  }}
+                  className="max-h-[50vh] sm:max-h-[58vh] max-w-full object-contain rounded-xl shadow-md transition-transform duration-200 cursor-zoom-in"
+                  title="Apasă Space sau click pentru galerie ecran complet (QuickLook)"
                 />
                 <div className="absolute top-2 right-2 flex items-center gap-1 bg-[var(--app-surface)]/90 backdrop-blur border border-[var(--app-border)] p-1 rounded-lg shadow-sm">
                   <button
                     type="button"
                     onClick={() => setImgRotation((r) => (r + 90) % 360)}
                     className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)] rounded cursor-pointer transition-colors"
-                    title="Rotește 90°"
+                    title="Rotește 90° (Tasta R)"
                   >
                     <RotateCw size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const idx = imageFiles.findIndex((f) => f.name === selectedFile.name);
+                      setLightboxIndex(idx >= 0 ? idx : 0);
+                    }}
+                    className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-accent)] hover:bg-[var(--app-surface-2)] rounded cursor-pointer transition-colors"
+                    title="Galerie ecran complet (Tasta Space)"
+                  >
+                    <Maximize2 size={14} />
                   </button>
                   <a
                     href={getDriveFileUrl(selectedCarName, selectedCategory, selectedFile.name)}
@@ -2215,7 +2355,7 @@ export default function LocalDriveView({
                     className="p-1.5 text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-2)] rounded transition-colors"
                     title="Deschide în tab nou"
                   >
-                    <Maximize2 size={14} />
+                    <ExternalLink size={14} />
                   </a>
                 </div>
               </div>
@@ -2720,6 +2860,16 @@ export default function LocalDriveView({
             </div>
           </div>
         </div>
+      )}
+      {/* Lightbox Galerie Foto Ecran Complet (Space QuickLook / Săgeți) */}
+      {lightboxIndex !== null && drivePhotoItems.length > 0 && (
+        <PhotoLightbox
+          items={drivePhotoItems}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={handleLightboxIndexChange}
+          zIndexClass="z-[20000]"
+        />
       )}
     </div>
   );

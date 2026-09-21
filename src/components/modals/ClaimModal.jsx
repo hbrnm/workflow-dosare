@@ -267,6 +267,33 @@ export default function ClaimModal({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [pdfMenuOpen]);
 
+  // Spacebar QuickLook: open photo gallery if claim has photos
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (e.code === "Space" || e.key === " ") {
+        if (previewPozaIndex != null) return;
+        if (form.poze && form.poze.length > 0) {
+          e.preventDefault();
+          setPreviewPozaIndex(0);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewPozaIndex, form.poze]);
+
   const filteredSlashCommands = useMemo(() => {
     if (!noteText.includes("/")) return [];
     const query = noteText.slice(noteText.lastIndexOf("/")).toLowerCase();

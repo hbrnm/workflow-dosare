@@ -26,6 +26,7 @@ export default function PhotoLightbox({
   startIndex = 0,
   onClose,
   onDelete,
+  onIndexChange,
   zIndexClass = "z-[10000]",
 }) {
   const list = useMemo(
@@ -78,15 +79,29 @@ export default function PhotoLightbox({
   }, [index, list.length]);
 
   useEffect(() => {
+    onIndexChange?.(index);
+  }, [index, onIndexChange]);
+
+  useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") {
+      const target = e.target;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "Escape" || e.code === "Space" || e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
         onClose?.();
-      } else if (e.key === "ArrowRight") {
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
         goTo(index + 1);
-      } else if (e.key === "ArrowLeft") {
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault();
         goTo(index - 1);
       }
