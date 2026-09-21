@@ -4,6 +4,7 @@ import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
   AlertCircle, AlertTriangle, RefreshCw, ExternalLink, Sparkles, Plus, Copy,
   MessageCircle, Upload, ChevronRight, Download, RotateCw, RotateCcw, Maximize2,
+  Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck,
   Code, FileSpreadsheet, FileCode2, WrapText, Loader2,
   Building2, Calendar, CreditCard, Receipt, Eye
 } from "lucide-react";
