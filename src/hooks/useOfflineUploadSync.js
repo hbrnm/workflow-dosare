@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../supabaseClient";
 import { uploadStorageItem } from "../utils/claimUtils";
 import { todayISO } from "../utils/dateUtils";
@@ -97,7 +97,11 @@ export function useOfflineUploadSync({ onPatch, onNotify } = {}) {
   }, [refreshCount]);
 
   useEffect(() => {
-    refreshCount();
+    refreshCount().then((cnt) => {
+      if (cnt > 0 && typeof navigator !== "undefined" && navigator.onLine) {
+        syncQueue({ quiet: true });
+      }
+    });
 
     const handleOnline = () => {
       // Scurta pauza pentru stabilizarea conexiunii Wi-Fi

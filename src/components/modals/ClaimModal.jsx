@@ -11,8 +11,9 @@ import {
 import { todayISO, nowISO, uid } from "../../utils/dateUtils";
 import {
   emptyClaim, sanitizeClaim, normalizedText, isValidPhone, storagePath,
-  refreshStorageUrls, parseNumber, SIGNED_URL_TTL_SECONDS
+  refreshStorageUrls, parseNumber, SIGNED_URL_TTL_SECONDS, unionMediaLists
 } from "../../utils/claimUtils";
+import { fetchClaimMediaLazy } from "../../utils/claimQueries";
 import { downloadClaimAsZip } from "../../utils/zipUtils";
 import DocumentCropModal from "../common/DocumentCropModal";
 import PhotoLightbox from "../common/PhotoLightbox";
@@ -352,19 +353,48 @@ export default function ClaimModal({
     let cancelled = false;
     const loadStorageUrls = async () => {
       if (!claim?.id) return;
-      const hasMedia =
-        (claim.poze || []).some((p) => p && (p.path || p.url)) ||
-        (claim.documente || []).some((d) => d && (d.path || d.url));
-      if (!hasMedia) return;
+      let rawPoze = Array.isArray(claim.poze) ? claim.poze : [];
+      let rawDocs = Array.isArray(claim.documente) ? claim.documente : [];
+      let rawNote = Array.isArray(claim.note) ? claim.note : [];
+      let rawDevize = Array.isArray(claim.devize) ? claim.devize : [];
 
-      const [poze, documente] = await Promise.all([
-        refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
-        refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
-      ]);
+      try {
+        const lazy = await fetchClaimMediaLazy(supabase, claim.id);
+        if (lazy.poze?.length || lazy.documente?.length || lazy.note?.length || lazy.devize?.length) {
+          rawPoze = unionMediaLists(rawPoze, lazy.poze);
+          rawDocs = unionMediaLists(rawDocs, lazy.documente);
+          if (lazy.note?.length) rawNote = lazy.note;
+          if (lazy.devize?.length) rawDevize = lazy.devize;
+        }
+      } catch (_) {}
+
+      const hasMedia =
+        rawPoze.some((p) => p && (p.path || p.url)) ||
+        rawDocs.some((d) => d && (d.path || d.url));
+
+      const [poze, documente] = hasMedia
+        ? await Promise.all([
+            refreshStorageUrls(rawPoze, "poze-dosare", supabase),
+            refreshStorageUrls(rawDocs, "documente-dosare", supabase),
+          ])
+        : [rawPoze, rawDocs];
+
       if (!cancelled) {
         // URL refresh is not a user edit — keep dirty baseline in sync
-        setForm((current) => ({ ...current, poze, documente }));
-        setBaseline((current) => ({ ...current, poze, documente }));
+        setForm((current) => ({
+          ...current,
+          poze,
+          documente,
+          ...(rawNote.length > (current.note?.length || 0) ? { note: rawNote } : {}),
+          ...(rawDevize.length > (current.devize?.length || 0) ? { devize: rawDevize } : {}),
+        }));
+        setBaseline((current) => ({
+          ...current,
+          poze,
+          documente,
+          ...(rawNote.length > (current.note?.length || 0) ? { note: rawNote } : {}),
+          ...(rawDevize.length > (current.devize?.length || 0) ? { devize: rawDevize } : {}),
+        }));
       }
     };
     loadStorageUrls();

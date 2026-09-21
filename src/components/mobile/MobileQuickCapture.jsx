@@ -7,7 +7,8 @@ import {
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { UI_COPY } from "../../constants/uiCopy";
-import { uploadStorageItem, refreshStorageUrls } from "../../utils/claimUtils";
+import { uploadStorageItem, refreshStorageUrls, unionMediaLists } from "../../utils/claimUtils";
+import { fetchClaimMediaLazy } from "../../utils/claimQueries";
 import { compressImage } from "../../utils/imageUtils";
 import { fileToDataUrl, buildScanPdfBlob } from "../../utils/documentScanner";
 import { todayISO } from "../../utils/dateUtils";
@@ -252,8 +253,17 @@ export default function MobileQuickCapture({
     }
     let active = true;
     (async () => {
-      const pozeFresh = await refreshStorageUrls(selectedClaim.poze || [], "claim-photos", supabase);
-      const docsFresh = await refreshStorageUrls(selectedClaim.documente || [], "claim-documents", supabase);
+      let rawPoze = Array.isArray(selectedClaim.poze) ? selectedClaim.poze : [];
+      let rawDocs = Array.isArray(selectedClaim.documente) ? selectedClaim.documente : [];
+
+      try {
+        const lazy = await fetchClaimMediaLazy(supabase, selectedClaim.id);
+        if (lazy.poze?.length) rawPoze = unionMediaLists(rawPoze, lazy.poze);
+        if (lazy.documente?.length) rawDocs = unionMediaLists(rawDocs, lazy.documente);
+      } catch (_) {}
+
+      const pozeFresh = await refreshStorageUrls(rawPoze, "poze-dosare", supabase);
+      const docsFresh = await refreshStorageUrls(rawDocs, "documente-dosare", supabase);
       if (active) {
         setDisplayPoze(pozeFresh);
         setDisplayDocs(docsFresh);

@@ -64,10 +64,11 @@ export const CLAIM_LIST_COLUMNS = [
   "mesaj_client",
   "tip_documente",
   "damage_marks",
+  "poze",
+  "documente",
+  "note",
+  "devize",
   "created_at",
-  // EXCLUSE INTENȚIONAT (JSONB grele cu blob-uri/URL-uri semnate):
-  // "poze", "documente", "note", "devize"
-  // Acestea se încarcă LAZY prin fetchClaimMediaLazy() la deschiderea dosarului.
 ].join(", ");
 
 /**

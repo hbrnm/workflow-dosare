@@ -7,6 +7,10 @@ describe("claimQueries - Database Optimization & Lazy Loading", () => {
     expect(CLAIM_LIST_COLUMNS).toContain("id");
     expect(CLAIM_LIST_COLUMNS).toContain("status");
     expect(CLAIM_LIST_COLUMNS).toContain("numar_inmatriculare");
+    expect(CLAIM_LIST_COLUMNS).toContain("poze");
+    expect(CLAIM_LIST_COLUMNS).toContain("documente");
+    expect(CLAIM_LIST_COLUMNS).toContain("note");
+    expect(CLAIM_LIST_COLUMNS).toContain("devize");
     expect(CLAIM_LIST_COLUMNS).toContain("created_at");
   });
 

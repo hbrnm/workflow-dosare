@@ -729,8 +729,8 @@ export default function App() {
   }, [pendingDeleteClaim]);
 
   const handlePatchClaim = useCallback(
-    async (claimId, patch) => {
-      return await patchClaim(claimId, patch);
+    async (claimId, patch, options) => {
+      return await patchClaim(claimId, patch, options);
     },
     [patchClaim]
   );

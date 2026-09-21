@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   X, Phone, ChevronRight, ChevronDown, Camera, FileText, Car, User,
-  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon, Trash2
+  ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon, Trash2, WifiOff
 } from "lucide-react";
 import { STATUSES, getStatusDefinition, getPhaseColors, isPieseComandateStatus, MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
 import { telLink, nowISO, uid, fmtDateTime, todayISO } from "../../utils/dateUtils";
-import { refreshStorageUrls, uploadStorageItem } from "../../utils/claimUtils";
+import { refreshStorageUrls, uploadStorageItem, unionMediaLists } from "../../utils/claimUtils";
+import { enqueueOfflineUpload, getPendingUploadsForClaim, removePendingUpload } from "../../utils/uploadQueue";
+import { fetchClaimMediaLazy } from "../../utils/claimQueries";
 import { compressImage } from "../../utils/imageUtils";
 import { supabase } from "../../supabaseClient";
 import WhatsAppButton from "../common/WhatsAppButton";
@@ -44,6 +46,7 @@ export default function MobileClaimSheet({
   const [saving, setSaving] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [photos, setPhotos] = useState(() => (Array.isArray(claim?.poze) ? claim.poze : []));
+  const [offlinePhotos, setOfflinePhotos] = useState([]);
   const [docs, setDocs] = useState(() => (Array.isArray(claim?.documente) ? claim.documente : []));
   const [previewIndex, setPreviewIndex] = useState(null);
   const [isReceptieOpen, setIsReceptieOpen] = useState(false);
@@ -52,6 +55,35 @@ export default function MobileClaimSheet({
   const [showLiveCam, setShowLiveCam] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const cameraOpen = liveCameraOpen ?? showLiveCam;
+
+  const refreshOfflineForClaim = useCallback(async (claimId) => {
+    if (!claimId) {
+      setOfflinePhotos([]);
+      return;
+    }
+    try {
+      const items = await getPendingUploadsForClaim(claimId);
+      setOfflinePhotos(
+        items
+          .filter((it) => (it.folder || "poze") !== "documente")
+          .map((item) => ({
+            id: item.id,
+            url: item.fileBlob instanceof Blob ? URL.createObjectURL(item.fileBlob) : "",
+            nume: item.fileName,
+            isOffline: true,
+            categoria: item.category,
+          }))
+      );
+    } catch {
+      setOfflinePhotos([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshOfflineForClaim(claim?.id);
+  }, [claim?.id, refreshOfflineForClaim]);
+
+  const allPhotos = useMemo(() => [...offlinePhotos, ...photos], [offlinePhotos, photos]);
 
   const openLiveCam = () => {
     softHaptic(8);
@@ -85,28 +117,76 @@ export default function MobileClaimSheet({
     setUploadingPhotos(true);
     try {
       const uploadedPhotos = [];
+      let savedOfflineCount = 0;
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
       for (const file of files) {
         if (file.size > MAX_UPLOAD_SIZE_BYTES) {
           onNotify?.(`Fișierul ${file.name} depășește limita de ${MAX_UPLOAD_SIZE_MB}MB`, "error");
           continue;
         }
-        const optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
-        const uploaded = await uploadStorageItem({
-          supabaseClient: supabase,
-          claimId: claim.id,
-          file: optimizedFile,
-          folder: "poze",
-          bucketName: "poze-dosare",
-          extraFields: {
-            categoria: cat,
-            nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
-            data: todayISO(),
-          },
-        });
-        if (uploaded) {
-          uploadedPhotos.push(uploaded);
+        let optimizedFile;
+        try {
+          optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
+        } catch {
+          optimizedFile = file;
+        }
+
+        if (isOffline) {
+          await enqueueOfflineUpload({
+            claimId: claim.id,
+            category: cat,
+            file: optimizedFile,
+            fileName: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+              numarInmatriculare: claim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
+          continue;
+        }
+
+        try {
+          const uploaded = await uploadStorageItem({
+            supabaseClient: supabase,
+            claimId: claim.id,
+            file: optimizedFile,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+            },
+          });
+          if (uploaded) {
+            uploadedPhotos.push(uploaded);
+          }
+        } catch (uploadErr) {
+          console.warn("Upload direct eșuat (posibil semnal slab în atelier), salvare offline:", uploadErr);
+          await enqueueOfflineUpload({
+            claimId: claim.id,
+            category: cat,
+            file: optimizedFile,
+            fileName: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+              numarInmatriculare: claim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
         }
       }
+
       if (uploadedPhotos.length > 0) {
         await onPatch?.(claim.id, { appendPoze: uploadedPhotos }, { canEditFn: () => !readOnly });
         const updatedPoze = await refreshStorageUrls(
@@ -116,8 +196,16 @@ export default function MobileClaimSheet({
         );
         setPhotos(updatedPoze);
         softHaptic(15);
-
         onNotify?.(`S-au salvat ${uploadedPhotos.length} foto [${cat.toUpperCase()}] în dosar.`, "success");
+      }
+
+      if (savedOfflineCount > 0) {
+        softHaptic(20);
+        onNotify?.(
+          `📶 ${savedOfflineCount} ${savedOfflineCount === 1 ? "foto salvată" : "fotografii salvate"} pe telefon! Se vor încărca automat când revine conexiunea Wi-Fi.`,
+          "info"
+        );
+        refreshOfflineForClaim(claim.id);
       }
     } catch (err) {
       console.error(err);
@@ -139,6 +227,15 @@ export default function MobileClaimSheet({
       return;
     }
     if (!window.confirm("Sigur dorești să ștergi această fotografie?")) return;
+
+    if (photoToDelete?.isOffline) {
+      await removePendingUpload(photoToDelete.id);
+      setOfflinePhotos((prev) => prev.filter((p) => p.id !== photoToDelete.id));
+      softHaptic(12);
+      onNotify?.("Fotografia offline a fost ștearsă de pe telefon.", "success");
+      return;
+    }
+
     try {
       if (photoToDelete?.path) {
         await supabase.storage.from("poze-dosare").remove([photoToDelete.path]);
@@ -179,9 +276,18 @@ export default function MobileClaimSheet({
         setDocs([]);
         return;
       }
+      let rawPoze = Array.isArray(claim.poze) ? claim.poze : [];
+      let rawDocs = Array.isArray(claim.documente) ? claim.documente : [];
+
+      try {
+        const lazy = await fetchClaimMediaLazy(supabase, claim.id);
+        if (lazy.poze?.length) rawPoze = unionMediaLists(rawPoze, lazy.poze);
+        if (lazy.documente?.length) rawDocs = unionMediaLists(rawDocs, lazy.documente);
+      } catch (_) {}
+
       const [p, d] = await Promise.all([
-        refreshStorageUrls(claim.poze || [], "poze-dosare", supabase),
-        refreshStorageUrls(claim.documente || [], "documente-dosare", supabase),
+        refreshStorageUrls(rawPoze, "poze-dosare", supabase),
+        refreshStorageUrls(rawDocs, "documente-dosare", supabase),
       ]);
       if (!cancelled) {
         setPhotos(p);
@@ -403,17 +509,29 @@ export default function MobileClaimSheet({
             </div>
           )}
 
-          {photos.length > 0 ? (
+          {offlinePhotos.length > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[12px] font-medium text-amber-400">
+              <WifiOff size={15} className="shrink-0 text-amber-400" />
+              <span>{offlinePhotos.length} {offlinePhotos.length === 1 ? "foto salvată" : "fotografii salvate"} pe telefon (se vor sincroniza pe Wi-Fi)</span>
+            </div>
+          )}
+
+          {allPhotos.length > 0 ? (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-              {photos.slice(0, 12).map((p, idx) => (
-                <div key={idx} className="relative group shrink-0">
+              {allPhotos.slice(0, 16).map((p, idx) => (
+                <div key={p.id || idx} className="relative group shrink-0">
                   <button
                     type="button"
                     onClick={() => setPreviewIndex(idx)}
                     aria-label={`Vezi poza ${idx + 1}`}
-                    className="w-16 h-16 rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface-2)] block"
+                    className={`w-16 h-16 rounded-xl overflow-hidden border ${p.isOffline ? "border-amber-400/80 ring-2 ring-amber-400/30" : "border-[var(--app-border)]"} bg-[var(--app-surface-2)] block relative`}
                   >
                     <img src={p.url || p} alt="" className="w-full h-full object-cover" />
+                    {p.isOffline && (
+                      <span className="absolute bottom-0 inset-x-0 bg-amber-500/90 text-slate-950 font-bold text-[9px] text-center py-0.5 leading-none">
+                        offline
+                      </span>
+                    )}
                   </button>
                   {!readOnly && (
                     <button
@@ -423,7 +541,7 @@ export default function MobileClaimSheet({
                         handleDeletePhoto(p, idx);
                       }}
                       className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md transition-colors z-10 cursor-pointer"
-                      title="Șterge fotografia"
+                      title={p.isOffline ? "Șterge fotografia salvată offline" : "Șterge fotografia"}
                       aria-label="Șterge fotografia"
                     >
                       <Trash2 size={10} />
@@ -595,9 +713,9 @@ export default function MobileClaimSheet({
         ) : null}
       </div>
 
-      {previewIndex != null && photos.length > 0 && (
+      {previewIndex != null && allPhotos.length > 0 && (
         <PhotoLightbox
-          items={photos}
+          items={allPhotos}
           startIndex={previewIndex}
           onClose={() => setPreviewIndex(null)}
           onDelete={!readOnly ? handleDeletePhoto : undefined}
