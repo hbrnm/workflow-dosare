@@ -28,7 +28,7 @@ function openUploadDatabase() {
   });
 }
 
-export async function enqueueOfflineUpload({ id, claimId, category, file, fileName }) {
+export async function enqueueOfflineUpload({ id, claimId, category, file, fileName, folder = "poze", bucketName = "poze-dosare", extraFields = {} }) {
   try {
     const db = await openUploadDatabase();
     if (!db) return false;
@@ -39,6 +39,9 @@ export async function enqueueOfflineUpload({ id, claimId, category, file, fileNa
       category: category || "receptie",
       fileName: fileName || file?.name || "document.jpg",
       fileBlob: file,
+      folder,
+      bucketName,
+      extraFields: extraFields || {},
       retries: 0,
       createdAt: new Date().toISOString(),
     };
@@ -70,6 +73,33 @@ export async function getPendingUploads() {
     });
   } catch (err) {
     console.warn("Eroare la citirea din coada offline:", err);
+    return [];
+  }
+}
+
+export async function getPendingUploadsCount() {
+  try {
+    const db = await openUploadDatabase();
+    if (!db) return 0;
+
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.count();
+      req.onsuccess = () => resolve(req.result || 0);
+      req.onerror = () => resolve(0);
+    });
+  } catch {
+    return 0;
+  }
+}
+
+export async function getPendingUploadsForClaim(claimId) {
+  if (!claimId) return [];
+  try {
+    const all = await getPendingUploads();
+    return all.filter((item) => String(item.claimId) === String(claimId));
+  } catch {
     return [];
   }
 }

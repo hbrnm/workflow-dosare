@@ -29,6 +29,7 @@ import { useSettings } from "./hooks/useSettings";
 import { useAtelier } from "./hooks/useAtelier";
 import { useDayNightTheme } from "./hooks/useDayNightTheme";
 import { useLocalDrive } from "./hooks/useLocalDrive";
+import { useOfflineUploadSync } from "./hooks/useOfflineUploadSync";
 import { normalizeBilling } from "./constants/billing";
 import { mergeAtelierBranding, needsBrandingSetup } from "./constants/branding";
 import { getSearchHighlightIds } from "./utils/searchUtils";
@@ -231,6 +232,12 @@ export default function App() {
     removeDemoData,
     hasDemoData,
   } = useClaims(session, showNotice, { atelierId, tenancyReady });
+
+  // Sincronizare automată în fundal a fotografiilor și documentelor salvate offline când revine Wi-Fi
+  useOfflineUploadSync({
+    onPatch: patchClaim,
+    onNotify: showNotice,
+  });
 
   useDayNightTheme();
 

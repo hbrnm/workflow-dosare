@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   Camera, Upload, FileText, Loader2, Car, ImageIcon,
   CheckCircle2, FolderOpen, ArrowRight, ShieldCheck, X, Trash2,
-  Eye, FileCheck, RefreshCw, Check, ChevronDown
+  Eye, FileCheck, RefreshCw, Check, ChevronDown, Wifi, WifiOff
 } from "lucide-react";
 import { supabase } from "../../supabaseClient";
 import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from "../../constants/config";
@@ -18,6 +18,13 @@ import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import PhotoLightbox from "../common/PhotoLightbox";
 import { loadLastCaptureClaimId, saveLastCaptureClaimId, softHaptic } from "../../utils/mobilePrefs";
 import { isSearchHighlighted } from "../../utils/searchUtils";
+import {
+  enqueueOfflineUpload,
+  getPendingUploadsForClaim,
+  getPendingUploadsCount,
+  removePendingUpload,
+  flushUploadQueue,
+} from "../../utils/uploadQueue";
 
 export default function MobileQuickCapture({
   claims,
@@ -124,6 +131,118 @@ export default function MobileQuickCapture({
   // Thumbnails afișate imediat: refresh signed URLs dacă expiră
   const [displayPoze, setDisplayPoze] = useState([]);
   const [displayDocs, setDisplayDocs] = useState([]);
+  const [offlinePhotos, setOfflinePhotos] = useState([]);
+  const [offlineDocs, setOfflineDocs] = useState([]);
+  const [totalOfflineCount, setTotalOfflineCount] = useState(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
+
+  const allDisplayPoze = useMemo(() => [...offlinePhotos, ...displayPoze], [offlinePhotos, displayPoze]);
+  const allDisplayDocs = useMemo(() => [...offlineDocs, ...displayDocs], [offlineDocs, displayDocs]);
+
+  const refreshOfflineForClaim = useCallback(async (claimId) => {
+    if (!claimId) {
+      setOfflinePhotos([]);
+      setOfflineDocs([]);
+      return;
+    }
+    try {
+      const offlineItems = await getPendingUploadsForClaim(claimId);
+      const photos = offlineItems
+        .filter((item) => (item.folder || "poze") === "poze")
+        .map((item) => ({
+          id: item.id,
+          url: item.fileBlob ? URL.createObjectURL(item.fileBlob) : "",
+          categoria: item.category,
+          nume: item.fileName,
+          isOfflinePending: true,
+          data: item.createdAt ? item.createdAt.slice(0, 10) : todayISO(),
+        }));
+      const docs = offlineItems
+        .filter((item) => (item.folder || "poze") === "documente")
+        .map((item) => ({
+          id: item.id,
+          name: item.fileName,
+          nume: item.fileName,
+          isOfflinePending: true,
+          data: item.createdAt ? item.createdAt.slice(0, 10) : todayISO(),
+        }));
+      setOfflinePhotos(photos);
+      setOfflineDocs(docs);
+      const total = await getPendingUploadsCount();
+      setTotalOfflineCount(total);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedClaim?.id) {
+      refreshOfflineForClaim(selectedClaim.id);
+    } else {
+      setOfflinePhotos([]);
+      setOfflineDocs([]);
+    }
+  }, [selectedClaim?.id, refreshOfflineForClaim]);
+
+  const handleManualSync = useCallback(async () => {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      onNotify("Ești încă offline. Conectează-te la Wi-Fi pentru a sincroniza fotografiile.", "info");
+      return;
+    }
+    try {
+      setIsSyncingOffline(true);
+      onNotify("Se sincronizează fotografiile salvate offline pe telefon...", "info");
+      const res = await flushUploadQueue(async (item) => {
+        const isDoc = (item.folder || "poze") === "documente";
+        const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
+          claimId: item.claimId,
+          file: item.fileBlob,
+          folder: item.folder || "poze",
+          bucketName: item.bucketName || (isDoc ? "documente-dosare" : "poze-dosare"),
+          extraFields: {
+            categoria: item.category,
+            nume: item.fileName,
+            data: item.extraFields?.data || todayISO(),
+            ...(item.extraFields || {}),
+          },
+        });
+        if (!uploaded) return false;
+        await onPatch(
+          item.claimId,
+          isDoc ? { appendDocumente: [uploaded] } : { appendPoze: [uploaded] },
+          { canEditFn, quiet: true }
+        );
+        return true;
+      });
+
+      if (selectedClaimId) {
+        await refreshOfflineForClaim(selectedClaimId);
+      }
+      const total = await getPendingUploadsCount();
+      setTotalOfflineCount(total);
+
+      if (res.processed > 0) {
+        softHaptic(20);
+        onNotify(`✅ ${res.processed} ${res.processed === 1 ? "foto offline s-a încărcat" : "fotografii offline s-au încărcat"} cu succes în dosar!`, "success");
+      }
+    } catch (err) {
+      console.warn("Eroare sync offline:", err);
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  }, [selectedClaimId, refreshOfflineForClaim, onNotify, onPatch, canEditFn]);
+
+  // Sincronizare automată când revine Wi-Fi
+  useEffect(() => {
+    const onOnline = () => {
+      setTimeout(() => {
+        handleManualSync();
+      }, 1500);
+    };
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [handleManualSync]);
 
   useEffect(() => {
     if (!selectedClaim) {
@@ -160,6 +279,7 @@ export default function MobileQuickCapture({
     try {
       setUploading(true);
       const uploadedPhotos = [];
+      let savedOfflineCount = 0;
 
       for (const file of files) {
         if (file.size > MAX_UPLOAD_SIZE_BYTES) {
@@ -167,22 +287,70 @@ export default function MobileQuickCapture({
           continue;
         }
 
-        const optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
-        const uploaded = await uploadStorageItem({
-          supabaseClient: supabase,
-          claimId: selectedClaim.id,
-          file: optimizedFile,
-          folder: "poze",
-          bucketName: "poze-dosare",
-          extraFields: {
-            categoria: cat,
-            nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
-            data: todayISO(),
-          },
-        });
+        let optimizedFile;
+        try {
+          optimizedFile = await compressImage(file, { maxDim: 1600, quality: 0.78 });
+        } catch {
+          optimizedFile = file;
+        }
 
-        if (uploaded) {
-          uploadedPhotos.push(uploaded);
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+        if (isOffline) {
+          // Salvare directă pe telefon în IndexedDB
+          await enqueueOfflineUpload({
+            claimId: selectedClaim.id,
+            category: cat,
+            file: optimizedFile,
+            fileName: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+              numarInmatriculare: selectedClaim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
+          continue;
+        }
+
+        try {
+          const uploaded = await uploadStorageItem({
+            supabaseClient: supabase,
+            claimId: selectedClaim.id,
+            file: optimizedFile,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+            },
+          });
+
+          if (uploaded) {
+            uploadedPhotos.push(uploaded);
+          }
+        } catch (uploadErr) {
+          // Fallback dacă conexiunea pică în timpul upload-ului
+          console.warn("Upload storage eșuat (posibil offline), salvare locală:", uploadErr);
+          await enqueueOfflineUpload({
+            claimId: selectedClaim.id,
+            category: cat,
+            file: optimizedFile,
+            fileName: file.name || `foto_${cat}_${todayISO()}.jpg`,
+            folder: "poze",
+            bucketName: "poze-dosare",
+            extraFields: {
+              categoria: cat,
+              nume: file.name || `foto_${cat}_${todayISO()}.jpg`,
+              data: todayISO(),
+              numarInmatriculare: selectedClaim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
         }
       }
 
@@ -190,6 +358,15 @@ export default function MobileQuickCapture({
         await onPatch(selectedClaim.id, { appendPoze: uploadedPhotos }, { canEditFn });
         softHaptic(15);
         onNotify(`S-au salvat ${uploadedPhotos.length} foto la [${cat.toUpperCase()}]`, "success");
+      }
+
+      if (savedOfflineCount > 0) {
+        softHaptic(20);
+        onNotify(
+          `📶 ${savedOfflineCount} ${savedOfflineCount === 1 ? "foto salvată" : "fotografii salvate"} pe telefon! Se vor încărca automat când revine Wi-Fi.`,
+          "info"
+        );
+        refreshOfflineForClaim(selectedClaim.id);
       }
     } catch (err) {
       console.error(err);
@@ -280,22 +457,65 @@ export default function MobileQuickCapture({
       const fileName = `${scanSession.fileName.replace(/\.pdf$/i, "")}.pdf`;
       const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
 
-      const uploaded = await uploadStorageItem({
-        supabaseClient: supabase,
-        claimId: selectedClaim.id,
-        file: pdfFile,
-        folder: "documente",
-        bucketName: "documente-dosare",
-        extraFields: {
-          nume: fileName,
-          data: todayISO(),
-        },
-      });
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-      if (uploaded) {
-        await onPatch(selectedClaim.id, { appendDocumente: [uploaded] }, { canEditFn });
-        onNotify(`Documentul "${fileName}" a fost salvat în dosar.`, "success");
+      if (isOffline) {
+        await enqueueOfflineUpload({
+          claimId: selectedClaim.id,
+          category: "document",
+          file: pdfFile,
+          fileName,
+          folder: "documente",
+          bucketName: "documente-dosare",
+          extraFields: {
+            nume: fileName,
+            data: todayISO(),
+            numarInmatriculare: selectedClaim.numarInmatriculare,
+          },
+        });
         setScanSession(null);
+        softHaptic(20);
+        onNotify("📶 Documentul scanat a fost salvat pe telefon! Se va încărca automat la revenirea Wi-Fi.", "info");
+        refreshOfflineForClaim(selectedClaim.id);
+        return;
+      }
+
+      try {
+        const uploaded = await uploadStorageItem({
+          supabaseClient: supabase,
+          claimId: selectedClaim.id,
+          file: pdfFile,
+          folder: "documente",
+          bucketName: "documente-dosare",
+          extraFields: {
+            nume: fileName,
+            data: todayISO(),
+          },
+        });
+
+        if (uploaded) {
+          await onPatch(selectedClaim.id, { appendDocumente: [uploaded] }, { canEditFn });
+          onNotify(`Documentul "${fileName}" a fost salvat în dosar.`, "success");
+          setScanSession(null);
+        }
+      } catch (uploadErr) {
+        await enqueueOfflineUpload({
+          claimId: selectedClaim.id,
+          category: "document",
+          file: pdfFile,
+          fileName,
+          folder: "documente",
+          bucketName: "documente-dosare",
+          extraFields: {
+            nume: fileName,
+            data: todayISO(),
+            numarInmatriculare: selectedClaim.numarInmatriculare,
+          },
+        });
+        setScanSession(null);
+        softHaptic(20);
+        onNotify("📶 Conexiunea e instabilă. Documentul a fost salvat pe telefon și se va încărca la revenirea Wi-Fi.", "info");
+        refreshOfflineForClaim(selectedClaim.id);
       }
     } catch (err) {
       console.error(err);
@@ -312,6 +532,7 @@ export default function MobileQuickCapture({
     try {
       setUploading(true);
       const uploadedDocs = [];
+      let savedOfflineCount = 0;
 
       for (const file of files) {
         if (file.size > MAX_UPLOAD_SIZE_BYTES) {
@@ -319,26 +540,69 @@ export default function MobileQuickCapture({
           continue;
         }
 
-        const uploaded = await uploadStorageItem({
-          supabaseClient: supabase,
-          claimId: selectedClaim.id,
-          file,
-          folder: "documente",
-          bucketName: "documente-dosare",
-          extraFields: {
-            nume: file.name,
-            data: todayISO(),
-          },
-        });
+        const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-        if (uploaded) {
-          uploadedDocs.push(uploaded);
+        if (isOffline) {
+          await enqueueOfflineUpload({
+            claimId: selectedClaim.id,
+            category: "document",
+            file,
+            fileName: file.name,
+            folder: "documente",
+            bucketName: "documente-dosare",
+            extraFields: {
+              nume: file.name,
+              data: todayISO(),
+              numarInmatriculare: selectedClaim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
+          continue;
+        }
+
+        try {
+          const uploaded = await uploadStorageItem({
+            supabaseClient: supabase,
+            claimId: selectedClaim.id,
+            file,
+            folder: "documente",
+            bucketName: "documente-dosare",
+            extraFields: {
+              nume: file.name,
+              data: todayISO(),
+            },
+          });
+
+          if (uploaded) {
+            uploadedDocs.push(uploaded);
+          }
+        } catch (uploadErr) {
+          await enqueueOfflineUpload({
+            claimId: selectedClaim.id,
+            category: "document",
+            file,
+            fileName: file.name,
+            folder: "documente",
+            bucketName: "documente-dosare",
+            extraFields: {
+              nume: file.name,
+              data: todayISO(),
+              numarInmatriculare: selectedClaim.numarInmatriculare,
+            },
+          });
+          savedOfflineCount++;
         }
       }
 
       if (uploadedDocs.length > 0) {
         await onPatch(selectedClaim.id, { appendDocumente: uploadedDocs }, { canEditFn });
         onNotify(`S-au adăugat ${uploadedDocs.length} documente.`, "success");
+      }
+
+      if (savedOfflineCount > 0) {
+        softHaptic(20);
+        onNotify(`📶 ${savedOfflineCount} documente salvate offline pe telefon! Se vor încărca la revenirea Wi-Fi.`, "info");
+        refreshOfflineForClaim(selectedClaim.id);
       }
     } catch (err) {
       console.error(err);
@@ -348,13 +612,23 @@ export default function MobileQuickCapture({
     }
   };
 
-  // Ștergere directă fotografie din dosar și storage
+  // Ștergere fotografie din dosar și storage (sau din coada offline dacă nu e sincronizată încă)
   const handleDeletePhoto = async (e, photoIndex) => {
     e.stopPropagation();
     if (!selectedClaim) return;
 
-    const targetPhoto = displayPoze[photoIndex];
+    const allPoze = [...offlinePhotos, ...displayPoze];
+    const targetPhoto = allPoze[photoIndex];
     if (!targetPhoto) return;
+
+    if (targetPhoto.isOfflinePending) {
+      await removePendingUpload(targetPhoto.id);
+      setOfflinePhotos((prev) => prev.filter((p) => p.id !== targetPhoto.id));
+      setTotalOfflineCount((prev) => Math.max(0, prev - 1));
+      softHaptic(8);
+      onNotify("Fotografia a fost ștearsă din coada telefonului.", "info");
+      return;
+    }
 
     if (!window.confirm("Sigur dorești să ștergi această fotografie din dosar?")) {
       return;
@@ -376,13 +650,23 @@ export default function MobileQuickCapture({
     }
   };
 
-  // Ștergere directă document PDF din dosar și storage
+  // Ștergere document din dosar și storage (sau din coada offline)
   const handleDeleteDocument = async (e, docIndex) => {
     e.stopPropagation();
     if (!selectedClaim) return;
 
-    const targetDoc = displayDocs[docIndex];
+    const allDocs = [...offlineDocs, ...displayDocs];
+    const targetDoc = allDocs[docIndex];
     if (!targetDoc) return;
+
+    if (targetDoc.isOfflinePending) {
+      await removePendingUpload(targetDoc.id);
+      setOfflineDocs((prev) => prev.filter((d) => d.id !== targetDoc.id));
+      setTotalOfflineCount((prev) => Math.max(0, prev - 1));
+      softHaptic(8);
+      onNotify("Documentul a fost șters din coada telefonului.", "info");
+      return;
+    }
 
     if (!window.confirm(`Sigur dorești să ștergi documentul "${targetDoc.name || targetDoc.nume || "PDF"}" din dosar?`)) {
       return;
@@ -393,14 +677,8 @@ export default function MobileQuickCapture({
       if (targetDoc.path) {
         await supabase.storage.from("claim-documents").remove([targetDoc.path]);
       }
-
-      const targetItem = (selectedClaim.documente || []).find(
-        (d) => (d.path && d.path === targetDoc.path) || (d.id && d.id === targetDoc.id) || (d.url && d.url === targetDoc.url)
-      );
-      if (targetItem) {
-        await onPatch(selectedClaim.id, { removeDocumente: [targetItem] }, { canEditFn });
-      }
-      onNotify("Documentul a fost șters din dosar și din stocare.", "info");
+      await onPatch(selectedClaim.id, { removeDocumente: [targetDoc] }, { canEditFn });
+      onNotify("Documentul a fost șters din dosar.", "info");
     } catch (err) {
       onNotify("Eroare la ștergerea documentului: " + err.message, "error");
     } finally {
@@ -629,27 +907,47 @@ export default function MobileQuickCapture({
       {/* 5. VIZUALIZARE THUMBNAILS & CONFIRMARE FIȘIERE ATAȘATE PE DOSARUL SELECTAT */}
       {selectedClaim && (
         <div className="m-ui-panel m-ui-panel-pad space-y-3">
+          {/* Banner sincronizare offline pe telefon */}
+          {totalOfflineCount > 0 && (
+            <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[12px] font-bold">
+              <div className="flex items-center gap-2 min-w-0">
+                <WifiOff size={16} className="text-amber-400 shrink-0" />
+                <span className="truncate">
+                  {totalOfflineCount} {totalOfflineCount === 1 ? "foto/doc salvat pe telefon" : "foto/doc salvate pe telefon"} (offline)
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleManualSync}
+                disabled={isSyncingOffline}
+                className="px-2.5 py-1 rounded-lg bg-amber-500 text-black text-[11px] font-black hover:bg-amber-400 transition-colors shrink-0 disabled:opacity-50"
+              >
+                {isSyncingOffline ? "Se trimit..." : "Sincronizează"}
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-b border-[var(--app-border)] pb-2">
             <h3 className="font-extrabold text-[13px] text-[var(--app-text-strong)] flex items-center gap-1.5" style={{ fontFamily: "var(--app-font-display)" }}>
               <FileCheck size={16} className="text-[var(--app-accent)]" /> Fișiere pe {selectedClaim.numarInmatriculare}
             </h3>
             <span className="m-ui-chip">
-              {(displayPoze.length || selectedClaim.poze?.length || 0)} poze · {(displayDocs.length || selectedClaim.documente?.length || 0)} doc
+              {allDisplayPoze.length} poze · {allDisplayDocs.length} doc
             </span>
           </div>
 
           {/* GALERIE THUMBNAILS POZE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5">
             <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
-              Fotografii ({displayPoze.length})
+              Fotografii ({allDisplayPoze.length})
             </span>
-            {displayPoze.length === 0 ? (
+            {allDisplayPoze.length === 0 ? (
               <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Nicio fotografie atașată încă.
               </div>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-0.5 scrollbar-thin">
-                {displayPoze.map((p, idx) => {
+                {allDisplayPoze.map((p, idx) => {
                   const catLabel = categoryLabel(p.categoria);
                   return (
                     <div
@@ -659,12 +957,16 @@ export default function MobileQuickCapture({
                     >
                       <img src={p.url || p} alt={`Poză ${idx + 1}`} className="w-full h-full object-cover" />
                       
-                      {/* Categorie Badge */}
-                      {catLabel && (
+                      {/* Categorie Badge sau Indicator Offline */}
+                      {p.isOfflinePending ? (
+                        <span className="absolute bottom-1 left-1 bg-amber-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded uppercase font-mono z-10 flex items-center gap-0.5 shadow-sm">
+                          <WifiOff size={8} /> OFFLINE
+                        </span>
+                      ) : catLabel ? (
                         <span className="absolute bottom-1 left-1 bg-black/80 text-white text-[8px] font-extrabold px-1.5 py-0.2 rounded uppercase font-mono z-10">
                           {catLabel}
                         </span>
-                      )}
+                      ) : null}
 
                       {/* Overlay buton vizualizare */}
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
@@ -676,8 +978,8 @@ export default function MobileQuickCapture({
                         type="button"
                         onClick={(e) => handleDeletePhoto(e, idx)}
                         className="absolute top-1 right-1 bg-[#B23A2E] text-white p-1 rounded-lg shadow-md hover:bg-red-700 transition-colors z-10"
-                        title="Șterge fotografia"
-                        aria-label="Șterge fotografia"
+                        title={p.isOfflinePending ? "Elimină din coada offline" : "Șterge fotografia"}
+                        aria-label={p.isOfflinePending ? "Elimină din coada offline" : "Șterge fotografia"}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -691,47 +993,49 @@ export default function MobileQuickCapture({
           {/* LISTĂ DOCUMENTE ATAȘATE CU BUTON DE ȘTERGERE */}
           <div className="space-y-1.5 pt-2 border-t border-[var(--app-border)]">
             <span className="text-[10.5px] font-bold text-[var(--app-muted)] uppercase tracking-wider block">
-              Documente ({displayDocs.length})
+              Documente ({allDisplayDocs.length})
             </span>
-            {displayDocs.length === 0 ? (
+            {allDisplayDocs.length === 0 ? (
               <div className="text-[11px] text-[var(--app-muted)] italic bg-[var(--app-surface-2)] p-3 rounded-xl text-center border border-dashed border-[var(--app-border)]">
                 Niciun document PDF atașat.
               </div>
             ) : (
               <div className="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
-                {displayDocs.map((doc, idx) => (
+                {allDisplayDocs.map((doc, idx) => (
                   <div
                     key={doc.path || doc.id || idx}
                     className="flex items-center justify-between p-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[11.5px] font-semibold text-[var(--app-text)]"
                   >
-                    <a
-                      href={doc.url || doc}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-2 min-w-0 flex-1 hover:underline text-[var(--app-text)]"
-                    >
+                    <div className="flex items-center gap-2 min-w-0 flex-1 text-[var(--app-text)]">
                       <FileText size={15} className="text-[var(--app-text)] shrink-0" />
                       <span className="truncate">{doc.name || doc.nume || `Document_${idx + 1}.pdf`}</span>
-                    </a>
+                      {doc.isOfflinePending && (
+                        <span className="text-[9px] font-black text-amber-400 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30 flex items-center gap-0.5 shrink-0">
+                          <WifiOff size={9} /> Offline
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <a
-                        href={doc.url || doc}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)]"
-                        title="Vizualizează"
-                      >
-                        <Eye size={15} />
-                      </a>
+                      {doc.url && (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1 text-[var(--app-muted)] hover:text-[var(--app-text)]"
+                          title="Vizualizează"
+                        >
+                          <Eye size={15} />
+                        </a>
+                      )}
                       
                       {/* BUTON ROȘU DE ȘTERGERE DOCUMENT */}
                       <button
                         type="button"
                         onClick={(e) => handleDeleteDocument(e, idx)}
                         className="p-1 bg-[#B23A2E]/10 hover:bg-[#B23A2E] text-[#B23A2E] hover:text-white rounded-lg transition-colors"
-                        title="Șterge documentul"
-                        aria-label="Șterge documentul"
+                        title={doc.isOfflinePending ? "Elimină din coada offline" : "Șterge documentul"}
+                        aria-label={doc.isOfflinePending ? "Elimină din coada offline" : "Șterge documentul"}
                       >
                         <Trash2 size={14} />
                       </button>
@@ -856,9 +1160,9 @@ export default function MobileQuickCapture({
       )}
 
       {/* Galerie fullscreen — swipe între poze */}
-      {previewMediaIndex != null && displayPoze.length > 0 && (
+      {previewMediaIndex != null && allDisplayPoze.length > 0 && (
         <PhotoLightbox
-          items={displayPoze}
+          items={allDisplayPoze}
           startIndex={previewMediaIndex}
           onClose={() => setPreviewMediaIndex(null)}
           onDelete={(p, idx) => handleDeletePhoto(null, idx)}
