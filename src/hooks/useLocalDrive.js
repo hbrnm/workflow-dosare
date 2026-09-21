@@ -269,6 +269,10 @@ export function useLocalDrive({ claims = [], saveClaim, onAutoOpenClaim, showNot
         showNoticeRef.current?.("Eroare la crearea dosarului online — verifică Console pentru detalii.", "error");
         return false;
       }
+      if (res?.success) {
+        // Actualizăm manual claimsRef pentru a preveni duplicări în batch
+        claimsRef.current = [...claimsRef.current, newClaimDraft];
+      }
       return res?.success;
     },
     []

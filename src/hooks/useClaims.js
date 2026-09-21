@@ -244,9 +244,12 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         showNotice(error.message, "error");
         return { success: false, error };
       }
-      // Nu mai apelăm loadAll() — real-time granular (INSERT/UPDATE events) sincronizează
-      // lista local fără a redescărca întregul tabel (economisire egress critică).
-      // La noi, INSERT emis de Supabase va apărea imediat prin subscription.
+      // Actualizare optimistă — dosarul apare imediat în UI fără a depinde de realtime
+      // (realtime INSERT poate fi pierdut din cauza rate-limiting / WebSocket disconnect).
+      if (isNewClaim) {
+        const optimistic = fromDb(payload);
+        setClaims((prev) => [optimistic, ...prev.filter((c) => c.id !== optimistic.id)]);
+      }
 
       // After modal save, align sibling dosare pe aceeași mașină
       if (scheduleChanged && isValidPlateKey(normalizePlate(claimToSave.numarInmatriculare))) {

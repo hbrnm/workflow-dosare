@@ -71,14 +71,19 @@ export default function LocalDriveSyncModal({
     if (!onlyOnDrive.length) return;
     try {
       setSyncingAll(true);
-      const keysToSync = onlyOnDrive.map((i) => i.key);
-      setSyncedDriveKeys((prev) => new Set([...prev, ...keysToSync]));
       let count = 0;
       for (const item of onlyOnDrive) {
         const ok = await onImportDriveCar(item.driveCar);
-        if (ok) count++;
+        if (ok) {
+          count++;
+          setSyncedDriveKeys((prev) => new Set(prev).add(item.key));
+        }
       }
-      showNotice?.(`Sincronizare completă: ${count} dosare preluate în Workflow Daune!`, "success");
+      if (count > 0) {
+        showNotice?.(`Sincronizare completă: ${count} dosare preluate în Workflow Daune!`, "success");
+      } else {
+        showNotice?.("Nu s-a putut prelua niciun dosar. Verifică conexiunea și reîncearcă.", "error");
+      }
       onRefreshDriveCars?.();
     } catch (err) {
       showNotice?.(`Eroare sincronizare masivă: ${err.message}`, "error");
@@ -92,14 +97,19 @@ export default function LocalDriveSyncModal({
     if (!onlyOnline.length) return;
     try {
       setSyncingAll(true);
-      const keysToPush = onlyOnline.map((i) => i.key);
-      setCreatedLocalKeys((prev) => new Set([...prev, ...keysToPush]));
       let count = 0;
       for (const item of onlyOnline) {
         const ok = await onPushClaimToDrive(item.claim);
-        if (ok) count++;
+        if (ok) {
+          count++;
+          setCreatedLocalKeys((prev) => new Set(prev).add(item.key));
+        }
       }
-      showNotice?.(`S-au creat ${count} foldere fizice noi pe calculator!`, "success");
+      if (count > 0) {
+        showNotice?.(`S-au creat ${count} foldere fizice noi pe calculator!`, "success");
+      } else {
+        showNotice?.("Nu s-a putut crea niciun folder. Verifică conexiunea cu Hard Drive.", "error");
+      }
       onRefreshDriveCars?.();
     } catch (err) {
       showNotice?.(`Eroare: ${err.message}`, "error");

@@ -185,7 +185,7 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
     // 4. RLS policy violation on insert -> try healing created_by / atelier_id from current session
     if (
       mode !== "update" &&
-      attempt === 0 &&
+      attempt <= 1 &&
       error.message &&
       error.message.includes("row-level security")
     ) {
@@ -194,23 +194,22 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
         const curUid = authData?.user?.id;
         if (curUid) {
           body.created_by = curUid;
-          if (!body.atelier_id) {
-            const { data: mRows } = await supabaseClient
-              .from("atelier_membri")
-              .select("atelier_id")
-              .eq("user_id", curUid)
+          // Rezolvă întotdeauna atelier_id din membership — cel existent poate fi invalid pentru userul curent
+          const { data: mRows } = await supabaseClient
+            .from("atelier_membri")
+            .select("atelier_id")
+            .eq("user_id", curUid)
+            .limit(1);
+          if (mRows?.[0]?.atelier_id) {
+            body.atelier_id = mRows[0].atelier_id;
+          } else if (!body.atelier_id) {
+            const { data: atRows } = await supabaseClient
+              .from("ateliere")
+              .select("id")
+              .order("created_at", { ascending: true })
               .limit(1);
-            if (mRows?.[0]?.atelier_id) {
-              body.atelier_id = mRows[0].atelier_id;
-            } else {
-              const { data: atRows } = await supabaseClient
-                .from("ateliere")
-                .select("id")
-                .order("created_at", { ascending: true })
-                .limit(1);
-              if (atRows?.[0]?.id) {
-                body.atelier_id = atRows[0].id;
-              }
+            if (atRows?.[0]?.id) {
+              body.atelier_id = atRows[0].id;
             }
           }
           continue;
