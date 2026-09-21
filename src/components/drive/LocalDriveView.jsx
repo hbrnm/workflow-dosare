@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import JSZip from "jszip";
 import {
   HardDrive, Folder, File, Image, Film, FileText, CheckCircle2,
   AlertCircle, AlertTriangle, RefreshCw, ExternalLink, Sparkles, Plus, Copy,
   MessageCircle, Upload, ChevronRight, Download, RotateCw, RotateCcw, Maximize2,
-  Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck
+  Search, X, ArrowUpRight, Check, Car, User, Phone, ShieldCheck,
+  Code, FileSpreadsheet, FileCode2, WrapText, Loader2
 } from "lucide-react";
 import {
   getDriveCars,
@@ -58,6 +60,514 @@ export function mapOnlineStatusToLocal(onlineStatus) {
     case "facturat": return "Finalizat";
     default: return "Constatare";
   }
+}
+
+function formatXml(sourceXml) {
+  if (!sourceXml) return "";
+  try {
+    let formatted = "";
+    let indent = 0;
+    const tab = "  ";
+    const xml = sourceXml.replace(/>\s*</g, "><");
+    const tokens = xml.split(/(<[^>]+>)/g).filter((t) => t.trim().length > 0);
+
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (token.startsWith("</")) {
+        indent = Math.max(0, indent - 1);
+        formatted += tab.repeat(indent) + token + "\n";
+      } else if (
+        token.startsWith("<") &&
+        !token.endsWith("/>") &&
+        !token.startsWith("<?") &&
+        !token.startsWith("<!")
+      ) {
+        if (
+          i + 2 < tokens.length &&
+          !tokens[i + 1].startsWith("<") &&
+          tokens[i + 2].startsWith("</")
+        ) {
+          formatted += tab.repeat(indent) + token + tokens[i + 1] + tokens[i + 2] + "\n";
+          i += 2;
+        } else {
+          formatted += tab.repeat(indent) + token + "\n";
+          indent++;
+        }
+      } else {
+        formatted += tab.repeat(indent) + token + "\n";
+      }
+    }
+    return formatted.trim();
+  } catch {
+    return sourceXml;
+  }
+}
+
+async function parseDocxFromUrl(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const arrayBuffer = await response.arrayBuffer();
+  const zip = await JSZip.loadAsync(arrayBuffer);
+  const docFile = zip.file("word/document.xml");
+  if (!docFile) throw new Error("Structura DOCX este invalidă (lipsește document.xml)");
+  const xmlString = await docFile.async("string");
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+  const body = xmlDoc.getElementsByTagName("w:body")[0];
+  if (!body) throw new Error("Lipsește corpul documentului Word");
+
+  const elements = [];
+  const children = body.childNodes;
+
+  for (let i = 0; i < children.length; i++) {
+    const node = children[i];
+    if (node.nodeName === "w:p") {
+      const textNodes = node.getElementsByTagName("w:t");
+      let pText = "";
+      for (let t = 0; t < textNodes.length; t++) {
+        pText += textNodes[t].textContent || "";
+      }
+      pText = pText.trim();
+
+      if (pText) {
+        const bTag = node.getElementsByTagName("w:b");
+        const isBold = bTag && bTag.length > 0;
+        const pStyle = node.getElementsByTagName("w:pStyle")[0];
+        const styleVal = pStyle ? pStyle.getAttribute("w:val") || "" : "";
+        const isHeading =
+          styleVal.toLowerCase().includes("heading") ||
+          styleVal.toLowerCase().includes("titlu") ||
+          isBold;
+
+        elements.push({
+          type: "p",
+          text: pText,
+          isHeading,
+          isBold,
+        });
+      }
+    } else if (node.nodeName === "w:tbl") {
+      const rows = [];
+      const trNodes = node.getElementsByTagName("w:tr");
+      for (let r = 0; r < trNodes.length; r++) {
+        const rowCells = [];
+        const tcNodes = trNodes[r].getElementsByTagName("w:tc");
+        for (let c = 0; c < tcNodes.length; c++) {
+          const cTextNodes = tcNodes[c].getElementsByTagName("w:t");
+          let cellText = "";
+          for (let ct = 0; ct < cTextNodes.length; ct++) {
+            cellText += cTextNodes[ct].textContent || "";
+          }
+          rowCells.push(cellText.trim());
+        }
+        if (rowCells.some((text) => text.length > 0)) {
+          rows.push(rowCells);
+        }
+      }
+      if (rows.length > 0) {
+        elements.push({ type: "tbl", rows });
+      }
+    }
+  }
+  return elements;
+}
+
+function LocalDocumentPreviewer({ file, fileUrl }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [textContent, setTextContent] = useState("");
+  const [docxElements, setDocxElements] = useState([]);
+  const [copied, setCopied] = useState(false);
+  const [wrapLines, setWrapLines] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const fileName = file?.name || "";
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  const fileSizeMb = file?.size ? (file.size / (1024 * 1024)).toFixed(2) : "0";
+
+  useEffect(() => {
+    setError(null);
+    setTextContent("");
+    setDocxElements([]);
+    setSearchQuery("");
+
+    if (!fileUrl) return;
+    if (ext === "pdf") return;
+
+    if (["xml", "stc", "txt", "csv", "json", "log", "ini"].includes(ext)) {
+      setLoading(true);
+      fetch(fileUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.text();
+        })
+        .then((raw) => {
+          if (ext === "xml") setTextContent(formatXml(raw));
+          else setTextContent(raw);
+        })
+        .catch((err) => setError(`Eroare citire fișier: ${err.message}`))
+        .finally(() => setLoading(false));
+    } else if (ext === "docx") {
+      setLoading(true);
+      parseDocxFromUrl(fileUrl)
+        .then((elements) => setDocxElements(elements))
+        .catch((err) => setError(`Eroare Word: ${err.message}`))
+        .finally(() => setLoading(false));
+    }
+  }, [fileUrl, ext]);
+
+  const handleCopy = () => {
+    let copyText = "";
+    if (textContent) {
+      copyText = textContent;
+    } else if (docxElements.length > 0) {
+      copyText = docxElements
+        .map((el) => {
+          if (el.type === "p") return el.text;
+          if (el.type === "tbl") return el.rows.map((r) => r.join("\t")).join("\n");
+          return "";
+        })
+        .join("\n\n");
+    }
+    if (copyText) {
+      navigator.clipboard?.writeText(copyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // 1. PDF Inline Preview
+  if (ext === "pdf") {
+    return (
+      <div className="w-full h-full flex flex-col min-h-0 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] overflow-hidden shadow-xs">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]/60 text-xs shrink-0">
+          <div className="flex items-center gap-2 font-medium text-[var(--app-text-strong)] truncate">
+            <FileText size={15} className="text-red-500 shrink-0" />
+            <span className="truncate font-mono text-[11px]">{fileName}</span>
+            <span className="text-[10px] text-[var(--app-muted)] shrink-0 font-normal">
+              ({fileSizeMb} MB)
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 rounded-lg hover:bg-[var(--app-surface)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors inline-flex items-center gap-1 font-medium text-[11px]"
+              title="Deschide în tab nou"
+            >
+              <ExternalLink size={13} />
+              <span className="hidden sm:inline">Deschide</span>
+            </a>
+            <a
+              href={fileUrl}
+              download={fileName}
+              className="p-1.5 rounded-lg hover:bg-[var(--app-surface)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors inline-flex items-center gap-1 font-medium text-[11px]"
+              title="Descarcă PDF"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Descarcă</span>
+            </a>
+          </div>
+        </div>
+        <div className="flex-1 min-h-0 relative bg-neutral-900/5">
+          <iframe
+            title={fileName}
+            src={`${fileUrl}#view=FitH`}
+            className="w-full h-full border-0"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 2. XML, STC (Audatex), TXT, CSV, JSON Code/Text Preview
+  if (["xml", "stc", "txt", "csv", "json", "log", "ini"].includes(ext)) {
+    const lines = textContent ? textContent.split("\n") : [];
+    const filteredLines = searchQuery
+      ? lines.filter((l) => l.toLowerCase().includes(searchQuery.toLowerCase()))
+      : lines;
+
+    return (
+      <div className="w-full h-full flex flex-col min-h-0 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] overflow-hidden shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]/60 text-xs shrink-0">
+          <div className="flex items-center gap-2 font-medium text-[var(--app-text-strong)] truncate">
+            {ext === "xml" ? (
+              <FileCode2 size={15} className="text-amber-500 shrink-0" />
+            ) : ext === "stc" ? (
+              <Code size={15} className="text-emerald-500 shrink-0" />
+            ) : ext === "csv" ? (
+              <FileSpreadsheet size={15} className="text-green-500 shrink-0" />
+            ) : (
+              <FileText size={15} className="text-blue-500 shrink-0" />
+            )}
+            <span className="truncate font-mono text-[11px]">{fileName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--app-surface-2)] border border-[var(--app-border)] text-[var(--app-muted)] shrink-0 uppercase font-mono font-bold">
+              {ext === "stc" ? "Audatex STC" : ext === "xml" ? "e-Factura XML" : ext}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <div className="relative flex items-center">
+              <Search size={12} className="absolute left-2 text-[var(--app-muted)]" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Caută în fișier..."
+                className="w-24 sm:w-32 pl-6 pr-2 py-1 text-[11px] bg-[var(--app-surface)] border border-[var(--app-border)] rounded-lg focus:outline-none focus:border-[var(--app-accent)] text-[var(--app-text)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setWrapLines(!wrapLines)}
+              className={`p-1.5 rounded-lg border transition-colors cursor-pointer text-[11px] ${
+                wrapLines
+                  ? "bg-[var(--app-accent)]/15 border-[var(--app-accent)]/40 text-[var(--app-accent-text)]"
+                  : "bg-[var(--app-surface)] border-[var(--app-border)] text-[var(--app-muted)] hover:text-[var(--app-text)]"
+              }`}
+              title="Comută Wrap Text"
+            >
+              <WrapText size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={loading || !textContent}
+              className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px]"
+              title="Copiază conținutul"
+            >
+              {copied ? (
+                <>
+                  <Check size={13} className="text-emerald-500" />
+                  <span className="text-emerald-500 hidden sm:inline">Copiat!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={13} />
+                  <span className="hidden sm:inline">Copiază</span>
+                </>
+              )}
+            </button>
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors inline-flex items-center gap-1 text-[11px]"
+              title="Deschide separat"
+            >
+              <ExternalLink size={13} />
+            </a>
+            <a
+              href={fileUrl}
+              download={fileName}
+              className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors inline-flex items-center gap-1 text-[11px]"
+              title="Descarcă"
+            >
+              <Download size={13} />
+            </a>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 relative overflow-auto bg-[var(--app-surface-2)]/20 p-3">
+          {loading ? (
+            <div className="h-full flex flex-col items-center justify-center text-[var(--app-muted)] text-xs gap-2">
+              <Loader2 className="animate-spin text-[var(--app-accent)]" size={24} />
+              <span>Se citește {fileName}...</span>
+            </div>
+          ) : error ? (
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center text-xs">
+              <AlertCircle size={32} className="text-red-500 mb-2" />
+              <div className="font-semibold text-[var(--app-text-strong)] mb-1">Eroare încărcare</div>
+              <div className="text-[var(--app-muted)] max-w-sm">{error}</div>
+            </div>
+          ) : (
+            <pre
+              className={`text-[12px] font-mono leading-relaxed text-[var(--app-text)] selection:bg-[var(--app-accent)]/30 ${
+                wrapLines ? "whitespace-pre-wrap break-words" : "whitespace-pre overflow-x-auto"
+              }`}
+            >
+              {filteredLines.map((line, idx) => (
+                <div key={idx} className="flex hover:bg-[var(--app-surface-2)]/60 rounded px-1">
+                  <span className="w-10 select-none text-[10px] text-[var(--app-muted)]/60 text-right pr-3 font-mono shrink-0">
+                    {idx + 1}
+                  </span>
+                  <span className="flex-1 font-mono">{line || " "}</span>
+                </div>
+              ))}
+            </pre>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Word DOCX Preview
+  if (ext === "docx") {
+    return (
+      <div className="w-full h-full flex flex-col min-h-0 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)] overflow-hidden shadow-xs">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--app-border)] bg-[var(--app-surface-2)]/60 text-xs shrink-0">
+          <div className="flex items-center gap-2 font-medium text-[var(--app-text-strong)] truncate">
+            <FileText size={15} className="text-blue-600 shrink-0" />
+            <span className="truncate font-mono text-[11px]">{fileName}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 shrink-0 uppercase font-mono font-bold">
+              DOCX
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopy}
+              disabled={loading || docxElements.length === 0}
+              className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors cursor-pointer inline-flex items-center gap-1 text-[11px]"
+              title="Copiază textul din Word"
+            >
+              {copied ? (
+                <>
+                  <Check size={13} className="text-emerald-500" />
+                  <span className="text-emerald-500 hidden sm:inline">Copiat!</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={13} />
+                  <span className="hidden sm:inline">Copiază Text</span>
+                </>
+              )}
+            </button>
+            <a
+              href={fileUrl}
+              download={fileName}
+              className="p-1.5 rounded-lg bg-[var(--app-surface)] border border-[var(--app-border)] hover:bg-[var(--app-surface-2)] text-[var(--app-muted)] hover:text-[var(--app-text-strong)] transition-colors inline-flex items-center gap-1 text-[11px]"
+              title="Descarcă Word DOCX"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Descarcă</span>
+            </a>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 bg-neutral-100 dark:bg-neutral-900/60 flex justify-center">
+          {loading ? (
+            <div className="h-full flex flex-col items-center justify-center text-[var(--app-muted)] text-xs gap-2">
+              <Loader2 className="animate-spin text-[var(--app-accent)]" size={24} />
+              <span>Se decodează documentul Word...</span>
+            </div>
+          ) : error ? (
+            <div className="h-full flex flex-col items-center justify-center p-6 text-center text-xs">
+              <AlertCircle size={32} className="text-red-500 mb-2" />
+              <div className="font-semibold text-[var(--app-text-strong)] mb-1">Eroare Word</div>
+              <div className="text-[var(--app-muted)] max-w-sm mb-3">{error}</div>
+              <a
+                href={fileUrl}
+                download={fileName}
+                className="px-3 py-1.5 rounded-lg bg-[var(--app-accent)] text-[var(--app-accent-text)] font-semibold"
+              >
+                Descarcă Fișierul Direct
+              </a>
+            </div>
+          ) : docxElements.length === 0 ? (
+            <div className="text-xs text-[var(--app-muted)] text-center py-10">
+              Documentul nu conține text citibil.
+            </div>
+          ) : (
+            <div className="w-full max-w-3xl bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 p-6 sm:p-10 rounded-xl shadow-md border border-neutral-200 dark:border-neutral-700 min-h-full space-y-3">
+              {docxElements.map((el, idx) => {
+                if (el.type === "p") {
+                  if (el.isHeading) {
+                    return (
+                      <h3
+                        key={idx}
+                        className="font-bold text-base sm:text-lg text-neutral-900 dark:text-white pt-2 pb-1 border-b border-neutral-100 dark:border-neutral-700"
+                      >
+                        {el.text}
+                      </h3>
+                    );
+                  }
+                  return (
+                    <p
+                      key={idx}
+                      className={`text-xs sm:text-sm leading-relaxed ${
+                        el.isBold
+                          ? "font-semibold text-[var(--app-text-strong)]"
+                          : "text-[var(--app-text)]"
+                      }`}
+                    >
+                      {el.text}
+                    </p>
+                  );
+                }
+                if (el.type === "tbl") {
+                  return (
+                    <div
+                      key={idx}
+                      className="my-4 overflow-x-auto rounded-lg border border-neutral-300 dark:border-neutral-700"
+                    >
+                      <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700 text-xs">
+                        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
+                          {el.rows.map((row, rIdx) => (
+                            <tr
+                              key={rIdx}
+                              className={
+                                rIdx === 0
+                                  ? "bg-neutral-100 dark:bg-neutral-700/50 font-bold"
+                                  : "hover:bg-neutral-50 dark:hover:bg-neutral-700/30"
+                              }
+                            >
+                              {row.map((cell, cIdx) => (
+                                <td
+                                  key={cIdx}
+                                  className="p-2 border-r border-neutral-200 dark:border-neutral-700 last:border-r-0 align-top"
+                                >
+                                  {cell || "—"}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Legacy DOC / Generic Document Fallback
+  return (
+    <div className="text-center p-8 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm max-w-md">
+      <FileText size={48} className="mx-auto text-[var(--app-accent)] opacity-80 mb-3" />
+      <h4 className="font-bold text-sm text-[var(--app-text-strong)] mb-1">{fileName}</h4>
+      <p className="text-xs text-[var(--app-muted)] mb-4">
+        Format document {ext.toUpperCase()} • Dimensiune: {fileSizeMb} MB
+      </p>
+      <div className="flex gap-2 justify-center">
+        <a
+          href={fileUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="px-3 py-1.5 rounded-lg bg-[var(--app-accent)] text-[var(--app-accent-text)] text-xs font-semibold hover:opacity-95 transition-opacity inline-flex items-center gap-1.5"
+        >
+          <ExternalLink size={13} />
+          <span>Deschide în aplicație</span>
+        </a>
+        <a
+          href={fileUrl}
+          download={fileName}
+          className="px-3 py-1.5 rounded-lg bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] text-xs font-semibold text-[var(--app-text)] border border-[var(--app-border)] transition-colors inline-flex items-center gap-1.5"
+        >
+          <Download size={13} />
+          <span>Descarcă</span>
+        </a>
+      </div>
+    </div>
+  );
 }
 
 export default function LocalDriveView({
@@ -1148,6 +1658,14 @@ export default function LocalDriveView({
                         <Image size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       ) : f.isVideo ? (
                         <Film size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
+                      ) : f.name?.toLowerCase().endsWith(".pdf") ? (
+                        <FileText size={15} className={isSelected ? "text-red-500 shrink-0" : "text-red-400/80 shrink-0"} />
+                      ) : f.name?.toLowerCase().endsWith(".xml") ? (
+                        <FileCode2 size={15} className={isSelected ? "text-amber-500 shrink-0" : "text-amber-400/80 shrink-0"} />
+                      ) : f.name?.toLowerCase().endsWith(".stc") ? (
+                        <Code size={15} className={isSelected ? "text-emerald-500 shrink-0" : "text-emerald-400/80 shrink-0"} />
+                      ) : (f.name?.toLowerCase().endsWith(".doc") || f.name?.toLowerCase().endsWith(".docx")) ? (
+                        <FileText size={15} className={isSelected ? "text-blue-500 shrink-0" : "text-blue-400/80 shrink-0"} />
                       ) : (
                         <FileText size={15} className={isSelected ? "text-[var(--app-accent)] shrink-0" : "text-[var(--app-muted)] shrink-0"} />
                       )}
@@ -1233,30 +1751,10 @@ export default function LocalDriveView({
                 className="max-h-[55vh] max-w-full rounded-xl shadow-md"
               />
             ) : (
-              <div className="text-center p-8 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm max-w-md">
-                <FileText size={48} className="mx-auto text-[var(--app-accent)] opacity-80 mb-3" />
-                <h4 className="font-bold text-sm text-[var(--app-text-strong)] mb-1">{selectedFile.name}</h4>
-                <p className="text-xs text-[var(--app-muted)] mb-4">
-                  Dimensiune: {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <a
-                    href={getDriveFileUrl(selectedCarName, selectedCategory, selectedFile.name)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-[var(--app-accent)] text-[var(--app-accent-text)] text-xs font-semibold hover:opacity-95 transition-opacity"
-                  >
-                    Vizualizează Document
-                  </a>
-                  <a
-                    href={getDriveFileUrl(selectedCarName, selectedCategory, selectedFile.name)}
-                    download={selectedFile.name}
-                    className="px-3 py-1.5 rounded-lg bg-[var(--app-surface-2)] hover:bg-[var(--app-surface-muted)] text-xs font-semibold text-[var(--app-text)] border border-[var(--app-border)] transition-colors"
-                  >
-                    Descarcă
-                  </a>
-                </div>
-              </div>
+              <LocalDocumentPreviewer
+                file={selectedFile}
+                fileUrl={getDriveFileUrl(selectedCarName, selectedCategory, selectedFile.name)}
+              />
             )}
           </div>
 
