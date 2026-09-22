@@ -1,5 +1,6 @@
 import { uid, nowISO } from "./dateUtils";
 import { compressImage } from "./imageUtils";
+import { supabase } from "../supabaseClient";
 
 export function storagePath(claimId, file, folder = "poze") {
   let ext = "jpg";
@@ -231,8 +232,7 @@ export async function uploadStorageItem(supabaseClientOrOptions, bucketName, cla
   if (!bName) bName = fold === "documente" ? "documente-dosare" : "poze-dosare";
 
   if (!client || !client.storage) {
-    const mod = await import("../supabaseClient");
-    client = mod.supabase;
+    client = supabase;
   }
 
   let fToUpload = f;

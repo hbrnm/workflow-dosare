@@ -113,8 +113,7 @@ export default defineConfig({
           const chunks = [
             { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:react|react-dom|scheduler)(?:\/|$)/, name: "vendor_react" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?xlsx(?:\/|$)/, name: "vendor_xlsx" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:pdf-lib|@pdf-lib)(?:\/|$)/, name: "vendor_pdflib" },
-            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:jspdf|html2canvas|canvg|css-line-break|fast-png|utif2)(?:\/|\.|$)/, name: "vendor_pdf_export" },
+            { test: /\/node_modules\/(?:\.vite\/deps\/)?(?:pdf-lib|@pdf-lib|jspdf|html2canvas|canvg|css-line-break|fast-png|utif2)(?:\/|\.|$)/, name: "vendor_pdf" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?recharts(?:\/|$)/, name: "vendor_recharts" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?lucide-react(?:\/|$)/, name: "vendor_icons" },
             { test: /\/node_modules\/(?:\.vite\/deps\/)?@?supabase(?:\/|$)/, name: "vendor_supabase" },
@@ -123,8 +122,6 @@ export default defineConfig({
           for (const chunk of chunks) {
             if (chunk.test.test(normalizedId)) return chunk.name;
           }
-
-          return "vendor";
         },
       },
     },

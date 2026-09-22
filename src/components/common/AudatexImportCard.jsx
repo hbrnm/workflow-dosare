@@ -6,6 +6,7 @@ import {
   countExtractedFields,
   countExtractedOperations,
   normalizeAudatexImportValues,
+  parseEstimateText,
 } from "../../utils/audatexParse";
 import { parseEstimateFile } from "../../utils/audatexImportFile";
 
@@ -132,7 +133,6 @@ export default function AudatexImportCard({
     setOcrBusy(true);
     try {
       const { extractTextWithTesseract } = await import("../../utils/aiDocumentExtractor");
-      const { parseEstimateText } = await import("../../utils/audatexParse");
       const text = await extractTextWithTesseract(currentFile, (progressMsg) => {
         setLastError(`OCR în curs: ${progressMsg}`);
       });

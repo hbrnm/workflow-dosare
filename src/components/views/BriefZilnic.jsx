@@ -2,10 +2,17 @@ import React, { useState, useMemo } from "react";
 import {
   CalendarClock, PackageCheck, Phone, Clock, CheckCircle2, ShieldAlert,
   BarChart3, ExternalLink, ChevronRight, User, Package, ClipboardCheck,
-  BadgeCheck, Wrench,
+  BadgeCheck, Wrench, AlertOctagon, AlertCircle,
 } from "lucide-react";
-import { todayISO, telLink, formatProgramareDate, getSinceMeta } from "../../utils/dateUtils";
-import { buildAlertBuckets, filterAlertItems, getLatestClaimNoteText } from "../../utils/alertUtils";
+import { todayISO, telLink, formatProgramareDate, getSinceMeta, businessDaysSince } from "../../utils/dateUtils";
+import {
+  buildAlertBuckets,
+  filterAlertItems,
+  getLatestClaimNoteText,
+  isDeliveryDeadlineOverdue,
+  isInactiveClaim,
+  getDaysSinceLastActivity,
+} from "../../utils/alertUtils";
 import { isPendingArrivalToday } from "../../utils/scheduleStatusEffects";
 import {
   STATUSES,
@@ -113,8 +120,88 @@ export default function BriefZilnic({
 
   const programariAzi = useMemo(() =>
     claims.filter((c) => isPendingArrivalToday(c, todayStr))
-      .sort((a, b) => a.dataProgramare.localeCompare(b.dataProgramare)),
+      .sort((a, b) => String(a.dataProgramare || "").localeCompare(String(b.dataProgramare || ""))),
     [claims, todayStr]);
+
+  const intrariAzi = programariAzi;
+
+  const pieseIntarziate = useMemo(() => {
+    return (claims || [])
+      .filter((c) => {
+        if (!c || c.blocat) return false;
+        const sk = getStatusDefinition(c.status).key;
+        if (sk === "facturat" || sk === "predat_client") return false;
+        if (isDeliveryDeadlineOverdue(c)) return true;
+        if (Array.isArray(c.operatiuni)) {
+          return c.operatiuni.some(
+            (op) =>
+              op &&
+              op.statusPiesa === "comandat" &&
+              op.termenLivrare &&
+              String(op.termenLivrare).slice(0, 10) < todayStr
+          );
+        }
+        return false;
+      })
+      .map((c) => {
+        let maxDelay = 0;
+        let reperNume = "";
+        let furnizor = "";
+        const cTermen = c.termenLivrarePiese ? String(c.termenLivrarePiese).slice(0, 10) : "";
+        if (cTermen && cTermen < todayStr) {
+          maxDelay = businessDaysSince(`${cTermen}T12:00:00.000Z`);
+        }
+        if (Array.isArray(c.operatiuni)) {
+          c.operatiuni.forEach((op) => {
+            if (!op) return;
+            const opTermen = op.termenLivrare ? String(op.termenLivrare).slice(0, 10) : "";
+            if (op.statusPiesa === "comandat" && opTermen && opTermen < todayStr) {
+              const d = businessDaysSince(`${opTermen}T12:00:00.000Z`);
+              if (d > maxDelay) {
+                maxDelay = d;
+                reperNume = op.piesa || op.codPiesa || reperNume;
+                furnizor = op.furnizor || furnizor;
+              }
+            }
+          });
+        }
+        return {
+          claim: c,
+          delayDays: maxDelay,
+          reperNume: reperNume || "Piese comandate",
+          furnizor,
+        };
+      })
+      .sort((a, b) => b.delayDays - a.delayDays);
+  }, [claims, todayStr]);
+
+  const blocateSiInactive = useMemo(() => {
+    return (claims || [])
+      .filter((c) => {
+        if (!c) return false;
+        const sk = getStatusDefinition(c.status).key;
+        if (sk === "facturat" || sk === "predat_client") return false;
+        return c.blocat || isInactiveClaim(c, 7);
+      })
+      .map((c) => {
+        const daysInactive = getDaysSinceLastActivity(c);
+        const stageDef = getStatusDefinition(c.status);
+        return {
+          claim: c,
+          isBlocked: !!c.blocat,
+          daysInactive,
+          stageLabel: stageDef.label,
+          reason: c.blocat
+            ? (c.motivBlocare || "Blocat de utilizator")
+            : `${daysInactive} zile fără activitate`,
+        };
+      })
+      .sort((a, b) => {
+        if (a.isBlocked && !b.isBlocked) return -1;
+        if (!a.isBlocked && b.isBlocked) return 1;
+        return b.daysInactive - a.daysInactive;
+      });
+  }, [claims]);
 
   const gataAzi = useMemo(() =>
     claims.filter((c) => c.gataDeRidicare && !c.ridicata && c.dataGataRidicare && c.dataGataRidicare.slice(0, 10) === todayStr),
@@ -385,7 +472,260 @@ export default function BriefZilnic({
         </div>
       </div>
 
-      {/* 2. ALERTE & ACȚIUNI */}
+      {/* 2. TOP 3 URGENȚE ALE DIMINEȚII (FOCUS MATINAL) */}
+      <section
+        className="app-brief-panel rounded-xl p-3.5 space-y-3 shrink-0 bg-[var(--app-surface)] border border-[var(--app-border)] shadow-xs"
+        aria-label="Top 3 Urgențe ale Dimineții"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-[var(--app-border)]/70">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              {(intrariAzi.length > 0 || pieseIntarziate.length > 0 || blocateSiInactive.length > 0) && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              )}
+              <span
+                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                  pieseIntarziate.length > 0 || blocateSiInactive.length > 0
+                    ? "bg-amber-500"
+                    : intrariAzi.length > 0
+                      ? "bg-sky-500"
+                      : "bg-emerald-500"
+                }`}
+              />
+            </span>
+            <h2
+              className="font-extrabold text-[13.5px] text-[var(--app-text-strong)] flex items-center gap-1.5"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Top 3 Urgențe ale Dimineții
+            </h2>
+            <span className="text-[11px] text-[var(--app-muted)] font-medium hidden sm:inline">
+              · priorități de deblocat la cafeaua de dimineață
+            </span>
+          </div>
+
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]">
+            Focus Matinal
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Card 1: Intrări Astăzi */}
+          <div className="flex flex-col justify-between p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)]/40 hover:bg-[var(--app-surface-2)]/70 transition-colors">
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]/50">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <CalendarClock size={15} className="shrink-0 text-sky-500" />
+                  <span className="font-extrabold text-[12px] text-[var(--app-text-strong)] truncate">
+                    1. Intrări Astăzi
+                  </span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10.5px] font-mono font-extrabold ${
+                    intrariAzi.length > 0
+                      ? "bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30"
+                      : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"
+                  }`}
+                >
+                  {intrariAzi.length}
+                </span>
+              </div>
+
+              <div className="mt-2.5 space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                {intrariAzi.length === 0 ? (
+                  <div className="p-3 text-center rounded-lg bg-[var(--app-surface)] text-[11px] text-[var(--app-muted)] flex items-center justify-center gap-1.5 h-[85px] border border-[var(--app-border)]/40">
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                    <span>Nicio mașină programată azi</span>
+                  </div>
+                ) : (
+                  intrariAzi.map((c) => (
+                    <div
+                      key={c.id}
+                      onClick={() => onOpen(c)}
+                      className="group flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)]/60 cursor-pointer transition-all shadow-2xs"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span className="font-mono font-extrabold text-[10.5px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 shrink-0">
+                          {c.dataProgramare ? c.dataProgramare.slice(11, 16) : "09:00"}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
+                            {c.numarInmatriculare || "—"}
+                          </div>
+                          <div className="text-[10px] text-[var(--app-muted)] truncate">
+                            {c.marcaModel || c.client || "Client"}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className="text-[var(--app-muted)] group-hover:text-[var(--app-text-strong)] shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {intrariAzi.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setStageFocus("programat")}
+                className="mt-2 text-[10.5px] font-bold text-sky-600 dark:text-sky-400 hover:underline flex items-center justify-between pt-1.5 border-t border-[var(--app-border)]/40"
+              >
+                <span>Deschide agenda programări</span>
+                <span>→</span>
+              </button>
+            )}
+          </div>
+
+          {/* Card 2: Piese Întârziate */}
+          <div className="flex flex-col justify-between p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)]/40 hover:bg-[var(--app-surface-2)]/70 transition-colors">
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]/50">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Package size={15} className="shrink-0 text-amber-500" />
+                  <span className="font-extrabold text-[12px] text-[var(--app-text-strong)] truncate">
+                    2. Piese Întârziate Furnizor
+                  </span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10.5px] font-mono font-extrabold ${
+                    pieseIntarziate.length > 0
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                      : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"
+                  }`}
+                >
+                  {pieseIntarziate.length}
+                </span>
+              </div>
+
+              <div className="mt-2.5 space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                {pieseIntarziate.length === 0 ? (
+                  <div className="p-3 text-center rounded-lg bg-[var(--app-surface)] text-[11px] text-[var(--app-muted)] flex items-center justify-center gap-1.5 h-[85px] border border-[var(--app-border)]/40">
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                    <span>Toate piesele sunt în termen</span>
+                  </div>
+                ) : (
+                  pieseIntarziate.map(({ claim: c, delayDays, reperNume, furnizor }) => (
+                    <div
+                      key={c.id}
+                      onClick={() => onOpen(c)}
+                      className="group flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)]/60 cursor-pointer transition-all shadow-2xs"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span className="font-mono font-extrabold text-[10.5px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0 border border-amber-500/20">
+                          {delayDays > 0 ? `+${delayDays}z` : "depășit"}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
+                            {c.numarInmatriculare || "—"}
+                          </div>
+                          <div className="text-[10px] text-[var(--app-muted)] truncate">
+                            {reperNume}{furnizor ? ` · ${furnizor}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className="text-[var(--app-muted)] group-hover:text-[var(--app-text-strong)] shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {pieseIntarziate.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStageFocus("piese");
+                  setActiveAlertTab("piese");
+                }}
+                className="mt-2 text-[10.5px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center justify-between pt-1.5 border-t border-[var(--app-border)]/40"
+              >
+                <span>Filtrează comenzile de piese</span>
+                <span>→</span>
+              </button>
+            )}
+          </div>
+
+          {/* Card 3: Blocate / Inactive 7+ zile */}
+          <div className="flex flex-col justify-between p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-2)]/40 hover:bg-[var(--app-surface-2)]/70 transition-colors">
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--app-border)]/50">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <AlertOctagon size={15} className="shrink-0 text-rose-500" />
+                  <span className="font-extrabold text-[12px] text-[var(--app-text-strong)] truncate">
+                    3. Blocate / Stagnate (7z+)
+                  </span>
+                </div>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10.5px] font-mono font-extrabold ${
+                    blocateSiInactive.length > 0
+                      ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                      : "bg-[var(--app-surface-2)] text-[var(--app-muted)] border border-[var(--app-border)]"
+                  }`}
+                >
+                  {blocateSiInactive.length}
+                </span>
+              </div>
+
+              <div className="mt-2.5 space-y-1.5 max-h-[140px] overflow-y-auto pr-0.5 scrollbar-thin">
+                {blocateSiInactive.length === 0 ? (
+                  <div className="p-3 text-center rounded-lg bg-[var(--app-surface)] text-[11px] text-[var(--app-muted)] flex items-center justify-center gap-1.5 h-[85px] border border-[var(--app-border)]/40">
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                    <span>Zero dosare blocate sau stagnate</span>
+                  </div>
+                ) : (
+                  blocateSiInactive.map(({ claim: c, isBlocked, daysInactive, stageLabel, reason }) => (
+                    <div
+                      key={c.id}
+                      onClick={() => onOpen(c)}
+                      className="group flex items-center justify-between p-2 rounded-lg bg-[var(--app-surface)] hover:bg-[var(--app-surface-2)] border border-[var(--app-border)]/60 cursor-pointer transition-all shadow-2xs"
+                    >
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span
+                          className={`font-mono font-extrabold text-[10px] px-1.5 py-0.5 rounded shrink-0 border ${
+                            isBlocked
+                              ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                          }`}
+                        >
+                          {isBlocked ? "BLOCAT" : `${daysInactive}z`}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
+                            {c.numarInmatriculare || "—"}
+                          </div>
+                          <div className="text-[10px] text-[var(--app-muted)] truncate" title={reason}>
+                            {stageLabel} · {reason}
+                          </div>
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className="text-[var(--app-muted)] group-hover:text-[var(--app-text-strong)] shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {blocateSiInactive.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (onOpenBlocked && blocateSiInactive.some((x) => x.isBlocked)) {
+                    onOpenBlocked();
+                  } else {
+                    setActiveAlertTab("stagnate");
+                  }
+                }}
+                className="mt-2 text-[10.5px] font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center justify-between pt-1.5 border-t border-[var(--app-border)]/40"
+              >
+                <span>Gestionează dosarele blocate</span>
+                <span>→</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. ALERTE & ACȚIUNI */}
 
       <div className="app-brief-panel rounded-xl p-3 space-y-2 shrink-0">
         <div className="app-brief-panel-header flex flex-wrap items-center justify-between gap-2 pb-2">

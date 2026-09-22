@@ -368,6 +368,9 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   pdfDoc.registerFontkit(fontkit);
 
   const embedSerif = async (file, fallback) => {
+    if (typeof window === "undefined") {
+      return pdfDoc.embedFont(fallback);
+    }
     try {
       const fontRes = await fetch(`${base}fonts/${file}`);
       if (!fontRes.ok) throw new Error(`font ${fontRes.status}`);
@@ -380,11 +383,13 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const fontBold = await embedSerif("LiberationSerif-Bold.ttf", StandardFonts.TimesRomanBold);
 
   let logo = null;
-  try {
-    const logoRes = await fetch(`${base}forms/omniasig-logo.png`);
-    if (logoRes.ok) logo = await pdfDoc.embedPng(await logoRes.arrayBuffer());
-  } catch {
-    logo = null;
+  if (typeof window !== "undefined") {
+    try {
+      const logoRes = await fetch(`${base}forms/omniasig-logo.png`);
+      if (logoRes.ok) logo = await pdfDoc.embedPng(await logoRes.arrayBuffer());
+    } catch {
+      logo = null;
+    }
   }
 
   const page = pdfDoc.addPage([595.28, 841.89]);

@@ -77,6 +77,40 @@ export default function ClaimHeader({
             <span className="truncate">{form.numarInmatriculare || "Fără nr."} · {form.marcaModel || "Model neprecizat"}</span>
           </span>
           {!isNew && (
+            <div className="flex flex-wrap items-center gap-1 mt-0.5 text-[10px]">
+              {form.asigurator && (
+                <span className="px-1.5 py-0.2 rounded bg-[var(--app-surface-2)] text-[var(--app-text-strong)] font-semibold border border-[var(--app-border)]">
+                  {form.asigurator} {form.tipAsigurare ? `· ${form.tipAsigurare}` : ""}
+                </span>
+              )}
+              {form.pieseSosite ? (
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">
+                  ✓ Piese sosite
+                </span>
+              ) : form.dataComandaPiese ? (
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30">
+                  ⏳ Piese comandate
+                </span>
+              ) : null}
+              {(() => {
+                const suma = Number(
+                  form.valoareDevizAudatex ||
+                    form.sumaDecont ||
+                    form.financiar?.valoareDevizAudatex ||
+                    form.financiar?.audatex?.costReparatieFaraTva ||
+                    form.financiar?.costDeviz ||
+                    0
+                );
+                if (!suma || suma <= 0) return null;
+                return (
+                  <span className="px-1.5 py-0.2 rounded bg-[var(--app-surface-2)] text-[var(--app-text)] font-mono font-bold border border-[var(--app-border)]">
+                    {suma.toLocaleString("ro-RO")} lei
+                  </span>
+                );
+              })()}
+            </div>
+          )}
+          {!isNew && (
             <ClaimAuditMeta
               claim={form}
               compact
