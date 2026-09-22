@@ -20,6 +20,17 @@ function stripDiacritics(str) {
 
 const sd = (t) => stripDiacritics(t || "—");
 
+export function formatEventDate(raw) {
+  if (!raw) return "";
+  const s = String(raw).trim();
+  if (!s || s === "—") return "";
+  if (/^\d{2}[./-]\d{2}[./-]\d{4}$/.test(s)) {
+    return s.replace(/[.-]/g, "/");
+  }
+  const formatted = fmtDate(s);
+  return formatted !== "—" ? formatted : s;
+}
+
 export async function generateazaPDF(claim, istoric = [], branding = null) {
   const doc = await createPdf();
   const s = getStatusDefinition(claim.status);
@@ -390,7 +401,7 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const partySize = 9.8; // Subsemnatul / reprezentant + valori complete (tel, nr. auto, anexe)
   const optSize = 11;
   const legalSize = 8.8;
-  const settleSize = 10.5;
+  const settleSize = 10.2;
   const titleSize = 17;
   const lineStep = 18;
   const optStep = 17;
@@ -517,34 +528,44 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   y -= lineStep;
   draw("CUI/CNP", left, y, bodySize, font);
   cx = left + textW("CUI/CNP", bodySize, font) + 5;
-  dots(cx, y, 82);
-  cx += 86;
+  const cnpSpace = 135;
+  const cnpVal = fit(claim.cnp || claim.cui || "", partySize, cnpSpace - 6, fontBold);
+  if (cnpVal) {
+    draw(cnpVal, cx + 2, y, partySize, fontBold);
+    const cnpW = textW(cnpVal, partySize, fontBold);
+    const remCnp = cnpSpace - (cnpW + 4);
+    if (remCnp > 8) dots(cx + 2 + cnpW + 2, y, remCnp);
+  } else {
+    dots(cx, y, cnpSpace);
+  }
+  cx += cnpSpace + 4;
   draw(", domiciliat in", cx, y, bodySize, font);
   cx += textW(", domiciliat in", bodySize, font) + 5;
-  dots(cx, y, 72);
-  cx += 76;
-  draw(", str.", cx, y, bodySize, font);
-  cx += textW(", str.", bodySize, font) + 5;
-  dots(cx, y, 86);
-  cx += 90;
-  draw(", nr.", cx, y, bodySize, font);
-  cx += textW(", nr.", bodySize, font) + 5;
-  dots(cx, y, 30);
-  cx += 34;
-  draw(", ap.", cx, y, bodySize, font);
-  cx += textW(", ap.", bodySize, font) + 5;
-  dots(cx, y, Math.max(24, right - cx));
+  dots(cx, y, Math.max(80, right - cx));
 
   y -= lineStep;
-  draw("sector", left, y, bodySize, font);
-  cx = left + textW("sector", bodySize, font) + 5;
+  draw("str.", left, y, bodySize, font);
+  cx = left + textW("str.", bodySize, font) + 5;
+  dots(cx, y, 135);
+  cx += 139;
+  draw(", nr.", cx, y, bodySize, font);
+  cx += textW(", nr.", bodySize, font) + 5;
+  dots(cx, y, 32);
+  cx += 36;
+  draw(", ap.", cx, y, bodySize, font);
+  cx += textW(", ap.", bodySize, font) + 5;
+  dots(cx, y, 32);
+  cx += 36;
+  draw(", sector", cx, y, bodySize, font);
+  cx += textW(", sector", bodySize, font) + 5;
   dots(cx, y, 40);
   cx += 44;
   draw(", tel.", cx, y, bodySize, font);
   cx += textW(", tel.", bodySize, font) + 5;
-  const telVal = fit(claim.telefonClient || "", partySize, 80, fontBold);
+  const telW = Math.max(80, right - cx);
+  const telVal = fit(claim.telefonClient || "", partySize, telW - 2, fontBold);
   if (telVal) draw(telVal, cx, y, partySize, fontBold);
-  else dots(cx, y, 80);
+  else dots(cx, y, telW);
 
   y -= lineStep;
   draw("proprietar al autovehiculului cu numarul", left, y, bodySize, font);
@@ -722,10 +743,24 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
     right - (left + 210 + textW("adica (in litere)", settleSize, font) + 5)
   );
 
+  const dataAccidentVal = formatEventDate(claim?.dataEveniment);
+
   y -= 15;
   draw("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", left, y, settleSize, font);
   cx = left + textW("reprezinta despagubirea integrala pentru daunele suferite in accidentul de circulatie din data de", settleSize, font) + 5;
-  dots(cx, y, Math.max(48, right - cx));
+  if (dataAccidentVal) {
+    const accDateStr = fit(dataAccidentVal, settleSize, Math.max(50, right - cx - 2), fontBold);
+    if (accDateStr) {
+      draw(accDateStr, cx + 2, y, settleSize, fontBold);
+      const accW = textW(accDateStr, settleSize, fontBold);
+      const remW = right - (cx + 2 + accW + 3);
+      if (remW > 8) dots(cx + 2 + accW + 3, y, remW);
+    } else {
+      dots(cx, y, Math.max(48, right - cx));
+    }
+  } else {
+    dots(cx, y, Math.max(48, right - cx));
+  }
 
   y -= 15;
   draw("Prin primirea acestei sume declar ca sunt integral despagubit si ca nu mai am nici o pretentie de despagubire", left, y, settleSize, font);
@@ -738,11 +773,20 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   y -= 14;
   dots(left, y, 210);
   draw("persoana vinovata de producerea accidentului din data de", left + 218, y, settleSize, font);
-  dots(
-    left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5,
-    y,
-    Math.max(40, right - (left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5))
-  );
+  const cxVinovat = left + 218 + textW("persoana vinovata de producerea accidentului din data de", settleSize, font) + 5;
+  if (dataAccidentVal) {
+    const accDateStr2 = fit(dataAccidentVal, settleSize, Math.max(40, right - cxVinovat - 2), fontBold);
+    if (accDateStr2) {
+      draw(accDateStr2, cxVinovat + 2, y, settleSize, fontBold);
+      const accW2 = textW(accDateStr2, settleSize, fontBold);
+      const remW2 = right - (cxVinovat + 2 + accW2 + 3);
+      if (remW2 > 8) dots(cxVinovat + 2 + accW2 + 3, y, remW2);
+    } else {
+      dots(cxVinovat, y, Math.max(40, right - cxVinovat));
+    }
+  } else {
+    dots(cxVinovat, y, Math.max(40, right - cxVinovat));
+  }
 
   y -= 18;
   draw("Obiectii:", left, y, bodySize, fontBold);
@@ -798,14 +842,17 @@ export async function generateazaCerereDespagubireOmniasig(claim, options = null
   const pdfBytes = await pdfDoc.save();
   const token = stripDiacritics(claim.numarDosar || claim.numarInmatriculare || "nou").replace(/\s+/g, "-");
   const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `cerere-despagubire-omniasig-${token}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  if (typeof document !== "undefined" && document.createElement) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cerere-despagubire-omniasig-${token}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+  return { pdfBytes, blob, fileName: `cerere-despagubire-omniasig-${token}.pdf` };
 }
 
 export async function generateazaCerereDespagubireAsirom(claim, branding = null) {
@@ -859,7 +906,7 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
 
   const bunAvariat = sd(claim?.numarInmatriculare || claim?.marcaModel || "....................");
   const asiguratPagubit = sd(parties.proprietar || claim?.client || "........................................");
-  const dataEveniment = claim?.dataEveniment ? fmtDate(claim.dataEveniment) : fmtDate(claim?.dataDeschiderii || todayISO());
+  const dataEveniment = formatEventDate(claim?.dataEveniment) || fmtDate(claim?.dataDeschiderii || todayISO());
 
   // Sume
   const valoareSuma = claim?.valoareDevizAudatex || claim?.financiar?.valoareDevizAudatex || claim?.financiar?.audatex?.costReparatieFaraTva || claim?.sumaDecont || claim?.financiar?.costDeviz;
@@ -867,7 +914,7 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
 
   // Declarant
   const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client || "........................................");
-  const cnpDisplay = claim?.cnp ? sd(claim.cnp) : "....................................";
+  const cnpDisplay = (claim?.cnp || claim?.cui) ? sd(claim.cnp || claim.cui) : "....................................";
   const domDisplay = (claim?.adresaDomiciliu || claim?.adresaClient)
     ? sd(claim?.adresaDomiciliu || claim?.adresaClient)
     : ".................................................................";
