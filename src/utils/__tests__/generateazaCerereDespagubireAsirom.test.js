@@ -56,4 +56,17 @@ describe("generateazaCerereDespagubireAsirom", () => {
     expect(res.pdfBytes).toBeInstanceOf(ArrayBuffer);
     expect(res.blob).toBeInstanceOf(Blob);
   });
+
+  it("generează corect formularul cu spații extinse de completare când câmpurile sunt libere / de mână", async () => {
+    const emptyMockClaim = {
+      asigurator: "Asirom VIG",
+    };
+
+    const res = await generateazaCerereDespagubireAsirom(emptyMockClaim, null);
+
+    expect(res).toBeDefined();
+    expect(res.fileName).toContain("ASIROM");
+    expect(res.pdfBytes.byteLength).toBeGreaterThan(1000);
+  });
 });
+

@@ -903,28 +903,46 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   const atelierEmail = sd(branding?.email || claim?.emailClient || "daune@serviceautocrangasi.ro");
 
   // Date dosar
-  const nrDosar = sd(claim?.nrDosarAsigurator || claim?.numarDosar || "....................");
+  const nrDosar = sd(claim?.nrDosarAsigurator || claim?.numarDosar || "................................................................");
   const tip = String(claim?.tipAsigurare || "").toUpperCase();
   const isRca = tip.includes("RCA") || (!tip.includes("CASCO") && !tip.includes("NON"));
   const isCasco = tip.includes("CASCO");
   const isNonAuto = tip.includes("NON");
 
-  const bunAvariat = sd(claim?.numarInmatriculare || claim?.marcaModel || "....................");
-  const asiguratPagubit = sd(parties.proprietar || claim?.client || "........................................");
-  const dataEveniment = formatEventDate(claim?.dataEveniment) || fmtDate(claim?.dataDeschiderii || todayISO());
+  const autoParts = [claim?.marcaModel, claim?.numarInmatriculare].filter(Boolean);
+  const bunAvariat = autoParts.length
+    ? sd(autoParts.join("  -  "))
+    : "........................................................................................................................";
+  const asiguratPagubit = sd(parties.proprietar || claim?.client || "........................................................................................................................");
+  const dataEveniment = formatEventDate(claim?.dataEveniment) || fmtDate(claim?.dataDeschiderii) || "................................................................";
 
   // Sume
   const valoareSuma = claim?.valoareDevizAudatex || claim?.financiar?.valoareDevizAudatex || claim?.financiar?.audatex?.costReparatieFaraTva || claim?.sumaDecont || claim?.financiar?.costDeviz;
-  const sumaText = "......................";
+  const sumaText = valoareSuma ? `${valoareSuma} lei` : "....................................................................................................";
 
   // Declarant
-  const subsemnatul = sd(parties.subsemnatul || parties.proprietar || claim?.client || "........................................");
-  const cnpDisplay = (claim?.cnp || claim?.cui) ? sd(claim.cnp || claim.cui) : "....................................";
-  const domDisplay = (claim?.adresaDomiciliu || claim?.adresaClient)
-    ? sd(claim?.adresaDomiciliu || claim?.adresaClient)
-    : ".................................................................";
+  const subsemnatulRaw = sd(parties.subsemnatul || parties.proprietar || claim?.client || "");
+  const subsemnatul = subsemnatulRaw || "................................................................................................................................";
+  const cnpRaw = sd(claim?.cnp || claim?.cui || "");
+  const cnpDisplay = cnpRaw || "....................................................";
+
+  const adresaRaw = sd(claim?.adresaDomiciliu || claim?.adresaClient || "");
+  const telRaw = sd(claim?.telefonClient || claim?.telefon || "");
   const ciDisplaySeria = claim?.serieCI ? sd(claim.serieCI) : "..........";
-  const ciDisplayNr = claim?.numarCI ? sd(claim.numarCI) : "....................";
+  const ciDisplayNr = claim?.numarCI ? sd(claim.numarCI) : "................................";
+  const ciDisplayEliberat = claim?.ciEliberatDe ? sd(claim.ciEliberatDe) : "........................................";
+
+  let domLine1 = "";
+  let domLine2 = "";
+  if (adresaRaw) {
+    const fullAdresa = adresaRaw + (telRaw ? `  ·  Tel: ${telRaw}` : "");
+    const domLines = doc.splitTextToSize(fullAdresa, contentW - 55);
+    domLine1 = domLines[0] || "";
+    domLine2 = domLines.slice(1).join(" ") || (telRaw && !domLine1.includes("Tel") ? `Tel: ${telRaw}` : "...................................................................................................................................................................................");
+  } else {
+    domLine1 = "....................................................................................................................................................";
+    domLine2 = "str. ...................................., nr. ......, bl. ......, sc. ......, ap. ......, jud./sect.: ........................, tel: ................................";
+  }
 
   const isCompany = parties.asCompanyOwner || isCompanyClientName(parties.proprietar);
   const hasDelegat = parties.hasSeparateDelegat;
@@ -962,9 +980,9 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   y += 5;
 
   // ==========================================
-  // 2. TABEL DAUNĂ (5 Rânduri conform șablonului oficial Asirom)
+  // 2. TABEL DAUNĂ (5 Rânduri conform șablonului oficial Asirom - Înălțime extinsă)
   // ==========================================
-  const rowH = 6.0;
+  const rowH = 7.5;
   const col1W = 45;
 
   // Rând 1: Nr. dosar
@@ -972,10 +990,10 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   doc.line(margin + col1W, y, margin + col1W, y + rowH);
   doc.setFont("times", "bold");
   doc.setFontSize(9.5);
-  write("Nr. dosar de daună:", margin + 3, y + 4.2);
+  write("Nr. dosar de daună:", margin + 3, y + 5.0);
   doc.setFont("times", "bold");
   doc.setFontSize(10);
-  write(nrDosar, margin + col1W + 4, y + 4.2);
+  write(nrDosar, margin + col1W + 4, y + 5.0);
   y += rowH;
 
   // Rând 2: Tip poliță
@@ -983,56 +1001,60 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   doc.line(margin + col1W, y, margin + col1W, y + rowH);
   doc.setFont("times", "normal");
   doc.setFontSize(9.5);
-  write("Tip poliță:", margin + 3, y + 4.2);
+  write("Tip poliță:", margin + 3, y + 5.0);
 
   doc.setFont("times", "bold");
-  write("RCA", margin + col1W + 4, y + 4.2);
-  drawCheckbox(margin + col1W + 22, y + 4.2, isRca);
+  write("RCA", margin + col1W + 4, y + 5.0);
+  drawCheckbox(margin + col1W + 22, y + 5.0, isRca);
 
-  write("CASCO", margin + col1W + 36, y + 4.2);
-  drawCheckbox(margin + col1W + 58, y + 4.2, isCasco);
+  write("CASCO", margin + col1W + 36, y + 5.0);
+  drawCheckbox(margin + col1W + 58, y + 5.0, isCasco);
 
-  write("Non Auto", margin + col1W + 74, y + 4.2);
-  drawCheckbox(margin + col1W + 98, y + 4.2, isNonAuto);
+  write("Non Auto", margin + col1W + 74, y + 5.0);
+  drawCheckbox(margin + col1W + 98, y + 5.0, isNonAuto);
   y += rowH;
 
   // Rând 3: Bunul avariat
   drawBox(margin, y, contentW, rowH);
   doc.line(margin + col1W, y, margin + col1W, y + rowH);
   doc.setFont("times", "normal");
-  write("Bunul avariat:", margin + 3, y + 4.2);
+  write("Bunul avariat:", margin + 3, y + 5.0);
   doc.setFont("times", "bold");
-  write(bunAvariat, margin + col1W + 4, y + 4.2);
+  write(bunAvariat, margin + col1W + 4, y + 5.0);
   y += rowH;
 
   // Rând 4: Asigurat / Păgubit
   drawBox(margin, y, contentW, rowH);
   doc.line(margin + col1W, y, margin + col1W, y + rowH);
   doc.setFont("times", "normal");
-  write("Asigurat/ Păgubit:", margin + 3, y + 4.2);
+  write("Asigurat/ Păgubit:", margin + 3, y + 5.0);
   doc.setFont("times", "bold");
-  write(asiguratPagubit, margin + col1W + 4, y + 4.2);
+  write(asiguratPagubit, margin + col1W + 4, y + 5.0);
   y += rowH;
 
   // Rând 5: Dată eveniment
   drawBox(margin, y, contentW, rowH);
   doc.line(margin + col1W, y, margin + col1W, y + rowH);
   doc.setFont("times", "normal");
-  write("Dată eveniment:", margin + 3, y + 4.2);
+  write("Dată eveniment:", margin + 3, y + 5.0);
   doc.setFont("times", "bold");
-  write(dataEveniment, margin + col1W + 4, y + 4.2);
-  y += rowH + 6;
+  write(dataEveniment, margin + col1W + 4, y + 5.0);
+  y += rowH + 5.0;
 
   // ==========================================
-  // 3. PARAGRAF DECLARANT
+  // 3. PARAGRAF DECLARANT (Spații extinse pentru completare)
   // ==========================================
   doc.setFont("times", "normal");
   doc.setFontSize(9.0);
   doc.setTextColor(0);
 
-  write(`Subsemnatul(a) ${subsemnatul}, CNP ${cnpDisplay}, domiciliat(ă) în:`, margin, y);
-  y += 4.5;
-  write(`${domDisplay}, cu actul de identitate seria: ${ciDisplaySeria} nr. ${ciDisplayNr}`, margin, y);
+  write(`Subsemnatul(a) ${subsemnatul} ,  CNP / CUI ${cnpDisplay}`, margin, y);
+  y += 4.6;
+  write(`domiciliat(ă) în / cu sediul în:  ${domLine1}`, margin, y);
+  y += 4.6;
+  write(`adresa (continuare):  ${domLine2}`, margin, y);
+  y += 4.6;
+  write(`legitimat(ă) cu actul de identitate BI / CI seria: ${ciDisplaySeria}   nr.: ${ciDisplayNr} ,   eliberat de: ${ciDisplayEliberat}`, margin, y);
   y += 4.8;
 
   // Calitate bife
@@ -1046,44 +1068,55 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   drawCheckbox(margin + 72, y, hasDelegat || isCompany);
   write("reprezentant al beneficiarului, solicit plata despăgubirii", margin + 77, y);
 
-  y += 4.8;
+  y += 4.6;
   write(`în valoare de:  ${sumaText}  (lei).`, margin, y);
-  y += 5.2;
+  y += 4.6;
 
   drawCheckbox(margin, y, false);
   write("conform Evaluare Asirom, fără să fie necesară prezentarea unor documente justificative;", margin + 5, y);
-  y += 4.8;
+  y += 4.4;
 
   drawCheckbox(margin, y, true);
-  write("conform documentelor justificative anexate", margin + 5, y);
-  y += 6.0;
+  write("conform documentelor justificative anexate, astfel:", margin + 5, y);
+  y += 4.4;
+
+  write("– În original:  .............................................................................................................................................................", margin + 5, y);
+  y += 4.4;
+  write("– În fotocopie:  ............................................................................................................................................................", margin + 5, y);
+  y += 5.2;
 
   // ==========================================
-  // 4. MODALITATE PLATĂ + TABEL 4 COLOANE (Suma | IBAN | Banca | Titular)
+  // 4. MODALITATE PLATĂ + TABEL EXTINS 4 COLOANE x 2 RÂNDURI
   // ==========================================
   doc.setFont("times", "normal");
   doc.setFontSize(9.0);
   write("Despăgubirea cuvenită sunt de acord să fie plătită:", margin, y);
-  y += 4.6;
+  y += 4.2;
 
   drawCheckbox(margin, y, false);
   write("prin casieriile BCR", margin + 5, y);
-  y += 4.6;
+  y += 4.2;
+
+  drawCheckbox(margin, y, false);
+  write("prin casieriile ASIROM", margin + 5, y);
+  y += 4.2;
 
   drawCheckbox(margin, y, true);
   write("prin cont bancar, astfel:", margin + 5, y);
-  y += 5.0;
+  y += 4.6;
 
-  // TABEL PLATĂ 4 COLOANE (Suma | IBAN | Banca | Titular)
-  const pTabH = 10.5;
-  const pHeaderH = 4.8;
-  const wSuma = 30;
-  const wIban = 60;
-  const wBanca = 35;
+  // TABEL PLATĂ 4 COLOANE x 2 RÂNDURI (Înălțime generoasă)
+  const pHeaderH = 5.2;
+  const pRowH = 7.2;
+  const pTabH = pHeaderH + 2 * pRowH;
+  const wSuma = 28;
+  const wIban = 62;
+  const wBanca = 36;
   const wTitular = contentW - wSuma - wIban - wBanca;
 
   drawBox(margin, y, contentW, pTabH);
   doc.line(margin, y + pHeaderH, margin + contentW, y + pHeaderH);
+  doc.line(margin, y + pHeaderH + pRowH, margin + contentW, y + pHeaderH + pRowH);
 
   doc.line(margin + wSuma, y, margin + wSuma, y + pTabH);
   doc.line(margin + wSuma + wIban, y, margin + wSuma + wIban, y + pTabH);
@@ -1091,21 +1124,29 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
 
   doc.setFont("times", "bold");
   doc.setFontSize(8.5);
-  write("Suma", margin + 3, y + 3.4);
-  write("IBAN", margin + wSuma + 3, y + 3.4);
-  write("Banca", margin + wSuma + wIban + 3, y + 3.4);
-  write("Titular", margin + wSuma + wIban + wBanca + 3, y + 3.4);
+  write("Suma", margin + 3, y + 3.6);
+  write("Cont IBAN", margin + wSuma + 3, y + 3.6);
+  write("Banca", margin + wSuma + wIban + 3, y + 3.6);
+  write("Titular cont", margin + wSuma + wIban + wBanca + 3, y + 3.6);
 
+  // Rând 1: Date prestator / atelier
   doc.setFont("times", "normal");
   doc.setFontSize(8.5);
-  write(`${sumaText} lei`, margin + 3, y + pHeaderH + 3.8);
+  const sumaRow1 = valoareSuma ? `${valoareSuma} lei` : "............ lei";
+  write(sumaRow1, margin + 3, y + pHeaderH + 4.8);
   doc.setFont("times", "bold");
-  write(atelierIban, margin + wSuma + 3, y + pHeaderH + 3.8);
+  write(atelierIban, margin + wSuma + 3, y + pHeaderH + 4.8);
   doc.setFont("times", "normal");
-  write(atelierBanca, margin + wSuma + wIban + 3, y + pHeaderH + 3.8);
-  write(atelierNume, margin + wSuma + wIban + wBanca + 3, y + pHeaderH + 3.8);
+  write(atelierBanca, margin + wSuma + wIban + 3, y + pHeaderH + 4.8);
+  write(atelierNume, margin + wSuma + wIban + wBanca + 3, y + pHeaderH + 4.8);
 
-  y += pTabH + 6.0;
+  // Rând 2: Spațiu extins completare manuală / titular
+  write("............ lei", margin + 3, y + pHeaderH + pRowH + 4.8);
+  write("........................................................", margin + wSuma + 3, y + pHeaderH + pRowH + 4.8);
+  write("..............................", margin + wSuma + wIban + 3, y + pHeaderH + pRowH + 4.8);
+  write("............................................", margin + wSuma + wIban + wBanca + 3, y + pHeaderH + pRowH + 4.8);
+
+  y += pTabH + 4.8;
 
   // ==========================================
   // 5. DECLARAȚII PE PROPRIA RĂSPUNDERE
@@ -1113,87 +1154,98 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   doc.setFont("times", "normal");
   doc.setFontSize(9.0);
   write("Declar, pe propria răspundere, următoarele:", margin, y);
-  y += 4.5;
+  y += 4.2;
 
   drawCheckbox(margin, y, false);
   write("Am avizat acest eveniment și la Asigurătorul: ....................................... iar suma stabilită de acesta este: ....................", margin + 5, y);
-  y += 4.5;
+  y += 4.2;
 
   drawCheckbox(margin, y, true);
   write("Nu am avizat și nu urmează să mai avizez acest eveniment la altă societate de asigurări.", margin + 5, y);
-  y += 4.5;
+  y += 4.2;
 
   drawCheckbox(margin, y, true);
   write("Nu dețin aceeași formă de asigurare pentru bunul respectiv încheiată și la altă societate de asigurare.", margin + 5, y);
-  y += 5.5;
+  y += 4.8;
 
   // ==========================================
   // 6. CLAUZE LEGALE
   // ==========================================
   doc.setFont("times", "normal");
-  doc.setFontSize(8.2);
+  doc.setFontSize(7.6);
   const clauza1 = "Mă oblig să restitui de îndată, parțial sau total, societății de asigurare suma de bani primită cu titlu de despăgubire, în funcție de o eventuală hotărâre a instanței de judecată în ceea ce privește fapta, înfăptuitorul sau vinovăția, ori în cazul anulării actelor încheiate de organele de poliție, de unitățile de pompieri sau alte autorități competente să cerceteze evenimentul.";
   const c1Lines = doc.splitTextToSize(sd(clauza1), contentW);
   doc.text(c1Lines, margin, y);
-  y += c1Lines.length * 3.6 + 2.0;
+  y += c1Lines.length * 3.1 + 1.8;
 
   const clauza2 = "Declar că prin primirea sumei de mai sus sunt integral despăgubit(ă) de către Asirom pentru dauna menționată anterior și nu voi mai avea nicio pretenție față de Asirom, asigurătorul de răspundere civilă și persoana vinovată de producerea evenimentului.";
   const c2Lines = doc.splitTextToSize(sd(clauza2), contentW);
   doc.text(c2Lines, margin, y);
-  y += c2Lines.length * 3.6 + 3.0;
+  y += c2Lines.length * 3.1 + 2.5;
 
   // ==========================================
-  // 7. EMAIL INFORMARE & OBSERVAȚII
+  // 7. EMAIL INFORMARE & OBSERVAȚII (Extins)
   // ==========================================
-  drawBox(margin, y, contentW, 6.2);
+  drawBox(margin, y, contentW, 6.5);
   doc.setFont("times", "bold");
   doc.setFontSize(8.0);
   const emailLabel = "Doresc să primesc informare după realizarea plății la adresa de email: ";
-  write(emailLabel, margin + 3, y + 4.2);
+  write(emailLabel, margin + 3, y + 4.3);
   const emailLabelW = doc.getTextWidth(sd(emailLabel));
-  write(atelierEmail, margin + 3 + emailLabelW + 1.5, y + 4.2);
-  y += 9.0;
+  write(atelierEmail, margin + 3 + emailLabelW + 1.5, y + 4.3);
+  y += 9.5;
 
   doc.setFont("times", "normal");
-  doc.setFontSize(8.5);
-  write("Observații:  ........................................................................................................................................................................................", margin, y);
-  y += 7.0;
+  doc.setFontSize(8.2);
+  write("Observații: ....................................................................................................................................................................................", margin, y);
+  y += 4.2;
+  write(".......................................................................................................................................................................................................", margin, y);
+  y += 4.2;
+  write(".......................................................................................................................................................................................................", margin, y);
+  y += 5.0;
 
   // ==========================================
   // 8. GDPR & MYASIROM NOTICE
   // ==========================================
   doc.setFont("times", "normal");
-  doc.setFontSize(7.6);
-  doc.setTextColor(50);
+  doc.setFontSize(6.8);
+  doc.setTextColor(60);
   const gdprText = "Prin semnarea acestui document am luat la cunoștiință și înțeleg conținutul „Informării privind prelucrarea datelor cu caracter personal” (nr. F226/ed3/09.2019) și mă oblig s-o transmit tuturor persoanelor ale căror date cu caracter personal le furnizez în procesul de instrumentare a dosarului de daune în vederea informării corecte a acestora.";
   const gdprLines = doc.splitTextToSize(sd(gdprText), contentW);
   doc.text(gdprLines, margin, y);
-  y += gdprLines.length * 3.3 + 1.8;
+  y += gdprLines.length * 2.8 + 1.2;
 
   write("Îți poți administra portofoliul de asigurări Asirom și dosarele de daună online, pe www.myasirom.ro, din contul tău de client myAsirom", margin, y);
-  y += 6.0;
+  y += 4.5;
 
   // ==========================================
-  // 9. TABEL SEMNĂTURI JOS
+  // 9. TABEL SEMNĂTURI JOS (Chenar dedicat oficial)
   // ==========================================
+  const signBoxH = 16.5;
+  const colLeftW = 75;
+  drawBox(margin, y, contentW, signBoxH);
+  doc.line(margin + colLeftW, y, margin + colLeftW, y + signBoxH);
+
   doc.setTextColor(0);
   doc.setFont("times", "normal");
-  doc.setFontSize(8.8);
+  doc.setFontSize(8.5);
 
-  write("Localitate / Dată:", margin, y);
+  // Celula stânga: Localitate / Dată
+  write("Localitate / Dată:", margin + 3, y + 4.2);
   doc.setFont("times", "bold");
-  write(`București / ${fmtDate(todayISO())}`, margin + 28, y);
+  write(`București / ${fmtDate(todayISO())}`, margin + 3, y + 9.5);
 
+  // Celula dreapta: Nume și prenume + Semnătură
   doc.setFont("times", "normal");
-  write("Nume și prenume:", margin + 85, y);
+  write("Nume și prenume:", margin + colLeftW + 3, y + 4.2);
   doc.setFont("times", "bold");
-  write(subsemnatul, margin + 112, y);
+  write(subsemnatulRaw || "........................................................", margin + colLeftW + 28, y + 4.2);
 
-  y += 9.0;
   doc.setFont("times", "italic");
-  doc.setFontSize(8.0);
-  write("Semnătura (și ștampila, dacă este cazul)", margin + 105, y);
-  y += 5.0;
+  doc.setFontSize(7.5);
+  write("Semnătura (și ștampila, dacă este cazul)", margin + colLeftW + 3, y + signBoxH - 2.5);
+
+  y += signBoxH + 4.0;
 
   // ==========================================
   // 10. FOOTER CORPORATE ASIROM
@@ -1201,24 +1253,24 @@ export async function generateazaCerereDespagubireAsirom(claim, branding = null)
   doc.setDrawColor(180);
   doc.setLineWidth(0.4);
   doc.line(margin, y, margin + contentW, y);
-  y += 3.5;
+  y += 3.2;
 
   doc.setFont("times", "bold");
   doc.setFontSize(7.0);
   doc.setTextColor(90);
   write("Societatea Asigurarea Românească ASIROM VIENNA INSURANCE GROUP S.A.", margin, y);
   write("Capital social subscris și vărsat: 292.484.901,30 lei.", margin + contentW, y, { align: "right" });
-  y += 3.2;
+  y += 3.0;
 
   doc.setFont("times", "normal");
   doc.setFontSize(6.0);
   write("B-dul Carol I nr. 31-33, Sector 2, București, România. Reg. Com.: J1991000304405, CUI: 336290", margin, y);
   write("Societate autorizată de ASF. Reg. Asigurători: RA-023/2003", margin + contentW, y, { align: "right" });
-  y += 3.0;
+  y += 2.8;
 
   write("EUID: ROONRC.J1991000304405 · Societate condusă printr-un sistem dualist", margin, y);
   write("Customer Care Asirom: 021 9146 · info@asirom.ro", margin + contentW, y, { align: "right" });
-  y += 3.5;
+  y += 3.2;
 
   doc.setFontSize(7.0);
   write("Pagina - 1 -", margin + contentW / 2, y, { align: "center" });
