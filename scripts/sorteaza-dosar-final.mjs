@@ -15,7 +15,35 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+/**
+ * Încarcă modulul Tesseract.js căutând în directorul curent sau în proiect
+ */
+export async function loadTesseractModule() {
+  try {
+    return await import("tesseract.js");
+  } catch {
+    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+    const candidates = [
+      "c:/Users/pc1/Documents/workflow-dosare-main/node_modules/tesseract.js/src/index.js",
+      path.join(scriptDir, "../node_modules/tesseract.js/src/index.js"),
+      path.join(scriptDir, "node_modules/tesseract.js/src/index.js"),
+    ];
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        try {
+          const mod = await import(pathToFileURL(cand).href);
+          return mod.default || mod;
+        } catch {
+          // incearca urmatorul
+        }
+      }
+    }
+    throw new Error("Modulul 'tesseract.js' nu a fost găsit. Rulați din proiect sau asigurați-vă că este instalat.");
+  }
+}
+
 
 const RO_COUNTIES = new Set([
   "AB", "AR", "AG", "BC", "BH", "BN", "BT", "BV", "BR", "BZ",
@@ -326,7 +354,8 @@ export async function runSortareDosarFinal(options = {}) {
   console.log(`🔎 Găsit ${filesToProcess.length} fișiere. Se inițializează motorul OCR Tesseract...`);
 
   // Inițializare Tesseract Worker
-  const { createWorker } = await import("tesseract.js");
+  const tesseract = await loadTesseractModule();
+  const createWorker = tesseract.createWorker || tesseract.default?.createWorker;
   const worker = await createWorker(ocrLang);
 
   const analyzedFiles = [];
