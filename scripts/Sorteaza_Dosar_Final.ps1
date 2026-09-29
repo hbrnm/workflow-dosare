@@ -34,7 +34,7 @@ Write-Host ""
 $scriptPath = Join-Path $PSScriptRoot "sorteaza-dosar-final.mjs"
 $destPath = $PSScriptRoot
 
-& "node" $scriptPath $sourceDir $destPath
+& "node" "$scriptPath" "$sourceDir" "$destPath"
 
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
