@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * Script autonom de recunoaștere OCR, împerechere și repartizare automată
  * a documentelor (Talon, Buletin / CI, Cerere de Despăgubire) în dosarele locale.
@@ -29,6 +27,7 @@ export async function loadTesseractModule() {
       "c:/Users/pc1/Documents/workflow-dosare-main/node_modules/tesseract.js/src/index.js",
       path.join(scriptDir, "../node_modules/tesseract.js/src/index.js"),
       path.join(scriptDir, "node_modules/tesseract.js/src/index.js"),
+      path.join(process.cwd(), "node_modules/tesseract.js/src/index.js"),
     ];
     for (const cand of candidates) {
       if (fs.existsSync(cand)) {
@@ -41,6 +40,35 @@ export async function loadTesseractModule() {
       }
     }
     throw new Error("Modulul 'tesseract.js' nu a fost găsit. Rulați din proiect sau asigurați-vă că este instalat.");
+  }
+}
+
+/**
+ * Încarcă modulul Sharp pentru rotire automată și optimizare imagini
+ */
+export async function loadSharpModule() {
+  try {
+    const mod = await import("sharp");
+    return mod.default || mod;
+  } catch {
+    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+    const candidates = [
+      "c:/Users/pc1/Documents/workflow-dosare-main/node_modules/sharp/lib/index.js",
+      path.join(scriptDir, "../node_modules/sharp/lib/index.js"),
+      path.join(scriptDir, "node_modules/sharp/lib/index.js"),
+      path.join(process.cwd(), "node_modules/sharp/lib/index.js"),
+    ];
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        try {
+          const mod = await import(pathToFileURL(cand).href);
+          return mod.default || mod;
+        } catch {
+          // incearca urmatorul
+        }
+      }
+    }
+    return null;
   }
 }
 
@@ -131,12 +159,17 @@ export function extractPlate(text) {
 }
 
 /**
- * Extrage CNP din text (13 cifre consecutive)
+ * Extrage CNP din text (13 cifre consecutive, format valid S AA LL ZZ JJ NNN C)
  */
 export function extractCnp(text) {
   if (!text) return null;
-  const match = String(text).match(/\b([1-8]\d{12})\b/);
-  return match ? match[1] : null;
+  // S (1-8), AA (00-99), LL (01-12), ZZ (01-31), JJ (01-52), NNN (001-999), C (0-9)
+  const regex = /(?:^|[^a-zA-Z0-9])([1-8]\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{6})(?=[^a-zA-Z0-9]|$)/g;
+  let match;
+  while ((match = regex.exec(String(text))) !== null) {
+    return match[1];
+  }
+  return null;
 }
 
 /**
@@ -154,11 +187,15 @@ export function classifyDocument(text, filename) {
   if (
     normFile.includes("talon") ||
     normFile.includes("certificat") ||
-    normText.includes("certificat de inmatriculare") ||
+    (normText.includes("certificat") && normText.includes("inmatriculare")) ||
     normText.includes("permis de circulation") ||
     normText.includes("fahrzeugschein") ||
+    normText.includes("anexa la certificat") ||
+    normText.includes("inspectii tehnice periodice") ||
+    normText.includes("inspectia tehnica periodica") ||
     (normText.includes("romania") && normText.includes("comunitatea europeana") && normText.includes("serie")) ||
-    (normText.includes("numar de identificare") && normText.includes("masa maxima"))
+    (normText.includes("numar de identificare") && normText.includes("masa maxima")) ||
+    (normText.includes("srpciv") && (normText.includes("autoturism") || normText.includes("inmatriculare") || normText.includes("observatii")))
   ) {
     isTalon = true;
   }
@@ -174,7 +211,9 @@ export function classifyDocument(text, filename) {
     normText.includes("identity card") ||
     normText.includes("domiciliu") ||
     normText.includes("cetatenie romana") ||
-    (normText.includes("cnp") && (normText.includes("seria") || normText.includes("spclep")))
+    normText.includes("cetatenie / nationality") ||
+    normText.includes("loc nastere") ||
+    (normText.includes("cnp") && (normText.includes("seria") || normText.includes("spclep") || normText.includes("rou") || normText.includes("sex") || normText.includes("jud")))
   ) {
     isCi = true;
   }
@@ -185,19 +224,24 @@ export function classifyDocument(text, filename) {
     normFile.includes("despagubire") ||
     normText.includes("cerere de plata") ||
     normText.includes("cerere de despagubire") ||
+    normText.includes("cererea de despagubire") ||
     normText.includes("despagubirii") ||
     normText.includes("bunul avariat") ||
-    (normText.includes("dosar") && normText.includes("asirom") && normText.includes("plata")) ||
-    (normText.includes("omniasig") && normText.includes("despagubit"))
+    (normText.includes("dosar") && (normText.includes("asirom") || normText.includes("omniasig") || normText.includes("allianz") || normText.includes("generali") || normText.includes("groupama")) && (normText.includes("plata") || normText.includes("dauna") || normText.includes("despagubit"))) ||
+    (normText.includes("despagubit") && normText.includes("asigurator"))
   ) {
     isCerere = true;
   }
 
-  if (isTalon && !isCi && !isCerere) return "TALON";
-  if (isCi && !isTalon && !isCerere) return "BULETIN";
-  if (isCerere) return "CERERE_DESPAGUBIRE";
+  // Dacă pe aceeași pagină sunt prezente atât Talon cât și CI / CNP
+  // Notă: Talonul românesc nu conține niciodată CNP, așadar un CNP alături de date de talon
+  // înseamnă că buletinul a fost așezat/fotografiat pe aceeași pagină cu talonul.
+  const hasCnp = Boolean(extractCnp(text));
+  if (isTalon && (isCi || hasCnp) && !isCerere) {
+    return "TALON_SI_CI";
+  }
 
-  // Determinare pe bază de scor dacă există ambiguitate
+  if (isCerere) return "CERERE_DESPAGUBIRE";
   if (isTalon) return "TALON";
   if (isCi) return "BULETIN";
 
@@ -248,10 +292,43 @@ export function getSafeDestinationPath(targetDir, desiredFilename) {
 }
 
 /**
+ * Rezolvă directorul destinație de bază, identificând dacă dosarele reale ale mașinilor
+ * sunt pe Desktop (C:\Users\pc1\Desktop\DOSARE) sau în rădăcină (C:\DOSARE).
+ */
+export function resolveBaseDestinationDir(preferredDir) {
+  const desktopDosare = "C:\\Users\\pc1\\Desktop\\DOSARE";
+  const rootDosare = "C:\\DOSARE";
+
+  const countCarFolders = (dir) => {
+    try {
+      if (!fs.existsSync(dir)) return 0;
+      return fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory() && /^[A-Z]{1,2}\s*\d{2,3}\s*[A-Z]{3}$/i.test(d.name)).length;
+    } catch {
+      return 0;
+    }
+  };
+
+  const desktopCount = countCarFolders(desktopDosare);
+  const rootCount = countCarFolders(rootDosare);
+
+  if (preferredDir && preferredDir !== rootDosare && preferredDir !== desktopDosare) {
+    return preferredDir;
+  }
+
+  if (desktopCount >= rootCount && desktopCount > 0) {
+    return desktopDosare;
+  }
+  if (rootCount > 0) {
+    return rootDosare;
+  }
+  return preferredDir || (fs.existsSync(desktopDosare) ? desktopDosare : rootDosare);
+}
+
+/**
  * Motorul de împerechere a documentelor
  */
 export function pairDocuments(analyzedFiles) {
-  const groups = new Map(); // Plate -> { plate, talon: [], buletin: [], cerere: [], altele: [], cnpList: Set }
+  const groups = new Map(); // Plate -> { plate, talon: [], buletin: [], cerere: [], talonSiCi: [], altele: [], cnpList: Set }
   const unassigned = [];
 
   // Pasul 1: Înregistrare dosare directe pe baza numărului de înmatriculare găsit
@@ -263,6 +340,7 @@ export function pairDocuments(analyzedFiles) {
           talon: [],
           buletin: [],
           cerere: [],
+          talonSiCi: [],
           altele: [],
           cnpList: new Set(),
         });
@@ -270,7 +348,8 @@ export function pairDocuments(analyzedFiles) {
       const grp = groups.get(item.plate);
       if (item.cnp) grp.cnpList.add(item.cnp);
 
-      if (item.type === "TALON") grp.talon.push(item);
+      if (item.type === "TALON_SI_CI") grp.talonSiCi.push(item);
+      else if (item.type === "TALON") grp.talon.push(item);
       else if (item.type === "BULETIN") grp.buletin.push(item);
       else if (item.type === "CERERE_DESPAGUBIRE") grp.cerere.push(item);
       else grp.altele.push(item);
@@ -298,7 +377,8 @@ export function pairDocuments(analyzedFiles) {
       const grp = groups.get(matchedPlate);
       item.plate = matchedPlate;
       item.matchedVia = "CNP";
-      if (item.type === "BULETIN") grp.buletin.push(item);
+      if (item.type === "TALON_SI_CI") grp.talonSiCi.push(item);
+      else if (item.type === "BULETIN") grp.buletin.push(item);
       else if (item.type === "CERERE_DESPAGUBIRE") grp.cerere.push(item);
       else if (item.type === "TALON") grp.talon.push(item);
       else grp.altele.push(item);
@@ -318,7 +398,7 @@ export function pairDocuments(analyzedFiles) {
  */
 export async function runSortareDosarFinal(options = {}) {
   const sourceDir = path.resolve(options.sourceDir || ".");
-  const destBaseDir = path.resolve(options.destDir || "C:\\DOSARE");
+  const destBaseDir = path.resolve(resolveBaseDestinationDir(options.destDir || "C:\\DOSARE"));
   const isMove = Boolean(options.move);
   const isDryRun = Boolean(options.dryRun);
   const ocrLang = options.ocrLang || "ron+eng";
@@ -351,12 +431,13 @@ export async function runSortareDosarFinal(options = {}) {
     return { groups: [], unassigned: [], processedCount: 0 };
   }
 
-  console.log(`🔎 Găsit ${filesToProcess.length} fișiere. Se inițializează motorul OCR Tesseract...`);
+  console.log(`🔎 Găsit ${filesToProcess.length} fișiere. Se inițializează motorul OCR Tesseract și Sharp...`);
 
-  // Inițializare Tesseract Worker
+  // Inițializare Tesseract Worker & Sharp
   const tesseract = await loadTesseractModule();
   const createWorker = tesseract.createWorker || tesseract.default?.createWorker;
   const worker = await createWorker(ocrLang);
+  const sharpModule = await loadSharpModule();
 
   const analyzedFiles = [];
   let count = 0;
@@ -373,26 +454,58 @@ export async function runSortareDosarFinal(options = {}) {
       let type = classifyDocument("", filename);
       let ocrText = "";
 
-      // Execuție OCR doar pe imagini valide
+      // Execuție OCR multi-orientare doar pe imagini valide
       const ext = path.extname(filename).toLowerCase();
       if (ext !== ".pdf" && isValidImageFile(filePath)) {
-        try {
-          const ret = await worker.recognize(filePath);
-          ocrText = ret?.data?.text || "";
-        } catch (ocrErr) {
-          // Fallback silențios pe metadatele din numele fișierului
+        const orientations = [0, 90, 270];
+        let bestText = "";
+        let bestPlate = null;
+        let bestCnp = null;
+        let bestType = "ALTE_DOCUMENTE";
+
+        for (const rot of orientations) {
+          if (rot !== 0 && !sharpModule) break;
+          try {
+            const imgInput = rot === 0 ? filePath : await sharpModule(filePath).rotate(rot).toBuffer();
+            const ret = await worker.recognize(imgInput);
+            const currentText = ret?.data?.text || "";
+            const currentPlate = extractPlate(currentText) || extractPlate(filename);
+            const currentCnp = extractCnp(currentText) || extractCnp(filename);
+            const currentType = classifyDocument(currentText, filename);
+
+            if (currentPlate || currentType !== "ALTE_DOCUMENTE") {
+              bestText = currentText;
+              bestPlate = currentPlate;
+              bestCnp = currentCnp;
+              bestType = currentType;
+              // Dacă am detectat număr auto și tipul specific de document, orientarea este optimă
+              if (bestPlate && bestType !== "ALTE_DOCUMENTE") {
+                break;
+              }
+            } else if (!bestText || currentText.length > bestText.length) {
+              bestText = currentText;
+              bestPlate = currentPlate;
+              bestCnp = currentCnp;
+              bestType = currentType;
+            }
+          } catch {
+            // continuă cu următoarea rotație
+          }
         }
+
+        ocrText = bestText;
+        if (bestPlate) plate = bestPlate;
+        if (bestCnp) cnp = bestCnp;
+        if (bestType !== "ALTE_DOCUMENTE") type = bestType;
       }
 
-      // Dacă nu s-a găsit număr în numele fișierului, căutăm în textul OCR
+      // Fallback dacă nu a fost clasificat
       if (!plate && ocrText) {
         plate = extractPlate(ocrText);
       }
-
       if (!cnp && ocrText) {
         cnp = extractCnp(ocrText);
       }
-
       if (type === "ALTE_DOCUMENTE" && ocrText) {
         type = classifyDocument(ocrText, filename);
       }
@@ -433,11 +546,18 @@ export async function runSortareDosarFinal(options = {}) {
 
   for (const grp of groups) {
     console.log(`\n🚗 DOSAR AUTO: ${grp.plate}`);
-    console.log(`   - Talon:               ${grp.talon.length} fișier(e)`);
-    console.log(`   - Buletin (CI):        ${grp.buletin.length} fișier(e)`);
-    console.log(`   - Cerere Despăgubire:  ${grp.cerere.length} fișier(e)`);
+    if (grp.talonSiCi.length > 0) {
+      console.log(`   - Talon + Buletin (pe aceeași pagină): ${grp.talonSiCi.length} fișier(e)`);
+    }
+    if (grp.talon.length > 0) {
+      console.log(`   - Talon separat:                      ${grp.talon.length} fișier(e)`);
+    }
+    if (grp.buletin.length > 0) {
+      console.log(`   - Buletin (CI) separat:               ${grp.buletin.length} fișier(e)`);
+    }
+    console.log(`   - Cerere Despăgubire:                 ${grp.cerere.length} fișier(e)`);
     if (grp.altele.length > 0) {
-      console.log(`   - Alte documente:      ${grp.altele.length} fișier(e)`);
+      console.log(`   - Alte documente:                     ${grp.altele.length} fișier(e)`);
     }
 
     const carFolder = findOrCreateCarFolder(destBaseDir, grp.plate);
@@ -447,12 +567,24 @@ export async function runSortareDosarFinal(options = {}) {
       fs.mkdirSync(targetSubfolder, { recursive: true });
     }
 
-    const allGroupDocs = [
-      ...grp.talon.map((d) => ({ ...d, docRole: "Talon" })),
-      ...grp.buletin.map((d) => ({ ...d, docRole: "CI" })),
-      ...grp.cerere.map((d) => ({ ...d, docRole: "Cerere_Despagubire" })),
-      ...grp.altele.map((d) => ({ ...d, docRole: "Doc" })),
-    ];
+    const allGroupDocs = [];
+    if (grp.talonSiCi && grp.talonSiCi.length > 0) {
+      for (const d of grp.talonSiCi) {
+        allGroupDocs.push({ ...d, docRole: "Talon_si_CI" });
+      }
+    }
+    for (const d of grp.talon) {
+      allGroupDocs.push({ ...d, docRole: "Talon" });
+    }
+    for (const d of grp.buletin) {
+      allGroupDocs.push({ ...d, docRole: "CI" });
+    }
+    for (const d of grp.cerere) {
+      allGroupDocs.push({ ...d, docRole: "Cerere_Despagubire" });
+    }
+    for (const d of grp.altele) {
+      allGroupDocs.push({ ...d, docRole: "Doc" });
+    }
 
     const cleanPlateToken = grp.plate.replace(/\s+/g, "");
 

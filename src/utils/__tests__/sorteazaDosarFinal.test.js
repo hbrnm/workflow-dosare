@@ -133,4 +133,60 @@ describe("sorteaza-dosar-final", () => {
       expect(path.basename(safePath)).toBe("Talon_B123ABC_1.jpg");
     });
   });
+
+  describe("Cazuri specifice: TALON + CI pe aceeași pagină și dosare doar cu cerere", () => {
+    it("clasifică drept TALON_SI_CI când ambele documente sau talon + CNP sunt prezente", () => {
+      const ocrCombined = `
+        ROMANIA CERTIFICAT DE INMATRICULARE
+        A B-304-KAS
+        CARTE DE IDENTITATE
+        CNP 1880401295595
+      `;
+      expect(classifyDocument(ocrCombined, "WhatsApp_Image.jpeg")).toBe("TALON_SI_CI");
+    });
+
+    it("clasifică drept TALON_SI_CI dacă este talon și conține CNP personal chiar dacă buletinul are text redus", () => {
+      const ocrTalonCuCnp = `
+        ANEXA LA CERTIFICATUL DE INMATRICULARE B-304-KAS
+        INSPECTII TEHNICE PERIODICE
+        NEGOITA IONUT CIPRIAN
+        1880401295595
+      `;
+      expect(classifyDocument(ocrTalonCuCnp, "scan.jpeg")).toBe("TALON_SI_CI");
+    });
+
+    it("ignoră numere de înregistrare comercială (ex: J1991000304405) pentru a nu le confunda cu CNP", () => {
+      expect(extractCnp("ASIROM VIG SA J1991000304405 CUI 123456")).toBe(null);
+    });
+
+    it("împerechează și gestionează corect un dosar care are DOAR cerere de despăgubire (fără CI și talon)", () => {
+      const files = [
+        { filename: "cerere_B304KAS.jpeg", plate: "B 304 KAS", type: "CERERE_DESPAGUBIRE" },
+      ];
+
+      const { groups, unassigned } = pairDocuments(files);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].plate).toBe("B 304 KAS");
+      expect(groups[0].cerere).toHaveLength(1);
+      expect(groups[0].talon).toHaveLength(0);
+      expect(groups[0].buletin).toHaveLength(0);
+      expect(groups[0].talonSiCi).toHaveLength(0);
+      expect(unassigned).toHaveLength(0);
+    });
+
+    it("împerechează corect un fișier TALON_SI_CI cu o cerere de despăgubire", () => {
+      const files = [
+        { filename: "cerere.jpeg", plate: "B 304 KAS", type: "CERERE_DESPAGUBIRE" },
+        { filename: "talon_si_ci.jpeg", plate: "B 304 KAS", type: "TALON_SI_CI", cnp: "1880401295595" },
+      ];
+
+      const { groups, unassigned } = pairDocuments(files);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].plate).toBe("B 304 KAS");
+      expect(groups[0].cerere).toHaveLength(1);
+      expect(groups[0].talonSiCi).toHaveLength(1);
+      expect(unassigned).toHaveLength(0);
+    });
+  });
 });
+
