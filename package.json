@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "icons": "node scripts/generate-pwa-icons.mjs",
+    "sorteaza:dosar-final": "node scripts/sorteaza-dosar-final.mjs",
     "test": "vitest",
     "check": "vitest --run && vite build"
   },

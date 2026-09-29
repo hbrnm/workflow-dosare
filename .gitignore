@@ -6,3 +6,5 @@ dist/
 debug-*.log
 .cursor/
 vendor-inspect*.txt
+*.traineddata
+
