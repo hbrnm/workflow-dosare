@@ -14,31 +14,54 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
+
+/**
+ * Rezolvă calea către un modul npm din proiect sau global
+ */
+function resolveProjectModule(moduleName) {
+  // 1. Încearcă direct din directorul curent sau al scriptului
+  try {
+    const localReq = createRequire(path.join(process.cwd(), "package.json"));
+    return localReq.resolve(moduleName);
+  } catch {}
+
+  try {
+    const scriptReq = createRequire(import.meta.url);
+    return scriptReq.resolve(moduleName);
+  } catch {}
+
+  // 2. Căutare în locațiile proiectului principal
+  const projectDirs = [
+    "c:/Users/pc1/Documents/workflow-dosare-main/package.json",
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "../package.json"),
+  ];
+  for (const p of projectDirs) {
+    if (fs.existsSync(p)) {
+      try {
+        const projReq = createRequire(p);
+        return projReq.resolve(moduleName);
+      } catch {}
+    }
+  }
+  return null;
+}
 
 /**
  * Încarcă modulul Tesseract.js căutând în directorul curent sau în proiect
  */
 export async function loadTesseractModule() {
+  const modPath = resolveProjectModule("tesseract.js");
+  if (modPath) {
+    try {
+      const mod = await import(pathToFileURL(modPath).href);
+      return mod.default || mod;
+    } catch {}
+  }
   try {
-    return await import("tesseract.js");
+    const mod = await import("tesseract.js");
+    return mod.default || mod;
   } catch {
-    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-    const candidates = [
-      "c:/Users/pc1/Documents/workflow-dosare-main/node_modules/tesseract.js/src/index.js",
-      path.join(scriptDir, "../node_modules/tesseract.js/src/index.js"),
-      path.join(scriptDir, "node_modules/tesseract.js/src/index.js"),
-      path.join(process.cwd(), "node_modules/tesseract.js/src/index.js"),
-    ];
-    for (const cand of candidates) {
-      if (fs.existsSync(cand)) {
-        try {
-          const mod = await import(pathToFileURL(cand).href);
-          return mod.default || mod;
-        } catch {
-          // incearca urmatorul
-        }
-      }
-    }
     throw new Error("Modulul 'tesseract.js' nu a fost găsit. Rulați din proiect sau asigurați-vă că este instalat.");
   }
 }
@@ -47,27 +70,17 @@ export async function loadTesseractModule() {
  * Încarcă modulul Sharp pentru rotire automată și optimizare imagini
  */
 export async function loadSharpModule() {
+  const modPath = resolveProjectModule("sharp");
+  if (modPath) {
+    try {
+      const mod = await import(pathToFileURL(modPath).href);
+      return mod.default || mod;
+    } catch {}
+  }
   try {
     const mod = await import("sharp");
     return mod.default || mod;
   } catch {
-    const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-    const candidates = [
-      "c:/Users/pc1/Documents/workflow-dosare-main/node_modules/sharp/lib/index.js",
-      path.join(scriptDir, "../node_modules/sharp/lib/index.js"),
-      path.join(scriptDir, "node_modules/sharp/lib/index.js"),
-      path.join(process.cwd(), "node_modules/sharp/lib/index.js"),
-    ];
-    for (const cand of candidates) {
-      if (fs.existsSync(cand)) {
-        try {
-          const mod = await import(pathToFileURL(cand).href);
-          return mod.default || mod;
-        } catch {
-          // incearca urmatorul
-        }
-      }
-    }
     return null;
   }
 }
@@ -438,6 +451,7 @@ export async function runSortareDosarFinal(options = {}) {
   const createWorker = tesseract.createWorker || tesseract.default?.createWorker;
   const worker = await createWorker(ocrLang);
   const sharpModule = await loadSharpModule();
+  console.log(`🖼️  Modul rotire automată: ${sharpModule ? "Sharp activat (multi-orientare 0°, 90°, 270°)" : "Inactiv (fallback 0°)"}`);
 
   const analyzedFiles = [];
   let count = 0;
