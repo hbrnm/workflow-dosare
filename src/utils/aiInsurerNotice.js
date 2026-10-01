@@ -61,11 +61,11 @@ Echipa Service Auto`;
   };
 
   for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
+    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent`;
     try {
       const resp = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": effectiveKey },
         body: JSON.stringify(body),
       });
 

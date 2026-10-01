@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   X, Phone, ChevronRight, ChevronDown, Camera, FileText, Car, User,
   ArrowRight, ExternalLink, Loader2, FileCheck, FolderArchive, ImageIcon, Trash2, WifiOff
@@ -56,19 +56,32 @@ export default function MobileClaimSheet({
   const [moreOpen, setMoreOpen] = useState(false);
   const cameraOpen = liveCameraOpen ?? showLiveCam;
 
+  const offlineUrlsRef = useRef([]);
+  const revokeOfflineUrls = useCallback(() => {
+    offlineUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    offlineUrlsRef.current = [];
+  }, []);
+  useEffect(() => revokeOfflineUrls, [revokeOfflineUrls]);
+
   const refreshOfflineForClaim = useCallback(async (claimId) => {
+    revokeOfflineUrls();
     if (!claimId) {
       setOfflinePhotos([]);
       return;
     }
     try {
       const items = await getPendingUploadsForClaim(claimId);
+      const trackOfflineUrl = (blob) => {
+        const u = URL.createObjectURL(blob);
+        offlineUrlsRef.current.push(u);
+        return u;
+      };
       setOfflinePhotos(
         items
           .filter((it) => (it.folder || "poze") !== "documente")
           .map((item) => ({
             id: item.id,
-            url: item.fileBlob instanceof Blob ? URL.createObjectURL(item.fileBlob) : "",
+            url: item.fileBlob instanceof Blob ? trackOfflineUrl(item.fileBlob) : "",
             nume: item.fileName,
             isOffline: true,
             categoria: item.category,
@@ -77,7 +90,7 @@ export default function MobileClaimSheet({
     } catch {
       setOfflinePhotos([]);
     }
-  }, []);
+  }, [revokeOfflineUrls]);
 
   useEffect(() => {
     refreshOfflineForClaim(claim?.id);

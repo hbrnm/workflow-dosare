@@ -19,6 +19,7 @@ import {
   isValidPlateKey,
 } from "../utils/plateSchedule";
 import { CLAIM_LIST_COLUMNS } from "../utils/claimQueries";
+import { canTransition } from "../domain/claimWorkflow";
 
 import { DEMO_CLAIMS } from "../utils/demoClaims";
 
@@ -110,14 +111,8 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
     if (error) {
       const message = error.message || "Nu am putut încărca dosarele.";
       setLoadError({ message, offline: false });
-      // Keep previous claims if we already had some — avoid fake empty workspace
-      if (!claimsRef.current.length) {
-        if (!demoDisabled) {
-          setClaims(DEMO_CLAIMS);
-        } else {
-          setClaims([]);
-        }
-      }
+      // Nu afișăm date demo pe eroare: un utilizator real ar putea confunda dosarele fictive cu cele reale.
+      if (!claimsRef.current.length) setClaims([]);
       showNotice?.(message, "error", {
         actionLabel: "Reîncearcă",
         onAction: () => loadAll(),
@@ -390,6 +385,11 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
 
         const nextStatus = effectivePatch.status ?? current.status;
         if (nextStatus !== current.status) {
+          const transition = canTransition(current.status, nextStatus);
+          if (!transition.ok) {
+            showNotice(transition.reason, "error");
+            return false;
+          }
           effectivePatch = {
             ...effectivePatch,
             alerteAck: false,
@@ -473,6 +473,11 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         return false;
       }
       if (claim.status === newStatusKey) return false;
+      const transition = canTransition(claim.status, newStatusKey);
+      if (!transition.ok) {
+        showNotice(transition.reason, "error");
+        return false;
+      }
 
       const previousClaim = { ...claim };
       const changedAt = nowISO();

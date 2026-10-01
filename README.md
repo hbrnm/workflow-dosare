@@ -37,6 +37,10 @@ Rulează în **SQL Editor** dacă lipsesc:
 1. [`database/migrations/supabase-migration-21.sql`](database/migrations/supabase-migration-21.sql) — `termen_livrare_piese`
 2. [`database/migrations/supabase-migration-22.sql`](database/migrations/supabase-migration-22.sql) — `programare_status` (onorat/neonorat)
 
+3. [`database/migrations/supabase-migration-44-audit-security.sql`](database/migrations/supabase-migration-44-audit-security.sql) — restrânge citirea anonimă din Storage și întărește tracking-ul public
+
+Chei AI (Gemini / Vision): se introduc doar din Setări (per utilizator); nu se mai citesc din variabile `VITE_*`.
+
 ## Workflow Daune 2.0 (experimental, oprit)
 
 Codul 2.0 (recepție, deviz, decontare, tracking client) e în `src/App.v2.jsx` + `src/features/*`.

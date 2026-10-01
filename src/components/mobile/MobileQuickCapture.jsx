@@ -140,7 +140,15 @@ export default function MobileQuickCapture({
   const allDisplayPoze = useMemo(() => [...offlinePhotos, ...displayPoze], [offlinePhotos, displayPoze]);
   const allDisplayDocs = useMemo(() => [...offlineDocs, ...displayDocs], [offlineDocs, displayDocs]);
 
+  const offlineUrlsRef = useRef([]);
+  const revokeOfflineUrls = useCallback(() => {
+    offlineUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    offlineUrlsRef.current = [];
+  }, []);
+  useEffect(() => revokeOfflineUrls, [revokeOfflineUrls]);
+
   const refreshOfflineForClaim = useCallback(async (claimId) => {
+    revokeOfflineUrls();
     if (!claimId) {
       setOfflinePhotos([]);
       setOfflineDocs([]);
@@ -148,11 +156,16 @@ export default function MobileQuickCapture({
     }
     try {
       const offlineItems = await getPendingUploadsForClaim(claimId);
+      const trackOfflineUrl = (blob) => {
+        const u = URL.createObjectURL(blob);
+        offlineUrlsRef.current.push(u);
+        return u;
+      };
       const photos = offlineItems
         .filter((item) => (item.folder || "poze") === "poze")
         .map((item) => ({
           id: item.id,
-          url: item.fileBlob ? URL.createObjectURL(item.fileBlob) : "",
+          url: item.fileBlob ? trackOfflineUrl(item.fileBlob) : "",
           categoria: item.category,
           nume: item.fileName,
           isOfflinePending: true,
@@ -174,7 +187,7 @@ export default function MobileQuickCapture({
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [revokeOfflineUrls]);
 
   useEffect(() => {
     if (selectedClaim?.id) {

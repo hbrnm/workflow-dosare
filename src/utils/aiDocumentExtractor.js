@@ -446,13 +446,13 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
  */
 export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
   const base64Data = await fileToBase64(file);
-  const key = (apiKey || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
+  const key = (apiKey || "").trim();
 
   if (!key) {
     throw new Error("Cheia Google Cloud Vision API lipsește.");
   }
 
-  const url = `https://vision.googleapis.com/v1/images:annotate?key=${key}`;
+  const url = `https://vision.googleapis.com/v1/images:annotate`;
   const body = {
     requests: [
       {
@@ -464,7 +464,7 @@ export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
 
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify(body),
   });
 
@@ -533,8 +533,8 @@ Returnează DOAR JSON-ul valid. Fără alte texte.`;
     generationConfig: { response_mime_type: "application/json", temperature: 0.1 },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey }, body: JSON.stringify(body) });
 
   if (!resp.ok) throw new Error(`Gemini API Error: ${await resp.text()}`);
 
@@ -556,7 +556,7 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   const rawType = (file && file.type ? file.type : "").toLowerCase();
   const isPdfOrSheet = fileName.endsWith(".pdf") || fileName.endsWith(".xml") || fileName.endsWith(".xlsx") || fileName.endsWith(".csv") || rawType.includes("pdf") || rawType.includes("sheet") || rawType.includes("xml");
 
-  const effectiveKey = (apiKey || localStorage.getItem("gemini_api_key") || import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+  const effectiveKey = (apiKey || localStorage.getItem("gemini_api_key") || "").trim();
 
   // 1. Daca e fisier PDF/Excel, incercam parserul nativ
   if (isPdfOrSheet) {
@@ -583,7 +583,7 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   }
 
   // 3. Fallback pentru Google Vision (cheie non-Gemini)
-  const visionKey = (apiKey || localStorage.getItem("google_vision_api_key") || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
+  const visionKey = (apiKey || localStorage.getItem("google_vision_api_key") || "").trim();
   if (visionKey && !visionKey.startsWith("AIza")) {
     try {
       onProgress?.("Scanare poză cu Google Vision OCR...");

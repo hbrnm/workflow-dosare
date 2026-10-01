@@ -309,7 +309,7 @@ export default function ClaimGeneralTab({
                   </span>
                   <div className="flex items-center gap-1">
                     <span className="text-[10px] text-sky-800 font-mono font-bold bg-sky-100/80 px-1.5 py-0.5 rounded border border-sky-200">
-                      Cod: {form.trackingToken.length > 10 ? `${form.trackingToken.slice(0, 8)}…` : form.trackingToken}
+                      Cod: {form.trackingToken.length > 13 ? `${form.trackingToken.slice(0, 13)}…` : form.trackingToken}
                     </span>
                     {!readOnly && (
                       <button
@@ -320,7 +320,7 @@ export default function ClaimGeneralTab({
                           onNotify?.(`Cod scurt generat: ${newToken}`, "success");
                         }}
                         className="p-1 text-sky-700 hover:text-sky-900 hover:bg-sky-100 rounded transition-colors cursor-pointer"
-                        title={form.trackingToken.length > 10 ? "Convertește în cod scurt profesional (TK-XXXXX)" : "Regenerează cod scurt"}
+                        title={form.trackingToken.length > 13 ? "Convertește în cod scurt profesional (TK-XXXXXXXXXX)" : "Regenerează cod scurt"}
                       >
                         <RefreshCw size={11} />
                       </button>

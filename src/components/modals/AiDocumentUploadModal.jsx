@@ -14,7 +14,7 @@ export default function AiDocumentUploadModal({ isOpen, onClose, onDataExtracted
   const [editableClaim, setEditableClaim] = useState(null);
   const [engine, setEngine] = useState("auto"); // "auto" | "local" | "gemini" | "openai"
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem("gemini_api_key") || localStorage.getItem("openai_api_key") || import.meta.env.VITE_GEMINI_API_KEY || "";
+    return localStorage.getItem("gemini_api_key") || localStorage.getItem("openai_api_key") || "";
   });
 
   if (!isOpen) return null;

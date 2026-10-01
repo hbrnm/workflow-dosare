@@ -23,20 +23,20 @@ export function getMostFrequentInsurer(claims = [], fallback = INSURERS[0]) {
 }
 
 /**
- * Generează un token scurt, prietenos și profesional (ex: TK-78F2A).
+ * Generează un token scurt, prietenos și profesional (ex: TK-78F2A4KQ9M).
  * Folosește caractere neambigue (fără O, 0, I, 1).
  */
 export function generateTrackingToken() {
   const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   let part = "";
   if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const bytes = new Uint8Array(5);
+    const bytes = new Uint8Array(10);
     crypto.getRandomValues(bytes);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       part += chars[bytes[i] % chars.length];
     }
   } else {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       part += chars.charAt(Math.floor(Math.random() * chars.length));
     }
   }
