@@ -41,6 +41,17 @@ Rulează în **SQL Editor** dacă lipsesc:
 
 Chei AI (Gemini / Vision): se introduc doar din Setări (per utilizator); nu se mai citesc din variabile `VITE_*`.
 
+## Teste și CI
+
+```bash
+npm test           # vitest (watch)
+npm run check      # vitest --run + vite build
+```
+
+CI (`.github/workflows/ci.yml`) rulează testele și build-ul la fiecare PR. Jobul `npm audit` e informativ:
+`xlsx@0.18.5` are advisory-uri fără fix pe npm; versiunea 0.20.x se instalează doar din CDN-ul SheetJS.
+`xlsx` e folosit doar pentru export și pentru parsarea fișierelor Audatex încărcate de utilizator.
+
 ## Workflow Daune 2.0 (experimental, oprit)
 
 Codul 2.0 (recepție, deviz, decontare, tracking client) e în `src/App.v2.jsx` + `src/features/*`.

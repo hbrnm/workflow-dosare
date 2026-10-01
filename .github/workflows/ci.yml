@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest --run
+      - run: npx vite build
+
+  audit:
+    runs-on: ubuntu-latest
+    # Informativ: xlsx 0.18.5 are advisory-uri fara fix pe npm (vezi README), deci nu blocam PR-urile.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm audit --omit=dev --audit-level=high
