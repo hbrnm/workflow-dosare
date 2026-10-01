@@ -39,7 +39,7 @@ Rulează în **SQL Editor** dacă lipsesc:
 
 3. [`database/migrations/supabase-migration-44-audit-security.sql`](database/migrations/supabase-migration-44-audit-security.sql) — restrânge citirea anonimă din Storage și întărește tracking-ul public
 
-Chei AI (Gemini / Vision): se introduc doar din Setări (per utilizator); nu se mai citesc din variabile `VITE_*`.
+Chei AI: apelurile Gemini trec prin edge function-ul `ai-proxy` (vezi `supabase/functions/ai-proxy/README.md`: `GEMINI_API_KEY` în Supabase Secrets + deploy). Cheia din Setări e doar rezervă dacă funcția nu e disponibilă; variabilele `VITE_*` nu se mai citesc.
 
 ## Teste și CI
 

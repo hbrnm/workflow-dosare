@@ -35,7 +35,7 @@ export default function SettingsAiTab({
         <div className="space-y-3 pt-1">
           <div>
             <label className="text-[12px] font-bold text-[var(--app-text-strong)] block mb-1">
-              Cheie Google Gemini API (pentru apelare directă):
+              Cheie Google Gemini API proprie (opțională, doar rezervă):
             </label>
             <div className="flex gap-2">
               <input
@@ -54,16 +54,16 @@ export default function SettingsAiTab({
               </button>
             </div>
             <p className="text-[11px] text-[var(--app-muted)] mt-1">
-              Cheia se salvează local în browserul dumneavoastră (în localStorage). Alternativ (și recomandat pentru securitate), puteți configura <code className="text-indigo-300">GEMINI_API_KEY</code> în Supabase Secrets pentru toți utilizatorii atelierului.
+              Recomandat: administratorul configurează <code className="text-indigo-300">GEMINI_API_KEY</code> în Supabase Secrets și publică funcția <code className="text-indigo-300">ai-proxy</code>; atunci nu aveți nevoie de cheie în browser. Cheia de aici se salvează în localStorage și se folosește doar dacă serviciul server-side nu este disponibil.
             </p>
           </div>
 
           <div className="p-3 bg-[var(--app-surface)] rounded-lg border border-[var(--app-border)] space-y-1.5 text-[12px]">
             <div className="flex items-center gap-2 text-emerald-400 font-bold">
-              <CheckCircle2 size={15} /> Supabase Edge Function: analyze-document-ai
+              <CheckCircle2 size={15} /> Supabase Edge Function: ai-proxy
             </div>
             <p className="text-[11px] text-[var(--app-muted)]">
-              Funcția backend este pregătită pentru a securiza apelurile API la nivel de atelier.
+              Apelurile AI trec prin funcția backend autentificată; cheia API nu părăsește serverul.
             </p>
           </div>
         </div>

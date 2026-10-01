@@ -1,10 +1,10 @@
+import { callGemini, geminiText } from "./aiGateway";
+
 /**
  * Utilitar pentru generarea automată a mesajelor politicoase de WhatsApp / SMS pentru clienți
  */
 
 export async function generateClientMessage(claim, intent = "update_status", apiKey = "") {
-  const effectiveKey = apiKey || localStorage.getItem("gemini_api_key") || "";
-  
   const clientName = claim.client || "Client";
   const plate = claim.numarInmatriculare || "vehiculul dumneavoastră";
   const marcaModel = claim.marcaModel || claim.marca || "mașină";
@@ -30,8 +30,7 @@ Reguli:
 3. Nu adăuga hashtags sau caractere ciudate. Păstrează textul gata de trimis direct pe WhatsApp.
 4. Răspunde DOAR cu textul mesajului compus.`;
 
-  if (!effectiveKey) {
-    // Fallback inteligent dacă cheia API nu este disponibilă
+  const offlineFallback = () => {
     if (intent === "piese_sosite") {
       return `Bună ziua! Vă informăm că piesele pentru vehiculul ${plate} au sosit la atelierul nostru. Vă rugăm să ne contactați pentru confirmarea programării la reparație. O zi excelentă!`;
     }
@@ -39,38 +38,19 @@ Reguli:
       return `Bună ziua! Mașina dumneavoastră (${plate}) este gata de ridicare din service. Vă așteptăm la recepție! O zi frumoasă!`;
     }
     return `Bună ziua! Vă transmitem o actualizare privind dosarul vehiculului ${plate}: stadiul curent este "${status}". Pentru detalii suplimentare, rămânem la dispoziția dumneavoastră.`;
-  }
+  };
 
-  const modelEndpoints = [
-    { version: "v1beta", name: "gemini-3.6-flash" },
-    { version: "v1beta", name: "gemini-3.6-pro" },
-    { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-pro" },
-    { version: "v1", name: "gemini-1.5-pro" },
-  ];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 250 },
   };
 
-  for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent`;
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": effectiveKey },
-        body: JSON.stringify(body),
-      });
-
-      if (resp.ok) {
-        const data = await resp.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
-      }
-    } catch (err) {
-      console.warn(`Fallback model ${m.name} (${m.version}):`, err);
-    }
+  try {
+    const text = geminiText(await callGemini(body, { apiKey })).trim();
+    if (text) return text;
+  } catch (err) {
+    console.warn("AI indisponibil pentru mesajul către client, folosesc șablonul:", err?.message || err);
   }
 
-  return `Bună ziua! Vă informăm că dosarul pentru vehiculul ${plate} este în stadiul: ${status}.`;
+  return offlineFallback();
 }

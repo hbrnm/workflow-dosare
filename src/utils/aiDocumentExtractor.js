@@ -1,6 +1,7 @@
 import { sanitizeClaim, emptyClaim, parseNumber } from "./claimModel";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
 import { INSURERS } from "../constants/config";
+import { callGemini } from "./aiGateway";
 
 /**
  * Verifică dacă un string seamănă cu numele unui service / atelier auto (pentru a nu fi setat din greșeală la Asigurător)
@@ -533,12 +534,7 @@ Returnează DOAR JSON-ul valid. Fără alte texte.`;
     generationConfig: { response_mime_type: "application/json", temperature: 0.1 },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
-  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey }, body: JSON.stringify(body) });
-
-  if (!resp.ok) throw new Error(`Gemini API Error: ${await resp.text()}`);
-
-  const data = await resp.json();
+  const data = await callGemini(body, { apiKey });
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Fără răspuns de la Gemini");
 
@@ -573,7 +569,8 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   }
 
   // 2. Fallback inteligent pentru imagini (Taloane, CI) sau PDF-uri scanate (Gemini)
-  if (effectiveKey && effectiveKey.startsWith("AIza")) {
+  // Cheia (dacă există) servește doar ca rezervă când proxy-ul server-side nu e disponibil.
+  if (!effectiveKey || effectiveKey.startsWith("AIza")) {
     try {
       onProgress?.("Analizare vizuală document cu Gemini AI...");
       return await extractDocumentWithGemini(file, effectiveKey);

@@ -1,4 +1,5 @@
 import { fileToBase64 } from "./aiDocumentExtractor";
+import { callGemini, geminiText } from "./aiGateway";
 
 const SYSTEM_PROMPT_DAMAGE_VISION = `Ești un inspector constatator de daune auto experimentat din România.
 Analizează imaginea vehiculului avariat și identifică avariile vizibile.
@@ -18,22 +19,9 @@ Returnează un JSON strict cu următoarea structură:
 }`;
 
 export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
-  const effectiveKey = apiKey || localStorage.getItem("gemini_api_key") || "";
-  if (!effectiveKey) {
-    throw new Error("Cheia API este necesară pentru analiza fotografiilor.");
-  }
-
   const base64Data = await fileToBase64(file);
   const mimeType = file.type || "image/jpeg";
 
-  const modelEndpoints = [
-    { version: "v1beta", name: "gemini-3.6-flash" },
-    { version: "v1beta", name: "gemini-3.6-pro" },
-    { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-pro" },
-    { version: "v1", name: "gemini-1.5-pro" },
-  ];
   const body = {
     contents: [
       {
@@ -49,27 +37,8 @@ export async function analyzeVehicleDamagePhotos(file, apiKey = "") {
     },
   };
 
-  let lastErr = null;
-  for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent`;
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": effectiveKey },
-        body: JSON.stringify(body),
-      });
-
-      if (resp.ok) {
-        const data = await resp.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return JSON.parse(text);
-      }
-      const err = await resp.text();
-      lastErr = new Error(`Model ${m.name} (${m.version} - ${resp.status}): ${err}`);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-
-  throw lastErr || new Error("Nu s-au putut detecta avarii în imagine.");
+  const data = await callGemini(body, { apiKey });
+  const text = geminiText(data);
+  if (!text) throw new Error("Nu s-au putut detecta avarii în imagine.");
+  return JSON.parse(text);
 }
