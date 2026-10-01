@@ -137,6 +137,8 @@ export async function flushUploadQueue(uploadFn, { maxRetries = 3 } = {}) {
   let failed = 0;
 
   for (const item of items) {
+    // Elementele epuizate rămân stocate (fără pierdere de date), dar nu mai sunt reîncercate la infinit.
+    if ((item.retries || 0) > maxRetries) continue;
     try {
       const ok = await uploadFn(item);
       if (ok) {
@@ -152,10 +154,12 @@ export async function flushUploadQueue(uploadFn, { maxRetries = 3 } = {}) {
         if (db) {
           const tx = db.transaction(STORE_NAME, "readwrite");
           const store = tx.objectStore(STORE_NAME);
-          if (item.retries >= maxRetries) {
+          if ((item.retries || 0) >= maxRetries) {
+            item.retries = maxRetries + 1;
+            store.put(item);
             console.warn(`Upload-ul ${item.id} a atins numărul maxim de încercări.`);
           } else {
-            item.retries += 1;
+            item.retries = (item.retries || 0) + 1;
             store.put(item);
           }
         }

@@ -33,8 +33,8 @@ describe("trackingCopy", () => {
     expect(url).toContain("?t=TK-78F2A");
   });
 
-  it("generates 8-char friendly token formatted as TK-XXXXX", () => {
+  it("generates friendly token formatted as TK-XXXXXXXXXX", () => {
     const token = generateTrackingToken();
-    expect(token).toMatch(/^TK-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{5}$/);
+    expect(token).toMatch(/^TK-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{10}$/);
   });
 });

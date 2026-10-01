@@ -22,6 +22,8 @@ Experimentul **2.0** rămâne în cod (`src/App.v2.jsx`) dar nu e pornit implici
 
 ## Setup local
 
+Necesită **Node 22+** (`pdfjs-dist` folosește `Promise.withResolvers`; `supabase-js` cere WebSocket nativ).
+
 ```bash
 cp .env.example .env   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install
@@ -36,6 +38,26 @@ Rulează în **SQL Editor** dacă lipsesc:
 
 1. [`database/migrations/supabase-migration-21.sql`](database/migrations/supabase-migration-21.sql) — `termen_livrare_piese`
 2. [`database/migrations/supabase-migration-22.sql`](database/migrations/supabase-migration-22.sql) — `programare_status` (onorat/neonorat)
+
+3. [`database/migrations/supabase-migration-44-audit-security.sql`](database/migrations/supabase-migration-44-audit-security.sql) — restrânge citirea anonimă din Storage și întărește tracking-ul public
+
+4. [`database/migrations/supabase-migration-45-tracking-hardening.sql`](database/migrations/supabase-migration-45-tracking-hardening.sql) — limită de rată pe RPC-ul public de tracking, fix pentru dosare fără `atelier_id`, `tracking_photo_paths`
+5. *(după deploy `tracking-photos` și verificare)* [`database/migrations/supabase-migration-46-private-photos-bucket.sql`](database/migrations/supabase-migration-46-private-photos-bucket.sql) — bucket `poze-dosare` privat; pozele din portal vin ca URL-uri semnate
+
+Edge functions noi: `ai-proxy` (Gemini) și `tracking-photos` (URL-uri semnate pentru portalul public); vezi README-ul fiecăreia în `supabase/functions/`.
+
+Chei AI: apelurile Gemini trec prin edge function-ul `ai-proxy` (vezi `supabase/functions/ai-proxy/README.md`: `GEMINI_API_KEY` în Supabase Secrets + deploy). Cheia din Setări e doar rezervă dacă funcția nu e disponibilă; variabilele `VITE_*` nu se mai citesc.
+
+## Teste și CI
+
+```bash
+npm test           # vitest (watch)
+npm run check      # vitest --run + vite build
+```
+
+CI (`.github/workflows/ci.yml`) rulează testele și build-ul la fiecare PR. Jobul `npm audit` e informativ:
+`xlsx@0.18.5` are advisory-uri fără fix pe npm; versiunea 0.20.x se instalează doar din CDN-ul SheetJS.
+`xlsx` e folosit doar pentru export și pentru parsarea fișierelor Audatex încărcate de utilizator.
 
 ## Workflow Daune 2.0 (experimental, oprit)
 

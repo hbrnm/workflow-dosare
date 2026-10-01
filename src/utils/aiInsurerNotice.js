@@ -1,10 +1,10 @@
+import { callGemini, geminiText } from "./aiGateway";
+
 /**
  * Utilitar pentru redactarea adreselor oficiale și notificărilor către asigurători
  */
 
 export async function generateInsurerOfficialNotice(claim, type = "supliment", apiKey = "") {
-  const effectiveKey = apiKey || localStorage.getItem("gemini_api_key") || "";
-
   const asigurator = claim.asigurator || "Societatea de Asigurare";
   const nrDosar = claim.nrDosarAsigurator || claim.numarDosar || "Nespecificat";
   const plate = claim.numarInmatriculare || "vehicul";
@@ -33,8 +33,7 @@ Cerințe:
 2. Încheie cu formule standard de adresare oficială ("Cu respect, Conducerea Service-ului Auto").
 3. Generează direct textul adresei oficiale.`;
 
-  if (!effectiveKey) {
-    return `CĂTRE: ${asigurator.toUpperCase()}
+  const offlineFallback = () => `CĂTRE: ${asigurator.toUpperCase()}
 DE LA: RECEPTIE SERVICE AUTO
 
 Subiect: ${tipAdresaLabel} — Dosar ${nrDosar} (${plate})
@@ -45,38 +44,18 @@ Conform constatării efectuate, suma totală calculată este de ${suma} RON. Vă
 
 Cu stima,
 Echipa Service Auto`;
-  }
 
-  const modelEndpoints = [
-    { version: "v1beta", name: "gemini-3.6-flash" },
-    { version: "v1beta", name: "gemini-3.6-pro" },
-    { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-pro" },
-    { version: "v1", name: "gemini-1.5-pro" },
-  ];
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 600 },
   };
 
-  for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (resp.ok) {
-        const data = await resp.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      }
-    } catch (err) {
-      console.warn(`Fallback adresa model ${m.name} (${m.version}):`, err);
-    }
+  try {
+    const text = geminiText(await callGemini(body, { apiKey })).trim();
+    if (text) return text;
+  } catch (err) {
+    console.warn("AI indisponibil pentru adresa către asigurător, folosesc șablonul:", err?.message || err);
   }
 
-  return `CĂTRE: ${asigurator}\nSubiect: ${tipAdresaLabel} - Dosar ${nrDosar} (${plate})\n\nVă rugăm să procesați dosarul de daună în valoare de ${suma} RON.`;
+  return offlineFallback();
 }

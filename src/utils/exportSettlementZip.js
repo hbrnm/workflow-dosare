@@ -331,11 +331,13 @@ export async function generateSettlementPackageZip(claim, { atelierBranding = {}
 
   // Descărcare automată
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(zipBlob);
+  const downloadUrl = URL.createObjectURL(zipBlob);
+  a.href = downloadUrl;
   a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
 
   return {
     zipBlob,

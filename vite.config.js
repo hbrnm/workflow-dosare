@@ -100,6 +100,9 @@ export default defineConfig({
       }
     })
   ],
+  test: {
+    setupFiles: ["./src/test/setup.js"],
+  },
   build: {
     target: "es2020",
     sourcemap: false,

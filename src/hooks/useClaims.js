@@ -4,6 +4,8 @@ import {
   fromDb,
   toDb,
   toDbPatch,
+  diffClaimFields,
+  arePatchableFields,
   writeDosarWithSchemaCompat,
   hasMediaOps,
   resolveMediaPatch,
@@ -19,6 +21,7 @@ import {
   isValidPlateKey,
 } from "../utils/plateSchedule";
 import { CLAIM_LIST_COLUMNS } from "../utils/claimQueries";
+import { canTransition } from "../domain/claimWorkflow";
 
 import { DEMO_CLAIMS } from "../utils/demoClaims";
 
@@ -110,14 +113,8 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
     if (error) {
       const message = error.message || "Nu am putut încărca dosarele.";
       setLoadError({ message, offline: false });
-      // Keep previous claims if we already had some — avoid fake empty workspace
-      if (!claimsRef.current.length) {
-        if (!demoDisabled) {
-          setClaims(DEMO_CLAIMS);
-        } else {
-          setClaims([]);
-        }
-      }
+      // Nu afișăm date demo pe eroare: un utilizator real ar putea confunda dosarele fictive cu cele reale.
+      if (!claimsRef.current.length) setClaims([]);
       showNotice?.(message, "error", {
         actionLabel: "Reîncearcă",
         onAction: () => loadAll(),
@@ -201,7 +198,7 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
   }, [loadAll, sessionUserId, atelierId, tenancyReady]);
 
   const saveClaim = useCallback(
-    async (claim, { openProgramator = false } = {}) => {
+    async (claim, { openProgramator = false, baseline = null } = {}) => {
       const isNewClaim = !claimsRef.current.some((c) => c.id === claim.id);
       const live = claimsRef.current.find((c) => c.id === claim.id);
       // Union media so a full save does not wipe concurrent QuickCapture uploads
@@ -239,7 +236,26 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         updatedByEmail: myEmail,
         atelierId: effectiveAtelierId,
       });
-      const { error } = await writeDosarWithSchemaCompat(supabase, "upsert", payload);
+      // Salvare parțială: doar câmpurile modificate de utilizator față de instantaneul modalului,
+      // ca o editare concurentă a altui utilizator pe alte câmpuri să nu fie suprascrisă.
+      let writeMode = "upsert";
+      let writePayload = payload;
+      let writeId;
+      let skipWrite = false;
+      if (!isNewClaim && live && baseline && baseline.id === claim.id) {
+        const changed = diffClaimFields(baseline, claimToSave);
+        const keys = Object.keys(changed);
+        if (keys.length === 0) {
+          skipWrite = true; // nimic de scris: nu suprascriem dosarul cu o copie posibil veche
+        } else if (arePatchableFields(keys)) {
+          writeMode = "update";
+          writeId = claim.id;
+          writePayload = toDbPatch(live, changed, { updatedByEmail: myEmail });
+        }
+      }
+      const { error } = skipWrite
+        ? { error: null }
+        : await writeDosarWithSchemaCompat(supabase, writeMode, writePayload, { id: writeId });
       if (error) {
         showNotice(error.message, "error");
         return { success: false, error };
@@ -390,6 +406,11 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
 
         const nextStatus = effectivePatch.status ?? current.status;
         if (nextStatus !== current.status) {
+          const transition = canTransition(current.status, nextStatus);
+          if (!transition.ok) {
+            showNotice(transition.reason, "error");
+            return false;
+          }
           effectivePatch = {
             ...effectivePatch,
             alerteAck: false,
@@ -473,6 +494,11 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         return false;
       }
       if (claim.status === newStatusKey) return false;
+      const transition = canTransition(claim.status, newStatusKey);
+      if (!transition.ok) {
+        showNotice(transition.reason, "error");
+        return false;
+      }
 
       const previousClaim = { ...claim };
       const changedAt = nowISO();

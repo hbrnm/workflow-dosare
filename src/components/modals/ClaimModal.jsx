@@ -47,6 +47,7 @@ import QuickEstimateModal from "./QuickEstimateModal";
 import LiveStreamCameraModal from "../common/LiveStreamCameraModal";
 import { loadCachedBranding } from "../../constants/branding";
 import { validateFileUpload } from "../../utils/securityValidator";
+import { validateClaimInput } from "../../domain/claimValidation";
 import ClaimScheduleFields from "../common/ClaimScheduleFields";
 import MobilePieseSositeRow from "../mobile/MobilePieseSositeRow";
 
@@ -708,6 +709,16 @@ export default function ClaimModal({
       return false;
     }
 
+    const { warnings: inputWarnings } = validateClaimInput({
+      vin: isNew || vin !== String(claim?.vin || "").trim().toUpperCase() ? vin : "",
+      numarInmatriculare:
+        isNew || numarInmatriculare !== String(claim?.numarInmatriculare || "").trim().toUpperCase()
+          ? numarInmatriculare
+          : "",
+    });
+    const warnMessages = Object.values(inputWarnings);
+    if (warnMessages.length && !confirm(`${warnMessages.join("\n")}\n\nContinui oricum?`)) return false;
+
     const duplicateDosar = Array.isArray(allClaims) ? allClaims.find((c) =>
       c && c.id && c.id !== claim?.id && normalizedText(c.numarDosar) === normalizedText(numarDosar)
     ) : null;
@@ -783,7 +794,7 @@ export default function ClaimModal({
         dataUltimeiActualizari: nowISO(),
         dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
         ...(statusChanged ? { alerteAck: false } : {}),
-      }, { openProgramator: openProgramator || shouldOpenProgramator })
+      }, { openProgramator: openProgramator || shouldOpenProgramator, baseline })
     ).finally(() => setSavingLocal(false));
     return true;
   };

@@ -9,6 +9,7 @@ import {
   CLIENT_PHASE_HINTS,
 } from "../../constants/trackingCopy";
 import { refreshStorageUrls } from "../../utils/claimMedia";
+import { fetchTrackingPhotos } from "./trackingPhotos";
 
 /** Pagină publică: /?track=TOKEN — fără login. */
 export default function TrackPage({ token }) {
@@ -32,6 +33,16 @@ export default function TrackPage({ token }) {
           return;
         }
         setData(row || null);
+
+        // Calea preferată: URL-uri semnate de edge function (bucket-ul poate fi privat).
+        if (row) {
+          const signedPhotos = await fetchTrackingPhotos(supabase, token);
+          if (!alive) return;
+          if (signedPhotos) {
+            setPhotos(signedPhotos);
+            return;
+          }
+        }
 
         // 2. Preia fotografiile marcate ca vizibilClient: true sau categoria predare
         let rawPoze = [];

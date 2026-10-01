@@ -1,6 +1,7 @@
 import { sanitizeClaim, emptyClaim, parseNumber } from "./claimModel";
 import { emptyAudatexDevizTotals } from "../constants/audatexDevizFields";
 import { INSURERS } from "../constants/config";
+import { callGemini } from "./aiGateway";
 
 /**
  * Verifică dacă un string seamănă cu numele unui service / atelier auto (pentru a nu fi setat din greșeală la Asigurător)
@@ -446,13 +447,13 @@ export async function extractClaimDataWithLocalAudatexEngine(file) {
  */
 export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
   const base64Data = await fileToBase64(file);
-  const key = (apiKey || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
+  const key = (apiKey || "").trim();
 
   if (!key) {
     throw new Error("Cheia Google Cloud Vision API lipsește.");
   }
 
-  const url = `https://vision.googleapis.com/v1/images:annotate?key=${key}`;
+  const url = `https://vision.googleapis.com/v1/images:annotate`;
   const body = {
     requests: [
       {
@@ -464,7 +465,7 @@ export async function extractTextWithGoogleVisionOcr(file, apiKey = "") {
 
   const resp = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify(body),
   });
 
@@ -533,12 +534,7 @@ Returnează DOAR JSON-ul valid. Fără alte texte.`;
     generationConfig: { response_mime_type: "application/json", temperature: 0.1 },
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-
-  if (!resp.ok) throw new Error(`Gemini API Error: ${await resp.text()}`);
-
-  const data = await resp.json();
+  const data = await callGemini(body, { apiKey });
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error("Fără răspuns de la Gemini");
 
@@ -556,7 +552,7 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   const rawType = (file && file.type ? file.type : "").toLowerCase();
   const isPdfOrSheet = fileName.endsWith(".pdf") || fileName.endsWith(".xml") || fileName.endsWith(".xlsx") || fileName.endsWith(".csv") || rawType.includes("pdf") || rawType.includes("sheet") || rawType.includes("xml");
 
-  const effectiveKey = (apiKey || localStorage.getItem("gemini_api_key") || import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+  const effectiveKey = (apiKey || localStorage.getItem("gemini_api_key") || "").trim();
 
   // 1. Daca e fisier PDF/Excel, incercam parserul nativ
   if (isPdfOrSheet) {
@@ -573,7 +569,8 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   }
 
   // 2. Fallback inteligent pentru imagini (Taloane, CI) sau PDF-uri scanate (Gemini)
-  if (effectiveKey && effectiveKey.startsWith("AIza")) {
+  // Cheia (dacă există) servește doar ca rezervă când proxy-ul server-side nu e disponibil.
+  if (!effectiveKey || effectiveKey.startsWith("AIza")) {
     try {
       onProgress?.("Analizare vizuală document cu Gemini AI...");
       return await extractDocumentWithGemini(file, effectiveKey);
@@ -583,7 +580,7 @@ export async function extractClaimDataHybrid(file, { apiKey = "", onProgress } =
   }
 
   // 3. Fallback pentru Google Vision (cheie non-Gemini)
-  const visionKey = (apiKey || localStorage.getItem("google_vision_api_key") || import.meta.env.VITE_GOOGLE_VISION_API_KEY || "").trim();
+  const visionKey = (apiKey || localStorage.getItem("google_vision_api_key") || "").trim();
   if (visionKey && !visionKey.startsWith("AIza")) {
     try {
       onProgress?.("Scanare poză cu Google Vision OCR...");

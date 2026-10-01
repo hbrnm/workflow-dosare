@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toDb, toDbPatch, fromDb } from "../claimDb";
+import { toDb, toDbPatch, fromDb, diffClaimFields, arePatchableFields } from "../claimDb";
 import { emptyClaim } from "../claimModel";
 
 describe("claimDb - Data Transformation & Schema Mapping", () => {
@@ -108,5 +108,28 @@ describe("claimDb - Data Transformation & Schema Mapping", () => {
       expect(claim).toBeDefined();
       expect(claim.status).toBe("deschidere");
     });
+  });
+});
+
+describe("diffClaimFields / arePatchableFields", () => {
+  const base = { ...emptyClaim(), id: "c1", client: "A", poze: [], documente: [] };
+
+  it("returnează doar câmpurile modificate și ignoră media/metadate", () => {
+    const next = { ...base, client: "B", poze: [{ id: 1 }], dataUltimeiActualizari: "2026-01-01T00:00:00Z" };
+    expect(diffClaimFields(base, next)).toEqual({ client: "B" });
+  });
+
+  it("compară în profunzime obiectele imbricate", () => {
+    const next = { ...base, financiar: { ...base.financiar, tvaProc: 19 } };
+    expect(Object.keys(diffClaimFields(base, next))).toEqual(["financiar"]);
+  });
+
+  it("nimic modificat → obiect gol", () => {
+    expect(diffClaimFields(base, { ...base })).toEqual({});
+  });
+
+  it("arePatchableFields respinge câmpurile fără coloană", () => {
+    expect(arePatchableFields(["client", "status", "masinaSchimb", "dataDeschiderii"])).toBe(true);
+    expect(arePatchableFields(["client", "campNecunoscut"])).toBe(false);
   });
 });

@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest --run
+      - run: npx vite build
+
+  audit:
+    runs-on: ubuntu-latest
+    # Informativ: xlsx 0.18.5 are advisory-uri fara fix pe npm (vezi README). Raporteaza ca avertisment,
+    # fara sa faca PR-ul rosu.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev --audit-level=high || echo "::warning title=npm audit::Exista advisory-uri high (vezi logul; xlsx are fix doar din CDN-ul SheetJS)"

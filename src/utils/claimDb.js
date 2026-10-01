@@ -271,11 +271,38 @@ const PATCH_FIELD_MAP = {
   valoarePieseAudatex: "valoare_piese_audatex",
   valoareAchizitiePiese: "valoare_achizitie_piese",
   financiar: "financiar",
+  masinaSchimbModel: "financiar",
+  masinaSchimbNumar: "financiar",
+  masinaSchimb: "masina_schimb",
+  dataDariiLaSchimb: "data_darii_la_schimb",
+  zileChirieAudatex: "zile_chirie_audatex",
+  dataDeschiderii: "data_deschiderii",
   manopera: "manopera",
   poze: "poze",
   documente: "documente",
   note: "note",
 };
+
+/** Câmpuri care nu intră în diff-ul de salvare: media (se unesc separat) și metadate gestionate de salvare. */
+const DIFF_IGNORED_KEYS = new Set(["poze", "documente", "dataUltimeiActualizari", "updatedByEmail", "isDemo"]);
+
+/**
+ * Câmpurile modificate între instantaneul modalului (baseline) și valoarea de salvat.
+ * Permite salvarea parțială: modificările altcuiva pe alte câmpuri nu mai sunt suprascrise.
+ */
+export function diffClaimFields(baseline, next) {
+  const changed = {};
+  for (const key of Object.keys(next || {})) {
+    if (DIFF_IGNORED_KEYS.has(key)) continue;
+    if (JSON.stringify(baseline?.[key]) !== JSON.stringify(next[key])) changed[key] = next[key];
+  }
+  return changed;
+}
+
+/** True dacă toate câmpurile au coloană în PATCH_FIELD_MAP (altfel salvarea parțială ar pierde date). */
+export function arePatchableFields(keys) {
+  return keys.every((k) => Object.prototype.hasOwnProperty.call(PATCH_FIELD_MAP, k));
+}
 
 /** Construiește payload Supabase doar cu câmpurile modificate. */
 export function toDbPatch(claim, patch, { updatedByEmail } = {}) {

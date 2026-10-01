@@ -1,4 +1,5 @@
 import { fileToBase64 } from "./aiDocumentExtractor";
+import { callGemini } from "./aiGateway";
 
 /**
  * Pregătește un sumar dinamic al dosarelor pentru contextul Supervizorului de Atelier
@@ -47,54 +48,16 @@ Reguli de răspuns:
 `;
 
 /**
- * Apelează Gemini API cu fallback garantat pe mai multe modele și versiuni API (v1 / v1beta)
+ * Apelează Gemini (proxy server-side, cu fallback pe cheia utilizatorului) cu fallback pe mai multe modele.
  */
 export async function callGeminiApiWithFallback(effectiveKey, body) {
-  const modelEndpoints = [
-    { version: "v1beta", name: "gemini-3.6-flash" },
-    { version: "v1beta", name: "gemini-3.6-pro" },
-    { version: "v1beta", name: "gemini-2.0-flash" },
-    { version: "v1beta", name: "gemini-1.5-flash" },
-    { version: "v1", name: "gemini-1.5-flash" },
-    { version: "v1beta", name: "gemini-1.5-pro" },
-    { version: "v1", name: "gemini-1.5-pro" },
-    { version: "v1beta", name: "gemini-2.5-flash" },
-    { version: "v1beta", name: "gemini-pro" },
-  ];
-  let lastErr = null;
-
-  for (const m of modelEndpoints) {
-    const url = `https://generativelanguage.googleapis.com/${m.version}/models/${m.name}:generateContent?key=${effectiveKey}`;
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (resp.ok) {
-        return await resp.json();
-      }
-
-      const errText = await resp.text();
-      lastErr = new Error(`Model ${m.name} (${m.version} - ${resp.status}): ${errText}`);
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-
-  throw lastErr || new Error("Niciun model Gemini nu este disponibil pentru cheia API specificată.");
+  return callGemini(body, { apiKey: effectiveKey });
 }
 
 /**
  * Apelează Gemini API pentru Supervizor Atelier
  */
 export async function askSupervizorAtelier(userQuery, claims = [], apiKey = "") {
-  const effectiveKey = apiKey || localStorage.getItem("gemini_api_key") || "";
-  if (!effectiveKey) {
-    throw new Error("Cheia API este necesară. Configurați-o în Setări Atelier.");
-  }
-
   const claimsContext = buildClaimsContextSummary(claims);
 
   const body = {
@@ -113,7 +76,7 @@ export async function askSupervizorAtelier(userQuery, claims = [], apiKey = "") 
     },
   };
 
-  const data = await callGeminiApiWithFallback(effectiveKey, body);
+  const data = await callGemini(body, { apiKey });
   const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!answer) {
