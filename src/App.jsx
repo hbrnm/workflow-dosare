@@ -61,6 +61,7 @@ const QuickCreateClaimModal = lazyWithRetry(() => import("./components/modals/Qu
 const AlerteModal = lazyWithRetry(() => import("./components/modals/AlerteModal"));
 const TrackPage = lazyWithRetry(() => import("./features/tracking/TrackPage"));
 import { getTrackingTokenFromLocation } from "./constants/trackingCopy";
+import { openAutoClaim } from "./utils/autoOpenClaim";
 
 const PUBLIC_TRACK_TOKEN = typeof window !== "undefined" ? getTrackingTokenFromLocation() : "";
 
@@ -357,13 +358,7 @@ export default function App() {
   } = useLocalDrive({
     claims,
     saveClaim,
-    onAutoOpenClaim: (claimDraft) => {
-      if (claimDraft?.id && claims.some((c) => c.id === claimDraft.id)) {
-        openExisting(claimDraft);
-      } else {
-        openNew(claimDraft);
-      }
-    },
+    onAutoOpenClaim: (claimDraft) => openAutoClaim(claimDraft, { openExisting, openNew }),
     showNotice,
   });
 
