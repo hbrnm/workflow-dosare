@@ -2,17 +2,12 @@ import { getStatusDefinition } from "../constants/config";
 
 /**
  * Reguli minime de tranziție pentru fluxul dosarului.
- * Kanban-ul permite reordonări libere, dar nu și sărirea peste etapele financiare:
- *  - nu se poate ajunge la „Facturat” decât din „Accept plată”;
- *  - nu se poate ajunge la „Accept plată” înainte să înceapă reparația (din „Acord”/„Piese”).
+ * Kanban-ul permite reordonări libere (inclusiv „Accept plată” din orice etapă, ex. pachet decont
+ * trimis înainte de reparație), dar un dosar nu poate fi „Facturat” fără să treacă prin „Accept plată”.
  * Mutările înapoi sunt permise (corecturi).
  */
 const ENTRY_RULES = {
   facturat: { from: ["accept_plata"], reason: "Dosarul poate fi facturat doar din etapa „Accept plată”." },
-  accept_plata: {
-    from: ["programat", "in_lucru", "facturat"],
-    reason: "„Accept plată” se poate seta doar după programare/reparație.",
-  },
 };
 
 export function canTransition(fromStatus, toStatus) {

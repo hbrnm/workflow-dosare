@@ -64,9 +64,12 @@ export default function MobileClaimSheet({
   useEffect(() => revokeOfflineUrls, [revokeOfflineUrls]);
 
   const refreshOfflineForClaim = useCallback(async (claimId) => {
-    revokeOfflineUrls();
+    const previousUrls = offlineUrlsRef.current;
+    offlineUrlsRef.current = [];
+    const revokePrevious = () => previousUrls.forEach((u) => URL.revokeObjectURL(u));
     if (!claimId) {
       setOfflinePhotos([]);
+      revokePrevious();
       return;
     }
     try {
@@ -90,7 +93,8 @@ export default function MobileClaimSheet({
     } catch {
       setOfflinePhotos([]);
     }
-  }, [revokeOfflineUrls]);
+    revokePrevious();
+  }, []);
 
   useEffect(() => {
     refreshOfflineForClaim(claim?.id);

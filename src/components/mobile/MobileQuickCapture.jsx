@@ -148,10 +148,13 @@ export default function MobileQuickCapture({
   useEffect(() => revokeOfflineUrls, [revokeOfflineUrls]);
 
   const refreshOfflineForClaim = useCallback(async (claimId) => {
-    revokeOfflineUrls();
+    const previousUrls = offlineUrlsRef.current;
+    offlineUrlsRef.current = [];
+    const revokePrevious = () => previousUrls.forEach((u) => URL.revokeObjectURL(u));
     if (!claimId) {
       setOfflinePhotos([]);
       setOfflineDocs([]);
+      revokePrevious();
       return;
     }
     try {
@@ -187,16 +190,18 @@ export default function MobileQuickCapture({
     } catch {
       /* ignore */
     }
-  }, [revokeOfflineUrls]);
+    revokePrevious();
+  }, []);
 
   useEffect(() => {
     if (selectedClaim?.id) {
       refreshOfflineForClaim(selectedClaim.id);
     } else {
+      revokeOfflineUrls();
       setOfflinePhotos([]);
       setOfflineDocs([]);
     }
-  }, [selectedClaim?.id, refreshOfflineForClaim]);
+  }, [selectedClaim?.id, refreshOfflineForClaim, revokeOfflineUrls]);
 
   const handleManualSync = useCallback(async () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) {

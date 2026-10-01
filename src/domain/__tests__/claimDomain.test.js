@@ -10,10 +10,10 @@ describe("canTransition", () => {
     expect(canTransition("facturat", "accept_plata").ok).toBe(true);
     expect(canTransition("in_lucru", "programat").ok).toBe(true);
   });
-  it("blochează sărirea peste etapele financiare", () => {
+  it("blochează facturarea fără Accept plată", () => {
     expect(canTransition("deschidere", "facturat").ok).toBe(false);
     expect(canTransition("in_lucru", "facturat").ok).toBe(false);
-    expect(canTransition("piese_comandate", "accept_plata").ok).toBe(false);
+    expect(canTransition("piese_comandate", "accept_plata").ok).toBe(true); // pachet decont înainte de reparație
   });
   it("mapează statusurile legacy", () => {
     expect(canTransition("predat_client", "facturat").ok).toBe(true);

@@ -10,20 +10,35 @@ begin;
 
 drop policy if exists "poze_dosare_public_tracking_read" on storage.objects;
 
-create policy "poze_dosare_public_tracking_read" on storage.objects
-for select to anon
-using (
-  bucket_id in ('poze-dosare', 'poze_dosare')
-  and exists (
+-- Subquery-ul din politica ar rula cu drepturile rolului anon (care nu poate citi dosare),
+-- de aceea verificarea sta intr-o functie security definer.
+create or replace function public.is_client_visible_photo(p_path text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
     select 1
     from public.dosare d,
          jsonb_array_elements(coalesce(d.poze, '[]'::jsonb)) as p
-    where p->>'path' = storage.objects.name
+    where p->>'path' = p_path
       and (
         coalesce((p->>'vizibilClient')::boolean, false) is true
         or coalesce(p->>'categoria', '') = 'predare'
       )
-  )
+  );
+$$;
+
+revoke all on function public.is_client_visible_photo(text) from public;
+grant execute on function public.is_client_visible_photo(text) to anon, authenticated;
+
+create policy "poze_dosare_public_tracking_read" on storage.objects
+for select to anon
+using (
+  bucket_id in ('poze-dosare', 'poze_dosare')
+  and public.is_client_visible_photo(name)
 );
 
 create or replace function public.get_public_tracking(p_token text)
