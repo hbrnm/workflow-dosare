@@ -14,12 +14,15 @@ vi.mock("../../supabaseClient", () => {
         get(_t, prop) {
           if (prop === "then") {
             return (resolve) => {
-              if (state.op !== "select") writes.push({ table, op: state.op });
+              if (state.op !== "select") writes.push({ table, op: state.op, body: state.body });
               resolve({ data: state.op === "select" ? rows : null, error: null });
             };
           }
           return (...args) => {
-            if (["update", "insert", "upsert", "delete"].includes(prop)) state.op = prop;
+            if (["update", "insert", "upsert", "delete"].includes(prop)) {
+              state.op = prop;
+              state.body = args[0];
+            }
             return c;
           };
         },
@@ -108,5 +111,53 @@ describe("useClaims — reguli de tranziție status", () => {
     });
     expect(ok).not.toBe(false);
     expect(hook.result.current.claims[0].status).toBe("accept_plata");
+  });
+});
+
+describe("useClaims.saveClaim — salvare parțială", () => {
+  it("trimite doar coloanele modificate față de baseline (update, nu upsert)", async () => {
+    const { hook } = await setup("in_lucru");
+    const live = hook.result.current.claims[0];
+    const baseline = { ...live };
+    let res;
+    await act(async () => {
+      res = await hook.result.current.saveClaim({ ...live, client: "Client Nou" }, { baseline });
+    });
+    expect(res.success).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(writes[0].op).toBe("update");
+    expect(writes[0].body.client).toBe("Client Nou");
+    expect(writes[0].body).not.toHaveProperty("status");
+    expect(writes[0].body).not.toHaveProperty("numar_dosar");
+  });
+
+  it("nu scrie nimic când formularul nu a modificat nimic", async () => {
+    const { hook } = await setup("in_lucru");
+    const live = hook.result.current.claims[0];
+    let res;
+    await act(async () => {
+      res = await hook.result.current.saveClaim({ ...live }, { baseline: { ...live } });
+    });
+    expect(res.success).toBe(true);
+    expect(writes).toHaveLength(0);
+  });
+
+  it("fără baseline păstrează upsert-ul complet", async () => {
+    const { hook } = await setup("in_lucru");
+    const live = hook.result.current.claims[0];
+    await act(async () => {
+      await hook.result.current.saveClaim({ ...live, client: "X" });
+    });
+    expect(writes).toHaveLength(1);
+    expect(writes[0].op).toBe("upsert");
+  });
+
+  it("câmp fără mapare de coloană → upsert complet (fără pierdere de date)", async () => {
+    const { hook } = await setup("in_lucru");
+    const live = hook.result.current.claims[0];
+    await act(async () => {
+      await hook.result.current.saveClaim({ ...live, campNecunoscut: 1 }, { baseline: { ...live } });
+    });
+    expect(writes[0].op).toBe("upsert");
   });
 });

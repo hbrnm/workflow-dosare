@@ -794,7 +794,7 @@ export default function ClaimModal({
         dataUltimeiActualizari: nowISO(),
         dataSchimbareStatus: statusChanged ? nowISO() : form.dataSchimbareStatus,
         ...(statusChanged ? { alerteAck: false } : {}),
-      }, { openProgramator: openProgramator || shouldOpenProgramator })
+      }, { openProgramator: openProgramator || shouldOpenProgramator, baseline })
     ).finally(() => setSavingLocal(false));
     return true;
   };
