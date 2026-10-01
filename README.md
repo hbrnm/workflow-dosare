@@ -22,6 +22,8 @@ Experimentul **2.0** rămâne în cod (`src/App.v2.jsx`) dar nu e pornit implici
 
 ## Setup local
 
+Necesită **Node 22+** (`pdfjs-dist` folosește `Promise.withResolvers`; `supabase-js` cere WebSocket nativ).
+
 ```bash
 cp .env.example .env   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install
