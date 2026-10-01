@@ -39,6 +39,11 @@ Rulează în **SQL Editor** dacă lipsesc:
 
 3. [`database/migrations/supabase-migration-44-audit-security.sql`](database/migrations/supabase-migration-44-audit-security.sql) — restrânge citirea anonimă din Storage și întărește tracking-ul public
 
+4. [`database/migrations/supabase-migration-45-tracking-hardening.sql`](database/migrations/supabase-migration-45-tracking-hardening.sql) — limită de rată pe RPC-ul public de tracking, fix pentru dosare fără `atelier_id`, `tracking_photo_paths`
+5. *(după deploy `tracking-photos` și verificare)* [`database/migrations/supabase-migration-46-private-photos-bucket.sql`](database/migrations/supabase-migration-46-private-photos-bucket.sql) — bucket `poze-dosare` privat; pozele din portal vin ca URL-uri semnate
+
+Edge functions noi: `ai-proxy` (Gemini) și `tracking-photos` (URL-uri semnate pentru portalul public); vezi README-ul fiecăreia în `supabase/functions/`.
+
 Chei AI: apelurile Gemini trec prin edge function-ul `ai-proxy` (vezi `supabase/functions/ai-proxy/README.md`: `GEMINI_API_KEY` în Supabase Secrets + deploy). Cheia din Setări e doar rezervă dacă funcția nu e disponibilă; variabilele `VITE_*` nu se mai citesc.
 
 ## Teste și CI

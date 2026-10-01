@@ -1,0 +1,2 @@
+# Portal public (fara login): autorizarea e tokenul de tracking, validat in DB prin tracking_photo_paths().
+verify_jwt = false
