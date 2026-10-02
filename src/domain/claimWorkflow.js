@@ -18,3 +18,8 @@ export function canTransition(fromStatus, toStatus) {
   if (rule && !rule.from.includes(from)) return { ok: false, reason: rule.reason };
   return { ok: true };
 }
+
+/** Cheie de status sigură: doar text nenul, altfel `fallback` (evită obiecte/evenimente folosite ca status). */
+export function safeStatusKey(value, fallback = undefined) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}

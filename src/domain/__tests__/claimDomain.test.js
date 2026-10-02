@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canTransition } from "../claimWorkflow";
+import { canTransition, safeStatusKey } from "../claimWorkflow";
 import { isValidVin, isValidRoPlate, isValidAmount, validateClaimInput } from "../claimValidation";
 
 describe("canTransition", () => {
@@ -45,5 +45,16 @@ describe("claimValidation", () => {
     expect(r.warnings.vin).toBeTruthy();
     expect(r.warnings.plate).toBeUndefined();
     expect(r.errors.sumaDecont).toBeTruthy();
+  });
+});
+
+describe("safeStatusKey", () => {
+  it("acceptă doar text nenul", () => {
+    expect(safeStatusKey("programat")).toBe("programat");
+    expect(safeStatusKey("")).toBeUndefined();
+    expect(safeStatusKey("   ", "deschidere")).toBe("deschidere");
+    expect(safeStatusKey({ id: 1, status: "x" }, "deschidere")).toBe("deschidere");
+    expect(safeStatusKey(null)).toBeUndefined();
+    expect(safeStatusKey(42)).toBeUndefined();
   });
 });

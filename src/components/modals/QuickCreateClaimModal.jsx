@@ -26,6 +26,7 @@ import {
 import AppButton from "../common/AppButton";
 import { useModalEscape, overlayBackdropCloseProps } from "../../hooks/useModalEscape";
 import AiDocumentUploadModal from "./AiDocumentUploadModal";
+import { safeStatusKey } from "../../domain/claimWorkflow";
 
 const fieldClass = (desktopUi) =>
   desktopUi
@@ -72,7 +73,7 @@ export default function QuickCreateClaimModal({
 
   if (!isOpen) return null;
 
-  const statusKey = initialStatus || "deschidere";
+  const statusKey = safeStatusKey(initialStatus, "deschidere");
   const scheduleHint = initialDataProgramare
     ? String(initialDataProgramare).replace("T", " ").slice(0, 16)
     : null;
