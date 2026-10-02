@@ -12,8 +12,10 @@ import {
   getDriveTemplates,
   attachDriveTemplate,
   uploadFilesToDrive,
+  getDriveApiVersion,
 } from "../../../utils/localDriveService";
 import { normalizePlate } from "../../../utils/plateSchedule";
+import ClaimDriveTabV2 from "./ClaimDriveTabV2";
 
 const CATEGORIES = [
   { key: "01_Acte_Client", label: "01 Acte Client", icon: "📑" },
@@ -23,7 +25,25 @@ const CATEGORIES = [
   { key: "05_Dosar_Final", label: "05 Dosar Final", icon: "🏁" },
 ];
 
-export default function ClaimDriveTab({ form = {}, onNotify }) {
+// Serverul local v2 (mașină -> daună -> categorie) primește tabul nou; altfel rămâne tabul clasic.
+export default function ClaimDriveTab(props) {
+  const [apiVersion, setApiVersion] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    getDriveApiVersion()
+      .then((v) => alive && setApiVersion(v))
+      .catch(() => alive && setApiVersion(1));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (apiVersion === 2) return <ClaimDriveTabV2 {...props} />;
+  return <ClaimDriveTabV1 {...props} />;
+}
+
+function ClaimDriveTabV1({ form = {}, onNotify }) {
   const plate = normalizePlate(form?.numarInmatriculare || "");
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(false);
