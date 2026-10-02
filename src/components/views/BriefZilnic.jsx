@@ -190,9 +190,9 @@ export default function BriefZilnic({
           claim: c,
           isBlocked: !!c.blocat,
           daysInactive,
-          stageLabel: stageDef.label,
+          stageLabel: typeof stageDef.label === "string" ? stageDef.label : String(stageDef.label ?? ""),
           reason: c.blocat
-            ? (c.motivBlocare || "Blocat de utilizator")
+            ? (typeof c.motivBlocare === "string" && c.motivBlocare ? c.motivBlocare : "Blocat de utilizator")
             : `${daysInactive} zile fără activitate`,
         };
       })
