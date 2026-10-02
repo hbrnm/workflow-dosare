@@ -78,9 +78,9 @@ export default function ClaimHeader({
           </span>
           {!isNew && (
             <div className="flex flex-wrap items-center gap-1 mt-0.5 text-[10px]">
-              {form.asigurator && (
+              {form.asigurator && typeof form.asigurator !== "object" && (
                 <span className="px-1.5 py-0.2 rounded bg-[var(--app-surface-2)] text-[var(--app-text-strong)] font-semibold border border-[var(--app-border)]">
-                  {form.asigurator} {form.tipAsigurare ? `· ${form.tipAsigurare}` : ""}
+                  {String(form.asigurator)} {form.tipAsigurare && typeof form.tipAsigurare !== "object" ? `· ${String(form.tipAsigurare)}` : ""}
                 </span>
               )}
               {form.pieseSosite ? (

@@ -159,8 +159,9 @@ export default function BriefZilnic({
               const d = businessDaysSince(`${opTermen}T12:00:00.000Z`);
               if (d > maxDelay) {
                 maxDelay = d;
-                reperNume = op.piesa || op.codPiesa || reperNume;
-                furnizor = op.furnizor || furnizor;
+                const opName = typeof op.piesa === "string" ? op.piesa : typeof op.codPiesa === "string" ? op.codPiesa : "";
+                if (opName) reperNume = opName;
+                if (typeof op.furnizor === "string") furnizor = op.furnizor;
               }
             }
           });
@@ -168,8 +169,8 @@ export default function BriefZilnic({
         return {
           claim: c,
           delayDays: maxDelay,
-          reperNume: reperNume || "Piese comandate",
-          furnizor,
+          reperNume: typeof reperNume === "string" && reperNume ? reperNume : "Piese comandate",
+          furnizor: typeof furnizor === "string" ? furnizor : "",
         };
       })
       .sort((a, b) => b.delayDays - a.delayDays);
@@ -550,10 +551,14 @@ export default function BriefZilnic({
                         </span>
                         <div className="min-w-0">
                           <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
-                            {c.numarInmatriculare || "—"}
+                            {typeof c.numarInmatriculare === "string" ? c.numarInmatriculare || "—" : "—"}
                           </div>
                           <div className="text-[10px] text-[var(--app-muted)] truncate">
-                            {c.marcaModel || c.client || "Client"}
+                            {typeof c.marcaModel === "string" && c.marcaModel
+                              ? c.marcaModel
+                              : typeof c.client === "string" && c.client
+                              ? c.client
+                              : "Client"}
                           </div>
                         </div>
                       </div>
@@ -616,10 +621,10 @@ export default function BriefZilnic({
                         </span>
                         <div className="min-w-0">
                           <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
-                            {c.numarInmatriculare || "—"}
+                            {typeof c.numarInmatriculare === "string" ? c.numarInmatriculare || "—" : "—"}
                           </div>
                           <div className="text-[10px] text-[var(--app-muted)] truncate">
-                            {reperNume}{furnizor ? ` · ${furnizor}` : ""}
+                            {typeof reperNume === "string" ? reperNume : "Piese"}{typeof furnizor === "string" && furnizor ? ` · ${furnizor}` : ""}
                           </div>
                         </div>
                       </div>
@@ -691,10 +696,10 @@ export default function BriefZilnic({
                         </span>
                         <div className="min-w-0">
                           <div className="font-mono font-bold text-[11.5px] text-[var(--app-text-strong)] truncate uppercase">
-                            {c.numarInmatriculare || "—"}
+                            {typeof c.numarInmatriculare === "string" ? c.numarInmatriculare || "—" : "—"}
                           </div>
-                          <div className="text-[10px] text-[var(--app-muted)] truncate" title={reason}>
-                            {stageLabel} · {reason}
+                          <div className="text-[10px] text-[var(--app-muted)] truncate" title={typeof reason === "string" ? reason : ""}>
+                            {typeof stageLabel === "string" ? stageLabel : ""} · {typeof reason === "string" ? reason : ""}
                           </div>
                         </div>
                       </div>
