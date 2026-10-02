@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { emptyClaim } from "../utils/claimUtils";
+import { safeStatusKey } from "../domain/claimWorkflow";
 
 export function useClaimModal(showNotice) {
   const [modalClaim, setModalClaim] = useState(null);
@@ -10,7 +11,11 @@ export function useClaimModal(showNotice) {
   /** Prefill for QuickCreate from Programator / Flux: { status, dataProgramare } */
   const [quickCreateDefaults, setQuickCreateDefaults] = useState(null);
 
-  const openNew = useCallback((status, dataProgramare) => {
+  const openNew = useCallback((rawStatus, rawDataProgramare) => {
+    // Poate fi folosit direct ca handler de click (primește evenimentul) sau apelat greșit cu un dosar:
+    // acceptăm doar text, altfel am salva/afișa un obiect ca status.
+    const status = safeStatusKey(rawStatus);
+    const dataProgramare = safeStatusKey(rawDataProgramare);
     if (status || dataProgramare) {
       setQuickCreateDefaults({
         status: status || "deschidere",

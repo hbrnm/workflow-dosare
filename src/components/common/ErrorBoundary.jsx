@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertOctagon, RotateCcw, WifiOff, Home, FileQuestion } from "lucide-react";
 import { telemetry } from "../../utils/telemetry";
+import { APP_VERSION } from "../../utils/appVersion";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -131,6 +132,18 @@ export default class ErrorBoundary extends React.Component {
                 {error.message}
               </span>
             </div>
+          )}
+
+          {error?.message && !isOffline && (
+            <details className="text-left text-[11px] text-[var(--app-muted)]">
+              <summary className="cursor-pointer font-bold">Detalii tehnice (trimite-le dacă eroarea persistă)</summary>
+              <pre className="mt-1.5 whitespace-pre-wrap break-all font-mono text-[10.5px] leading-snug">
+                {`Versiune: ${APP_VERSION}\n${String(this.state.errorInfo?.componentStack || "")
+                  .split("\n")
+                  .slice(0, 8)
+                  .join("\n")}`}
+              </pre>
+            </details>
           )}
 
           <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
