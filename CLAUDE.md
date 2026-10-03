@@ -10,11 +10,11 @@ Reguli de lucru pentru Workflow Dosare Daună (PWA Vite + React + Supabase pentr
 4. **Execuție orientată spre rezultat:** transformă sarcina în criterii verificabile (un test care reproduce bug-ul, apoi îl face să treacă); la sarcini cu mai mulți pași, un plan scurt cu verificarea fiecărui pas.
 
 ### Deciziile proprietarului — întotdeauna ca chestionar
-Orice decizie care îi revine proprietarului (produs, texte, prețuri/Stripe, furnizori, ce intră în v1 vs 2.0) i se prezintă ca **chestionar cu variante** (AskUserQuestion), cu varianta recomandată prima și marcată „(Recomandat)”. Excepție: instrucțiunile despre cum își configurează singur ceva (Supabase, Vercel, GitHub, Stripe) rămân text pas cu pas.
+Orice decizie care îi revine proprietarului (produs, texte, prețuri/Stripe, furnizori, ce intră în aplicație) i se prezintă ca **chestionar cu variante** (AskUserQuestion), cu varianta recomandată prima și marcată „(Recomandat)”. Excepție: instrucțiunile despre cum își configurează singur ceva (Supabase, Vercel, GitHub, Stripe) rămân text pas cu pas.
 
 ## 2. Proiect — ce trebuie știut
 
-- **Versiunea activă e v1** (`src/App.jsx`). Codul 2.0 (`src/App.v2.jsx`, `src/features/*`) e oprit; nu-l activa și nu-l schimba fără cerere explicită.
+- **Aplicația e v1** (`src/App.jsx`). Experimentul 2.0 a fost șters; din `src/features/` a rămas doar `tracking/` (portalul public), folosit de v1.
 - **Node 22+** obligatoriu (`.nvmrc`).
 - **Teste:** Vitest, în `__tests__/` lângă cod. Orice comportament nou sau bug reparat vine cu test. Înainte de push: `npm run check` (vitest --run + vite build) — același lucru rulează CI-ul (`.github/workflows/ci.yml`).
 - **Supabase:** migrațiile sunt fișiere noi în `database/migrations/` (rulate manual în SQL Editor) și se trec în lista din `README.md`. Nimic nu se rulează direct pe producție fără acordul proprietarului.

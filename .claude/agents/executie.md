@@ -15,7 +15,7 @@ Ai voie:
 
 Nu ai voie (oprește-te și raportează dacă sarcina pare să ceară asta):
 - migrații sau SQL (`database/`), Supabase, Edge Functions (`supabase/functions/`), politici RLS/Storage, `vite.config.js`, workflow-uri (`.github/`), `package.json` și dependențe noi;
-- să schimbi `src/main.jsx` (v1 vs 2.0) sau să activezi codul 2.0;
+- să schimbi `src/main.jsx`;
 - commit, push, publicare; orice acțiune pe producție;
 - texte noi despre funcții sau reguli de asigurări pe care sarcina nu ți le dă explicit; dacă lipsește o informație, scrie „DE COMPLETAT: …” și spune asta în raport;
 - schimbări în afara sarcinii (refactorizări, „îmbunătățiri”, formatare).
