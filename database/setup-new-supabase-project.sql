@@ -283,25 +283,13 @@ alter table public.istoric_dosar enable row level security;
 alter table public.ateliere enable row level security;
 alter table public.atelier_membri enable row level security;
 
--- Politici pentru utilizatori autentificați
-create policy "dosare_all_authenticated" on public.dosare
-for all to authenticated using (true) with check (true);
-
-create policy "setari_all_authenticated" on public.setari
-for all to authenticated using (true) with check (true);
-
+-- Politicile pe atelier pentru dosare, istoric_dosar, setari, ateliere și atelier_membri
+-- vin din migrațiile 32, 42 și 47 — rulează-le după acest script.
+-- Nu crea aici politici „using (true)” pentru authenticated: politicile se adună și ar
+-- anula izolarea pe atelier.
 drop policy if exists "setari_anon_select" on public.setari;
 create policy "setari_anon_select" on public.setari
 for select to anon using (true);
-
-create policy "istoric_all_authenticated" on public.istoric_dosar
-for all to authenticated using (true) with check (true);
-
-create policy "ateliere_all_authenticated" on public.ateliere
-for all to authenticated using (true) with check (true);
-
-create policy "atelier_membri_all_authenticated" on public.atelier_membri
-for all to authenticated using (true) with check (true);
 
 -- Politici Storage
 drop policy if exists "poze_storage_all" on storage.objects;
