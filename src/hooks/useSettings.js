@@ -14,6 +14,7 @@ import {
   brandingToAtelierPatch,
   atelierPatchToSetariMirror,
   brandingLogoStoragePath,
+  edgeFunctionFailure,
 } from "../utils/atelierSettings";
 import {
   normalizeManoperaTarife,
@@ -323,19 +324,21 @@ export function useSettings(session, showNotice, { atelierId = null, atelierSlug
         if (fnData.atelier.slug) slugRef.current = fnData.atelier.slug;
         return { ok: true, row: fnData.atelier };
       }
-      let fnMessage = fnData?.error || null;
-      if (!fnMessage && fnErr?.context && typeof fnErr.context.json === "function") {
+      let body = fnData;
+      if (!body?.error && fnErr?.context && typeof fnErr.context.json === "function") {
         try {
-          const body = await fnErr.context.json();
-          fnMessage = body?.error || null;
+          body = await fnErr.context.json();
         } catch {
           /* ignore */
         }
       }
-      if (!fnMessage) fnMessage = fnErr?.message || null;
       // Function missing / network → fall through to direct update
-      const softFail = !fnMessage || /failed to (send|fetch)|FunctionsRelayError|not found|404/i.test(String(fnMessage));
-      if (!softFail) {
+      const { message: fnMessage, soft } = edgeFunctionFailure({
+        status: fnErr?.context?.status,
+        body,
+        errMessage: fnErr?.message,
+      });
+      if (!soft) {
         return { ok: false, error: new Error(fnMessage) };
       }
     } catch (err) {

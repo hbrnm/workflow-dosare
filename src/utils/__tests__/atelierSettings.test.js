@@ -5,6 +5,7 @@ import {
   brandingToAtelierPatch,
   atelierPatchToSetariMirror,
   brandingLogoStoragePath,
+  edgeFunctionFailure,
 } from "../atelierSettings";
 
 describe("atelierSettings", () => {
@@ -57,5 +58,31 @@ describe("atelierSettings", () => {
   it("builds per-atelier logo path", () => {
     expect(brandingLogoStoragePath(null, "png")).toBe("atelier/logo.png");
     expect(brandingLogoStoragePath("uuid-1", "JPG")).toBe("atelier/uuid-1/logo.jpg");
+  });
+
+  describe("edgeFunctionFailure", () => {
+    it("treats a missing function (404 { code, message }) as soft so the direct update runs", () => {
+      const r = edgeFunctionFailure({
+        status: 404,
+        body: { code: "NOT_FOUND", message: "Requested function was not found" },
+        errMessage: "Edge Function returned a non-2xx status code",
+      });
+      expect(r.soft).toBe(true);
+    });
+
+    it("treats network errors and empty failures as soft", () => {
+      expect(edgeFunctionFailure({ errMessage: "Failed to send a request to the Edge Function" }).soft).toBe(true);
+      expect(edgeFunctionFailure({ errMessage: "Relay Error invoking the Edge Function" }).soft).toBe(true);
+      expect(edgeFunctionFailure({}).soft).toBe(true);
+    });
+
+    it("surfaces the function's own error for real rejections", () => {
+      const r = edgeFunctionFailure({
+        status: 403,
+        body: { error: "Doar administratorul atelierului poate modifica setările." },
+        errMessage: "Edge Function returned a non-2xx status code",
+      });
+      expect(r).toEqual({ message: "Doar administratorul atelierului poate modifica setările.", soft: false });
+    });
   });
 });
