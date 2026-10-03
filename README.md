@@ -43,6 +43,7 @@ Rulează în **SQL Editor** dacă lipsesc:
 
 4. [`database/migrations/supabase-migration-45-tracking-hardening.sql`](database/migrations/supabase-migration-45-tracking-hardening.sql) — limită de rată pe RPC-ul public de tracking, fix pentru dosare fără `atelier_id`, `tracking_photo_paths`
 5. *(după deploy `tracking-photos` și verificare)* [`database/migrations/supabase-migration-46-private-photos-bucket.sql`](database/migrations/supabase-migration-46-private-photos-bucket.sql) — bucket `poze-dosare` privat; pozele din portal vin ca URL-uri semnate
+6. [`database/migrations/supabase-migration-47-drop-permissive-rls.sql`](database/migrations/supabase-migration-47-drop-permissive-rls.sql) — elimină politicile `*_all_authenticated` (`using (true)`) care anulau izolarea pe atelier; scrierea în `setari` rămâne doar pentru admin
 
 Edge functions noi: `ai-proxy` (Gemini) și `tracking-photos` (URL-uri semnate pentru portalul public); vezi README-ul fiecăreia în `supabase/functions/`.
 

@@ -191,65 +191,22 @@ insert into storage.buckets (id, name, public)
 values ('documente-dosare', 'documente-dosare', false)
 on conflict (id) do update set public = false;
 
--- 6. Politici RLS Permisive și Sigure pentru Autentificați
+-- 6. RLS activ (politicile vin din migrațiile 32, 42 și 47)
 alter table public.dosare enable row level security;
 alter table public.setari enable row level security;
 alter table public.istoric_dosar enable row level security;
 alter table public.ateliere enable row level security;
 alter table public.atelier_membri enable row level security;
 
--- Politici dosare (Permite utilizatorilor autentificați acces complet)
+-- Politicile pe atelier pentru dosare, istoric_dosar, setari, ateliere și atelier_membri
+-- vin din migrațiile 32, 42 și 47 — rulează-le după acest script.
+-- Nu crea aici politici „using (true)”: politicile se adună și ar anula izolarea pe atelier.
 drop policy if exists "dosare_all_authenticated" on public.dosare;
 drop policy if exists "allow all for anon (temporar)" on public.dosare;
-drop policy if exists "dosare_select_authenticated" on public.dosare;
-drop policy if exists "dosare_select_atelier_member" on public.dosare;
-drop policy if exists "dosare_insert_own" on public.dosare;
-drop policy if exists "dosare_update_own" on public.dosare;
-drop policy if exists "dosare_update_atelier_staff" on public.dosare;
-drop policy if exists "dosare_delete_own" on public.dosare;
-drop policy if exists "dosare_delete_atelier_owner_or_admin" on public.dosare;
-
-create policy "dosare_all_authenticated"
-on public.dosare
-for all
-to authenticated
-using (true)
-with check (true);
-
--- Politici setari
 drop policy if exists "setari_all_authenticated" on public.setari;
-create policy "setari_all_authenticated"
-on public.setari
-for all
-to authenticated
-using (true)
-with check (true);
-
--- Politici istoric_dosar
 drop policy if exists "istoric_all_authenticated" on public.istoric_dosar;
-create policy "istoric_all_authenticated"
-on public.istoric_dosar
-for all
-to authenticated
-using (true)
-with check (true);
-
--- Politici ateliere & membri
 drop policy if exists "ateliere_all_authenticated" on public.ateliere;
-create policy "ateliere_all_authenticated"
-on public.ateliere
-for all
-to authenticated
-using (true)
-with check (true);
-
 drop policy if exists "atelier_membri_all_authenticated" on public.atelier_membri;
-create policy "atelier_membri_all_authenticated"
-on public.atelier_membri
-for all
-to authenticated
-using (true)
-with check (true);
 
 -- Politici Storage pentru poze și documente
 drop policy if exists "poze_storage_all" on storage.objects;
