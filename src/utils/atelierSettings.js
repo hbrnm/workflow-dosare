@@ -59,3 +59,17 @@ export function brandingLogoStoragePath(atelierId, ext = "png") {
   if (atelierId) return `atelier/${atelierId}/logo.${safeExt}`;
   return `atelier/logo.${safeExt}`;
 }
+
+/**
+ * Interpretează eșecul edge function-ului update-atelier-settings.
+ * `soft` = funcția lipsește / rețea → aplicația încearcă update-ul direct.
+ * Un 404 vine cu corp `{ code, message }` („Requested function was not found”), nu `{ error }`.
+ */
+export function edgeFunctionFailure({ status, body, errMessage } = {}) {
+  const message = body?.error || body?.message || errMessage || null;
+  const soft =
+    status === 404 ||
+    !message ||
+    /failed to (send|fetch)|FunctionsRelayError|Relay Error|FunctionsFetchError|not found|404/i.test(String(message));
+  return { message, soft };
+}
