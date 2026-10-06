@@ -128,8 +128,41 @@ describe("diffClaimFields / arePatchableFields", () => {
     expect(diffClaimFields(base, { ...base })).toEqual({});
   });
 
-  it("arePatchableFields respinge câmpurile fără coloană", () => {
-    expect(arePatchableFields(["client", "status", "masinaSchimb", "dataDeschiderii"])).toBe(true);
+  it("arePatchableFields recunoaște toate câmpurile uzuale de editare dosar", () => {
+    expect(
+      arePatchableFields([
+        "client",
+        "status",
+        "masinaSchimb",
+        "dataDeschiderii",
+        "dataEveniment",
+        "dataPredareMasinaSchimb",
+        "valoareAcceptataReglata",
+        "valoareDevizAudatex",
+        "dataAdusaFizic",
+        "atelierId",
+      ])
+    ).toBe(true);
     expect(arePatchableFields(["client", "campNecunoscut"])).toBe(false);
+  });
+
+  it("salvează și restaurează dataEveniment prin toDb și fromDb", () => {
+    const claim = { ...emptyClaim(), dataEveniment: "2026-09-15" };
+    const row = toDb(claim);
+    expect(row.data_eveniment).toBe("2026-09-15");
+    expect(row.financiar.dataEveniment).toBe("2026-09-15");
+
+    const restored = fromDb(row);
+    expect(restored.dataEveniment).toBe("2026-09-15");
+  });
+
+  it("salvează și restaurează dataPredareMasinaSchimb sincronizat cu dataDariiLaSchimb", () => {
+    const claim = { ...emptyClaim(), dataPredareMasinaSchimb: "2026-09-18" };
+    const row = toDb(claim);
+    expect(row.data_darii_la_schimb).toBe("2026-09-18");
+
+    const restored = fromDb(row);
+    expect(restored.dataDariiLaSchimb).toBe("2026-09-18");
+    expect(restored.dataPredareMasinaSchimb).toBe("2026-09-18");
   });
 });

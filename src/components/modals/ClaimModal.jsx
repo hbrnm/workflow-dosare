@@ -385,14 +385,22 @@ export default function ClaimModal({
       let rawDocs = Array.isArray(claim.documente) ? claim.documente : [];
       let rawNote = Array.isArray(claim.note) ? claim.note : [];
       let rawDevize = Array.isArray(claim.devize) ? claim.devize : [];
+      let rawDamageMarks = Array.isArray(claim.damageMarks) ? claim.damageMarks : [];
 
       try {
         const lazy = await fetchClaimMediaLazy(supabase, claim.id);
-        if (lazy.poze?.length || lazy.documente?.length || lazy.note?.length || lazy.devize?.length) {
+        if (
+          lazy.poze?.length ||
+          lazy.documente?.length ||
+          lazy.note?.length ||
+          lazy.devize?.length ||
+          lazy.damageMarks?.length
+        ) {
           rawPoze = unionMediaLists(rawPoze, lazy.poze);
           rawDocs = unionMediaLists(rawDocs, lazy.documente);
           if (lazy.note?.length) rawNote = lazy.note;
           if (lazy.devize?.length) rawDevize = lazy.devize;
+          if (lazy.damageMarks?.length) rawDamageMarks = lazy.damageMarks;
         }
       } catch (_) {}
 
@@ -413,6 +421,7 @@ export default function ClaimModal({
           ...current,
           poze,
           documente,
+          ...(rawDamageMarks.length > (current.damageMarks?.length || 0) ? { damageMarks: rawDamageMarks } : {}),
           ...(rawNote.length > (current.note?.length || 0) ? { note: rawNote } : {}),
           ...(rawDevize.length > (current.devize?.length || 0) ? { devize: rawDevize } : {}),
         }));
@@ -420,6 +429,7 @@ export default function ClaimModal({
           ...current,
           poze,
           documente,
+          ...(rawDamageMarks.length > (current.damageMarks?.length || 0) ? { damageMarks: rawDamageMarks } : {}),
           ...(rawNote.length > (current.note?.length || 0) ? { note: rawNote } : {}),
           ...(rawDevize.length > (current.devize?.length || 0) ? { devize: rawDevize } : {}),
         }));
@@ -780,12 +790,23 @@ export default function ClaimModal({
       }
     }
 
+    let nextNotes = form.note || [];
+    if (noteText.trim()) {
+      const author = String(userEmail || "").trim() || null;
+      nextNotes = [
+        { id: uid(), data: nowISO(), text: noteText.trim(), ...(author ? { author } : {}) },
+        ...nextNotes,
+      ];
+      setNoteText("");
+    }
+
     setUnsavedPrompt(false);
     setSavingLocal(true);
     Promise.resolve(
       onSave?.({
         ...form,
         ...deliveryState,
+        note: nextNotes,
         status: effectiveStatus,
         numarDosar,
         numarInmatriculare,

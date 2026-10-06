@@ -28,6 +28,7 @@ create table if not exists public.dosare (
   inspector_dauna text default '',
   status text default 'deschidere',
   data_deschiderii date default current_date,
+  data_eveniment date,
   data_schimbare_status timestamptz default now(),
   data_ultimei_actualizari timestamptz default now(),
   termen_alerta_zile int default 3,

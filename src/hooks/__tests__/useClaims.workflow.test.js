@@ -160,4 +160,22 @@ describe("useClaims.saveClaim — salvare parțială", () => {
     });
     expect(writes[0].op).toBe("upsert");
   });
+
+  it("actualizează starea locală claims la salvarea unui dosar existent", async () => {
+    const { hook } = await setup("in_lucru");
+    const live = hook.result.current.claims[0];
+    const baseline = { ...live };
+    await act(async () => {
+      await hook.result.current.saveClaim(
+        { ...live, client: "Popescu Andrei", dataEveniment: "2026-09-20" },
+        { baseline }
+      );
+    });
+    const updated = hook.result.current.claims.find((c) => c.id === "c1");
+    expect(updated.client).toBe("Popescu Andrei");
+    expect(updated.dataEveniment).toBe("2026-09-20");
+    expect(writes[0].op).toBe("update");
+    expect(writes[0].body.client).toBe("Popescu Andrei");
+    expect(writes[0].body.data_eveniment).toBe("2026-09-20");
+  });
 });

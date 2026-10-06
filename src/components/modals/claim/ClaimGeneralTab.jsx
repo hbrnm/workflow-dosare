@@ -497,7 +497,15 @@ export default function ClaimGeneralTab({
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
                   <label className="block text-[10.5px] font-semibold text-[var(--app-muted)] mb-1">Dată Predare Auto</label>
-                  <DatePickerInput value={form.dataPredareMasinaSchimb} onChange={(v) => set("dataPredareMasinaSchimb", v)} withTime={false} placeholder="zi/lună/an" />
+                  <DatePickerInput
+                    value={form.dataDariiLaSchimb || form.dataPredareMasinaSchimb}
+                    onChange={(v) => {
+                      set("dataDariiLaSchimb", v);
+                      set("dataPredareMasinaSchimb", v);
+                    }}
+                    withTime={false}
+                    placeholder="zi/lună/an"
+                  />
                 </div>
 
                 <div>

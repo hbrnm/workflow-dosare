@@ -11,6 +11,7 @@ import {
   resolveMediaPatch,
   stripMediaOps,
   unionMediaLists,
+  sanitizeClaim,
 } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
@@ -238,6 +239,10 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       });
       // Salvare parțială: doar câmpurile modificate de utilizator față de instantaneul modalului,
       // ca o editare concurentă a altui utilizator pe alte câmpuri să nu fie suprascrisă.
+      const hasMediaChanges =
+        JSON.stringify(live?.poze || []) !== JSON.stringify(claimToSave.poze || []) ||
+        JSON.stringify(live?.documente || []) !== JSON.stringify(claimToSave.documente || []);
+
       let writeMode = "upsert";
       let writePayload = payload;
       let writeId;
@@ -245,12 +250,17 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
       if (!isNewClaim && live && baseline && baseline.id === claim.id) {
         const changed = diffClaimFields(baseline, claimToSave);
         const keys = Object.keys(changed);
-        if (keys.length === 0) {
+        if (keys.length === 0 && !hasMediaChanges) {
           skipWrite = true; // nimic de scris: nu suprascriem dosarul cu o copie posibil veche
         } else if (arePatchableFields(keys)) {
           writeMode = "update";
           writeId = claim.id;
-          writePayload = toDbPatch(live, changed, { updatedByEmail: myEmail });
+          const patchChanges = { ...changed };
+          if (hasMediaChanges) {
+            patchChanges.poze = claimToSave.poze;
+            patchChanges.documente = claimToSave.documente;
+          }
+          writePayload = toDbPatch(claimToSave, patchChanges, { updatedByEmail: myEmail });
         }
       }
       const { error } = skipWrite
@@ -261,10 +271,20 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         return { success: false, error };
       }
       // Actualizare optimistă — dosarul apare imediat în UI fără a depinde de realtime
-      // (realtime INSERT poate fi pierdut din cauza rate-limiting / WebSocket disconnect).
+      // (realtime INSERT / UPDATE poate fi pierdut din cauza rate-limiting / WebSocket disconnect / lipsă publicație).
+      const savedClaim = sanitizeClaim({
+        ...live,
+        ...claimToSave,
+        dataUltimeiActualizari: payload.data_ultimei_actualizari || nowISO(),
+        updatedByEmail: myEmail,
+      });
       if (isNewClaim) {
         const optimistic = fromDb(payload);
         setClaims((prev) => [optimistic, ...prev.filter((c) => c.id !== optimistic.id)]);
+      } else {
+        setClaims((prev) =>
+          prev.map((c) => (c.id === claim.id ? savedClaim : c))
+        );
       }
 
       // After modal save, align sibling dosare pe aceeași mașină

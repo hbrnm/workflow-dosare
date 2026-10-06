@@ -675,6 +675,7 @@ export default function App() {
       } else {
         // Logging for debugging: saveClaim returned a failure or no result
         console.error("saveClaim failed in handleSave", res);
+        showNotice(res?.error?.message || "Eroare la salvarea dosarului.", "error");
       }
       return res;
     },

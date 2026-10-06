@@ -47,12 +47,14 @@ export function toDb(c) {
     operatiuni: c.operatiuni || { inl: false, rev: false, rep: false, uni: false },
     manopera: c.manopera,
     masina_schimb: c.masinaSchimb,
-    data_darii_la_schimb: c.dataDariiLaSchimb || null,
+    data_darii_la_schimb: c.dataDariiLaSchimb || c.dataPredareMasinaSchimb || null,
     zile_chirie_audatex: c.zileChirieAudatex,
     valoare_piese_audatex: c.financiar?.pieseFacturateFaraTva ?? c.valoarePieseAudatex,
     valoare_achizitie_piese: c.valoareAchizitiePiese,
     financiar: {
       ...(c.financiar || {}),
+      ...(c.dataEveniment ? { dataEveniment: c.dataEveniment } : {}),
+      valoareAcceptataReglata: parseNumber(c.valoareAcceptataReglata ?? c.financiar?.valoareAcceptPlata, 0),
       masinaSchimbModel: c.masinaSchimbModel,
       masinaSchimbNumar: c.masinaSchimbNumar,
       valoareDevizAudatex: parseNumber(c.valoareDevizAudatex ?? c.financiar?.valoareDevizAudatex, 0),
@@ -123,6 +125,9 @@ export function toDb(c) {
   if (devize.length) row.devize = devize;
   if (c.mesajClient && String(c.mesajClient).trim()) {
     row.mesaj_client = String(c.mesajClient).trim();
+  }
+  if (c.dataEveniment) {
+    row.data_eveniment = c.dataEveniment;
   }
 
   return row;
@@ -277,6 +282,12 @@ const PATCH_FIELD_MAP = {
   dataDariiLaSchimb: "data_darii_la_schimb",
   zileChirieAudatex: "zile_chirie_audatex",
   dataDeschiderii: "data_deschiderii",
+  dataEveniment: "data_eveniment",
+  dataPredareMasinaSchimb: "data_darii_la_schimb",
+  valoareAcceptataReglata: "financiar",
+  valoareDevizAudatex: "financiar",
+  dataAdusaFizic: "financiar",
+  atelierId: "atelier_id",
   manopera: "manopera",
   poze: "poze",
   documente: "documente",
@@ -325,10 +336,15 @@ export function toDbPatch(claim, patch, { updatedByEmail } = {}) {
   }
 
   if (
-    (patch.valoareDevizAudatex !== undefined || patch.dataAdusaFizic !== undefined) &&
+    (patch.valoareDevizAudatex !== undefined ||
+      patch.dataAdusaFizic !== undefined ||
+      patch.valoareAcceptataReglata !== undefined) &&
     fullDb.financiar
   ) {
     db.financiar = fullDb.financiar;
+  }
+  if (patch.dataEveniment !== undefined) {
+    db.data_eveniment = patch.dataEveniment || null;
   }
 
   db.data_ultimei_actualizari = nowISO();
@@ -368,6 +384,7 @@ export function fromDb(row) {
     mesajClient: row.mesaj_client || "",
     status,
     dataDeschiderii: row.data_deschiderii || todayISO(),
+    dataEveniment: row.data_eveniment || row.financiar?.dataEveniment || null,
     dataSchimbareStatus: row.data_schimbare_status || row.created_at || nowISO(),
     dataUltimeiActualizari: row.data_ultimei_actualizari || nowISO(),
     termenAlertaZile: row.termen_alerta_zile || getStatusAlertDays(status),
@@ -388,10 +405,12 @@ export function fromDb(row) {
     masinaSchimbModel: row.financiar?.masinaSchimbModel || "",
     masinaSchimbNumar: row.financiar?.masinaSchimbNumar || "",
     dataDariiLaSchimb: row.data_darii_la_schimb || "",
+    dataPredareMasinaSchimb: row.data_darii_la_schimb || "",
     zileChirieAudatex: row.zile_chirie_audatex || 0,
     valoarePieseAudatex: row.valoare_piese_audatex || 0,
     valoareAchizitiePiese: row.valoare_achizitie_piese || 0,
     valoareDevizAudatex: row.financiar?.valoareDevizAudatex ?? 0,
+    valoareAcceptataReglata: row.financiar?.valoareAcceptPlata ?? 0,
     dataAdusaFizic: row.financiar?.dataAdusaFizic || null,
     financiar: row.financiar || undefined,
     blocat: !!row.blocat,
