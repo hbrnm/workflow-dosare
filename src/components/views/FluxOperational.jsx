@@ -135,8 +135,14 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       {!hideStatusSelect ? (
         <div className="mt-2" onClick={(e) => e.stopPropagation()}>
           <select
-            value={claim.status}
-            onChange={(e) => onMoveToStatus?.(claim, e.target.value)}
+            value={getStatusDefinition(claim.status).key}
+            onChange={(e) => {
+              e.stopPropagation();
+              const nextVal = e.target.value;
+              if (nextVal && getStatusDefinition(nextVal).key !== getStatusDefinition(claim.status).key) {
+                onMoveToStatus?.(claim, nextVal);
+              }
+            }}
             onClick={(e) => e.stopPropagation()}
             className="w-full rounded-md px-2.5 py-1.5 font-bold text-[13px] md:text-[14px] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
             title="Schimbă stadiul dosarului"
@@ -151,11 +157,12 @@ export function PhaseCardRedesign({ claim, onOpen, onMoveToStatus, onTogglePiese
       ) : onMoveToStatus ? (
         <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
           <select
-            value={claim.status}
+            value={getStatusDefinition(claim.status).key}
             onChange={(e) => {
               e.stopPropagation();
-              if (e.target.value && e.target.value !== claim.status) {
-                onMoveToStatus(claim, e.target.value);
+              const nextVal = e.target.value;
+              if (nextVal && getStatusDefinition(nextVal).key !== getStatusDefinition(claim.status).key) {
+                onMoveToStatus(claim, nextVal);
               }
             }}
             onClick={(e) => e.stopPropagation()}
@@ -339,14 +346,14 @@ function StackedPhaseCardGroup({ groupKey, groupClaims, onOpen, onMoveToStatus, 
         {onMoveToStatus && (
           <div className="mt-2 pt-1.5 border-t border-[var(--app-border-soft)]/60 flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
             <select
-              value={first.status}
+              value={getStatusDefinition(first.status).key}
               onChange={(e) => {
                 e.stopPropagation();
                 const nextStatus = e.target.value;
-                if (nextStatus && nextStatus !== first.status) {
+                if (nextStatus && getStatusDefinition(nextStatus).key !== getStatusDefinition(first.status).key) {
                   let movedCount = 0;
                   groupClaims.forEach((c) => {
-                    if (c.status !== nextStatus) {
+                    if (getStatusDefinition(c.status).key !== getStatusDefinition(nextStatus).key) {
                       onMoveToStatus(c, nextStatus);
                       movedCount += 1;
                     }

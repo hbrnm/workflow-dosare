@@ -508,13 +508,21 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
    * Statusul se schimbă imediat în UI; DB primește doar un patch țintit (fără poze/documente).
    */
   const moveToStatus = useCallback(
-    (claim, newStatusKey, canEditFn, { onUndoToast } = {}) => {
+    (claimOrId, newStatusKey, canEditFn, { onUndoToast } = {}) => {
+      const claim =
+        (typeof claimOrId === "object" && claimOrId !== null ? claimOrId : null) ||
+        claimsRef.current.find((c) => c.id === claimOrId);
+      if (!claim) return false;
+
       if (canEditFn && !canEditFn(claim)) {
         showNotice("Poți muta doar dosarele create de tine.", "error");
         return false;
       }
-      if (claim.status === newStatusKey) return false;
-      const transition = canTransition(claim.status, newStatusKey);
+      const mappedKey = getStatusDefinition(newStatusKey).key;
+      const currentKey = getStatusDefinition(claim.status).key;
+      if (currentKey === mappedKey) return false;
+
+      const transition = canTransition(currentKey, mappedKey);
       if (!transition.ok) {
         showNotice(transition.reason, "error");
         return false;
@@ -525,7 +533,6 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
 
       const deliveryPatch = {};
 
-      const mappedKey = getStatusDefinition(newStatusKey).key;
       const isPreProgramat = ["deschidere", "piese_comandate"].includes(mappedKey);
       const schedulePatch = isPreProgramat
         ? { dataProgramare: null, pieseSosite: mappedKey === "piese_comandate" ? !!claim.pieseSosite : false }
@@ -563,6 +570,7 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
           id: claim.id,
         });
         if (error) {
+          console.error("moveToStatus DB update error:", error);
           showNotice(error.message, "error");
           setClaims((prev) => prev.map((c) => (c.id === claim.id ? previousClaim : c)));
         }
@@ -595,7 +603,12 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         })();
       };
 
-      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, undoStatus, timer: null });
+      // Safety timeout: curăță din pending după 6 secunde dacă onCommit nu a fost apelat
+      const autoCleanTimer = setTimeout(() => {
+        pendingStatusChanges.current.delete(claim.id);
+      }, 6000);
+
+      pendingStatusChanges.current.set(claim.id, { previousClaim, updated, undoStatus, timer: autoCleanTimer });
 
       // Notify parent for undo toast
       const STATUSES_LABELS = {
@@ -612,7 +625,10 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
         icon: "status",
         message: `„${claim.numarDosar || claim.numarInmatriculare}" → ${STATUSES_LABELS[mappedKey] || mappedKey}`,
         timeoutMs: 5000,
-        onCommit: () => {},
+        onCommit: () => {
+          clearPendingTimer();
+          pendingStatusChanges.current.delete(claim.id);
+        },
         onUndo: undoStatus,
       });
 

@@ -17,7 +17,7 @@ import QuickViewDrawer from "./components/common/QuickViewDrawer";
 import SetariModal from "./components/modals/SetariModal";
 import { lazyWithRetry } from "./utils/lazyWithRetry";
 import { dismissOnboarding } from "./utils/onboardingPrefs";
-import { ROLES, resolveUserRole, canCreateClaim, canEditWorkshop } from "./constants/roles";
+import { ROLES, resolveUserRole, canCreateClaim, canEditWorkshop, canChangeStatus } from "./constants/roles";
 import { getStatusDefinition } from "./constants/config";
 import { fmtProgramare } from "./utils/dateUtils";
 import { useAuth } from "./hooks/useAuth";
@@ -733,6 +733,19 @@ export default function App() {
 
   const [schedulePromptClaim, setSchedulePromptClaim] = useState(null);
 
+  const canMove = useCallback(
+    (claim) => {
+      if (!session?.user) return false;
+      if (isAdmin) return true;
+      if (!claim) return true;
+      if (canChangeStatus(myRole) || canEditWorkshop(myRole)) return true;
+      const cOwner = (claim.createdByEmail || "").toLowerCase();
+      const uEmail = (myEmail || "").toLowerCase();
+      return Boolean(cOwner && uEmail && cOwner === uEmail);
+    },
+    [session, isAdmin, myRole, myEmail]
+  );
+
   const handleMoveToStatus = useCallback(
     async (claimOrId, newStatus) => {
       const targetKey = getStatusDefinition(newStatus).key;
@@ -741,7 +754,7 @@ export default function App() {
         claims.find((c) => c?.id === claimOrId);
 
       if (targetKey === "programat" && claim) {
-        if (!canEdit(claim)) {
+        if (!canMove(claim)) {
           showNotice("Poți muta doar dosarele create de tine.", "error");
           return false;
         }
@@ -749,11 +762,11 @@ export default function App() {
         return false;
       }
 
-      return await moveToStatus(claimOrId, newStatus, canEdit, {
+      return await moveToStatus(claim || claimOrId, newStatus, canMove, {
         onUndoToast: setUndoToastItem,
       });
     },
-    [claims, canEdit, moveToStatus, showNotice, setUndoToastItem]
+    [claims, canMove, moveToStatus, showNotice, setUndoToastItem]
   );
 
   const handleConfirmSchedule = useCallback(

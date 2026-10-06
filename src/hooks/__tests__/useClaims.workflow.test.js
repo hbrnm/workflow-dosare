@@ -91,6 +91,17 @@ describe("useClaims — reguli de tranziție status", () => {
     await waitFor(() => expect(writes.some((w) => w.op === "update")).toBe(true));
   });
 
+  it("moveToStatus acceptă și ID-ul dosarului (string) și actualizează starea", async () => {
+    const { hook } = await setup("deschidere");
+    let ok;
+    act(() => {
+      ok = hook.result.current.moveToStatus("c1", "piese_comandate");
+    });
+    expect(ok).toBe(true);
+    await waitFor(() => expect(hook.result.current.claims[0].status).toBe("piese_comandate"));
+    await waitFor(() => expect(writes.some((w) => w.op === "update")).toBe(true));
+  });
+
   it("patchClaim blochează in_lucru → facturat", async () => {
     const { hook, showNotice } = await setup("in_lucru");
     let ok;
