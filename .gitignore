@@ -7,4 +7,5 @@ debug-*.log
 .cursor/
 vendor-inspect*.txt
 *.traineddata
+.agent/
 

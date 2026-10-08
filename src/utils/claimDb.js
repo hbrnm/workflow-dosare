@@ -231,7 +231,7 @@ export async function writeDosarWithSchemaCompat(supabaseClient, mode, payload, 
 }
 
 /** Mapare câmp app → coloană DB pentru patch-uri parțiale. */
-const PATCH_FIELD_MAP = {
+export const PATCH_FIELD_MAP = {
   numarDosar: "numar_dosar",
   tipAsigurare: "tip_asigurare",
   asigurator: "asigurator",

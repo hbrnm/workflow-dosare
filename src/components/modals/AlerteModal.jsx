@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
-  X, Bell, ChevronRight, CheckCircle2, Phone,
+  X, Bell, ChevronRight, CheckCircle2, Phone, CheckCheck, CheckSquare, Square, Loader2,
 } from "lucide-react";
 import { getStatusDefinition, getStatusShortLabel } from "../../constants/config";
 import {
@@ -45,6 +45,7 @@ export default function AlerteModal({
   onClose,
   onOpenClaim,
   onPatchClaim,
+  onPatchClaimsBulk,
   onNotify,
   themeId = "atelier",
   desktopUi = false,
@@ -87,6 +88,75 @@ export default function AlerteModal({
     [buckets.items, activeTab]
   );
   const totalAlertsCount = buckets.totalAlertsCount;
+
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab]);
+
+  const visibleClaimIds = useMemo(() => {
+    return Array.from(new Set(list.map((item) => item.claim?.id).filter(Boolean)));
+  }, [list]);
+
+  const allAlertClaimIds = useMemo(() => {
+    return Array.from(new Set(buckets.items.map((item) => item.claim?.id).filter(Boolean)));
+  }, [buckets.items]);
+
+  const isAllSelected = visibleClaimIds.length > 0 && visibleClaimIds.every((id) => selectedIds.has(id));
+  const isSomeSelected = selectedIds.size > 0;
+
+  const toggleSelect = (claimId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(claimId)) next.delete(claimId);
+      else next.add(claimId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleClaimIds));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const ackMultipleClaims = async (claimIds, confirmMessage = null) => {
+    if (!claimIds || claimIds.length === 0) return;
+    if (confirmMessage && typeof window !== "undefined" && !window.confirm(confirmMessage)) {
+      return;
+    }
+    setIsBulkProcessing(true);
+    try {
+      let ok = false;
+      if (onPatchClaimsBulk) {
+        ok = await onPatchClaimsBulk(claimIds, { alerteAck: true });
+      } else if (onPatchClaim) {
+        const results = await Promise.all(
+          claimIds.map((id) => onPatchClaim(id, { alerteAck: true }))
+        );
+        ok = results.every(Boolean);
+      }
+      setSelectedIds(new Set());
+      if (onNotify) {
+        onNotify(
+          ok
+            ? `${claimIds.length} ${claimIds.length === 1 ? "alertă ștearsă/rezolvată" : "alerte șterse/rezolvate"}.`
+            : "Eroare la ștergerea alertelor.",
+          ok ? "success" : "error"
+        );
+      }
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
 
   const ackAlert = async (e, claimId) => {
     e.stopPropagation();
@@ -188,6 +258,27 @@ export default function AlerteModal({
                     ? "0"
                     : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
                 </span>
+                {allAlertClaimIds.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      ackMultipleClaims(
+                        allAlertClaimIds,
+                        `Sigur dorești să ștergi / marchezi ca rezolvate TOATE cele ${allAlertClaimIds.length} alerte din atelier?`
+                      )
+                    }
+                    disabled={isBulkProcessing}
+                    className="app-alerte-btn-clear-all"
+                    title="Șterge / marchează ca rezolvate toate alertele din atelier"
+                  >
+                    {isBulkProcessing ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <CheckCheck size={13} />
+                    )}
+                    <span>Șterge toate ({allAlertClaimIds.length})</span>
+                  </button>
+                )}
               </div>
             </div>
             <button
@@ -201,7 +292,7 @@ export default function AlerteModal({
           </div>
         ) : (
           /* Mobile: floating title chip — no full-bleed header slab */
-          <div className="app-alerte-mobile-chrome">
+          <div className="app-alerte-mobile-chrome flex items-center justify-between gap-2">
             <div className="app-alerte-mobile-titlepill">
               <span className="app-alerte-mobile-bell" aria-hidden>
                 <Bell size={15} />
@@ -213,6 +304,27 @@ export default function AlerteModal({
                   : `${totalAlertsCount} ${totalAlertsCount === 1 ? "alertă" : "alerte"}`}
               </span>
             </div>
+            {allAlertClaimIds.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  ackMultipleClaims(
+                    allAlertClaimIds,
+                    `Sigur dorești să ștergi / marchezi ca rezolvate TOATE cele ${allAlertClaimIds.length} alerte din atelier?`
+                  )
+                }
+                disabled={isBulkProcessing}
+                className="app-alerte-btn-clear-all text-xs"
+                title="Șterge / marchează ca rezolvate toate alertele din atelier"
+              >
+                {isBulkProcessing ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <CheckCheck size={12} />
+                )}
+                <span>Șterge tot ({allAlertClaimIds.length})</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -247,7 +359,7 @@ export default function AlerteModal({
           </aside>
 
           <section className="app-alerte-main flex-1 min-w-0 flex flex-col min-h-0">
-            <div className="app-alerte-section-head hidden sm:block">
+            <div className="app-alerte-section-head flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="app-alerte-section-icon" style={{ color: activeCat.hex }}>
                   <ActiveIcon size={18} />
@@ -261,7 +373,82 @@ export default function AlerteModal({
                   )}
                 </div>
               </div>
+
+              {list.length > 0 && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAll}
+                    className="app-alerte-btn-select-all"
+                    title={isAllSelected ? "Deselectează tot" : "Selectează toate din această categorie"}
+                  >
+                    {isAllSelected ? <CheckSquare size={14} /> : <Square size={14} />}
+                    <span>{isAllSelected ? "Deselectează" : "Selectează tot"}</span>
+                  </button>
+
+                  {!isSomeSelected && visibleClaimIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        ackMultipleClaims(
+                          visibleClaimIds,
+                          `Sigur dorești să ștergi / marchezi ca rezolvate toate cele ${visibleClaimIds.length} alerte din „${activeCat.label}”?`
+                        )
+                      }
+                      disabled={isBulkProcessing}
+                      className="app-alerte-btn-cat-clear"
+                      title={`Șterge toate cele ${visibleClaimIds.length} alerte din ${activeCat.label}`}
+                    >
+                      {isBulkProcessing ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <CheckCheck size={13} />
+                      )}
+                      <span>Rezolvă categoria ({visibleClaimIds.length})</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
+            {isSomeSelected && (
+              <div className="app-alerte-bulk-bar">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="app-alerte-bulk-count">
+                    {selectedIds.size} {selectedIds.size === 1 ? "alertă selectată" : "alerte selectate"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      ackMultipleClaims(
+                        Array.from(selectedIds),
+                        selectedIds.size > 1
+                          ? `Sigur dorești să ștergi / marchezi ca rezolvate cele ${selectedIds.size} alerte selectate?`
+                          : null
+                      )
+                    }
+                    disabled={isBulkProcessing}
+                    className="app-alerte-btn-bulk-confirm"
+                  >
+                    {isBulkProcessing ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <CheckCheck size={14} />
+                    )}
+                    <span>Șterge / Rezolvă ({selectedIds.size})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="app-alerte-btn-bulk-cancel"
+                  >
+                    Anulează
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="app-alerte-list app-fixed-shell-body flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin">
               {list.length === 0 ? (
@@ -294,7 +481,9 @@ export default function AlerteModal({
                     return (
                       <li key={item.id}>
                         <article
-                          className={`app-alerte-row ${alertSeverityClass(item.severity)}`}
+                          className={`app-alerte-row ${alertSeverityClass(item.severity)} ${
+                            selectedIds.has(c.id) ? "is-selected" : ""
+                          }`}
                           onClick={() => openClaim(c)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -305,6 +494,20 @@ export default function AlerteModal({
                           role="button"
                           tabIndex={0}
                         >
+                          <label
+                            className="app-alerte-checkbox-wrapper"
+                            onClick={(e) => e.stopPropagation()}
+                            title={selectedIds.has(c.id) ? "Deselectează" : "Selectează"}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(c.id)}
+                              onChange={() => toggleSelect(c.id)}
+                              className="app-alerte-checkbox"
+                              aria-label={`Selectează alerta pentru dosarul ${c.numarDosar || c.numarInmatriculare}`}
+                            />
+                          </label>
+
                           {metric ? (
                             <div className="app-alerte-metric" title={metric.hint}>
                               <span className="app-alerte-metric-value">{metric.value}</span>

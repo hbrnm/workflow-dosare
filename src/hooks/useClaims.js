@@ -12,6 +12,7 @@ import {
   stripMediaOps,
   unionMediaLists,
   sanitizeClaim,
+  PATCH_FIELD_MAP,
 } from "../utils/claimUtils";
 import { nowISO } from "../utils/dateUtils";
 import { applyScheduleStatusEffects } from "../utils/scheduleStatusEffects";
@@ -503,6 +504,52 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
 
   patchClaimRef.current = patchClaim;
 
+  const patchClaimsBulk = useCallback(
+    async (ids, patch, { quiet = false } = {}) => {
+      if (!Array.isArray(ids) || ids.length === 0) return true;
+      const idSet = new Set(ids);
+      const targets = claimsRef.current.filter((c) => idSet.has(c.id));
+      if (targets.length === 0) return true;
+
+      const now = nowISO();
+      // Actualizare optimistă în UI
+      setClaims((prev) =>
+        prev.map((c) => {
+          if (!idSet.has(c.id)) return c;
+          return {
+            ...c,
+            ...patch,
+            dataUltimeiActualizari: now,
+            updatedByEmail: myEmail,
+          };
+        })
+      );
+
+      const dbPatch = {};
+      Object.keys(patch).forEach((k) => {
+        const col = PATCH_FIELD_MAP?.[k] || k;
+        dbPatch[col] = patch[k];
+      });
+      dbPatch.data_ultimei_actualizari = now;
+      if (myEmail) dbPatch.updated_by_email = myEmail;
+
+      const { error } = await supabase.from("dosare").update(dbPatch).in("id", ids);
+      if (error) {
+        if (!quiet) showNotice?.(error.message, "error");
+        // Rollback optimist
+        setClaims((prev) =>
+          prev.map((c) => {
+            const orig = targets.find((t) => t.id === c.id);
+            return orig ? orig : c;
+          })
+        );
+        return false;
+      }
+      return true;
+    },
+    [myEmail, showNotice]
+  );
+
   /**
    * moveToStatus — schimbă statusul cu undo 5 secunde.
    * Statusul se schimbă imediat în UI; DB primește doar un patch țintit (fără poze/documente).
@@ -647,6 +694,7 @@ export function useClaims(session, showNotice, { atelierId = null, tenancyReady 
     saveClaim,
     deleteClaim,
     patchClaim,
+    patchClaimsBulk,
     moveToStatus,
     undoItem,
     setUndoItem,

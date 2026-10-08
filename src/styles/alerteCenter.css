@@ -596,6 +596,180 @@
   background: var(--app-surface-muted, #efeae1);
 }
 
+/* Bulk actions & checkboxes */
+.app-alerte-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 0.35rem;
+  margin-right: 0.2rem;
+  transition: opacity 0.15s ease;
+}
+
+.app-alerte-checkbox {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 0.3rem;
+  border: 1.5px solid var(--app-border, #dad4c6);
+  cursor: pointer;
+  accent-color: var(--app-accent, #2c4160);
+  margin: 0;
+}
+
+.app-alerte-row.is-selected {
+  border-color: var(--app-accent, #2c4160) !important;
+  background: color-mix(in srgb, var(--app-accent, #2c4160) 10%, var(--app-surface)) !important;
+  box-shadow: 0 0 0 1px var(--app-accent, #2c4160);
+}
+
+.app-alerte-btn-clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 999px;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 12%, var(--app-surface));
+  color: var(--app-danger, #b23a2e);
+  border: 1px solid color-mix(in srgb, var(--app-danger, #b23a2e) 30%, var(--app-border));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-alerte-btn-clear-all:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-danger, #b23a2e) 20%, var(--app-surface));
+  border-color: var(--app-danger, #b23a2e);
+}
+
+.app-alerte-btn-clear-all:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-alerte-btn-select-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.26rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 700;
+  background: var(--app-surface-2, #faf8f5);
+  color: var(--app-text, #3b5166);
+  border: 1px solid var(--app-border, #dad4c6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-alerte-btn-select-all:hover {
+  background: var(--app-surface-muted, #efeae1);
+  color: var(--app-text-strong, #23282e);
+}
+
+.app-alerte-btn-cat-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.26rem 0.65rem;
+  border-radius: 0.45rem;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 700;
+  background: var(--app-surface, #fff);
+  color: var(--app-text, #3b5166);
+  border: 1px solid var(--app-border, #dad4c6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-alerte-btn-cat-clear:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-accent, #2c4160) 10%, var(--app-surface));
+  border-color: var(--app-accent, #2c4160);
+  color: var(--app-accent, #2c4160);
+}
+
+.app-alerte-btn-cat-clear:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-alerte-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  margin: 0.45rem 0.85rem 0.25rem;
+  background: color-mix(in srgb, var(--app-accent, #2c4160) 12%, var(--app-surface));
+  border: 1px solid color-mix(in srgb, var(--app-accent, #2c4160) 35%, var(--app-border));
+  border-radius: 0.65rem;
+  animation: appAlerteFadeIn 0.15s ease;
+}
+
+@keyframes appAlerteFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-alerte-bulk-count {
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 800;
+  color: var(--app-accent, #2c4160);
+}
+
+.app-alerte-btn-bulk-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.85rem;
+  border-radius: 999px;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 700;
+  background: var(--app-accent, #2c4160);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-alerte-btn-bulk-confirm:hover:not(:disabled) {
+  opacity: 0.92;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--app-accent, #2c4160) 30%, transparent);
+}
+
+.app-alerte-btn-bulk-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-alerte-btn-bulk-cancel {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  font-size: var(--m-type-meta, 0.75rem);
+  font-weight: 600;
+  background: var(--app-surface, #fff);
+  color: var(--app-muted, #6b6558);
+  border: 1px solid var(--app-border, #dad4c6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.app-alerte-btn-bulk-cancel:hover {
+  background: var(--app-surface-muted, #efeae1);
+  color: var(--app-text, #23282e);
+}
+
 .app-alerte-footer {
   display: flex;
   align-items: center;

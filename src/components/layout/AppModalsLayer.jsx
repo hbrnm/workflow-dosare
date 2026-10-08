@@ -22,6 +22,7 @@ export default function AppModalsLayer({
   requestCloseAlerts,
   handleOpenClaim,
   handlePatchClaim,
+  handlePatchClaimsBulk,
   showNotice,
   // Setari
   setariOpen = false,
@@ -110,6 +111,7 @@ export default function AppModalsLayer({
           onClose={requestCloseAlerts}
           onOpenClaim={handleOpenClaim}
           onPatchClaim={handlePatchClaim}
+          onPatchClaimsBulk={handlePatchClaimsBulk}
           onNotify={showNotice}
           desktopUi
         />

@@ -229,6 +229,7 @@ export default function App() {
     saveClaim,
     deleteClaim,
     patchClaim,
+    patchClaimsBulk,
     moveToStatus,
     removeDemoData,
     hasDemoData,
@@ -731,6 +732,13 @@ export default function App() {
     [patchClaim]
   );
 
+  const handlePatchClaimsBulk = useCallback(
+    async (ids, patch, options) => {
+      return await patchClaimsBulk(ids, patch, options);
+    },
+    [patchClaimsBulk]
+  );
+
   const [schedulePromptClaim, setSchedulePromptClaim] = useState(null);
 
   const canMove = useCallback(
@@ -988,6 +996,7 @@ export default function App() {
               onClose={requestCloseAlerts}
               onOpenClaim={openClaimFromAlerts}
               onPatchClaim={handlePatchClaim}
+              onPatchClaimsBulk={handlePatchClaimsBulk}
               onNotify={showNotice}
             />
           </Suspense>
@@ -1316,6 +1325,7 @@ export default function App() {
         requestCloseAlerts={requestCloseAlerts}
         handleOpenClaim={handleOpenClaim}
         handlePatchClaim={handlePatchClaim}
+        handlePatchClaimsBulk={handlePatchClaimsBulk}
         showNotice={showNotice}
         setariOpen={setariOpen}
         requestCloseSettings={requestCloseSettings}

@@ -189,4 +189,24 @@ describe("useClaims.saveClaim — salvare parțială", () => {
     expect(writes[0].body.client).toBe("Popescu Andrei");
     expect(writes[0].body.data_eveniment).toBe("2026-09-20");
   });
+
+  it("patchClaimsBulk actualizează mai multe dosare în mod bulk (ex. alerteAck)", async () => {
+    rows = [dbRow("c1", "in_lucru"), dbRow("c2", "piese_comandate")];
+    const showNotice = vi.fn();
+    const hook = renderHook(() =>
+      useClaims({ user: { id: "u1", email: "t@x.ro" } }, showNotice, { atelierId: "a1", tenancyReady: true })
+    );
+    await waitFor(() => expect(hook.result.current.claims.length).toBe(2));
+    writes.length = 0;
+
+    let ok;
+    await act(async () => {
+      ok = await hook.result.current.patchClaimsBulk(["c1", "c2"], { alerteAck: true });
+    });
+
+    expect(ok).toBe(true);
+    expect(hook.result.current.claims[0].alerteAck).toBe(true);
+    expect(hook.result.current.claims[1].alerteAck).toBe(true);
+    expect(writes.some((w) => w.op === "update" && w.body.alerte_ack === true)).toBe(true);
+  });
 });
